@@ -1,0 +1,30 @@
+import { Country, CountryElement } from "@/lib/types";
+import pool from "@/lib/db";
+
+/**
+ * Създава нов елемент за държава
+ * @param {Object} countryElement - { name, slug, content, country_id, image_url }
+ */
+export async function createCountryElement(countryElement: CountryElement): Promise<CountryElement> {
+    const { name, slug, country_id, image_url, content } = countryElement;
+
+    const sql = `
+    INSERT INTO country_elements (name, slug, content, image_url, country_id)
+    VALUES (?, ?, ?, ?, ?)
+  `;
+
+    try {
+        const [result] = await pool.execute(sql, [
+            name,
+            slug,
+            content ?? "",
+            image_url ?? "",
+            country_id,
+        ]);
+
+        return { id: (result as any).insertId, ...countryElement };
+    } catch (err) {
+        console.error("Error creating country:", err);
+        throw err;
+    }
+}
