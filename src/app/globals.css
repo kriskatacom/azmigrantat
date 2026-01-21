@@ -3,15 +3,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@theme {
-    --color-primary: #0e3545;
-    --color-secondary: #e3e295;
-    --color-light: #efefef;
-    --color-website-dark: #0e3545;
-    --color-website-light: #e5e095;
-    --color-website-menu-item: #0b2935;
-}
-
 @theme inline {
     --radius-sm: calc(var(--radius) - 4px);
     --radius-md: calc(var(--radius) - 2px);
@@ -93,7 +84,7 @@
     --foreground: oklch(0.984 0.003 247.858);
     --card: oklch(0.208 0.042 265.755);
     --card-foreground: oklch(0.984 0.003 247.858);
-    --popover: oklch(0.208 0.042 265.755);
+    --popover: oklch(27.9% 0.041 260.031);
     --popover-foreground: oklch(0.984 0.003 247.858);
     --primary: oklch(0.929 0.013 255.508);
     --primary-foreground: oklch(0.208 0.042 265.755);
@@ -126,6 +117,7 @@
     * {
         @apply border-border outline-ring/50;
     }
+
     body {
         @apply bg-background text-foreground;
     }

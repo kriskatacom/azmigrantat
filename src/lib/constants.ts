@@ -57,3 +57,66 @@ export const COUNTRY_ELEMENTS: Record<string, string> = {
     Пребиваване: "residence",
     Забележителности: "landmarks",
 };
+
+// ===============================
+// ADMIN SIDEBAR
+// ===============================
+
+import { FiUsers } from "react-icons/fi";
+import { MdOutlineDashboard } from "react-icons/md";
+import { IoSettingsOutline } from "react-icons/io5";
+import { BsBuildings } from "react-icons/bs";
+import { CiBank } from "react-icons/ci";
+import { MdOutlineCategory } from "react-icons/md";
+import { TbBuildingStore } from "react-icons/tb";
+import { FaBuildingColumns } from "react-icons/fa6";
+import { LiaLandmarkSolid } from "react-icons/lia";
+import { AdminSidebarItem } from "@/lib/types";
+
+export const mainSidebarItems: AdminSidebarItem[] = [
+    {
+        name: "Табло",
+        icon: MdOutlineDashboard,
+        link: "dashboard",
+    },
+    {
+        name: "Потребители",
+        icon: FiUsers,
+        link: "users",
+    },
+    {
+        name: "Държави",
+        icon: CiBank,
+        link: "countries",
+    },
+    {
+        name: "Градове",
+        icon: BsBuildings,
+        link: "cities",
+    },
+    {
+        name: "Категории",
+        icon: MdOutlineCategory,
+        link: "categories",
+    },
+    {
+        name: "Компании",
+        icon: TbBuildingStore,
+        link: "companies",
+    },
+    {
+        name: "Посолства",
+        icon: FaBuildingColumns,
+        link: "embassies",
+    },
+    {
+        name: "Забележителности",
+        icon: LiaLandmarkSolid,
+        link: "landmarks",
+    },
+    {
+        name: "Настройки",
+        icon: IoSettingsOutline,
+        link: "settings",
+    },
+];

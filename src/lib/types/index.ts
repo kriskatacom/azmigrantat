@@ -1,3 +1,5 @@
+import { IconType } from "react-icons";
+
 export type Country = {
     id?: number;
     name?: string;
@@ -14,4 +16,10 @@ export type CountryElement = {
     content?: string;
     image_url?: string;
     country_id?: number;
+};
+
+export type AdminSidebarItem = {
+    name: string;
+    icon: IconType;
+    link?: string;
 };
