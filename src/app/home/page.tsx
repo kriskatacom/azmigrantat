@@ -1,9 +1,18 @@
 import { MainNavbar } from "@/components/main-navbar";
 import { Hero } from "@/app/home/hero";
-// import { seedCountriesAndElements } from "@/lib/seed/countries";
+import { getCountries } from "@/lib/services/country-service";
+import { CardGrid } from "@/components/card-grid";
+import { CardEntity } from "@/components/card-item";
 
 export default async function HomePage() {
-    // await seedCountriesAndElements();
+    const countries = await getCountries();
+
+    const mappedCountries: CardEntity[] = countries.map((country) => ({
+        slug: country.slug!,
+        name: country.name!,
+        imageUrl: country.image_url!,
+        excerpt: country.excerpt!,
+    }));
 
     return (
         <>
@@ -15,7 +24,13 @@ export default async function HomePage() {
                 ctaText="РАЗГЛЕЖДАНЕ"
                 ctaLink="#countries"
             />
-            <h1>Начало</h1>
+            <CardGrid
+                items={mappedCountries}
+                id="countries"
+                isWithSearch={true}
+                loadMoreStep={8}
+                initialVisible={8}
+            />
         </>
     );
 }

@@ -28,3 +28,8 @@ export async function createCountry(country: Country): Promise<Country> {
         throw err;
     }
 }
+
+export async function getCountries() {
+    const [rows] = await pool.query("SELECT * FROM countries");
+    return rows as Country[];
+}

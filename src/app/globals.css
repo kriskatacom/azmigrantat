@@ -123,10 +123,74 @@
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+    * {
+        @apply border-border outline-ring/50;
     }
-  body {
-    @apply bg-background text-foreground;
+    body {
+        @apply bg-background text-foreground;
+    }
+}
+
+/* ====================== */
+/* Animations */
+/* ====================== */
+
+@keyframes fadeInUpScale {
+    0% {
+        opacity: 0;
+        transform: translateY(20px) scale(0.95);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.animate-fade-in-up {
+    opacity: 0;
+    animation: fadeInUpScale 0.5s ease-out forwards;
+}
+
+/* ====================== */
+/* Display Card Items */
+/* ====================== */
+
+.card-grid {
+    display: grid;
+    gap: 1.25rem;
+    /* 20px */
+    grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr));
+}
+
+@media (min-width: 640px) {
+    .card-grid {
+        grid-template-columns: repeat(
+            var(--cols-sm, var(--cols, 1)),
+            minmax(0, 1fr)
+        );
+    }
+}
+
+@media (min-width: 768px) {
+    .card-grid {
+        grid-template-columns: repeat(
+            var(--cols-md, var(--cols-sm, var(--cols, 1))),
+            minmax(0, 1fr)
+        );
+    }
+}
+
+@media (min-width: 1024px) {
+    .card-grid {
+        grid-template-columns:
+            repeat(var(--cols-lg, var(--cols-md))), minmax(0, 1fr);
+    }
+}
+
+@media (min-width: 1280px) {
+    .card-grid {
+        grid-template-columns:
+            repeat(var(--cols-xl, var(--cols-lg))), minmax(0, 1fr);
     }
 }
