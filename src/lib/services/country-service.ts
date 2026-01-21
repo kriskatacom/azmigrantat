@@ -1,5 +1,5 @@
 import { Country } from "@/lib/types";
-import pool from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 /**
  * Създава нова държава
@@ -14,7 +14,7 @@ export async function createCountry(country: Country): Promise<Country> {
   `;
 
     try {
-        const [result] = await pool.execute(sql, [
+        const [result] = await getDb().execute(sql, [
             name,
             slug,
             heading ?? "",
@@ -30,6 +30,15 @@ export async function createCountry(country: Country): Promise<Country> {
 }
 
 export async function getCountries() {
-    const [rows] = await pool.query("SELECT * FROM countries");
+    const [rows] = await getDb().query("SELECT * FROM countries");
     return rows as Country[];
+}
+
+export async function getCountryBySlug(slug: string) {
+    const [rows] = await getDb().execute(
+        "SELECT * FROM countries WHERE slug = ? LIMIT 1",
+        [slug],
+    );
+
+    return (rows as Country[])[0] ?? null;
 }

@@ -1,5 +1,5 @@
 import { Country, CountryElement } from "@/lib/types";
-import pool from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 /**
  * Създава нов елемент за държава
@@ -14,7 +14,7 @@ export async function createCountryElement(countryElement: CountryElement): Prom
   `;
 
     try {
-        const [result] = await pool.execute(sql, [
+        const [result] = await getDb().execute(sql, [
             name,
             slug,
             content ?? "",

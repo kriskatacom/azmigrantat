@@ -4,7 +4,6 @@ import axios from "axios";
 import fsPromises from "fs/promises";
 import fs from "fs";
 import fsSync from "fs";
-import { CardItem } from "@/lib/types";
 
 export function validatePassword(password: string) {
     const re =
