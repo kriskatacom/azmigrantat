@@ -1,6 +1,11 @@
-import { MainNavbar } from "@/components/main-navbar";
-import { Hero } from "./hero";
+import { redirect } from "next/navigation";
 import { getCountryBySlug } from "@/lib/services/country-service";
+import { getCountryElementsByColumn } from "@/lib/services/country-element-service";
+import { CountryElement } from "@/lib/types";
+import { MainNavbar } from "@/components/main-navbar";
+import { CardGrid } from "@/components/card-grid";
+import { CardEntity } from "@/components/card-item";
+import { Hero } from "@/app/[country]/hero";
 
 type PageProps = {
     params: Promise<{
@@ -12,6 +17,24 @@ export default async function CountryPage({ params }: PageProps) {
     const { country } = await params;
 
     const countryData = await getCountryBySlug(country);
+    let countryElements: CountryElement[] = [];
+
+    if (!countryData || !countryData.id) {
+        return redirect("/");
+    }
+
+    countryElements = await getCountryElementsByColumn(
+        "country_id",
+        countryData.id.toString(),
+    );
+
+    const mappedCountryElements: CardEntity[] = countryElements.map(
+        (countryElement) => ({
+            slug: countryElement.slug!,
+            name: countryElement.name!,
+            imageUrl: countryElement.image_url!,
+        }),
+    );
 
     return (
         <>
@@ -23,7 +46,11 @@ export default async function CountryPage({ params }: PageProps) {
                 ctaText="Научете повече"
                 ctaLink="#learn-more"
             />
-            <div>{country}</div>
+            <CardGrid
+                items={mappedCountryElements}
+                id="learn-more"
+                hrefPrefix={countryData.slug}
+            />
         </>
     );
 }
