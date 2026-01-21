@@ -1,6 +1,6 @@
 import { MainNavbar } from "@/components/main-navbar";
 import { Hero } from "@/app/home/hero";
-import { seedCountriesAndElements } from "@/lib/seed/countries";
+// import { seedCountriesAndElements } from "@/lib/seed/countries";
 
 export default async function HomePage() {
     // await seedCountriesAndElements();

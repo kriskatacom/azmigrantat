@@ -5,7 +5,7 @@ import path from "path";
 import { getTodayFolder, sleep } from "@/app/api/lib";
 import { downloadImage } from "@/app/api/lib";
 import { createCountry } from "@/lib/services/country-service";
-import { createCountryElement } from "../services/country-element-service";
+import { createCountryElement } from "@/lib/services/country-element-service";
 import { COUNTRIES, COUNTRY_ELEMENTS } from "@/lib/constants";
 
 type CountryItem = {
