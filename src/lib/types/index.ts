@@ -7,6 +7,8 @@ export type Country = {
     heading?: string;
     excerpt?: string;
     image_url?: string;
+    created_at?: string;
+    updated_at?: string;
 };
 
 export type CountryElement = {
@@ -16,10 +18,28 @@ export type CountryElement = {
     content?: string;
     image_url?: string;
     country_id?: number;
+    created_at?: string;
+    updated_at?: string;
 };
 
 export type AdminSidebarItem = {
     name: string;
     icon: IconType;
     link?: string;
+};
+
+export type Embassy = {
+    id?: number;
+    name?: string;
+    slug?: string;
+    heading?: string;
+    excerpt?: string;
+    content?: string;
+    contacts_content?: string;
+    image_url?: string | null;
+    additional_images?: string | null;
+    country_id: number | null;
+    city_id?: number;
+    created_at?: string;
+    updated_at?: string;
 };

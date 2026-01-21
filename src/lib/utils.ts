@@ -8,3 +8,11 @@ export function cn(...inputs: ClassValue[]) {
 export const websiteName = (prefix: string) => {
     return `${prefix} - Аз Мигрантът`;
 };
+
+export const extractIframeSrc = (iframeHtml: string): string | null => {
+    if (!iframeHtml) return null;
+
+    const match = iframeHtml.match(/src\s*=\s*["']([^"']+)["']/i);
+
+    return match ? match[1] : null;
+};
