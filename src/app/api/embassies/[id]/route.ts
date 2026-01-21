@@ -12,10 +12,10 @@ type Params = {
 };
 
 export async function DELETE(
-    _: Request,
-    { params }: { params: { id: string } },
+    _: Request, { params }: Params,
 ) {
-    const embassyId = Number(params.id);
+    const { id } = await params;
+    const embassyId = Number(id);
 
     if (isNaN(embassyId)) {
         return NextResponse.json(

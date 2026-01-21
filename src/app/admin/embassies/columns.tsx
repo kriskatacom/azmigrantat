@@ -215,7 +215,7 @@ export const columns: ColumnDef<EmbassyWithCountry>[] = [
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                             onClick={() =>
-                                router.push(`/admin/companies/${company.id}`)
+                                router.push(`/admin/embassies/${company.id}`)
                             }
                         >
                             Редактиране

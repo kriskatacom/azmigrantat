@@ -35,8 +35,13 @@ export async function createEmbassy(
     }
 }
 
-export async function getEmbassies(): Promise<EmbassyWithCountry[]> {
-    const [rows] = await getDb().query<any[]>(`
+type GetEmbassiesOptions = {
+    column?: "id" | "slug" | "country_id" | "name"; // позволени колони
+    value?: string | number;
+};
+
+export async function getEmbassies(options?: GetEmbassiesOptions): Promise<EmbassyWithCountry[]> {
+    let sql = `
         SELECT
             e.id,
             e.name,
@@ -47,13 +52,22 @@ export async function getEmbassies(): Promise<EmbassyWithCountry[]> {
             e.country_id,
             e.created_at,
             e.updated_at,
-
             c.id   AS c_id,
             c.name AS c_name,
             c.slug AS c_slug
         FROM embassies e
         LEFT JOIN countries c ON c.id = e.country_id
-    `);
+    `;
+
+    const params: (string | number)[] = [];
+
+    // Ако има подадени опции за WHERE
+    if (options?.column && options.value !== undefined) {
+        sql += ` WHERE e.${options.column} = ?`;
+        params.push(options.value);
+    }
+
+    const [rows] = await getDb().query<any[]>(sql, params);
 
     return rows.map((row) => ({
         id: row.id,
@@ -65,7 +79,6 @@ export async function getEmbassies(): Promise<EmbassyWithCountry[]> {
         country_id: row.country_id,
         created_at: row.created_at,
         updated_at: row.updated_at,
-
         country: row.c_id
             ? {
                   id: row.c_id,
@@ -146,7 +159,6 @@ export async function deleteEmbassy(id: number): Promise<boolean> {
 export async function deleteEmbassiesBulk(ids: number[]): Promise<number> {
     if (ids.length === 0) return 0;
 
-    // Генерираме placeholders като ?, ?, ? ...
     const placeholders = ids.map(() => "?").join(", ");
 
     const sql = `DELETE FROM embassies WHERE id IN (${placeholders})`;
