@@ -172,13 +172,13 @@ export const columns: ColumnDef<EmbassyWithCountry>[] = [
         },
         header: "Опции",
         cell: ({ row }) => {
-            const company = row.original;
+            const embassy = row.original;
             const router = useRouter();
 
             const handleDelete = async () => {
                 try {
                     const res = await axios.delete(
-                        `/api/embassies/${company.id}`,
+                        `/api/embassies/${embassy.id}`,
                     );
 
                     if (res.data.success) {
@@ -213,10 +213,24 @@ export const columns: ColumnDef<EmbassyWithCountry>[] = [
 
                     <DropdownMenuContent align="end" className="w-40">
                         <DropdownMenuLabel>Опции</DropdownMenuLabel>
+                        {embassy.country?.slug && (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onClick={() =>
+                                        router.push(
+                                            `/${embassy.country?.slug}/embassies/${embassy.slug}`,
+                                        )
+                                    }
+                                >
+                                    Преглед
+                                </DropdownMenuItem>
+                            </>
+                        )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                             onClick={() =>
-                                router.push(`/admin/embassies/${company.id}`)
+                                router.push(`/admin/embassies/${embassy.id}`)
                             }
                         >
                             Редактиране

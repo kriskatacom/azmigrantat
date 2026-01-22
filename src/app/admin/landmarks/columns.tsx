@@ -213,6 +213,20 @@ export const columns: ColumnDef<LandmarkWithCountry>[] = [
 
                     <DropdownMenuContent align="end" className="w-40">
                         <DropdownMenuLabel>Опции</DropdownMenuLabel>
+                        {landmark.country?.slug && (
+                            <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                    onClick={() =>
+                                        router.push(
+                                            `/${landmark.country?.slug}/landmarks/${landmark.slug}`,
+                                        )
+                                    }
+                                >
+                                    Преглед
+                                </DropdownMenuItem>
+                            </>
+                        )}
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                             onClick={() =>
