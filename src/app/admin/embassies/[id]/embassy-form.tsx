@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { extractIframeSrc } from "@/lib/utils";
 import { Country, Embassy } from "@/lib/types";
 import RichTextEditor from "@/components/rich-text-editor";
+import { RelationForm } from "@/components/relation-form";
 
 export interface NewEmbassy {
     name: string;
@@ -187,6 +188,34 @@ export default function NewEmbassyForm({ embassy, countries }: Params) {
                 )}
             </div>
 
+            <div className="flex items-center gap-5">
+                <RelationForm
+                    items={countries
+                        .filter(
+                            (country) =>
+                                country.id !== undefined &&
+                                country.name !== undefined,
+                        )
+                        .map((country) => ({
+                            id: country.id as number,
+                            label: country.name as string,
+                        }))}
+                    value={formData.countryId}
+                    onChange={(id) =>
+                        setFormData((prev) => ({
+                            ...prev,
+                            countryId:
+                                typeof id === "string"
+                                    ? parseInt(id, 10) || null
+                                    : id,
+                        }))
+                    }
+                    placeholder="Изберете държава"
+                    searchPlaceholder="Търсене на държава"
+                    emptyText="Няма намерени държави"
+                />
+            </div>
+
             <div className="rounded-md">
                 <h2 className="text-xl font-semibold mb-5">За посолството</h2>
                 <div className="text-editor max-w-5xl max-h-200 overflow-auto">
@@ -195,9 +224,14 @@ export default function NewEmbassyForm({ embassy, countries }: Params) {
             </div>
 
             <div className="rounded-md">
-                <h2 className="text-xl font-semibold mb-5">Информация за контакти</h2>
+                <h2 className="text-xl font-semibold mb-5">
+                    Информация за контакти
+                </h2>
                 <div className="text-editor max-w-5xl max-h-200 overflow-auto">
-                    <RichTextEditor content={contactsContent} onChange={onChangeContactsContent} />
+                    <RichTextEditor
+                        content={contactsContent}
+                        onChange={onChangeContactsContent}
+                    />
                 </div>
             </div>
 
