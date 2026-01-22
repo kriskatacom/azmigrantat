@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { extractIframeSrc } from "@/lib/utils";
 import { Country, Embassy } from "@/lib/types";
+import RichTextEditor from "@/components/rich-text-editor";
 
 export interface NewEmbassy {
     name: string;
@@ -169,7 +170,7 @@ export default function NewEmbassyForm({ embassy, countries }: Params) {
 
             <div>
                 <Label className="mb-1" htmlFor="heading">
-                    Име на посолството *
+                    Заглавие на страницата *
                 </Label>
                 <Input
                     id="heading"
@@ -186,23 +187,18 @@ export default function NewEmbassyForm({ embassy, countries }: Params) {
                 )}
             </div>
 
-            <div>
-                <Label className="mb-1" htmlFor="excerpt">
-                    Кратко описание
-                </Label>
-                <Textarea
-                    id="excerpt"
-                    value={formData.excerpt}
-                    onChange={(e) => handleChange("excerpt", e.target.value)}
-                    placeholder="Въведете кратко описание на посолството"
-                    disabled={isSubmitting}
-                    className="h-40"
-                />
-                {errors.excerpt && (
-                    <p className="text-sm text-red-500 mt-1">
-                        {errors.excerpt}
-                    </p>
-                )}
+            <div className="rounded-md">
+                <h2 className="text-xl font-semibold mb-5">За посолството</h2>
+                <div className="text-editor max-w-5xl max-h-200 overflow-auto">
+                    <RichTextEditor content={description} onChange={onChange} />
+                </div>
+            </div>
+
+            <div className="rounded-md">
+                <h2 className="text-xl font-semibold mb-5">Информация за контакти</h2>
+                <div className="text-editor max-w-5xl max-h-200 overflow-auto">
+                    <RichTextEditor content={contactsContent} onChange={onChangeContactsContent} />
+                </div>
             </div>
 
             <div className="text-lg text-muted-foreground">

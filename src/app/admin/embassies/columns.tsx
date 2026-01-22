@@ -79,6 +79,7 @@ export const columns: ColumnDef<EmbassyWithCountry>[] = [
                             }`}
                             onLoad={() => setImageLoading(false)}
                             onError={() => setImageLoading(false)}
+                            unoptimized
                         />
                     </Link>
                 </div>

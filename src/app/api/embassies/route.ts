@@ -77,6 +77,8 @@ export async function POST(req: Request) {
                 slug: data.slug,
                 heading: data.heading,
                 excerpt: data.excerpt,
+                content: data.content,
+                contacts_content: data.contactsContent,
                 country_id: data.countryId,
             });
 
@@ -117,6 +119,8 @@ export async function POST(req: Request) {
             slug: data.slug,
             heading: data.heading,
             excerpt: data.excerpt,
+            content: data.content,
+            contacts_content: data.contactsContent,
             country_id: data.countryId,
         });
 

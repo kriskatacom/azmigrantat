@@ -119,6 +119,7 @@ export default function ImageUpload({
                                     return copy;
                                 })
                             }
+                            unoptimized
                         />
                         {/* Remove Button */}
                         <Button
