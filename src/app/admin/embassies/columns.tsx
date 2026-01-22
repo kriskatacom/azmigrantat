@@ -47,8 +47,8 @@ export const columns: ColumnDef<EmbassyWithCountry>[] = [
 
     {
         accessorKey: "imageUrl",
-        meta: { label: "Снимка" },
-        header: "Снимка",
+        meta: { label: "Изображение" },
+        header: "Изображение",
         cell: ({ row }) => {
             const embassy = row.original;
             const [imageLoading, setImageLoading] = useState(true);

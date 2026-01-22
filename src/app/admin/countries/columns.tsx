@@ -18,13 +18,9 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Country, Embassy } from "@/lib/types";
+import { Country } from "@/lib/types";
 
-export type EmbassyWithCountry = Embassy & {
-    country?: Country;
-};
-
-export const columns: ColumnDef<EmbassyWithCountry>[] = [
+export const columns: ColumnDef<Country>[] = [
     {
         id: "select",
         header: ({ table }) => (
@@ -47,13 +43,13 @@ export const columns: ColumnDef<EmbassyWithCountry>[] = [
 
     {
         accessorKey: "imageUrl",
-        meta: { label: "Снимка" },
-        header: "Снимка",
+        meta: { label: "Изображение" },
+        header: "Изображение",
         cell: ({ row }) => {
-            const embassy = row.original;
+            const country = row.original;
             const [imageLoading, setImageLoading] = useState(true);
 
-            if (!embassy.image_url) {
+            if (!country.image_url) {
                 return (
                     <div className="w-24 h-16 flex items-center justify-center text-sm rounded">
                         N/A
@@ -69,10 +65,10 @@ export const columns: ColumnDef<EmbassyWithCountry>[] = [
                         </div>
                     )}
 
-                    <Link href={`/admin/embassies/${embassy.id}`}>
+                    <Link href={`/admin/countries/${country.id}`}>
                         <Image
-                            src={embassy.image_url}
-                            alt={embassy.name as string}
+                            src={country.image_url}
+                            alt={country.name as string}
                             fill
                             className={`w-full h-full object-cover transition-opacity duration-500 ${
                                 imageLoading ? "opacity-0" : "opacity-100"
@@ -103,35 +99,10 @@ export const columns: ColumnDef<EmbassyWithCountry>[] = [
         ),
         cell: ({ row }) => (
             <Link
-                href={`/admin/embassies/${row.original.id}`}
+                href={`/admin/countries/${row.original.id}`}
                 className="hover:underline"
             >
                 {row.getValue("name")}
-            </Link>
-        ),
-    },
-
-    {
-        id: "country",
-        accessorFn: (row) => row.country?.name,
-        meta: { label: "Държава" },
-        header: ({ column }) => (
-            <button
-                className="flex items-center hover:bg-background duration-300 w-full px-2 py-1"
-                onClick={() =>
-                    column.toggleSorting(column.getIsSorted() === "asc")
-                }
-            >
-                <span>Държава</span>
-                <ArrowUpDown className="ml-2 h-4 w-4" />
-            </button>
-        ),
-        cell: ({ row }) => (
-            <Link
-                href={`/admin/embassies?country=${row.original.country?.slug}`}
-                className="text-blue-500 hover:underline"
-            >
-                {row.original.country?.name}
             </Link>
         ),
     },
@@ -178,14 +149,12 @@ export const columns: ColumnDef<EmbassyWithCountry>[] = [
             const handleDelete = async () => {
                 try {
                     const res = await axios.delete(
-                        `/api/embassies/${company.id}`,
+                        `/api/countries/${company.id}`,
                     );
 
                     if (res.data.success) {
                         router.refresh();
-                        toast.success(
-                            "Това посолство беше успешно премахнато!",
-                        );
+                        toast.success("Тази държава беше успешно премахната!");
                     } else {
                         if (res.status === 403 && res.data.code === "slug") {
                             toast.error(res.data.error);
@@ -216,7 +185,7 @@ export const columns: ColumnDef<EmbassyWithCountry>[] = [
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                             onClick={() =>
-                                router.push(`/admin/embassies/${company.id}`)
+                                router.push(`/admin/countries/${company.id}`)
                             }
                         >
                             Редактиране

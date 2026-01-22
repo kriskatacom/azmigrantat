@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCountryBySlug } from "@/lib/services/country-service";
+import { getCountryByColumn } from "@/lib/services/country-service";
 import { getEmbassies } from "@/lib/services/embassy-service";
 import { MainNavbar } from "@/components/main-navbar";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
@@ -15,7 +15,7 @@ type Props = {
 export default async function EmbassiesPage({ params }: Props) {
     const countrySlug = (await params).country;
 
-    const country = await getCountryBySlug(countrySlug);
+    const country = await getCountryByColumn("slug", countrySlug);
 
     if (!country || !country.name) {
         return redirect("/");

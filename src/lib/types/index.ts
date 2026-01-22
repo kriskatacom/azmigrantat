@@ -6,7 +6,7 @@ export type Country = {
     slug?: string;
     heading?: string;
     excerpt?: string;
-    image_url?: string;
+    image_url?: string | null;
     created_at?: string;
     updated_at?: string;
 };

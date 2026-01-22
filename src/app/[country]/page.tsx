@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCountryBySlug } from "@/lib/services/country-service";
+import { getCountryByColumn } from "@/lib/services/country-service";
 import { getCountryElementsByColumn } from "@/lib/services/country-element-service";
 import { CountryElement } from "@/lib/types";
 import { MainNavbar } from "@/components/main-navbar";
@@ -16,7 +16,7 @@ type PageProps = {
 export default async function CountryPage({ params }: PageProps) {
     const { country } = await params;
 
-    const countryData = await getCountryBySlug(country);
+    const countryData = await getCountryByColumn("slug", country);
     let countryElements: CountryElement[] = [];
 
     if (!countryData || !countryData.id) {

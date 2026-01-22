@@ -305,15 +305,9 @@ export function DataTable<TData extends Identifiable>({
                     от {table.getFilteredRowModel().rows.length} реда.
                 </div>
                 <div className="flex items-center justify-between py-4">
-                    <div className="text-muted-foreground text-sm">
-                        Страница {currentPage + 1} от {pageCount}
-                    </div>
-
                     <div className="flex items-center justify-between p-5">
                         {/* Лява страна */}
                         <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                            <span>Редове на страница:</span>
-
                             <Select
                                 value={String(
                                     table.getState().pagination.pageSize,

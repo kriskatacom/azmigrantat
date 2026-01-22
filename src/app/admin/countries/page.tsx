@@ -5,46 +5,20 @@ import { websiteName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { MainSidebar } from "@/components/main-sidebar";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
-import ClientPage from "@/app/admin/embassies/client-page";
-import { Country } from "@/lib/types";
-import { getCountryBySlug } from "@/lib/services/country-service";
-import { EmbassyWithCountry } from "./columns";
-import { getEmbassies } from "@/lib/services/embassy-service";
+import ClientPage from "@/app/admin/countries/client-page";
+import { getCountries } from "@/lib/services/country-service";
 
 export const metadata: Metadata = {
-    title: websiteName("Посолства"),
+    title: websiteName("Държави"),
 };
 
-type EmbassyProps = {
-    searchParams: Promise<{
-        country: string;
-    }>;
-};
-
-export default async function Companies({ searchParams }: EmbassyProps) {
-    const countrySlug = (await searchParams).country;
-    let country: Country | null = null;
-    let embassies: EmbassyWithCountry[] = [];
-
+export default async function Companies() {
     let breadcrumbs: BreadcrumbItem[] = [
         { name: "Табло", href: "/admin/dashboard" },
-        { name: "Посолства", href: "/admin/embassies" },
+        { name: "Държави", href: "/admin/countries" },
     ];
 
-    if (countrySlug) {
-        country = await getCountryBySlug(countrySlug);
-    }
-
-    if (country && country.name) {
-        breadcrumbs.push({
-            name: country.name,
-            href: `/admin/embassies?country=${country.slug}`,
-        });
-
-        embassies = await getEmbassies({ column: "country_id", value: country.id as number });
-    } else {
-        embassies = await getEmbassies();
-    }
+    const countries = await getCountries();
 
     return (
         <div className="flex">
@@ -52,8 +26,8 @@ export default async function Companies({ searchParams }: EmbassyProps) {
 
             <main className="flex-1">
                 <div className="flex items-center gap-5 border-b">
-                    <h1 className="text-2xl font-semibold p-5">Посолства</h1>
-                    <Link href="/admin/embassies/new">
+                    <h1 className="text-2xl font-semibold p-5">Държави</h1>
+                    <Link href="/admin/countries/new">
                         <Button variant={"default"} size={"xl"}>
                             <FiPlus />
                             <span>Добавяне</span>
@@ -63,7 +37,7 @@ export default async function Companies({ searchParams }: EmbassyProps) {
 
                 <Breadcrumbs items={breadcrumbs} />
 
-                <ClientPage data={embassies} />
+                <ClientPage data={countries} />
             </main>
         </div>
     );

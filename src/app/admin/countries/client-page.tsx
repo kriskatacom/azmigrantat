@@ -3,13 +3,12 @@
 import axios from "axios";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { columns, EmbassyWithCountry } from "@/app/admin/embassies/columns";
+import { columns } from "@/app/admin/countries/columns";
 import { DataTable } from "@/components/data-table";
-import { Embassy } from "@/lib/types";
-import { CardEntity } from "@/components/card-item";
+import { Country } from "@/lib/types";
 
 type ClientPageProps = {
-    data: EmbassyWithCountry[];
+    data: Country[];
 };
 
 export default function ClientPage({ data }: ClientPageProps) {
@@ -18,10 +17,10 @@ export default function ClientPage({ data }: ClientPageProps) {
 
     async function onBulkDelete(selectedIds: (string | number)[]) {
         try {
-            const res = await axios.post("/api/embassies/bulk-delete", { ids: selectedIds });
+            const res = await axios.post("/api/countries/bulk-delete", { ids: selectedIds });
 
             if (res.status === 200) {
-                toast.success(`Бяха премахнати ${res.data.deletedCount} посолства.`);
+                toast.success(`Бяха премахнати ${res.data.deletedCount} държави.`);
                 router.refresh();
             }
         } catch (error) {

@@ -7,7 +7,7 @@ import { MainSidebar } from "@/components/main-sidebar";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
 import ClientPage from "@/app/admin/embassies/client-page";
 import { Country } from "@/lib/types";
-import { getCountryBySlug } from "@/lib/services/country-service";
+import { getCountryByColumn } from "@/lib/services/country-service";
 import { EmbassyWithCountry } from "./columns";
 import { getEmbassies } from "@/lib/services/embassy-service";
 
@@ -21,7 +21,7 @@ type EmbassyProps = {
     }>;
 };
 
-export default async function Companies({ searchParams }: EmbassyProps) {
+export default async function Embassies({ searchParams }: EmbassyProps) {
     const countrySlug = (await searchParams).country;
     let country: Country | null = null;
     let embassies: EmbassyWithCountry[] = [];
@@ -32,7 +32,7 @@ export default async function Companies({ searchParams }: EmbassyProps) {
     ];
 
     if (countrySlug) {
-        country = await getCountryBySlug(countrySlug);
+        country = await getCountryByColumn("slug", countrySlug);
     }
 
     if (country && country.name) {
