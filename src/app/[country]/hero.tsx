@@ -41,8 +41,8 @@ export const Hero: React.FC<HeroProps> = ({
                 />
             )}
             <div className="absolute inset-0 bg-black/50" />
-            <div className="max-w-4xl mx-auto relative z-10 px-5">
-                <h1 className="text-white text-3xl lg:text-4xl xl:text-5xl font-bold drop-shadow-lg">
+            <div className="text-white max-w-4xl mx-auto relative z-10 px-5">
+                <h1 className="text-3xl lg:text-4xl xl:text-5xl font-bold drop-shadow-lg">
                     {title}
                 </h1>
                 {excerpt && (

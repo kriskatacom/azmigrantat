@@ -29,9 +29,36 @@ export async function createCountry(country: Country): Promise<Country> {
     }
 }
 
-export async function getCountries() {
-    const [rows] = await getDb().query("SELECT * FROM countries");
-    return rows as Country[];
+type GetCountriesOptions = {
+    column?: "id" | "slug" | "name";
+    value?: string | number;
+};
+
+export async function getCountries(
+    options?: GetCountriesOptions,
+): Promise<Country[]> {
+    let sql = `SELECT * FROM countries`;
+
+    const params: (string | number)[] = [];
+
+    // Ако има подадени опции за WHERE
+    if (options?.column && options.value !== undefined) {
+        sql += ` WHERE ${options.column} = ?`;
+        params.push(options.value);
+    }
+
+    const [rows] = await getDb().query<any[]>(sql, params);
+
+    return rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        heading: row.heading,
+        excerpt: row.excerpt,
+        image_url: row.image_url,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+    }));
 }
 
 export async function getCountryBySlug(slug: string) {
