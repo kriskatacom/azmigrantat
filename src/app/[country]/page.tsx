@@ -42,7 +42,7 @@ export default async function CountryPage({ params }: PageProps) {
             <Hero
                 title={countryData.name}
                 excerpt={countryData.excerpt}
-                imageUrl={countryData.image_url}
+                imageUrl={countryData.image_url as string}
                 ctaText="Научете повече"
                 ctaLink="#learn-more"
             />
