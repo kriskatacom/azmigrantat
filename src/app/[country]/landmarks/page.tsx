@@ -1,10 +1,59 @@
 import { redirect } from "next/navigation";
+import { Metadata } from "next";
 import { MainNavbar } from "@/components/main-navbar";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { getLandmarks } from "@/lib/services/landmark-service";
+import { websiteName } from "@/lib/utils";
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+    const countrySlug = (await params).country;
+    const country = await getCountryByColumn("slug", countrySlug);
+
+    if (!country || !country.name) {
+        return redirect("/");
+    }
+
+    const title = `Забележителности в ${country.name} | Туристически атракции и места за посещение`;
+    const description = `Разгледай най-популярните забележителности в ${country.name} – исторически обекти, природни атракции и туристически места, които си заслужава да посетиш.`;
+
+    const url = `/${country.slug}/landmarks`;
+
+    return {
+        title: websiteName(title),
+        description,
+
+        keywords: [
+            `забележителности в ${country.name}`,
+            `${country.name} туристически атракции`,
+            `какво да видя в ${country.name}`,
+            `интересни места в ${country.name}`,
+            `туризъм ${country.name}`,
+            `културни и природни забележителности`,
+        ],
+
+        alternates: {
+            canonical: url,
+        },
+
+        openGraph: {
+            title: websiteName(title),
+            description,
+            url,
+            siteName: websiteName(),
+            locale: "bg_BG",
+            type: "website",
+        },
+
+        twitter: {
+            card: "summary_large_image",
+            title: websiteName(title),
+            description,
+        },
+    };
+}
 
 type Props = {
     params: Promise<{

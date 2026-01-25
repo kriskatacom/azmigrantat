@@ -1,10 +1,59 @@
 import { redirect } from "next/navigation";
+import { Metadata } from "next";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { getEmbassies } from "@/lib/services/embassy-service";
 import { MainNavbar } from "@/components/main-navbar";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
+import { websiteName } from "@/lib/utils";
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+    const countrySlug = (await params).country;
+    const country = await getCountryByColumn("slug", countrySlug);
+
+    if (!country || !country.name) {
+        return redirect("/");
+    }
+
+    const title = `Посолства в ${country.name} | Адреси, контакти и информация`;
+    const description = `Пълен списък с посолства в ${country.name} – адреси, телефони, работно време и полезна информация за граждани и пътуващи. Актуални данни на едно място.`;
+
+    const url = `/${country.slug}/embassies`;
+
+    return {
+        title: websiteName(title),
+        description,
+
+        keywords: [
+            `посолства в ${country.name}`,
+            `${country.name} посолства`,
+            `посолство ${country.name}`,
+            `адреси на посолства`,
+            `дипломатически мисии`,
+            `консулства`,
+        ],
+
+        alternates: {
+            canonical: url,
+        },
+
+        openGraph: {
+            title: websiteName(title),
+            description,
+            url,
+            siteName: websiteName(),
+            locale: "bg_BG",
+            type: "website",
+        },
+
+        twitter: {
+            card: "summary_large_image",
+            title: websiteName(title),
+            description,
+        },
+    };
+}
 
 type Props = {
     params: Promise<{
