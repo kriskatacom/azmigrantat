@@ -7,7 +7,7 @@ import { getEmbassyByColumn } from "@/lib/services/embassy-service";
 import ClientPage from "@/app/[country]/embassies/[embassy]/hero";
 import ContactsDescription from "@/app/[country]/embassies/[embassy]/contacts-description";
 import Description from "@/app/[country]/embassies/[embassy]/description";
-import { websiteName } from "@/lib/utils";
+import { absoluteUrl, websiteName } from "@/lib/utils";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const countrySlug = (await params).country;
@@ -28,7 +28,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const description = `Официална информация за ${embassyName} – адрес, телефон, работно време, карта и полезни указания за граждани и посетители.`;
 
     const url = `/${country.slug}/embassies/${embassy.slug}`;
-    const image = embassy.image_url; // основна снимка на посолството
+    const image = country.image_url
+        ? absoluteUrl(country.image_url)
+        : undefined;
 
     return {
         title: websiteName(title),

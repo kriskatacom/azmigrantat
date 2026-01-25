@@ -17,3 +17,14 @@ export const extractIframeSrc = (iframeHtml: string): string | null => {
 
     return match ? match[1] : null;
 };
+
+export function absoluteUrl(path?: string | null) {
+    if (!path) return undefined;
+
+    if (path.startsWith("http://") || path.startsWith("https://")) {
+        return path;
+    }
+
+    const baseUrl = process.env.SITE_URL || "";
+    return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+}

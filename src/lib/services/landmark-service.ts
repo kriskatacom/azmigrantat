@@ -88,6 +88,7 @@ export async function getLandmarks(
         excerpt: row.excerpt,
         image_url: row.image_url,
         additional_images: row.additional_images,
+        google_map: row.google_map,
         country_id: row.country_id,
         created_at: row.created_at,
         updated_at: row.updated_at,

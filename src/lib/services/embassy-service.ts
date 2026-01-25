@@ -75,6 +75,7 @@ export async function getEmbassies(options?: GetEmbassiesOptions): Promise<Embas
         slug: row.slug,
         heading: row.heading,
         excerpt: row.excerpt,
+        google_map: row.google_map,
         image_url: row.image_url,
         country_id: row.country_id,
         created_at: row.created_at,

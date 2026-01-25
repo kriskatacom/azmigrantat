@@ -8,7 +8,7 @@ import { getLandmarkByColumn } from "@/lib/services/landmark-service";
 import DisplayGallery from "@/app/[country]/landmarks/[landmark]/display-gallery";
 import Description from "@/app/[country]/landmarks/[landmark]/description";
 import ContactsDescription from "@/app/[country]/landmarks/[landmark]/contacts-description";
-import { websiteName } from "@/lib/utils";
+import { absoluteUrl, websiteName } from "@/lib/utils";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const countrySlug = (await params).country;
@@ -29,20 +29,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const description = `Информация за ${landmarkName} в ${country.name} – описание, снимки, карта, как да стигнете и полезни съвети за посетители.`;
 
     const url = `/${country.slug}/landmarks/${landmark.slug}`;
-    const image = landmark.image_url;
+    const image = landmark.image_url
+        ? absoluteUrl(landmark.image_url)
+        : undefined;
 
     return {
         title: websiteName(title),
         description,
 
         alternates: {
-            canonical: url,
+            canonical: absoluteUrl(url),
         },
 
         openGraph: {
             title: websiteName(title),
             description,
-            url,
+            url: absoluteUrl(url),
             siteName: websiteName(),
             locale: "bg_BG",
             type: "article",
