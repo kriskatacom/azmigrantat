@@ -3,7 +3,9 @@ import { getCountryByColumn } from "@/lib/services/country-service";
 import { MainNavbar } from "@/components/main-navbar";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { getEmbassyByColumn } from "@/lib/services/embassy-service";
-import ClientPage from "@/app/[country]/embassies/[embassy]/client-page";
+import ClientPage from "@/app/[country]/embassies/[embassy]/hero";
+import ContactsDescription from "./contacts-description";
+import Description from "./description";
 
 type Props = {
     params: Promise<{
@@ -53,32 +55,50 @@ export default async function EmbassiesPage({ params }: Props) {
                 </div>
             </header>
 
-            <main className="container mx-auto grid lg:grid-cols-2 gap-5 my-5 md:px-5">
-                {embassy.content && (
-                    <div className="bg-white border rounded-md h-fit overflow-hidden">
-                        <h2 className="text-white bg-website-dark text-2xl font-semibold mb-5 p-5">
-                            Информация за посолството
+            <main className="container mx-auto md:px-5">
+                {embassy.google_map && (
+                    <div className="w-full h-100 rounded-md overflow-hidden border max-lg:hidden">
+                        <h2 className="text-white bg-website-dark text-2xl font-semibold text-center p-5">
+                            Как да стигнете до там?
                         </h2>
-                        <div
-                            className="text-editor"
-                            dangerouslySetInnerHTML={{
-                                __html: embassy.content as string,
-                            }}
-                        ></div>
+
+                        <iframe
+                            src={embassy.google_map}
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0 }}
+                            allowFullScreen
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                        />
                     </div>
                 )}
+                
+                <div className="grid lg:grid-cols-2 gap-5 my-5">
+                    {embassy.content && (
+                        <Description embassy={embassy} />
+                    )}
 
-                {embassy.contacts_content && (
-                    <div className="bg-white border rounded-md h-fit overflow-hidden">
-                        <h2 className="text-white bg-website-dark text-2xl font-semibold mb-5 p-5">
-                            Информация за контакти
+                    {embassy.contacts_content && (
+                        <ContactsDescription embassy={embassy} />
+                    )}
+                </div>
+
+                {embassy.google_map && (
+                    <div className="w-full h-100 rounded-md overflow-hidden border lg:hidden">
+                        <h2 className="text-white bg-website-dark text-2xl font-semibold text-center p-5">
+                            Как да стигнете до там?
                         </h2>
-                        <div
-                            className="text-editor"
-                            dangerouslySetInnerHTML={{
-                                __html: embassy.contacts_content as string,
-                            }}
-                        ></div>
+
+                        <iframe
+                            src={embassy.google_map}
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0 }}
+                            allowFullScreen
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                        />
                     </div>
                 )}
             </main>

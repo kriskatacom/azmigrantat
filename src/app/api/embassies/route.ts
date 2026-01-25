@@ -79,6 +79,7 @@ export async function POST(req: Request) {
                 excerpt: data.excerpt,
                 content: data.content,
                 contacts_content: data.contactsContent,
+                google_map: data.googleMap,
                 country_id: data.countryId,
             });
 
@@ -121,6 +122,7 @@ export async function POST(req: Request) {
             excerpt: data.excerpt,
             content: data.content,
             contacts_content: data.contactsContent,
+            google_map: data.googleMap,
             country_id: data.countryId,
         });
 

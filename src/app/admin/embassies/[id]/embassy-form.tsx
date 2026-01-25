@@ -21,6 +21,7 @@ export interface NewEmbassy {
     excerpt: string;
     content: string;
     contactsContent: string;
+    googleMap: string;
     id: number | null;
     countryId: number | null;
 }
@@ -41,6 +42,7 @@ export default function NewEmbassyForm({ embassy, countries }: Params) {
         excerpt: embassy?.excerpt ?? "",
         content: embassy?.content ?? "",
         contactsContent: embassy?.contacts_content ?? "",
+        googleMap: embassy?.google_map ?? "",
         id: embassy?.id ?? null,
         countryId: embassy?.country_id ?? null,
     });
@@ -214,6 +216,37 @@ export default function NewEmbassyForm({ embassy, countries }: Params) {
                     searchPlaceholder="Търсене на държава"
                     emptyText="Няма намерени държави"
                 />
+            </div>
+
+            <div>
+                <Label className="mb-1" htmlFor="companySlogan">
+                    Google Map
+                </Label>
+                <Input
+                    id="googleMap"
+                    value={formData.googleMap}
+                    onChange={(e) => handleGoogleMapChange(e.target.value)}
+                    placeholder="Въведете URL адрес на карта от Google Map"
+                    disabled={isSubmitting}
+                />
+                {errors.googleMap && (
+                    <p className="text-sm text-red-500 mt-1">
+                        {errors.googleMap}
+                    </p>
+                )}
+                {formData.googleMap && (
+                    <div className="mt-4 w-full h-100 rounded-md overflow-hidden border">
+                        <iframe
+                            src={formData.googleMap}
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0 }}
+                            allowFullScreen
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                        />
+                    </div>
+                )}
             </div>
 
             <div className="rounded-md">

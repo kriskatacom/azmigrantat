@@ -36,6 +36,7 @@ export type Embassy = {
     excerpt?: string;
     content?: string;
     contacts_content?: string;
+    google_map: string;
     image_url?: string | null;
     additional_images?: string | null;
     country_id: number | null;
@@ -52,6 +53,7 @@ export type Landmark = {
     excerpt?: string;
     content?: string;
     contacts_content?: string;
+    google_map: string;
     image_url?: string | null;
     additional_images?: string | null;
     country_id: number | null;

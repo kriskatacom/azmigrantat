@@ -2,9 +2,11 @@ import { redirect } from "next/navigation";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { MainNavbar } from "@/components/main-navbar";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
-import ClientPage from "@/app/[country]/landmarks/[landmark]/client-page";
+import Hero from "@/app/[country]/landmarks/[landmark]/hero";
 import { getLandmarkByColumn } from "@/lib/services/landmark-service";
 import DisplayGallery from "@/app/[country]/landmarks/[landmark]/display-gallery";
+import Description from "./description";
+import ContactsDescription from "./contacts-description";
 
 type Props = {
     params: Promise<{
@@ -44,47 +46,56 @@ export default async function EmbassiesPage({ params }: Props) {
         <>
             <header>
                 <MainNavbar />
-
-                <ClientPage landmark={landmark} />
-
-                <div className="bg-white text-website-dark text-center pb-5 border-b">
-                    <div className="text-lg flex justify-center">
-                        <Breadcrumbs items={breadcrumbs} classes="justify-center" />
-                    </div>
-                </div>
+                <Hero landmark={landmark} breadcrumbs={breadcrumbs} />
             </header>
 
-            <main className="grid xl:grid-cols-3 gap-5 my-5 md:px-5">
-                {landmark.content && (
-                    <div className="bg-white border rounded-md h-fit overflow-hidden">
-                        <h2 className="text-white bg-website-dark text-2xl font-semibold mb-5 p-5">
-                            Информация за посолството
+            <main className="md:px-5">
+                {landmark.google_map && (
+                    <div className="w-full h-100 rounded-md overflow-hidden border max-lg:hidden">
+                        <h2 className="text-white bg-website-dark text-2xl font-semibold text-center p-5">
+                            Как да стигнете до там?
                         </h2>
-                        <div
-                            className="text-editor"
-                            dangerouslySetInnerHTML={{
-                                __html: landmark.content as string,
-                            }}
-                        ></div>
+
+                        <iframe
+                            src={landmark.google_map}
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0 }}
+                            allowFullScreen
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                        />
                     </div>
                 )}
 
-                <DisplayGallery
-                    additionalImages={additionalImages}
-                    landmark={landmark}
-                />
+                <div className="grid xl:grid-cols-3 gap-5 my-5">
+                    {landmark.content && <Description landmark={landmark} />}
 
-                {landmark.contacts_content && (
-                    <div className="bg-white border rounded-md h-fit overflow-hidden">
-                        <h2 className="text-white bg-website-dark text-2xl font-semibold mb-5 p-5">
-                            Информация за контакти
+                    <DisplayGallery
+                        additionalImages={additionalImages}
+                        landmark={landmark}
+                    />
+
+                    {landmark.contacts_content && (
+                        <ContactsDescription landmark={landmark} />
+                    )}
+                </div>
+
+                {landmark.google_map && (
+                    <div className="w-full h-100 rounded-md overflow-hidden border lg:hidden">
+                        <h2 className="text-white bg-website-dark text-2xl font-semibold text-center p-5">
+                            Как да стигнете до там?
                         </h2>
-                        <div
-                            className="text-editor"
-                            dangerouslySetInnerHTML={{
-                                __html: landmark.contacts_content as string,
-                            }}
-                        ></div>
+
+                        <iframe
+                            src={landmark.google_map}
+                            width="100%"
+                            height="100%"
+                            style={{ border: 0 }}
+                            allowFullScreen
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                        />
                     </div>
                 )}
             </main>
