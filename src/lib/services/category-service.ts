@@ -86,6 +86,7 @@ export type CategoryNode = {
     name: string;
     slug: string;
     parent_id: number | null;
+    imageUrl: string;
     created_at?: string;
     updated_at?: string;
     children: CategoryNode[];
@@ -98,6 +99,7 @@ export async function getCategoryTree(): Promise<CategoryNode[]> {
             name,
             slug,
             parent_id,
+            image_url,
             created_at,
             updated_at
         FROM categories
@@ -114,6 +116,7 @@ export async function getCategoryTree(): Promise<CategoryNode[]> {
             name: row.name,
             slug: row.slug,
             parent_id: row.parent_id,
+            imageUrl: row.image_url,
             created_at: row.created_at,
             updated_at: row.updated_at,
             children: [],
