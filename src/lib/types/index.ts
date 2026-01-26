@@ -73,3 +73,16 @@ export type Landmark = {
     created_at?: string;
     updated_at?: string;
 };
+
+export type Category = {
+    id?: number;
+    parent_id?: number | null;
+    name?: string;
+    slug?: string;
+    heading?: string;
+    excerpt?: string;
+    content?: string;
+    image_url?: string | null;
+    created_at?: string;
+    updated_at?: string;
+};

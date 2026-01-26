@@ -80,6 +80,21 @@ CREATE TABLE
     PRIMARY KEY (`id`)
 ) ENGINE = InnoDB;
 
+CREATE TABLE
+`azmigrantat`.`categories` (
+    `id` INT NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(128) NULL,
+    `slug` VARCHAR(128) NULL,
+    `heading` VARCHAR(128) NULL,
+    `excerpt` TEXT NULL,
+    `image_url` VARCHAR(512) NULL,
+    `content` TEXT NULL,
+    `parent_id` INT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE = InnoDB;
+
 ALTER TABLE `country_elements`
 ADD CONSTRAINT `fk_country_elements_country`
 FOREIGN KEY (`country_id`) REFERENCES `countries` (`id`)
@@ -99,3 +114,8 @@ ALTER TABLE `cities`
 ADD CONSTRAINT `fk_cities_country`
 FOREIGN KEY (`country_id`) REFERENCES `countries` (`id`)
 ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+ALTER TABLE `categories`
+ADD CONSTRAINT `fk_categories_category`
+FOREIGN KEY (`parent_id`) REFERENCES `categories` (`id`)
+ON DELETE CASCADE ON UPDATE RESTRICT;
