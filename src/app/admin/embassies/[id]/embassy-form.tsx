@@ -22,6 +22,7 @@ export interface NewEmbassy {
     content: string;
     contactsContent: string;
     googleMap: string;
+    your_location: string;
     id: number | null;
     countryId: number | null;
 }
@@ -43,6 +44,7 @@ export default function NewEmbassyForm({ embassy, countries }: Params) {
         content: embassy?.content ?? "",
         contactsContent: embassy?.contacts_content ?? "",
         googleMap: embassy?.google_map ?? "",
+        your_location: embassy?.your_location ?? "",
         id: embassy?.id ?? null,
         countryId: embassy?.country_id ?? null,
     });
@@ -245,6 +247,39 @@ export default function NewEmbassyForm({ embassy, countries }: Params) {
                             loading="lazy"
                             referrerPolicy="no-referrer-when-downgrade"
                         />
+                    </div>
+                )}
+            </div>
+            
+            <div>
+                <Label className="mb-1" htmlFor="your_location">
+                    Вашето местонахождение
+                </Label>
+                <Input
+                    id="your_location"
+                    value={formData.your_location}
+                    onChange={(e) =>
+                        handleChange("your_location", e.target.value)
+                    }
+                    placeholder="Въведете URL адрес от Вашето местонахождение до адреса на посолството"
+                    disabled={isSubmitting}
+                />
+                {errors.your_location && (
+                    <p className="text-sm text-red-500 mt-1">
+                        {errors.your_location}
+                    </p>
+                )}
+                {formData.your_location && isValidUrl(formData.your_location) && (
+                    <div className="text-lg mt-3 space-x-2">
+                        <span>Вашето местоположение:</span>
+                        <a
+                            href={formData.your_location}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                        >
+                            Упътване
+                        </a>
                     </div>
                 )}
             </div>

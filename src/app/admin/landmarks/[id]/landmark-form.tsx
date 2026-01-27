@@ -21,6 +21,7 @@ export interface NewLandmark {
     content: string;
     contactsContent: string;
     googleMap: string;
+    your_location: string;
     id: number | null;
     countryId: number | null;
 }
@@ -42,6 +43,7 @@ export default function NewLandmarkForm({ landmark, countries }: Params) {
         content: landmark?.content ?? "",
         contactsContent: landmark?.contacts_content ?? "",
         googleMap: landmark?.google_map ?? "",
+        your_location: landmark?.your_location ?? "",
         id: landmark?.id ?? null,
         countryId: landmark?.country_id ?? null,
     });
@@ -121,6 +123,15 @@ export default function NewLandmarkForm({ landmark, countries }: Params) {
             ...prev,
             googleMap: src ?? value,
         }));
+    };
+
+    const isValidUrl = (url: string) => {
+        try {
+            new URL(url);
+            return true;
+        } catch {
+            return false;
+        }
     };
 
     return (
@@ -258,6 +269,40 @@ export default function NewLandmarkForm({ landmark, countries }: Params) {
                         onChange={onChangeContactsContent}
                     />
                 </div>
+            </div>
+
+            <div>
+                <Label className="mb-1" htmlFor="your_location">
+                    Вашето местонахождение
+                </Label>
+                <Input
+                    id="your_location"
+                    value={formData.your_location}
+                    onChange={(e) =>
+                        handleChange("your_location", e.target.value)
+                    }
+                    placeholder="Въведете URL адрес от Вашето местонахождение до адреса на посолството"
+                    disabled={isSubmitting}
+                />
+                {errors.your_location && (
+                    <p className="text-sm text-red-500 mt-1">
+                        {errors.your_location}
+                    </p>
+                )}
+                {formData.your_location &&
+                    isValidUrl(formData.your_location) && (
+                        <div className="text-lg mt-3 space-x-2">
+                            <span>Вашето местоположение:</span>
+                            <a
+                                href={formData.your_location}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline"
+                            >
+                                Упътване
+                            </a>
+                        </div>
+                    )}
             </div>
 
             <div className="text-lg text-muted-foreground">

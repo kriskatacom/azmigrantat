@@ -128,15 +128,34 @@ export default async function EmbassiesPage({ params }: Props) {
                     />
 
                     {landmark.contacts_content && (
-                        <ContactsDescription landmark={landmark} image="/images/contacts.webp" />
+                        <ContactsDescription
+                            landmark={landmark}
+                            image="/images/contacts.webp"
+                        />
                     )}
                 </div>
 
                 {landmark.google_map && (
-                    <div className="w-full h-100 rounded-md overflow-hidden border">
-                        <h2 className="text-white bg-website-dark text-2xl font-semibold text-center p-5">
-                            Как да стигнете до там?
-                        </h2>
+                    <div className="w-full h-100 rounded-md overflow-hidden border mb-5">
+                        <div className="text-white bg-website-dark p-5 text-center">
+                            <h2 className="text-2xl font-semibold">
+                                Как да стигнете до там?
+                            </h2>
+                            {landmark.your_location &&
+                                landmark.your_location && (
+                                    <div className="text-lg mt-3 space-x-2">
+                                        <span>Вашето местоположение:</span>
+                                        <a
+                                            href={landmark.your_location}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-website-light hover:underline"
+                                        >
+                                            Упътване
+                                        </a>
+                                    </div>
+                                )}
+                        </div>
 
                         <iframe
                             src={landmark.google_map}

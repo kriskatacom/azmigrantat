@@ -110,7 +110,10 @@ export default async function EmbassiesPage({ params }: Props) {
                     {embassy.content && embassy.image_url && (
                         <Description
                             embassy={embassy}
-                            image={embassy.description_image_url ?? embassy.image_url}
+                            image={
+                                embassy.description_image_url ??
+                                embassy.image_url
+                            }
                         />
                     )}
 
@@ -123,10 +126,25 @@ export default async function EmbassiesPage({ params }: Props) {
                 </div>
 
                 {embassy.google_map && (
-                    <div className="w-full h-100 rounded-md overflow-hidden border">
-                        <h2 className="text-white bg-website-dark text-2xl font-semibold text-center p-5">
-                            Как да стигнете до там?
-                        </h2>
+                    <div className="w-full h-100 rounded-md overflow-hidden border mb-5">
+                        <div className="text-white bg-website-dark p-5 text-center">
+                            <h2 className="text-2xl font-semibold">
+                                Как да стигнете до там?
+                            </h2>
+                            {embassy.your_location && embassy.your_location && (
+                                <div className="text-lg mt-3 space-x-2">
+                                    <span>Вашето местоположение:</span>
+                                    <a
+                                        href={embassy.your_location}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-website-light hover:underline"
+                                    >
+                                        Упътване
+                                    </a>
+                                </div>
+                            )}
+                        </div>
 
                         <iframe
                             src={embassy.google_map}

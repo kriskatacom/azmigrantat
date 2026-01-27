@@ -49,6 +49,7 @@ export type Embassy = {
     content?: string;
     contacts_content?: string;
     google_map: string;
+    your_location: string;
     image_url?: string | null;
     description_image_url?: string | null;
     additional_images?: string | null;
@@ -67,6 +68,7 @@ export type Landmark = {
     content?: string;
     contacts_content?: string;
     google_map: string;
+    your_location: string;
     image_url?: string | null;
     additional_images?: string | null;
     country_id: number | null;
