@@ -103,6 +103,9 @@ export default async function EmbassiesPage({ params }: Props) {
         landmark.additional_images || "",
     );
 
+    const max = additionalImages.length;
+    const randomInt = Math.floor(Math.random() * max);
+
     return (
         <>
             <header>
@@ -111,26 +114,13 @@ export default async function EmbassiesPage({ params }: Props) {
             </header>
 
             <main className="md:px-5">
-                {landmark.google_map && (
-                    <div className="w-full h-100 rounded-md overflow-hidden border max-lg:hidden">
-                        <h2 className="text-white bg-website-dark text-2xl font-semibold text-center p-5">
-                            Как да стигнете до там?
-                        </h2>
-
-                        <iframe
-                            src={landmark.google_map}
-                            width="100%"
-                            height="100%"
-                            style={{ border: 0 }}
-                            allowFullScreen
-                            loading="lazy"
-                            referrerPolicy="no-referrer-when-downgrade"
-                        />
-                    </div>
-                )}
-
                 <div className="grid xl:grid-cols-3 gap-5 my-5">
-                    {landmark.content && <Description landmark={landmark} />}
+                    {landmark.content && (
+                        <Description
+                            landmark={landmark}
+                            image={additionalImages[randomInt]}
+                        />
+                    )}
 
                     <DisplayGallery
                         additionalImages={additionalImages}
@@ -138,12 +128,12 @@ export default async function EmbassiesPage({ params }: Props) {
                     />
 
                     {landmark.contacts_content && (
-                        <ContactsDescription landmark={landmark} />
+                        <ContactsDescription landmark={landmark} image="/images/contacts.webp" />
                     )}
                 </div>
 
                 {landmark.google_map && (
-                    <div className="w-full h-100 rounded-md overflow-hidden border lg:hidden">
+                    <div className="w-full h-100 rounded-md overflow-hidden border">
                         <h2 className="text-white bg-website-dark text-2xl font-semibold text-center p-5">
                             Как да стигнете до там?
                         </h2>

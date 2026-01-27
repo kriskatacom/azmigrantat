@@ -13,13 +13,11 @@ import { getCountries } from "@/lib/services/country-service";
 
 type Props = {
     params: Promise<{
-        id: string
-    }>
-}
+        id: string;
+    }>;
+};
 
-export async function generateMetadata(
-    { params }: Props
-): Promise<Metadata> {
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const { id } = await params;
 
     if (id !== "new") {
@@ -39,9 +37,9 @@ export async function generateMetadata(
 
 type Params = {
     params: Promise<{
-        id: string
-    }>
-}
+        id: string;
+    }>;
+};
 
 export default async function NewCountry({ params }: Params) {
     const { id } = await params;
@@ -53,7 +51,9 @@ export default async function NewCountry({ params }: Params) {
 
     const countries = await getCountries();
 
-    const additionalImages = embassy?.additional_images ? JSON.parse(embassy.additional_images) : null;
+    const additionalImages = embassy?.additional_images
+        ? JSON.parse(embassy.additional_images)
+        : null;
 
     return (
         <div className="flex">
@@ -61,7 +61,9 @@ export default async function NewCountry({ params }: Params) {
             <main className="flex-1">
                 <div className="border-b flex items-center gap-5">
                     <h1 className="text-2xl font-semibold p-5">
-                        {embassy ? "Редактиране на посолството" : "Добавяне на нов посолство"}
+                        {embassy
+                            ? "Редактиране на посолството"
+                            : "Добавяне на нов посолство"}
                     </h1>
                     <Link href="/admin/embassies/new">
                         <Button variant={"default"} size={"xl"}>
@@ -74,28 +76,58 @@ export default async function NewCountry({ params }: Params) {
                     items={[
                         { name: "Табло", href: "/admin/dashboard" },
                         { name: "Посолства", href: "/admin/embassies" },
-                        { name: `${id !== "new" ? "Редактиране" : "Добавяне"}` },
+                        {
+                            name: `${id !== "new" ? "Редактиране" : "Добавяне"}`,
+                        },
                     ]}
                 />
                 <EmbassyForm embassy={embassy} countries={countries} />
-                {
-                    embassy?.id &&
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5">
+                    {embassy?.id && (
+                        <div>
+                            <h2 className="px-5 text-xl font-semibold">
+                                Изображение
+                            </h2>
+                            <ImageUpload
+                                imageUrl={embassy.image_url as string}
+                                url={
+                                    embassy?.id
+                                        ? `/api/embassies/${embassy.id}/upload`
+                                        : ""
+                                }
+                            />
+                        </div>
+                    )}
+                    {embassy?.id && (
+                        <div>
+                            <h2 className="px-5 text-xl font-semibold">
+                                Изображение на описанието
+                            </h2>
+                            <ImageUpload
+                                imageUrl={
+                                    embassy.description_image_url as string
+                                }
+                                url={
+                                    embassy?.id
+                                        ? `/api/embassies/${embassy.id}/description-image-upload`
+                                        : ""
+                                }
+                            />
+                        </div>
+                    )}
+                </div>
+                {embassy?.id && (
                     <>
-                        <h2 className="px-5 text-xl font-semibold">Изображение</h2>
-                        <ImageUpload imageUrl={embassy.image_url as string} url={embassy?.id ? `/api/embassies/${embassy.id}/upload` : ""} />
-                    </>
-                }
-                {
-                    embassy?.id &&
-                    <>
-                        <h2 className="px-5 text-xl font-semibold">Допълнителни изображения</h2>
+                        <h2 className="px-5 text-xl font-semibold">
+                            Допълнителни изображения
+                        </h2>
                         <AdditionalImages
                             imageUrls={additionalImages ?? []}
                             url={`/api/embassies/${embassy.id}/multiple-upload`}
                         />
                     </>
-                }
+                )}
             </main>
         </div>
-    )
+    );
 }

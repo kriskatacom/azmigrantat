@@ -328,11 +328,11 @@
 /* ============================== */
 
 .text-editor a {
-    @apply text-blue-600 underline transition-colors;
+    @apply text-website-light underline transition-colors;
 }
 
 .text-editor a:hover {
-    @apply text-blue-800;
+    @apply text-shadow-website-dark;
 }
 
 .text-editor img {

@@ -50,6 +50,7 @@ export type Embassy = {
     contacts_content?: string;
     google_map: string;
     image_url?: string | null;
+    description_image_url?: string | null;
     additional_images?: string | null;
     country_id: number | null;
     city_id?: number;
