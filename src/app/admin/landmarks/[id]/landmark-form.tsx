@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Country, Landmark } from "@/lib/types";
 import RichTextEditor from "@/components/rich-text-editor";
 import { RelationForm } from "@/components/relation-form";
-import { extractIframeSrc } from "@/lib/utils";
+import { extractIframeSrc, googleMapsLinkToDirections } from "@/lib/utils";
 
 export interface NewLandmark {
     name: string;
@@ -20,6 +20,8 @@ export interface NewLandmark {
     excerpt: string;
     content: string;
     contactsContent: string;
+    workingTime: string;
+    tickets: string;
     googleMap: string;
     your_location: string;
     id: number | null;
@@ -42,6 +44,8 @@ export default function NewLandmarkForm({ landmark, countries }: Params) {
         excerpt: landmark?.excerpt ?? "",
         content: landmark?.content ?? "",
         contactsContent: landmark?.contacts_content ?? "",
+        workingTime: landmark?.working_time ?? "",
+        tickets: landmark?.tickets ?? "",
         googleMap: landmark?.google_map ?? "",
         your_location: landmark?.your_location ?? "",
         id: landmark?.id ?? null,
@@ -54,12 +58,24 @@ export default function NewLandmarkForm({ landmark, countries }: Params) {
     const [contactsContent, setContactsContent] = useState<string>(
         (landmark?.contacts_content as string) ?? "",
     );
+    const [workingTimeContent, setWorkingTimeContent] = useState<string>(
+        (landmark?.working_time as string) ?? "",
+    );
+    const [ticketsContent, setTicketsContent] = useState<string>(
+        (landmark?.tickets as string) ?? "",
+    );
 
     const onChange = (description: string) => {
         setDescription(description);
     };
     const onChangeContactsContent = (contactsContent: string) => {
         setContactsContent(contactsContent);
+    };
+    const onChangeWorkingTimeContent = (workingTimeContent: string) => {
+        setWorkingTimeContent(workingTimeContent);
+    };
+    const onChangeTicketsContent = (ticketsContent: string) => {
+        setTicketsContent(ticketsContent);
     };
 
     const [errors, setErrors] = useState<FormErrors>({});
@@ -86,6 +102,8 @@ export default function NewLandmarkForm({ landmark, countries }: Params) {
         try {
             formData.content = description;
             formData.contactsContent = contactsContent;
+            formData.workingTime = workingTimeContent;
+            formData.tickets = ticketsContent;
             const res = await axios.post("/api/landmarks", formData);
 
             if (res.data.success) {
@@ -220,7 +238,7 @@ export default function NewLandmarkForm({ landmark, countries }: Params) {
             </div>
 
             <div>
-                <Label className="mb-1" htmlFor="companySlogan">
+                <Label className="mb-1" htmlFor="googleMap">
                     Google Map
                 </Label>
                 <Input
@@ -271,6 +289,26 @@ export default function NewLandmarkForm({ landmark, countries }: Params) {
                 </div>
             </div>
 
+            <div className="rounded-md">
+                <h2 className="text-xl font-semibold mb-5">Работно време</h2>
+                <div className="text-editor max-w-5xl max-h-200 overflow-auto">
+                    <RichTextEditor
+                        content={workingTimeContent}
+                        onChange={onChangeWorkingTimeContent}
+                    />
+                </div>
+            </div>
+
+            <div className="rounded-md">
+                <h2 className="text-xl font-semibold mb-5">Билети</h2>
+                <div className="text-editor max-w-5xl max-h-200 overflow-auto">
+                    <RichTextEditor
+                        content={ticketsContent}
+                        onChange={onChangeTicketsContent}
+                    />
+                </div>
+            </div>
+
             <div>
                 <Label className="mb-1" htmlFor="your_location">
                     Вашето местонахождение
@@ -278,9 +316,7 @@ export default function NewLandmarkForm({ landmark, countries }: Params) {
                 <Input
                     id="your_location"
                     value={formData.your_location}
-                    onChange={(e) =>
-                        handleChange("your_location", e.target.value)
-                    }
+                    onChange={(e) => handleChange("your_location", e.target.value)}
                     placeholder="Въведете URL адрес от Вашето местонахождение до адреса на посолството"
                     disabled={isSubmitting}
                 />
@@ -289,20 +325,19 @@ export default function NewLandmarkForm({ landmark, countries }: Params) {
                         {errors.your_location}
                     </p>
                 )}
-                {formData.your_location &&
-                    isValidUrl(formData.your_location) && (
-                        <div className="text-lg mt-3 space-x-2">
-                            <span>Вашето местоположение:</span>
-                            <a
-                                href={formData.your_location}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:underline"
-                            >
-                                Упътване
-                            </a>
-                        </div>
-                    )}
+                {formData.your_location && (
+                    <div className="text-lg mt-3 space-x-2">
+                        <span>Вашето местоположение:</span>
+                        <a
+                            href={formData.your_location}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                        >
+                            Упътване
+                        </a>
+                    </div>
+                )}
             </div>
 
             <div className="text-lg text-muted-foreground">

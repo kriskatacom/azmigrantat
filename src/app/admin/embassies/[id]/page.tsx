@@ -51,10 +51,6 @@ export default async function NewCountry({ params }: Params) {
 
     const countries = await getCountries();
 
-    const additionalImages = embassy?.additional_images
-        ? JSON.parse(embassy.additional_images)
-        : null;
-
     return (
         <div className="flex">
             <MainSidebar />
@@ -101,32 +97,21 @@ export default async function NewCountry({ params }: Params) {
                     {embassy?.id && (
                         <div>
                             <h2 className="px-5 text-xl font-semibold">
-                                Изображение на описанието
+                                Лого на посолството
                             </h2>
                             <ImageUpload
                                 imageUrl={
-                                    embassy.description_image_url as string
+                                    embassy.logo as string
                                 }
                                 url={
                                     embassy?.id
-                                        ? `/api/embassies/${embassy.id}/description-image-upload`
+                                        ? `/api/embassies/${embassy.id}/logo-upload`
                                         : ""
                                 }
                             />
                         </div>
                     )}
                 </div>
-                {embassy?.id && (
-                    <>
-                        <h2 className="px-5 text-xl font-semibold">
-                            Допълнителни изображения
-                        </h2>
-                        <AdditionalImages
-                            imageUrls={additionalImages ?? []}
-                            url={`/api/embassies/${embassy.id}/multiple-upload`}
-                        />
-                    </>
-                )}
             </main>
         </div>
     );

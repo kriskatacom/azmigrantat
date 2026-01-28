@@ -2,11 +2,11 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { Landmark } from "@/lib/types";
 import { HiOutlineMagnifyingGlassPlus } from "react-icons/hi2";
 import { LiaTimesSolid } from "react-icons/lia";
 import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
-import { Button } from "@/components/ui/button";
+import { FaImage, FaPlus } from "react-icons/fa";
+import { Landmark } from "@/lib/types";
 import { iconLargeSize } from "@/lib/constants";
 
 type Props = {
@@ -28,84 +28,54 @@ export default function DisplayGallery({ additionalImages, landmark }: Props) {
 
     return (
         <>
-            <div className="bg-white border rounded-md overflow-hidden h-fit">
-                <h2 className="text-white bg-website-dark text-2xl font-semibold text-center p-5">
-                    Галерия
-                </h2>
+            <section className="bg-white shadow-sm rounded-sm overflow-hidden">
+                <div className="flex flex-col md:px-2 gap-1 md:gap-2 max-md:mt-2 px-2">
+                    <h2 className="flex items-center gap-2 md:text-2xl font-semibold max-sm:text-xs border-b md:p-5 pb-2">
+                        <FaImage className="text-xl md:text-4xl" />
+                        <span>Галерия</span>
+                    </h2>
+                </div>
 
-                <div className="p-4 space-y-4">
-                    {/* MAIN IMAGE */}
-                    <div
-                        onClick={() => setLightboxOpen(true)}
-                        className="relative cursor-pointer rounded-xl overflow-hidden shadow-md group min-h-80"
-                    >
-                        {!loaded[activeIndex] && (
-                            <div className="absolute inset-0 animate-pulse bg-gray-200" />
-                        )}
+                <div
+                    onClick={() => setLightboxOpen(true)}
+                    className="relative cursor-pointer h-30 md:h-100"
+                >
+                    {!loaded[activeIndex] && (
+                        <div className="absolute inset-0 animate-pulse bg-gray-200" />
+                    )}
 
-                        <Image
-                            src={images[activeIndex]}
-                            alt={landmark.heading as string}
-                            fill
-                            className={`object-cover transition duration-500 ${
-                                loaded[activeIndex]
-                                    ? "opacity-100"
-                                    : "opacity-0"
-                            }`}
-                            onLoad={() =>
-                                setLoaded((prev) => {
-                                    const copy = [...prev];
-                                    copy[activeIndex] = true;
-                                    return copy;
-                                })
-                            }
-                            unoptimized
-                        />
+                    <Image
+                        src={images[activeIndex]}
+                        alt={landmark.heading as string}
+                        fill
+                        className={`object-cover transition duration-500 ${
+                            loaded[activeIndex] ? "opacity-100" : "opacity-0"
+                        }`}
+                        onLoad={() =>
+                            setLoaded((prev) => {
+                                const copy = [...prev];
+                                copy[activeIndex] = true;
+                                return copy;
+                            })
+                        }
+                        unoptimized
+                    />
 
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center">
-                            <span className="text-white text-2xl opacity-0 group-hover:opacity-100">
-                                <HiOutlineMagnifyingGlassPlus
-                                    size={iconLargeSize}
-                                />
-                            </span>
+                    <div className="absolute top-0 left-0 w-full h-full flex justify-center items-center">
+                        <div className="bg-black/50 p-5 rounded-md">
+                            <FaPlus size={30} className="text-white" />
                         </div>
                     </div>
 
-                    {/* THUMBNAILS */}
-                    <div className="flex gap-3 overflow-x-auto pb-1">
-                        {images.slice(0, 5).map((img, index) => (
-                            <button
-                                key={index}
-                                onClick={() => setActiveIndex(index)}
-                                className={`relative h-20 w-28 shrink-0 rounded-md overflow-hidden border transition ${
-                                    index === activeIndex
-                                        ? "ring-2 ring-website-dark"
-                                        : "opacity-70 hover:opacity-100"
-                                }`}
-                            >
-                                {!loaded[index] && (
-                                    <div className="absolute inset-0 animate-pulse bg-gray-200" />
-                                )}
-
-                                <Image
-                                    src={img}
-                                    alt=""
-                                    fill
-                                    className="object-cover"
-                                    onLoad={() =>
-                                        setLoaded((prev) => {
-                                            const copy = [...prev];
-                                            copy[index] = true;
-                                            return copy;
-                                        })
-                                    }
-                                    unoptimized
-                                />
-                            </button>
-                        ))}
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center">
+                        <span className="text-white text-2xl opacity-0 group-hover:opacity-100">
+                            <HiOutlineMagnifyingGlassPlus
+                                size={iconLargeSize}
+                            />
+                        </span>
                     </div>
                 </div>
-            </div>
+            </section>
 
             {/* LIGHTBOX */}
             {lightboxOpen && (

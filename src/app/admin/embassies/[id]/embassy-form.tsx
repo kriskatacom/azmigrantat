@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { extractIframeSrc } from "@/lib/utils";
 import { Country, Embassy } from "@/lib/types";
 import RichTextEditor from "@/components/rich-text-editor";
@@ -20,7 +19,11 @@ export interface NewEmbassy {
     heading: string;
     excerpt: string;
     content: string;
-    contactsContent: string;
+    workingTime: string;
+    websiteLink: string;
+    address: string;
+    phone: string;
+    email: string;
     googleMap: string;
     your_location: string;
     id: number | null;
@@ -42,7 +45,11 @@ export default function NewEmbassyForm({ embassy, countries }: Params) {
         heading: embassy?.heading ?? "",
         excerpt: embassy?.excerpt ?? "",
         content: embassy?.content ?? "",
-        contactsContent: embassy?.contacts_content ?? "",
+        workingTime: embassy?.working_time ?? "",
+        email: embassy?.email ?? "",
+        phone: embassy?.phone ?? "",
+        address: embassy?.address ?? "",
+        websiteLink: embassy?.website_link ?? "",
         googleMap: embassy?.google_map ?? "",
         your_location: embassy?.your_location ?? "",
         id: embassy?.id ?? null,
@@ -52,15 +59,15 @@ export default function NewEmbassyForm({ embassy, countries }: Params) {
     const [description, setDescription] = useState<string>(
         (embassy?.content as string) ?? "",
     );
-    const [contactsContent, setContactsContent] = useState<string>(
-        (embassy?.contacts_content as string) ?? "",
+    const [workingTimeContent, setWorkingTimeContent] = useState<string>(
+        (embassy?.working_time as string) ?? "",
     );
 
     const onChange = (description: string) => {
         setDescription(description);
     };
-    const onChangeContactsContent = (contactsContent: string) => {
-        setContactsContent(contactsContent);
+    const onChangeWorkingTimeContent = (workingTimeContent: string) => {
+        setWorkingTimeContent(workingTimeContent);
     };
 
     const [errors, setErrors] = useState<FormErrors>({});
@@ -86,7 +93,7 @@ export default function NewEmbassyForm({ embassy, countries }: Params) {
 
         try {
             formData.content = description;
-            formData.contactsContent = contactsContent;
+            formData.workingTime = workingTimeContent;
             const res = await axios.post("/api/embassies", formData);
 
             if (res.data.success) {
@@ -250,7 +257,7 @@ export default function NewEmbassyForm({ embassy, countries }: Params) {
                     </div>
                 )}
             </div>
-            
+
             <div>
                 <Label className="mb-1" htmlFor="your_location">
                     Вашето местонахождение
@@ -269,19 +276,20 @@ export default function NewEmbassyForm({ embassy, countries }: Params) {
                         {errors.your_location}
                     </p>
                 )}
-                {formData.your_location && isValidUrl(formData.your_location) && (
-                    <div className="text-lg mt-3 space-x-2">
-                        <span>Вашето местоположение:</span>
-                        <a
-                            href={formData.your_location}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                        >
-                            Упътване
-                        </a>
-                    </div>
-                )}
+                {formData.your_location &&
+                    isValidUrl(formData.your_location) && (
+                        <div className="text-lg mt-3 space-x-2">
+                            <span>Вашето местоположение:</span>
+                            <a
+                                href={formData.your_location}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline"
+                            >
+                                Упътване
+                            </a>
+                        </div>
+                    )}
             </div>
 
             <div className="rounded-md">
@@ -292,15 +300,65 @@ export default function NewEmbassyForm({ embassy, countries }: Params) {
             </div>
 
             <div className="rounded-md">
-                <h2 className="text-xl font-semibold mb-5">
-                    Информация за контакти
-                </h2>
+                <h2 className="text-xl font-semibold mb-5">Работно време</h2>
                 <div className="text-editor max-w-5xl max-h-200 overflow-auto">
                     <RichTextEditor
-                        content={contactsContent}
-                        onChange={onChangeContactsContent}
+                        content={workingTimeContent}
+                        onChange={onChangeWorkingTimeContent}
                     />
                 </div>
+            </div>
+
+            <div>
+                <Label className="mb-1" htmlFor="address">
+                    Физически адрес
+                </Label>
+                <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => handleChange("address", e.target.value)}
+                    placeholder="Въведете физическия адрес на посолството"
+                    disabled={isSubmitting}
+                />
+            </div>
+
+            <div>
+                <Label className="mb-1" htmlFor="phone">
+                    Телефон за връзка
+                </Label>
+                <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => handleChange("phone", e.target.value)}
+                    placeholder="Въведете телефонен номер за връзка с посолството"
+                    disabled={isSubmitting}
+                />
+            </div>
+
+            <div>
+                <Label className="mb-1" htmlFor="email">
+                    Имейл адрес
+                </Label>
+                <Input
+                    id="email"
+                    value={formData.email}
+                    onChange={(e) => handleChange("email", e.target.value)}
+                    placeholder="Въведете имейл за писмена връзка с посолството"
+                    disabled={isSubmitting}
+                />
+            </div>
+
+            <div>
+                <Label className="mb-1" htmlFor="website_link">
+                    Уебсайт
+                </Label>
+                <Input
+                    id="website_link"
+                    value={formData.websiteLink}
+                    onChange={(e) => handleChange("websiteLink", e.target.value)}
+                    placeholder="Въведете URL адрес на уебсайта на посолството"
+                    disabled={isSubmitting}
+                />
             </div>
 
             <div className="text-lg text-muted-foreground">

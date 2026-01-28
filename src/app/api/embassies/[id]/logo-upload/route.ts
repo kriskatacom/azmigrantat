@@ -25,7 +25,7 @@ export async function POST(req: Request, { params }: Params) {
         const url = await saveUploadedFile(file);
 
         const embassy = await updateEmbassy(Number(id), {
-            description_image_url: url,
+            logo: url,
         });
 
         return NextResponse.json({
@@ -57,13 +57,13 @@ export async function DELETE(req: Request, { params }: Params) {
         }
 
         // 2️⃣ Изтриваме файла от public/uploads
-        if (embassy.description_image_url) {
-            deleteUploadedFile(embassy.description_image_url);
+        if (embassy.logo) {
+            deleteUploadedFile(embassy.logo);
         }
 
         // 3️⃣ Нулираме imageUrl в базата
         const embassyUpdated = await updateEmbassy(Number(id), {
-            description_image_url: null,
+            logo: null,
         });
 
         return NextResponse.json({ success: true, embassy: embassyUpdated });

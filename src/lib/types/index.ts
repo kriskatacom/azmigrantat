@@ -50,9 +50,13 @@ export type Embassy = {
     contacts_content?: string;
     google_map: string;
     your_location: string;
+    working_time: string;
+    website_link: string;
+    address: string;
+    phone: string;
+    email: string;
     image_url?: string | null;
-    description_image_url?: string | null;
-    additional_images?: string | null;
+    logo?: string | null;
     country_id: number | null;
     city_id?: number;
     created_at?: string;
@@ -69,6 +73,8 @@ export type Landmark = {
     contacts_content?: string;
     google_map: string;
     your_location: string;
+    working_time: string;
+    tickets: string;
     image_url?: string | null;
     additional_images?: string | null;
     country_id: number | null;
@@ -88,4 +94,9 @@ export type Category = {
     image_url?: string | null;
     created_at?: string;
     updated_at?: string;
+};
+
+export type Location = {
+    lat: number;
+    lng: number;
 };

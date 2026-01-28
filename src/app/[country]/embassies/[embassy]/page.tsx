@@ -4,10 +4,13 @@ import { getCountryByColumn } from "@/lib/services/country-service";
 import { MainNavbar } from "@/components/main-navbar";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { getEmbassyByColumn } from "@/lib/services/embassy-service";
-import ContactsDescription from "@/app/[country]/embassies/[embassy]/contacts-description";
-import Description from "@/app/[country]/embassies/[embassy]/description";
 import { absoluteUrl, websiteName } from "@/lib/utils";
 import Hero from "@/app/[country]/embassies/[embassy]/hero";
+import Map from "@/app/[country]/embassies/[embassy]/map";
+import Description from "@/app/[country]/embassies/[embassy]/description";
+import ContactsDescription from "@/app/[country]/embassies/[embassy]/contacts-description";
+import WorkingTime from "@/app/[country]/embassies/[embassy]/working-time";
+import Emergencies from "@/app/[country]/embassies/[embassy]/emergencies";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const countrySlug = (await params).country;
@@ -105,58 +108,16 @@ export default async function EmbassiesPage({ params }: Props) {
                 <Hero embassy={embassy} breadcrumbs={breadcrumbs} />
             </header>
 
-            <main className="container mx-auto md:px-5">
-                <div className="grid lg:grid-cols-2 gap-5 my-5">
-                    {embassy.content && embassy.image_url && (
-                        <Description
-                            embassy={embassy}
-                            image={
-                                embassy.description_image_url ??
-                                embassy.image_url
-                            }
-                        />
-                    )}
-
-                    {embassy.contacts_content && (
-                        <ContactsDescription
-                            embassy={embassy}
-                            image="/images/contacts.webp"
-                        />
-                    )}
+            <main className="md:px-5">
+                <div className="grid grid-cols-2 gap-2 m-2">
+                    <Description embassy={embassy} />
+                    <ContactsDescription embassy={embassy} />
                 </div>
-
-                {embassy.google_map && (
-                    <div className="w-full h-100 rounded-md overflow-hidden border mb-5">
-                        <div className="text-white bg-website-dark p-5 text-center">
-                            <h2 className="text-2xl font-semibold">
-                                Как да стигнете до там?
-                            </h2>
-                            {embassy.your_location && embassy.your_location && (
-                                <div className="text-lg mt-3 space-x-2">
-                                    <span>Вашето местоположение:</span>
-                                    <a
-                                        href={embassy.your_location}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="text-website-light hover:underline"
-                                    >
-                                        Упътване
-                                    </a>
-                                </div>
-                            )}
-                        </div>
-
-                        <iframe
-                            src={embassy.google_map}
-                            width="100%"
-                            height="100%"
-                            style={{ border: 0 }}
-                            allowFullScreen
-                            loading="lazy"
-                            referrerPolicy="no-referrer-when-downgrade"
-                        />
-                    </div>
-                )}
+                <div className="grid grid-cols-2 gap-2 m-2">
+                    <WorkingTime embassy={embassy} />
+                    <Emergencies embassy={embassy} />
+                </div>
+                <Map embassy={embassy} />
             </main>
         </>
     );

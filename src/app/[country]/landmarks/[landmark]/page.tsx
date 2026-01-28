@@ -5,10 +5,13 @@ import { MainNavbar } from "@/components/main-navbar";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import Hero from "@/app/[country]/landmarks/[landmark]/hero";
 import { getLandmarkByColumn } from "@/lib/services/landmark-service";
-import DisplayGallery from "@/app/[country]/landmarks/[landmark]/display-gallery";
-import Description from "@/app/[country]/landmarks/[landmark]/description";
-import ContactsDescription from "@/app/[country]/landmarks/[landmark]/contacts-description";
 import { absoluteUrl, websiteName } from "@/lib/utils";
+import Map from "./map";
+import Description from "./description";
+import ContactsDescription from "./contacts-description";
+import WorkingTime from "./working-time";
+import Tickets from "./tickets";
+import DisplayGallery from "./display-gallery";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const countrySlug = (await params).country;
@@ -103,9 +106,6 @@ export default async function EmbassiesPage({ params }: Props) {
         landmark.additional_images || "",
     );
 
-    const max = additionalImages.length;
-    const randomInt = Math.floor(Math.random() * max);
-
     return (
         <>
             <header>
@@ -114,60 +114,20 @@ export default async function EmbassiesPage({ params }: Props) {
             </header>
 
             <main className="md:px-5">
-                <div className="grid xl:grid-cols-3 gap-5 my-5">
-                    {landmark.content && (
-                        <Description
-                            landmark={landmark}
-                            image={additionalImages[randomInt]}
-                        />
-                    )}
-
+                <div className="grid grid-cols-2 gap-2 m-2">
+                    <Description landmark={landmark} />
                     <DisplayGallery
                         additionalImages={additionalImages}
                         landmark={landmark}
                     />
-
-                    {landmark.contacts_content && (
-                        <ContactsDescription
-                            landmark={landmark}
-                            image="/images/contacts.webp"
-                        />
-                    )}
                 </div>
 
-                {landmark.google_map && (
-                    <div className="w-full h-100 rounded-md overflow-hidden border mb-5">
-                        <div className="text-white bg-website-dark p-5 text-center">
-                            <h2 className="text-2xl font-semibold">
-                                Как да стигнете до там?
-                            </h2>
-                            {landmark.your_location &&
-                                landmark.your_location && (
-                                    <div className="text-lg mt-3 space-x-2">
-                                        <span>Вашето местоположение:</span>
-                                        <a
-                                            href={landmark.your_location}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-website-light hover:underline"
-                                        >
-                                            Упътване
-                                        </a>
-                                    </div>
-                                )}
-                        </div>
+                <div className="grid grid-cols-2 gap-2 m-2">
+                    <WorkingTime landmark={landmark} />
+                    <Tickets landmark={landmark} />
+                </div>
 
-                        <iframe
-                            src={landmark.google_map}
-                            width="100%"
-                            height="100%"
-                            style={{ border: 0 }}
-                            allowFullScreen
-                            loading="lazy"
-                            referrerPolicy="no-referrer-when-downgrade"
-                        />
-                    </div>
-                )}
+                <Map landmark={landmark} />
             </main>
         </>
     );

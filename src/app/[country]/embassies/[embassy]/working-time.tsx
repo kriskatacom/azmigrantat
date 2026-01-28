@@ -1,27 +1,21 @@
 "use client";
 
-import { Landmark } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
-import { LiaLandmarkSolid } from "react-icons/lia";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Embassy } from "@/lib/types";
+import { MdPunchClock } from "react-icons/md";
 
 type Props = {
-    landmark: Landmark;
+    embassy: Embassy;
 };
 
-export default function Description({ landmark }: Props) {
+export default function WorkingTime({ embassy }: Props) {
     return (
-        <section className="bg-white shadow-sm rounded-sm overflow-hidden">
+        <section className="bg-white shadow-sm rounded-sm">
             <div className="flex flex-col md:px-2 gap-1 md:gap-2 max-md:mt-2 px-2">
                 <h2 className="flex items-center gap-2 md:text-2xl font-semibold max-sm:text-xs border-b md:p-5 pb-2">
-                    <LiaLandmarkSolid className="text-xl md:text-4xl" />
-                    <span>За забележителността</span>
+                    <MdPunchClock className="text-xl md:text-4xl" />
+                    <span>Работно време</span>
                 </h2>
             </div>
 
@@ -29,33 +23,33 @@ export default function Description({ landmark }: Props) {
                 <DialogTrigger asChild>
                     <div className="px-2 md:px-5 md:mt-5">
                         <Button className="bg-website-dark hover:bg-website-menu-item max-sm:text-xs max-md:w-full">
-                            Повече информация
+                            Показване
                         </Button>
                     </div>
                 </DialogTrigger>
 
                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>{landmark.name}</DialogTitle>
+                        <DialogTitle>{embassy.name}</DialogTitle>
                     </DialogHeader>
 
                     <div
                         className="prose prose-sm max-w-none"
                         dangerouslySetInnerHTML={{
-                            __html: landmark.content as string,
+                            __html: embassy.working_time as string,
                         }}
                     />
                 </DialogContent>
             </Dialog>
 
-            <div className="relative max-sm:text-xs p-2 md:p-5 max-h-20 md:max-h-100 overflow-hidden">
+            <div className="relative max-sm:text-xs p-2 md:p-5 max-h-10 overflow-hidden">
                 <div
                     dangerouslySetInnerHTML={{
-                        __html: landmark.content as string,
+                        __html: embassy.working_time as string,
                     }}
                 />
 
-                <div className="pointer-events-none absolute left-0 bottom-0 w-full h-20 md:h-20 bg-linear-to-t from-white to-transparent z-10" />
+                <div className="pointer-events-none absolute left-0 bottom-0 w-full h-10 md:h-20 bg-linear-to-t from-white to-transparent z-10" />
             </div>
         </section>
     );

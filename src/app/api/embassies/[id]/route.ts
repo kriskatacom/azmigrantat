@@ -11,9 +11,7 @@ type Params = {
     }>;
 };
 
-export async function DELETE(
-    _: Request, { params }: Params,
-) {
+export async function DELETE(_: Request, { params }: Params) {
     const { id } = await params;
     const embassyId = Number(id);
 
@@ -35,24 +33,6 @@ export async function DELETE(
 
         if (embassy.image_url) {
             await deleteUploadedFile(embassy.image_url);
-        }
-
-        if (embassy.additional_images) {
-            let additionalImages: string[] = [];
-
-            if (typeof embassy.additional_images === "string") {
-                try {
-                    additionalImages = JSON.parse(embassy.additional_images);
-                } catch {
-                    additionalImages = [];
-                }
-            } else if (Array.isArray(embassy.additional_images)) {
-                additionalImages = embassy.additional_images;
-            }
-
-            await Promise.all(
-                additionalImages.map((url) => deleteUploadedFile(url)),
-            );
         }
 
         await deleteEmbassy(embassyId);
