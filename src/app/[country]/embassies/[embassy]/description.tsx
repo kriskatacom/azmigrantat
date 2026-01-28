@@ -26,14 +26,12 @@ export default function Description({ embassy }: Props) {
                 </a>
             </div>
 
-            <div className="relative max-sm:text-xs p-2 md:p-5 max-h-20 md:max-h-100 overflow-hidden">
+            <div className="relative max-sm:text-xs p-2 md:p-5 overflow-hidden">
                 <div
                     dangerouslySetInnerHTML={{
                         __html: embassy.content as string,
                     }}
                 />
-
-                <div className="pointer-events-none absolute left-0 bottom-0 w-full h-20 md:h-20 bg-linear-to-t from-white to-transparent z-10" />
             </div>
         </section>
     );

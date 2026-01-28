@@ -110,7 +110,7 @@ export default async function EmbassiesPage({ params }: Props) {
         <>
             <header>
                 <MainNavbar />
-                <Hero landmark={landmark} breadcrumbs={breadcrumbs} />
+                <Hero landmark={landmark} />
             </header>
 
             <main className="md:px-5">

@@ -1,37 +1,37 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
 import { Landmark } from "@/lib/types";
-import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
+import SmartImage from "@/components/smart-image";
+import SmartText from "@/components/smart-text";
 
 type Props = {
     landmark: Landmark;
-    breadcrumbs: BreadcrumbItem[];
 };
 
-export default function Hero({ landmark, breadcrumbs }: Props) {
-    const [imageLoading, setImageLoading] = useState(true);
-
+export default function Hero({ landmark }: Props) {
     return (
         <>
-            <div className="relative w-full h-60 lg:h-80 xl:h-120 flex justify-center">
-                <Image
+            {/* HERO IMAGE */}
+            <div className="relative w-full h-60 lg:h-80 xl:h-120 overflow-hidden">
+                <SmartImage
                     src={landmark.image_url as string}
                     alt={landmark.name as string}
                     fill
-                    className={`w-full h-full object-cover transition-opacity duration-500 ${
-                        imageLoading ? "opacity-0" : "opacity-100"
-                    }`}
-                    onLoad={() => setImageLoading(false)}
-                    onError={() => setImageLoading(false)}
+                    className="object-cover"
+                    loading="eager"
+                    loaderSize="w-10 h-10"
                     unoptimized
                 />
             </div>
+
+            {/* TITLE */}
             <div className="bg-white text-website-dark text-center p-5 md:py-10 border-b">
-                <h1 className="text-2xl md:text-4xl text-center font-semibold">
-                    {landmark.heading ? landmark.heading : landmark.name}
-                </h1>
+                <SmartText
+                    value={landmark.heading}
+                    as="h1"
+                    className="text-2xl md:text-4xl font-semibold text-center"
+                    skeletonClassName="h-8 md:h-10 w-3/4 md:w-1/2"
+                />
             </div>
         </>
     );

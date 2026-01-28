@@ -1,51 +1,48 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import { Embassy } from "@/lib/types";
-import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
+import SmartImage from "@/components/smart-image";
+import SmartText from "@/components/smart-text";
 
 type Props = {
     embassy: Embassy;
-    breadcrumbs: BreadcrumbItem[];
 };
 
-export default function Hero({ embassy, breadcrumbs }: Props) {
-    const [imageLoading, setImageLoading] = useState(true);
-    const [logoLoading, setLogoLoading] = useState(true);
-
+export default function Hero({ embassy }: Props) {
     return (
         <>
-            <div className="relative w-full h-60 lg:h-80 xl:h-120 flex justify-center">
-                <Image
+            {/* HERO IMAGE */}
+            <div className="relative w-full h-60 lg:h-80 xl:h-120 overflow-hidden">
+                <SmartImage
                     src={embassy.image_url as string}
                     alt={embassy.heading as string}
                     fill
-                    className={`w-full h-full object-cover transition-opacity duration-500 ${
-                        imageLoading ? "opacity-0" : "opacity-100"
-                    }`}
-                    onLoad={() => setImageLoading(false)}
-                    onError={() => setImageLoading(false)}
+                    className="object-cover"
+                    loading="eager"
+                    loaderSize="w-10 h-10"
                     unoptimized
                 />
             </div>
+
+            {/* TITLE */}
             <div className="bg-white text-website-dark text-center p-5 md:py-10 border-b">
                 <div className="flex justify-center items-center gap-2">
                     <Image
                         src={embassy.logo as string}
                         alt={embassy.name as string}
-                        width={80}
-                        height={80}
-                        className={`object-cover transition-opacity duration-500 ${
-                            logoLoading ? "opacity-0" : "opacity-100"
-                        }`}
-                        onLoad={() => setLogoLoading(false)}
-                        onError={() => setLogoLoading(false)}
+                        className="object-cover"
+                        loading="eager"
+                        width={120}
+                        height={120}
                         unoptimized
                     />
-                    <h1 className="text-2xl md:text-4xl text-center font-semibold">
-                        {embassy.heading ? embassy.heading : embassy.name}
-                    </h1>
+                    <SmartText
+                        value={embassy.heading}
+                        as="h1"
+                        className="text-2xl md:text-4xl font-semibold text-center"
+                        skeletonClassName="h-8 md:h-10 w-3/4 md:w-1/2"
+                    />
                 </div>
             </div>
         </>

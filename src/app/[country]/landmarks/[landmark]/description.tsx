@@ -16,6 +16,10 @@ type Props = {
 };
 
 export default function Description({ landmark }: Props) {
+    const hasContent = Boolean(
+        landmark.content && landmark.content.trim().length > 0,
+    );
+
     return (
         <section className="bg-white shadow-sm rounded-sm overflow-hidden">
             <div className="flex flex-col md:px-2 gap-1 md:gap-2 max-md:mt-2 px-2">
@@ -39,23 +43,37 @@ export default function Description({ landmark }: Props) {
                         <DialogTitle>{landmark.name}</DialogTitle>
                     </DialogHeader>
 
-                    <div
-                        className="prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{
-                            __html: landmark.content as string,
-                        }}
-                    />
+                    {hasContent ? (
+                        <div
+                            className="prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{
+                                __html: landmark.content as string,
+                            }}
+                        />
+                    ) : (
+                        <p className="text-sm text-muted-foreground italic">
+                            Няма добавена допълнителна информация за тази
+                            забележителност.
+                        </p>
+                    )}
                 </DialogContent>
             </Dialog>
 
             <div className="relative max-sm:text-xs p-2 md:p-5 max-h-20 md:max-h-100 overflow-hidden">
-                <div
-                    dangerouslySetInnerHTML={{
-                        __html: landmark.content as string,
-                    }}
-                />
-
-                <div className="pointer-events-none absolute left-0 bottom-0 w-full h-20 md:h-20 bg-linear-to-t from-white to-transparent z-10" />
+                {hasContent ? (
+                    <>
+                        <div
+                            dangerouslySetInnerHTML={{
+                                __html: landmark.content as string,
+                            }}
+                        />
+                        <div className="pointer-events-none absolute left-0 bottom-0 w-full h-20 md:h-20 bg-linear-to-t from-white to-transparent z-10" />
+                    </>
+                ) : (
+                    <p className="text-muted-foreground italic">
+                        Все още няма описание за тази забележителност.
+                    </p>
+                )}
             </div>
         </section>
     );

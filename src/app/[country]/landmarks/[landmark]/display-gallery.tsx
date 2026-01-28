@@ -8,6 +8,7 @@ import { FaChevronLeft, FaChevronRight } from "react-icons/fa6";
 import { FaImage, FaPlus } from "react-icons/fa";
 import { Landmark } from "@/lib/types";
 import { iconLargeSize } from "@/lib/constants";
+import SmartImage from "@/components/smart-image";
 
 type Props = {
     additionalImages: string[];
@@ -44,14 +45,14 @@ export default function DisplayGallery({ additionalImages, landmark }: Props) {
                         <div className="absolute inset-0 animate-pulse bg-gray-200" />
                     )}
 
-                    <Image
+                    <SmartImage
                         src={images[activeIndex]}
-                        alt={landmark.heading as string}
+                        alt={landmark.name as string}
                         fill
-                        className={`object-cover transition duration-500 ${
-                            loaded[activeIndex] ? "opacity-100" : "opacity-0"
-                        }`}
-                        onLoad={() =>
+                        className="object-cover"
+                        loading="eager"
+                        loaderSize="w-10 h-10"
+                        onLoadedCallback={() =>
                             setLoaded((prev) => {
                                 const copy = [...prev];
                                 copy[activeIndex] = true;
@@ -61,11 +62,13 @@ export default function DisplayGallery({ additionalImages, landmark }: Props) {
                         unoptimized
                     />
 
-                    <div className="absolute top-0 left-0 w-full h-full flex justify-center items-center">
-                        <div className="bg-black/50 p-5 rounded-md">
-                            <FaPlus size={30} className="text-white" />
+                    {loaded[activeIndex] && (
+                        <div className="absolute top-0 left-0 w-full h-full flex justify-center items-center">
+                            <div className="bg-black/50 p-5 rounded-md">
+                                <FaPlus size={30} className="text-white" />
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition flex items-center justify-center">
                         <span className="text-white text-2xl opacity-0 group-hover:opacity-100">
@@ -85,7 +88,7 @@ export default function DisplayGallery({ additionalImages, landmark }: Props) {
                 >
                     <div
                         onClick={(e) => e.stopPropagation()}
-                        className="relative w-full lg:p-5 container mx-auto min-h-150 lg:h-[85vh] bg-black rounded-xl shadow-2xl overflow-hidden flex flex-col"
+                        className="relative w-full container mx-auto min-h-150 lg:h-[85vh] bg-black rounded-xl shadow-2xl overflow-hidden flex flex-col"
                     >
                         {/* TOP BAR */}
                         <div className="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 bg-linear-to-b from-black/70 to-transparent">
@@ -105,9 +108,10 @@ export default function DisplayGallery({ additionalImages, landmark }: Props) {
                         <div className="relative flex-1">
                             <Image
                                 src={images[activeIndex]}
-                                alt="Lightbox"
+                                alt={landmark.name as string}
                                 fill
-                                className="object-contain"
+                                className="object-cover"
+                                loading="eager"
                                 unoptimized
                             />
 
@@ -137,7 +141,7 @@ export default function DisplayGallery({ additionalImages, landmark }: Props) {
                         </div>
 
                         {/* THUMBNAILS */}
-                        <div className="bg-black/70 lg:mt-5">
+                        <div className="absolute bottom-0 left-0 flex justify-center w-full py-5 bg-black/70 lg:mt-5">
                             <div className="flex justify-center gap-3 overflow-x-auto scrollbar-thin scrollbar-thumb-white/20">
                                 {images.map((img, index) => (
                                     <button
@@ -153,18 +157,12 @@ export default function DisplayGallery({ additionalImages, landmark }: Props) {
                                             <div className="absolute inset-0 animate-pulse bg-gray-700" />
                                         )}
 
-                                        <Image
+                                        <SmartImage
                                             src={img}
-                                            alt=""
+                                            alt={landmark.name as string}
                                             fill
                                             className="object-cover"
-                                            onLoad={() =>
-                                                setLoaded((prev) => {
-                                                    const copy = [...prev];
-                                                    copy[index] = true;
-                                                    return copy;
-                                                })
-                                            }
+                                            loading="eager"
                                             unoptimized
                                         />
                                     </button>

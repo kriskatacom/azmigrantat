@@ -29,7 +29,7 @@ export default function ContactsDescription({ embassy }: Props) {
                 <MdEmail className="min-w-5 text-xl md:text-3xl" />
                 <span className="break-all">{embassy.email}</span>
             </div>
-            <div className="relative max-sm:text-xs px-2 py-1 md:px-5 flex items-center gap-2">
+            <div className="relative max-sm:text-xs px-2 py-1 md:px-5 md:pb-5 flex items-center gap-2">
                 <MdWeb className="min-w-5 text-xl md:text-3xl" />
                 <span className="break-all">{embassy.website_link}</span>
             </div>

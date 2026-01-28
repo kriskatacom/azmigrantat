@@ -268,6 +268,37 @@ export default function NewLandmarkForm({ landmark, countries }: Params) {
                 )}
             </div>
 
+            <div>
+                <Label className="mb-1" htmlFor="your_location">
+                    Вашето местонахождение
+                </Label>
+                <Input
+                    id="your_location"
+                    value={formData.your_location}
+                    onChange={(e) => handleChange("your_location", e.target.value)}
+                    placeholder="Въведете URL адрес от Вашето местонахождение до адреса на забележителността"
+                    disabled={isSubmitting}
+                />
+                {errors.your_location && (
+                    <p className="text-sm text-red-500 mt-1">
+                        {errors.your_location}
+                    </p>
+                )}
+                {formData.your_location && (
+                    <div className="text-lg mt-3 space-x-2">
+                        <span>Вашето местоположение:</span>
+                        <a
+                            href={formData.your_location}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                        >
+                            Упътване
+                        </a>
+                    </div>
+                )}
+            </div>
+
             <div className="rounded-md">
                 <h2 className="text-xl font-semibold mb-5">
                     За забележителността
@@ -307,37 +338,6 @@ export default function NewLandmarkForm({ landmark, countries }: Params) {
                         onChange={onChangeTicketsContent}
                     />
                 </div>
-            </div>
-
-            <div>
-                <Label className="mb-1" htmlFor="your_location">
-                    Вашето местонахождение
-                </Label>
-                <Input
-                    id="your_location"
-                    value={formData.your_location}
-                    onChange={(e) => handleChange("your_location", e.target.value)}
-                    placeholder="Въведете URL адрес от Вашето местонахождение до адреса на посолството"
-                    disabled={isSubmitting}
-                />
-                {errors.your_location && (
-                    <p className="text-sm text-red-500 mt-1">
-                        {errors.your_location}
-                    </p>
-                )}
-                {formData.your_location && (
-                    <div className="text-lg mt-3 space-x-2">
-                        <span>Вашето местоположение:</span>
-                        <a
-                            href={formData.your_location}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                        >
-                            Упътване
-                        </a>
-                    </div>
-                )}
             </div>
 
             <div className="text-lg text-muted-foreground">
