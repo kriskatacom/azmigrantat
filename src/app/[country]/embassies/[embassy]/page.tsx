@@ -105,7 +105,7 @@ export default async function EmbassiesPage({ params }: Props) {
         <>
             <header>
                 <MainNavbar />
-                <Hero embassy={embassy} breadcrumbs={breadcrumbs} />
+                <Hero embassy={embassy} />
             </header>
 
             <main className="md:px-5">

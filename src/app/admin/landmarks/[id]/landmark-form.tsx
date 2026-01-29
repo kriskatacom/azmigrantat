@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Country, Landmark } from "@/lib/types";
 import RichTextEditor from "@/components/rich-text-editor";
 import { RelationForm } from "@/components/relation-form";
-import { extractIframeSrc, googleMapsLinkToDirections } from "@/lib/utils";
+import { extractIframeSrc } from "@/lib/utils";
 
 export interface NewLandmark {
     name: string;
@@ -22,6 +22,10 @@ export interface NewLandmark {
     contactsContent: string;
     workingTime: string;
     tickets: string;
+    phone: string;
+    website_link: string;
+    ticket_tax: string;
+    address: string;
     googleMap: string;
     your_location: string;
     id: number | null;
@@ -46,6 +50,10 @@ export default function NewLandmarkForm({ landmark, countries }: Params) {
         contactsContent: landmark?.contacts_content ?? "",
         workingTime: landmark?.working_time ?? "",
         tickets: landmark?.tickets ?? "",
+        phone: landmark?.phone ?? "",
+        website_link: landmark?.website_link ?? "",
+        ticket_tax: landmark?.ticket_tax ?? "",
+        address: landmark?.address ?? "",
         googleMap: landmark?.google_map ?? "",
         your_location: landmark?.your_location ?? "",
         id: landmark?.id ?? null,
@@ -275,7 +283,9 @@ export default function NewLandmarkForm({ landmark, countries }: Params) {
                 <Input
                     id="your_location"
                     value={formData.your_location}
-                    onChange={(e) => handleChange("your_location", e.target.value)}
+                    onChange={(e) =>
+                        handleChange("your_location", e.target.value)
+                    }
                     placeholder="Въведете URL адрес от Вашето местонахождение до адреса на забележителността"
                     disabled={isSubmitting}
                 />
@@ -330,14 +340,58 @@ export default function NewLandmarkForm({ landmark, countries }: Params) {
                 </div>
             </div>
 
-            <div className="rounded-md">
-                <h2 className="text-xl font-semibold mb-5">Билети</h2>
-                <div className="text-editor max-w-5xl max-h-200 overflow-auto">
-                    <RichTextEditor
-                        content={ticketsContent}
-                        onChange={onChangeTicketsContent}
-                    />
-                </div>
+            <div>
+                <Label className="mb-1" htmlFor="phone">
+                    Телефон за връзка
+                </Label>
+                <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) => handleChange("phone", e.target.value)}
+                    placeholder="Въведете телефонен номер за връзка с посолството"
+                    disabled={isSubmitting}
+                />
+            </div>
+
+            <div>
+                <Label className="mb-1" htmlFor="address">
+                    Физически адрес
+                </Label>
+                <Input
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => handleChange("address", e.target.value)}
+                    placeholder="Въведете физическия адрес на забележителността"
+                    disabled={isSubmitting}
+                />
+            </div>
+
+            <div>
+                <Label className="mb-1" htmlFor="website_link">
+                    Уебсайт
+                </Label>
+                <Input
+                    id="website_link"
+                    value={formData.website_link}
+                    onChange={(e) =>
+                        handleChange("website_link", e.target.value)
+                    }
+                    placeholder="Въведете URL адрес на уебсайта на забележителността"
+                    disabled={isSubmitting}
+                />
+            </div>
+
+            <div>
+                <Label className="mb-1" htmlFor="ticket_tax">
+                    Такса за билет
+                </Label>
+                <Input
+                    id="ticket_tax"
+                    value={formData.ticket_tax}
+                    onChange={(e) => handleChange("ticket_tax", e.target.value)}
+                    placeholder="Въведете таксата за билет за забележителността, ако има такава"
+                    disabled={isSubmitting}
+                />
             </div>
 
             <div className="text-lg text-muted-foreground">

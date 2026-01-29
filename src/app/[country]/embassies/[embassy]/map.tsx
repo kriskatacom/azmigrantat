@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { MdLocationPin } from "react-icons/md";
 import { Embassy } from "@/lib/types";
 import { googleMapsLinkToDirections } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 type Props = {
     embassy: Embassy;
@@ -60,8 +61,10 @@ export default function Map({ embassy }: Props) {
                             }
                         >
                             <h2 className="text-xl flex items-center flex-wrap gap-1">
-                                <span>Как да стигнете до {embassy.name}</span>
-                                <MdLocationPin className="text-red-500" />
+                                <Button variant={"default"}>
+                                    <MdLocationPin className="text-red-500" />
+                                    <span>Как да стигнете ?</span>
+                                </Button>
                             </h2>
                         </a>
                     )}

@@ -1,7 +1,14 @@
 "use client";
 
 import { Embassy } from "@/lib/types";
-import { MdEmail, MdLocationCity, MdLocationPin, MdPhone, MdWeb } from "react-icons/md";
+import { FaFax } from "react-icons/fa";
+import { IoMdGlobe } from "react-icons/io";
+import {
+    MdEmail,
+    MdLocationCity,
+    MdLocationPin,
+    MdPhone,
+} from "react-icons/md";
 
 type Props = {
     embassy: Embassy;
@@ -17,21 +24,45 @@ export default function ContactsDescription({ embassy }: Props) {
                 </h2>
             </div>
 
-            <div className="relative max-sm:text-xs px-2 py-1 md:px-5 md:pt-5 flex items-center gap-2">
-                <MdLocationCity className="min-w-5 text-xl md:text-3xl" />
-                <span className="break-all">{embassy.address}</span>
-            </div>
-            <div className="relative max-sm:text-xs px-2 py-1 md:px-5 flex items-center gap-2">
-                <MdPhone className="min-w-5 text-xl md:text-3xl" />
-                <span className="break-all">{embassy.phone}</span>
-            </div>
-            <div className="relative max-sm:text-xs px-2 py-1 md:px-5 flex items-center gap-2">
-                <MdEmail className="min-w-5 text-xl md:text-3xl" />
-                <span className="break-all">{embassy.email}</span>
-            </div>
-            <div className="relative max-sm:text-xs px-2 py-1 md:px-5 md:pb-5 flex items-center gap-2">
-                <MdWeb className="min-w-5 text-xl md:text-3xl" />
-                <span className="break-all">{embassy.website_link}</span>
+            <div className="md:py-5">
+                {embassy.address && (
+                    <div className="relative max-sm:text-xs px-2 py-1 md:px-5 flex items-center gap-2">
+                        <MdLocationCity className="min-w-5 text-xl md:text-3xl" />
+                        <span className="break-all">{embassy.address}</span>
+                    </div>
+                )}
+                {embassy.phone && (
+                    <div className="relative max-sm:text-xs px-2 py-1 md:px-5 flex items-center gap-2">
+                        <MdPhone className="min-w-5 text-xl md:text-3xl" />
+                        <span className="break-all">
+                            <a href={`tel:${embassy.phone}`}>{embassy.phone}</a>
+                        </span>
+                    </div>
+                )}
+                {embassy.email && (
+                    <div className="relative max-sm:text-xs px-2 py-1 md:px-5 flex items-center gap-2">
+                        <MdEmail className="min-w-5 text-xl md:text-3xl" />
+                        <span className="break-all">
+                            <a href={`mailto:${embassy.email}`}>{embassy.email}</a>
+                        </span>
+                    </div>
+                )}
+                {embassy.fax && (
+                    <div className="relative max-sm:text-xs px-2 py-1 md:px-5 flex items-center gap-2">
+                        <FaFax className="min-w-5 text-xl md:text-3xl" />
+                        <span className="break-all">
+                            <a href={`tel:${embassy.fax}`}>{embassy.fax}</a>
+                        </span>
+                    </div>
+                )}
+                {embassy.website_link && (
+                    <div className="relative max-sm:text-xs px-2 py-1 md:px-5 flex items-center gap-2">
+                        <IoMdGlobe className="min-w-5 text-xl md:text-3xl" />
+                        <span className="break-all">
+                            <a href={embassy.website_link} target="_blank">{embassy.website_link}</a>
+                        </span>
+                    </div>
+                )}
             </div>
         </section>
     );

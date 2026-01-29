@@ -14,3 +14,14 @@ DROP `contacts_content`;
 ALTER TABLE `embassies` ADD `address` VARCHAR(512) NULL AFTER `working_time`,
 ADD `phone` VARCHAR(20) NULL AFTER `address`,
 ADD `email` VARCHAR(40) NULL AFTER `phone`;
+
+ALTER TABLE `embassies` ADD `fax` TEXT NULL AFTER `website_link`;
+
+ALTER TABLE `embassies` ADD `right_heading_image` TEXT NULL AFTER `logo`;
+
+ALTER TABLE `landmarks` ADD `phone` TEXT NULL AFTER `working_time`,
+ADD `website_link` TEXT NULL AFTER `phone`,
+ADD `ticket_tax` TEXT NULL AFTER `website_link`,
+ADD `address` TEXT NULL AFTER `ticket_tax`;
+
+ALTER TABLE `embassies` ADD `emergency_phone` TEXT NULL AFTER `phone`;

@@ -54,9 +54,12 @@ export type Embassy = {
     website_link: string;
     address: string;
     phone: string;
+    emergency_phone: string;
     email: string;
+    fax: string;
     image_url?: string | null;
     logo?: string | null;
+    right_heading_image?: string | null;
     country_id: number | null;
     city_id?: number;
     created_at?: string;
@@ -75,6 +78,10 @@ export type Landmark = {
     your_location: string;
     working_time: string;
     tickets: string;
+    phone?: string | null;
+    website_link?: string | null;
+    ticket_tax?: string | null;
+    address?: string | null;
     image_url?: string | null;
     additional_images?: string | null;
     country_id: number | null;

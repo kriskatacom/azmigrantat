@@ -40,7 +40,9 @@ type GetEmbassiesOptions = {
     value?: string | number;
 };
 
-export async function getEmbassies(options?: GetEmbassiesOptions): Promise<EmbassyWithCountry[]> {
+export async function getEmbassies(
+    options?: GetEmbassiesOptions,
+): Promise<EmbassyWithCountry[]> {
     let sql = `
         SELECT
             e.id,
@@ -55,8 +57,11 @@ export async function getEmbassies(options?: GetEmbassiesOptions): Promise<Embas
             e.website_link,
             e.email,
             e.phone,
+            e.emergency_phone,
             e.address,
+            e.fax,
             e.logo,
+            e.right_heading_image,
             e.country_id,
             e.created_at,
             e.updated_at,
@@ -88,10 +93,13 @@ export async function getEmbassies(options?: GetEmbassiesOptions): Promise<Embas
         working_time: row.working_time,
         website_link: row.website_link,
         email: row.email,
+        emergency_phone: row.emergency_phone,
         phone: row.phone,
+        fax: row.fax,
         address: row.address,
         image_url: row.image_url,
         logo: row.logo,
+        right_heading_image: row.right_heading_image,
         country_id: row.country_id,
         created_at: row.created_at,
         updated_at: row.updated_at,

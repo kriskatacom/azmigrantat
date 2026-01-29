@@ -4,7 +4,7 @@ export const mainMenuItems = [
     { title: "Услуги", slug: "/services" },
     { title: "Търся/Предлагам работа", slug: "/jobs" },
     { title: "Обяви", slug: "/ads" },
-    { title: "Музика", slug: "/music" },
+    { title: "Музика", slug: "https://lyricskeeper.eu" },
 ];
 
 export const iconLargeSize = 40;

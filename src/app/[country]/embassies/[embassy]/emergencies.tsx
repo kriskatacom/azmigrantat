@@ -17,10 +17,12 @@ export default function Emergencies({ embassy }: Props) {
                     <span>Спешни случаи</span>
                 </h2>
             </div>
-            <div className="relative max-sm:text-xs p-2 md:px-5 md:pt-5 flex items-center gap-2">
-                <MdPhone className="text-xl md:text-3xl" />
-                <span>{embassy.phone}</span>
-            </div>
+            {(embassy.emergency_phone && (
+                <div className="relative max-sm:text-xs p-2 md:px-5 md:pt-5 flex items-center gap-2">
+                    <MdPhone className="text-xl md:text-3xl" />
+                    <a href={`tel:${embassy.emergency_phone}`}>{embassy.emergency_phone}</a>
+                </div>
+            )) || <div className="text-muted-foreground p-5">Не е посочен телефонен номер</div>}
         </section>
     );
 }

@@ -111,6 +111,23 @@ export default async function NewCountry({ params }: Params) {
                             />
                         </div>
                     )}
+                    {embassy?.id && (
+                        <div>
+                            <h2 className="px-5 text-xl font-semibold">
+                                Дясна снимка на заглавието на посолството
+                            </h2>
+                            <ImageUpload
+                                imageUrl={
+                                    embassy.right_heading_image as string
+                                }
+                                url={
+                                    embassy?.id
+                                        ? `/api/embassies/${embassy.id}/right-heading-image-upload`
+                                        : ""
+                                }
+                            />
+                        </div>
+                    )}
                 </div>
             </main>
         </div>

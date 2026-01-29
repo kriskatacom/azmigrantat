@@ -24,6 +24,8 @@ export interface NewEmbassy {
     address: string;
     phone: string;
     email: string;
+    emergency_phone: string;
+    fax: string;
     googleMap: string;
     your_location: string;
     id: number | null;
@@ -48,7 +50,9 @@ export default function NewEmbassyForm({ embassy, countries }: Params) {
         workingTime: embassy?.working_time ?? "",
         email: embassy?.email ?? "",
         phone: embassy?.phone ?? "",
+        emergency_phone: embassy?.emergency_phone ?? "",
         address: embassy?.address ?? "",
+        fax: embassy?.fax ?? "",
         websiteLink: embassy?.website_link ?? "",
         googleMap: embassy?.google_map ?? "",
         your_location: embassy?.your_location ?? "",
@@ -336,6 +340,19 @@ export default function NewEmbassyForm({ embassy, countries }: Params) {
             </div>
 
             <div>
+                <Label className="mb-1" htmlFor="emergency_phone">
+                    Телефон за спешни случаи
+                </Label>
+                <Input
+                    id="emergency_phone"
+                    value={formData.emergency_phone}
+                    onChange={(e) => handleChange("emergency_phone", e.target.value)}
+                    placeholder="Въведете телефонен номер за спешни случаи с посолството"
+                    disabled={isSubmitting}
+                />
+            </div>
+
+            <div>
                 <Label className="mb-1" htmlFor="email">
                     Имейл адрес
                 </Label>
@@ -355,8 +372,23 @@ export default function NewEmbassyForm({ embassy, countries }: Params) {
                 <Input
                     id="website_link"
                     value={formData.websiteLink}
-                    onChange={(e) => handleChange("websiteLink", e.target.value)}
+                    onChange={(e) =>
+                        handleChange("websiteLink", e.target.value)
+                    }
                     placeholder="Въведете URL адрес на уебсайта на посолството"
+                    disabled={isSubmitting}
+                />
+            </div>
+
+            <div>
+                <Label className="mb-1" htmlFor="fax">
+                    Факс
+                </Label>
+                <Input
+                    id="fax"
+                    value={formData.fax}
+                    onChange={(e) => handleChange("fax", e.target.value)}
+                    placeholder="Въведете факс на посолството"
                     disabled={isSubmitting}
                 />
             </div>

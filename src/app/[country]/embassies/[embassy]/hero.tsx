@@ -40,8 +40,17 @@ export default function Hero({ embassy }: Props) {
                     <SmartText
                         value={embassy.heading}
                         as="h1"
-                        className="text-2xl md:text-4xl font-semibold text-center"
+                        className="text-xl sm:text-2xl md:text-4xl font-semibold text-center"
                         skeletonClassName="h-8 md:h-10 w-3/4 md:w-1/2"
+                    />
+                    <Image
+                        src={embassy.right_heading_image as string}
+                        alt={embassy.name as string}
+                        className="object-cover"
+                        loading="eager"
+                        width={120}
+                        height={120}
+                        unoptimized
                     />
                 </div>
             </div>
