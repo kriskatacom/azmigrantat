@@ -1,13 +1,18 @@
 import { redirect } from "next/navigation";
 import { MainNavbar } from "@/components/main-navbar";
 import { CardGrid } from "@/components/card-grid";
-import { Breadcrumbs, BreadcrumbItem } from "@/components/admin-breadcrumbs";
+import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { getCityByColumn } from "@/lib/services/city-service";
-import { CategoryNode, getCategoryTree } from "@/lib/services/category-service";
+import {
+    CategoryNode,
+    getCategoryByColumn,
+    getCategoryTree,
+} from "@/lib/services/category-service";
 import { Company } from "@/lib/types";
 import { getCompanies } from "@/lib/services/companies-service";
 import { CardEntity } from "@/components/card-item";
+import PageHeader from "@/components/page-header";
 
 type PageProps = {
     params: Promise<{
@@ -29,7 +34,7 @@ export default async function CityPage({ params }: PageProps) {
     const countryData = await getCountryByColumn("slug", country ?? "");
     const city = await getCityByColumn("slug", citySlug ?? "");
 
-    if (!countryData || !countryData.name || !city || !city.name) {
+    if (!countryData || !countryData.name || !city || !city.id || !city.name) {
         return redirect("/");
     }
 
@@ -58,7 +63,19 @@ export default async function CityPage({ params }: PageProps) {
     let companies: Company[] = [];
 
     if (visibleCategories.length === 0) {
-        companies = await getCompanies({ column: "city_id", value: city.id });
+        const categorySlug = items[items.length - 1];
+        const category = await getCategoryByColumn("slug", categorySlug ?? "");
+
+        if (!category || !category.id) {
+            return redirect("/");
+        }
+
+        companies = await getCompanies({
+            where: [
+                { column: "city_id", value: city.id },
+                { column: "category_id", value: category.id },
+            ],
+        });
     }
 
     const mappedCompanies: CardEntity[] = companies.map((company) => ({
@@ -72,16 +89,10 @@ export default async function CityPage({ params }: PageProps) {
         <>
             <MainNavbar />
 
-            <div className="text-center bg-website-menu-item py-5 xl:py-10">
-                <h1 className="text-light text-2xl xl:text-3xl 2xl:text-4xl font-bold uppercase">
-                    Информационен справочник на {city.name}
-                </h1>
-
-                <Breadcrumbs
-                    items={breadcrumbs}
-                    classes="text-light flex justify-center mt-3"
-                />
-            </div>
+            <PageHeader
+                title={`Информационен справочник на ${city.name}`}
+                breadcrumbs={breadcrumbs}
+            />
 
             {visibleCategories.length > 0 ? (
                 <CardGrid

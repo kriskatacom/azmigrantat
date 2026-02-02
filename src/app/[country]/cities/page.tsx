@@ -9,6 +9,7 @@ import ClientPage from "@/app/[country]/cities/client-page";
 import BulgariaCitiesMap from "@/app/[country]/cities/bulgaria-cities-map";
 import { CardEntity } from "@/components/card-item";
 import { absoluteUrl, websiteName } from "@/lib/utils";
+import PageHeader from "@/components/page-header";
 
 type PageProps = {
     params: Promise<{
@@ -107,14 +108,10 @@ export default async function CitiesPage({ params }: PageProps) {
         <>
             <MainNavbar />
 
-            <div className="text-center bg-website-menu-item py-5 xl:py-10">
-                <h1 className="text-light text-2xl xl:text-3xl 2xl:text-4xl font-bold uppercase">
-                    Градове в {country.name}
-                </h1>
-                <div className="text-white text-lg flex justify-center">
-                    <Breadcrumbs items={breadcrumbs} />
-                </div>
-            </div>
+            <PageHeader
+                title={`Градове в ${country.name}`}
+                breadcrumbs={breadcrumbs}
+            />
 
             <ClientPage country={country} />
 

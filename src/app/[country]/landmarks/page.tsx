@@ -1,12 +1,13 @@
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import { MainNavbar } from "@/components/main-navbar";
-import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
+import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { getLandmarks } from "@/lib/services/landmark-service";
 import { websiteName } from "@/lib/utils";
+import PageHeader from "@/components/page-header";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const countrySlug = (await params).country;
@@ -92,15 +93,10 @@ export default async function LandmarksPage({ params }: Props) {
         <>
             <MainNavbar />
 
-            <div className="text-center bg-website-menu-item py-5 xl:py-10">
-                <h1 className="text-light text-2xl xl:text-3xl 2xl:text-4xl font-bold uppercase">
-                    Забележителности в {country.name}
-                </h1>
-
-                <div className="text-white text-lg flex justify-center">
-                    <Breadcrumbs items={breadcrumbs} />
-                </div>
-            </div>
+            <PageHeader
+                title={`Забележителности в ${country.name}`}
+                breadcrumbs={breadcrumbs}
+            />
 
             <CardGrid
                 items={mappedLandmarks}

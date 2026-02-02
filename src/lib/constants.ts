@@ -129,3 +129,48 @@ export const ALLOWED_IMAGE_TYPES = [
 ];
 
 export const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
+
+export const TRAVEL_CATEGORIES = [
+    {
+        id: 1,
+        name: "Самолетни билети",
+        buttonText: "Информация",
+        slug: "/air-tickets",
+        image: "/images/air-tickets.png"
+    },
+    {
+        id: 2,
+        name: "Автобуси",
+        buttonText: "Информация",
+        slug: "/autobuses",
+        image: "/images/avtobuses.png"
+    },
+    {
+        id: 3,
+        name: "Железопътен превоз",
+        buttonText: "Информация",
+        slug: "/trains",
+        image: "/images/trains.png"
+    },
+    {
+        id: 4,
+        name: "Круизи",
+        buttonText: "Информация",
+        slug: "/cruises",
+        image: "/images/cruises.png"
+    },
+    {
+        id: 5,
+        name: "Таксита",
+        buttonText: "Информация",
+        slug: "/taxis",
+        image: "/images/taxis.png"
+    },
+    {
+        id: 6,
+        name: "Споделено пътуване",
+        buttonText: "Информация",
+        slug: "/shared-travel",
+        image: "/images/shared-travel.png"
+    },
+];

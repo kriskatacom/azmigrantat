@@ -66,9 +66,13 @@ export async function createCompany(company: Company): Promise<Company> {
     }
 }
 
+type CompanyCondition = {
+    column: "id" | "slug" | "name" | "country_id" | "city_id" | "category_id";
+    value: string | number;
+};
+
 type GetCompaniesOptions = {
-    column?: "id" | "slug" | "name" | "country_id" | "city_id" | "category_id";
-    value?: string | number;
+    where?: CompanyCondition[];
 };
 
 export async function getCompanies(
@@ -77,9 +81,13 @@ export async function getCompanies(
     let sql = `SELECT * FROM companies`;
     const params: (string | number)[] = [];
 
-    if (options?.column && options.value !== undefined) {
-        sql += ` WHERE ${options.column} = ?`;
-        params.push(options.value);
+    if (options?.where?.length) {
+        const conditions = options.where.map((cond) => {
+            params.push(cond.value);
+            return `${cond.column} = ?`;
+        });
+
+        sql += ` WHERE ` + conditions.join(" AND ");
     }
 
     const [rows] = await getDb().query<any[]>(sql, params);
