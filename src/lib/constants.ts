@@ -120,3 +120,12 @@ export const mainSidebarItems: AdminSidebarItem[] = [
         link: "settings",
     },
 ];
+
+export const ALLOWED_IMAGE_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+];
+
+export const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif"];

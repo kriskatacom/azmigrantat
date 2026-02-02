@@ -12,7 +12,7 @@ ALTER TABLE `embassies`
 DROP `contacts_content`;
 
 ALTER TABLE `embassies` ADD `address` VARCHAR(512) NULL AFTER `working_time`,
-ADD `phone` VARCHAR(20) NULL AFTER `address`,
+ADD `phone` VARCHAR(512) NULL AFTER `address`,
 ADD `email` VARCHAR(40) NULL AFTER `phone`;
 
 ALTER TABLE `embassies` ADD `fax` TEXT NULL AFTER `website_link`;

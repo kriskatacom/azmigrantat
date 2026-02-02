@@ -34,14 +34,16 @@ export async function POST(req: Request, { params }: Params) {
             );
         }
 
-        // Преобразуваме JSON масива
-        const currentImages: string[] = Array.isArray(
-            landmark.additional_images,
-        )
-            ? (landmark.additional_images as string[]).filter(
-                  (img): img is string => typeof img === "string",
-              )
-            : [];
+        let currentImages: string[] = [];
+        if (Array.isArray(landmark.additional_images)) {
+            currentImages = landmark.additional_images;
+        } else if (typeof landmark.additional_images === "string" && landmark.additional_images) {
+            try {
+                currentImages = JSON.parse(landmark.additional_images);
+            } catch {
+                currentImages = [];
+            }
+        }
 
         // Запазваме всеки файл и събираме URL-тата
         const uploadedUrls: string[] = [];
