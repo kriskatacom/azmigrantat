@@ -107,3 +107,22 @@ export type Location = {
     lat: number;
     lng: number;
 };
+
+export type Company = {
+    id?: number;
+    name: string;
+    slug: string;
+    excerpt: string;
+    description: string;
+    image_url: string;
+    additional_images?: any;
+    your_location?: string;
+    google_map?: string;
+    company_slogan?: string;
+    contacts_content?: string;
+    country_id?: number | null;
+    city_id?: number | null;
+    category_id?: number | null;
+    created_at?: Date;
+    updated_at?: Date;
+};

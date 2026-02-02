@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { generateSlug } from "@/app/api/lib";
 import {
-    createCity,
-    getCities,
-    getCityByColumn,
-    updateCity,
-} from "@/lib/services/city-service";
-import { NewCity } from "@/app/admin/cities/[id]/city-form";
+    createCompany,
+    getCompanyByColumn,
+    updateCompany,
+} from "@/lib/services/companies-service";
+import { NewCompany } from "@/app/admin/companies/[id]/company-form";
+import { getCities } from "@/lib/services/city-service";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -14,7 +14,7 @@ async function makeUniqueSlug(slug: string) {
     let uniqueSlug = slug;
     let counter = 2;
 
-    while (await getCityByColumn("slug", uniqueSlug)) {
+    while (await getCompanyByColumn("slug", uniqueSlug)) {
         uniqueSlug = `${slug}-${counter}`;
         counter++;
     }
@@ -24,7 +24,7 @@ async function makeUniqueSlug(slug: string) {
 
 export async function POST(req: Request) {
     try {
-        const data: NewCity = await req.json();
+        const data: NewCompany = await req.json();
 
         if (process.env.NODE_ENV === "development") {
             await delay(100);
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
                 );
             }
 
-            const city = await getCityByColumn("id", cityId);
+            const city = await getCompanyByColumn("id", cityId);
 
             if (!city) {
                 return NextResponse.json(
@@ -60,7 +60,7 @@ export async function POST(req: Request) {
             }
 
             if (data.slug !== city.slug) {
-                const slugTaken = await getCityByColumn("slug", data.slug);
+                const slugTaken = await getCompanyByColumn("slug", data.slug);
 
                 if (slugTaken) {
                     return NextResponse.json(
@@ -73,12 +73,18 @@ export async function POST(req: Request) {
                 }
             }
 
-            await updateCity(cityId, {
+            await updateCompany(cityId, {
                 name: data.name,
                 slug: data.slug,
-                heading: data.heading,
-                country_id: data.countryId,
                 excerpt: data.excerpt,
+                description: data.description,
+                company_slogan: data.company_slogan,
+                google_map: data.google_map,
+                your_location: data.your_location,
+                contacts_content: data.contacts_content,
+                country_id: data.country_id,
+                city_id: data.city_id,
+                category_id: data.category_id,
             });
 
             return NextResponse.json(
@@ -101,7 +107,7 @@ export async function POST(req: Request) {
         data.slug = await makeUniqueSlug(data.slug);
 
         // Проверка дали slug вече съществува
-        const slugTaken = await getCityByColumn("slug", data.slug);
+        const slugTaken = await getCompanyByColumn("slug", data.slug);
 
         if (slugTaken) {
             return NextResponse.json(
@@ -113,16 +119,23 @@ export async function POST(req: Request) {
             );
         }
 
-        const city = await createCity({
+        const company = await createCompany({
             name: data.name,
             slug: data.slug,
-            heading: data.heading,
             excerpt: data.excerpt,
-            country_id: data.countryId,
+            description: data.description,
+            company_slogan: data.company_slogan,
+            google_map: data.google_map,
+            your_location: data.your_location,
+            contacts_content: data.contacts_content,
+            country_id: data.country_id,
+            city_id: data.city_id,
+            category_id: data.category_id,
+            image_url: "",
         });
 
         return NextResponse.json(
-            { success: true, cityId: city.id },
+            { success: true, cityId: company.id },
             { status: 201 },
         );
     } catch (err) {
