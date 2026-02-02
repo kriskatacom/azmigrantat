@@ -112,6 +112,7 @@ export default async function CountryPage({ params }: PageProps) {
                 items={mappedCountryElements}
                 id="learn-more"
                 hrefPrefix={countryData.slug}
+                columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             />
         </>
     );

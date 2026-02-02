@@ -2,6 +2,8 @@ import React from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import striptags from "striptags";
+import { EyeIcon } from "lucide-react";
 
 export type CardEntity = {
     name: string;
@@ -52,13 +54,10 @@ export const CardItem: React.FC<CardItemProps> = ({
     }
 
     return (
-        <div className="border rounded-2xl overflow-hidden shadow-sm transition-shadow duration-300 hover:shadow-lg">
-            <Link
-                href={`${hrefPrefix}/${item.slug}`}
-                className="flex h-full"
-            >
+        <div className="bg-white border rounded-2xl overflow-hidden shadow-sm transition-shadow duration-300 hover:shadow-lg">
+            <Link href={`${hrefPrefix}/${item.slug}`} className="flex h-full">
                 {/* Image */}
-                <div className="relative w-40 shrink-0">
+                <div className="relative w-40 md:w-50 shrink-0">
                     <Image
                         src={item.imageUrl || "/images/default.webp"}
                         alt={item.name}
@@ -72,19 +71,20 @@ export const CardItem: React.FC<CardItemProps> = ({
                 </div>
 
                 {/* Content */}
-                <div className="flex flex-col justify-center gap-2 p-5">
-                    <h3 className="text-xl font-semibold text-primary">
+                <div className="flex flex-col justify-center items-start gap-2 md:gap-4 p-5 text-left">
+                    <h3 className="text-xl md:text-2xl font-semibold text-primary">
                         {item.name}
                     </h3>
 
                     {item.excerpt && (
-                        <p className="text-sm text-primary/80 line-clamp-2">
-                            {item.excerpt}
-                        </p>
+                        <div className="text-base text-primary/80 line-clamp-2 text-left">
+                            {striptags(item.excerpt.trim())}
+                        </div>
                     )}
 
-                    <Button variant="outline" className="w-fit">
-                        Вижте повече
+                    <Button variant="outline" className="text-base md:text-lg">
+                        <EyeIcon />
+                        <span>Вижте повече</span>
                     </Button>
                 </div>
             </Link>

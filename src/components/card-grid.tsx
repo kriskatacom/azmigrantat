@@ -12,6 +12,7 @@ type GridColumns = {
 	md?: number
 	lg?: number
 	xl?: number
+	xxl?: number
 }
 
 type CardGridProps = {
@@ -42,6 +43,7 @@ export const CardGrid: React.FC<CardGridProps> = ({
 		sm: 2,
 		lg: 3,
 		xl: 4,
+		xxl: 5,
 	}
 }) => {
 	const [visibleCount, setVisibleCount] = useState(initialVisible);
@@ -59,11 +61,12 @@ export const CardGrid: React.FC<CardGridProps> = ({
 	const getColumns = () => {
 		if (typeof window === "undefined") return columns.base
 
-		const w = window.innerWidth
-		if (w >= 1280 && columns.xl) return columns.xl
-		if (w >= 1024 && columns.lg) return columns.lg
-		if (w >= 768 && columns.md) return columns.md
-		if (w >= 640 && columns.sm) return columns.sm
+		const w = window.innerWidth;
+		if (w >= 1536 && columns.xxl) return columns.xxl;
+		if (w >= 1280 && columns.xl) return columns.xl;
+		if (w >= 1024 && columns.lg) return columns.lg;
+		if (w >= 768 && columns.md) return columns.md;
+		if (w >= 640 && columns.sm) return columns.sm;
 
 		return columns.base
 	}

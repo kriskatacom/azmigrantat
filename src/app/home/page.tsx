@@ -30,6 +30,9 @@ export default async function HomePage() {
                 isWithSearch={true}
                 loadMoreStep={8}
                 initialVisible={8}
+                variant="standart"
+                hrefPrefix=""
+                columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             />
         </>
     );

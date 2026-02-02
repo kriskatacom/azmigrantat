@@ -5,6 +5,9 @@ import { Breadcrumbs, BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { getCityByColumn } from "@/lib/services/city-service";
 import { CategoryNode, getCategoryTree } from "@/lib/services/category-service";
+import { Company } from "@/lib/types";
+import { getCompanies } from "@/lib/services/companies-service";
+import { CardEntity } from "@/components/card-item";
 
 type PageProps = {
     params: Promise<{
@@ -48,11 +51,22 @@ export default async function CityPage({ params }: PageProps) {
         { name: "Градове", href: `/${countryData.slug}/cities` },
         { name: city.name, href: `/${countryData.slug}/cities/${city.slug}` },
         ...categoryBreadcrumbs.map((b, index) =>
-            index === categoryBreadcrumbs.length - 1
-                ? { name: b.name }
-                : b,
+            index === categoryBreadcrumbs.length - 1 ? { name: b.name } : b,
         ),
     ];
+
+    let companies: Company[] = [];
+
+    if (visibleCategories.length === 0) {
+        companies = await getCompanies({ column: "city_id", value: city.id });
+    }
+
+    const mappedCompanies: CardEntity[] = companies.map((company) => ({
+        slug: company.slug!,
+        name: company.name!,
+        imageUrl: company.image_url!,
+        excerpt: company.excerpt!,
+    }));
 
     return (
         <>
@@ -77,13 +91,29 @@ export default async function CityPage({ params }: PageProps) {
                     isWithSearch
                     loadMoreStep={8}
                     initialVisible={8}
-                    hrefPrefix={`/${countryData.slug}/cities/${city.slug}/${categoryPath.join("/")}`}
                     variant="standart"
+                    hrefPrefix={`/${countryData.slug}/cities/${city.slug}/${categoryPath.join("/")}`}
+                    columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
                 />
             ) : (
-                <div className="py-5 xl:py-10 text-center text-xl font-semibold">
-                    Няма подкатегории
-                </div>
+                <>
+                    <CardGrid
+                        items={mappedCompanies}
+                        id="companies"
+                        searchPlaceholder="Търсене на компании..."
+                        isWithSearch={true}
+                        loadMoreStep={8}
+                        initialVisible={8}
+                        variant="modern"
+                        hrefPrefix="/companies"
+                        columns={{ base: 1, xl: 2, xxl: 3 }}
+                    />
+                    {companies.length === 0 && (
+                        <div className="text-center text-xl font-semibold">
+                            Няма намерени компании
+                        </div>
+                    )}
+                </>
             )}
         </>
     );
