@@ -1,15 +1,18 @@
-import React from "react";
+import React, { useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import striptags from "striptags";
 import { EyeIcon } from "lucide-react";
 
+type LinkType = "internal" | "external";
+
 export type CardEntity = {
     name: string;
     slug: string;
     imageUrl?: string | null;
     excerpt?: string | null;
+    linkType?: LinkType;
 };
 
 type CardItemProps = {
@@ -28,7 +31,7 @@ export const CardItem: React.FC<CardItemProps> = ({
     if (variant === "standart") {
         return (
             <div className="relative h-60 rounded-xl overflow-hidden shadow-lg group">
-                <Link href={`${hrefPrefix}/${item.slug}`}>
+                <Link href={item.linkType === "external" ? item.slug : `${hrefPrefix}/${item.slug}`}>
                     <div
                         className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
                         style={{

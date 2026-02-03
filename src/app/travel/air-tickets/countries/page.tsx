@@ -1,10 +1,10 @@
 import { Metadata } from "next";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
-import LeafletMap from "@/app/travel/air-tickets/leaflet-map";
 import { MainNavbar } from "@/components/main-navbar";
 import PageHeader from "@/components/page-header";
-import { AIR_TICKETS_PAGE_ITEMS, AIRPORTS_DATA } from "@/lib/constants";
 import { absoluteUrl, websiteName } from "@/lib/utils";
+import { CardEntity } from "@/components/card-item";
+import { getCountries } from "@/lib/services/country-service";
 import { CardGrid } from "@/components/card-grid";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -57,25 +57,44 @@ export async function generateMetadata(): Promise<Metadata> {
     };
 }
 
-export default async function AirTickets() {
+export default async function AirPorts() {
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
-        { name: "Самолетни билети" },
+        { name: "Самолетни билети", href: "/travel/air-tickets" },
+        { name: "Летища по държави" },
     ];
+
+    const countries = await getCountries();
+    const mappedCountries: CardEntity[] = countries
+        .filter(
+            (
+                country,
+            ): country is {
+                name: string;
+                slug: string;
+                image_url: string;
+            } => Boolean(country.name && country.slug && country.image_url),
+        )
+        .map((country) => ({
+            name: country.name,
+            slug: country.slug,
+            imageUrl: country.image_url,
+        }));
 
     return (
         <>
             <MainNavbar />
-            <PageHeader title="Самолетни билети" breadcrumbs={breadcrumbs} />
-            <LeafletMap markers={AIRPORTS_DATA} />
+            <PageHeader title="Летища по държави" breadcrumbs={breadcrumbs} />
             <CardGrid
-                items={AIR_TICKETS_PAGE_ITEMS}
+                items={mappedCountries}
                 id="countries"
+                isWithSearch
+                searchPlaceholder="Търсене на държави"
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"
-                hrefPrefix="/travel/air-tickets"
+                hrefPrefix="/travel/air-tickets/countries"
                 columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             />
         </>

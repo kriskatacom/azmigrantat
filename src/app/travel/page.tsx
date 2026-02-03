@@ -1,4 +1,5 @@
-import { websiteName } from "@/lib/utils";
+import { Metadata } from "next";
+import { absoluteUrl, websiteName } from "@/lib/utils";
 import { MainNavbar } from "@/components/main-navbar";
 import AppImage from "@/components/AppImage";
 import PageHeader from "@/components/page-header";
@@ -6,8 +7,64 @@ import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { CardGrid } from "@/components/card-grid";
 import { TRAVEL_CATEGORIES } from "@/lib/constants";
 
-export default async function TravelPage() {
+export async function generateMetadata(): Promise<Metadata> {
+    const title = `Пътуване – информация за транспорт и услуги`;
+    const description = `Научете всичко за различните видове транспорт: самолетни билети, автобуси, влакове, круизи, таксита и споделено пътуване. Полезна информация за пътуващи и туристи.`;
+    const url = "/travel";
 
+    const firstCategoryImage = TRAVEL_CATEGORIES[0]?.image
+        ? absoluteUrl(TRAVEL_CATEGORIES[0].image) as string
+        : absoluteUrl("/images/travel.png") as string;
+
+    const categoryKeywords = TRAVEL_CATEGORIES.map((c) => c.name);
+
+    return {
+        title: websiteName(title),
+        description,
+
+        alternates: {
+            canonical: absoluteUrl(url),
+        },
+
+        openGraph: {
+            title: websiteName(title),
+            description,
+            url: absoluteUrl(url),
+            siteName: websiteName(),
+            locale: "bg_BG",
+            type: "website",
+            images: [
+                {
+                    url: firstCategoryImage,
+                    width: 1200,
+                    height: 630,
+                    alt: "Пътуване – категории транспорт",
+                },
+            ],
+        },
+
+        twitter: {
+            card: "summary_large_image",
+            title: websiteName(title),
+            description,
+            images: [firstCategoryImage],
+        },
+
+        keywords: [
+            "пътуване",
+            "транспорт",
+            "самолетни билети",
+            "автобуси",
+            "влакове",
+            "круизи",
+            "таксита",
+            "споделено пътуване",
+            ...categoryKeywords,
+        ],
+    };
+}
+
+export default async function TravelPage() {
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване" },
