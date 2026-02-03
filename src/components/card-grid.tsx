@@ -114,7 +114,7 @@ export const CardGrid: React.FC<CardGridProps> = ({
 
 			{visibleCount < items.length && (
 				<div className="mt-6 flex justify-center">
-					<Button onClick={handleLoadMore} variant={"primary"} size={"xl"}>Зареждане на още</Button>
+					<Button onClick={handleLoadMore} variant={"outline"} size={"xl"}>Зареждане на още</Button>
 				</div>
 			)}
 		</section>

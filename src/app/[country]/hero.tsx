@@ -53,7 +53,7 @@ export const Hero: React.FC<HeroProps> = ({
                 {ctaText && ctaLink && (
                     <div className="mt-5">
                         <a href={ctaLink}>
-                            <Button variant={"primary"} size={"xl"}>
+                            <Button variant={"outline"} size={"xl"}>
                                 {ctaText}
                             </Button>
                         </a>

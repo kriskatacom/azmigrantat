@@ -112,6 +112,7 @@ export async function POST(req: Request) {
             slug: data.slug,
             heading: data.heading,
             excerpt: data.excerpt,
+            id: 0,
         });
 
         return NextResponse.json(

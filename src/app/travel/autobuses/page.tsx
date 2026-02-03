@@ -6,6 +6,7 @@ import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
 import { getCountries } from "@/lib/services/country-service";
+import { Country } from "@/lib/types";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Автобусни гари и автобусни превози в Европа – информация и адреси`;
@@ -70,7 +71,7 @@ export default async function AutobusesPage() {
         .filter(
             (
                 country,
-            ): country is {
+            ): country is Country & {
                 name: string;
                 slug: string;
                 image_url: string;

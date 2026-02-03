@@ -132,6 +132,7 @@ export async function POST(req: Request) {
             city_id: data.city_id,
             category_id: data.category_id,
             image_url: "",
+            id: 0,
         });
 
         return NextResponse.json(

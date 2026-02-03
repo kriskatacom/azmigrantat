@@ -6,6 +6,7 @@ import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardEntity } from "@/components/card-item";
 import { getCountries } from "@/lib/services/country-service";
 import { CardGrid } from "@/components/card-grid";
+import { Country } from "@/lib/types";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Европейски летища – информация и връзки към официални сайтове`;
@@ -70,15 +71,15 @@ export default async function AirPorts() {
         .filter(
             (
                 country,
-            ): country is {
+            ): country is Country & {
                 name: string;
                 slug: string;
                 image_url: string;
             } => Boolean(country.name && country.slug && country.image_url),
         )
         .map((country) => ({
-            name: country.name,
-            slug: country.slug,
+            name: country.name!,
+            slug: country.slug!,
             imageUrl: country.image_url,
         }));
 

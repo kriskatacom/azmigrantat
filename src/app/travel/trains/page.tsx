@@ -6,11 +6,11 @@ import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
 import { getCountries } from "@/lib/services/country-service";
+import { Country } from "@/lib/types";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Железопътен превоз в Европа – влакове, гари и полезна информация`;
-    const description =
-        `Разгледайте железопътния превоз в Европа – жп гари, влакове и маршрути, подредени по държави и градове. Намерете адреси, снимки, описания и официални сайтове за пътуване с влак.`;
+    const description = `Разгледайте железопътния превоз в Европа – жп гари, влакове и маршрути, подредени по държави и градове. Намерете адреси, снимки, описания и официални сайтове за пътуване с влак.`;
     const url = "/europe/trains";
 
     const image = absoluteUrl("/images/trains.png") as string;
@@ -71,7 +71,7 @@ export default async function TrainsPage() {
         .filter(
             (
                 country,
-            ): country is {
+            ): country is Country & {
                 name: string;
                 slug: string;
                 image_url: string;

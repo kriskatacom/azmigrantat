@@ -124,6 +124,7 @@ export async function POST(req: Request) {
             longitude: data.longitude,
             website_url: data.website_url,
             country_id: data.country_id as number,
+            id: 0,
         });
 
         return NextResponse.json(

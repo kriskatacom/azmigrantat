@@ -5,7 +5,6 @@ import path from "path";
 import { getTodayFolder, sleep } from "@/app/api/lib";
 import { downloadImage } from "@/app/api/lib";
 import { createCountry } from "@/lib/services/country-service";
-import { createCountryElement } from "@/lib/services/country-element-service";
 import { COUNTRIES, COUNTRY_ELEMENTS } from "@/lib/constants";
 
 type CountryItem = {
@@ -36,16 +35,8 @@ export async function seedCountriesAndElements() {
             name: country.name,
             slug: country.slug as string,
             image_url: country.image_url,
+            id: 0,
         });
-
-        for (const element of country.boxes) {
-            await createCountryElement({
-                name: element.name,
-                slug: element.slug,
-                image_url: element.image,
-                country_id: createdCountry.id,
-            });
-        }
     }
 }
 

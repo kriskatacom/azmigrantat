@@ -6,11 +6,11 @@ import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
 import { getCountries } from "@/lib/services/country-service";
+import { Country } from "@/lib/types";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Круизи в Европа – маршрути, пристанища и полезна информация`;
-    const description =
-        `Открийте круизите в Европа – популярни маршрути, круизни пристанища и туристически дестинации. Намерете снимки, описания и официални сайтове за круизни пътувания по държави и градове.`;
+    const description = `Открийте круизите в Европа – популярни маршрути, круизни пристанища и туристически дестинации. Намерете снимки, описания и официални сайтове за круизни пътувания по държави и градове.`;
     const url = "/europe/cruises";
 
     const image = absoluteUrl("/images/cruises.png") as string;
@@ -71,7 +71,7 @@ export default async function CruisesPage() {
         .filter(
             (
                 country,
-            ): country is {
+            ): country is Country & {
                 name: string;
                 slug: string;
                 image_url: string;

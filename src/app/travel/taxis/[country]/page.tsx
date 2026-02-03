@@ -8,11 +8,11 @@ import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { getCities } from "@/lib/services/city-service";
+import { City, Country } from "@/lib/types";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Таксиметрови компании в Европа – контакти и полезна информация`;
-    const description =
-        `Открийте таксиметровите компании в Европа – услуги, адреси и телефони, подредени по държави и градове. Намерете снимки, описания и официални сайтове за бърз и удобен градски транспорт.`;
+    const description = `Открийте таксиметровите компании в Европа – услуги, адреси и телефони, подредени по държави и градове. Намерете снимки, описания и официални сайтове за бърз и удобен градски транспорт.`;
     const url = "/europe/taxis";
 
     const image = absoluteUrl("/images/taxis.png") as string;
@@ -87,17 +87,17 @@ export default async function TaxisByCountryPage({ params }: Props) {
     const mappedCities: CardEntity[] = cities
         .filter(
             (
-                city,
-            ): city is {
+                country,
+            ): country is City & {
                 name: string;
                 slug: string;
                 image_url: string;
-            } => Boolean(city.name && city.slug && city.image_url),
+            } => Boolean(country.name && country.slug && country.image_url),
         )
-        .map((city) => ({
-            name: city.name,
-            slug: city.slug,
-            imageUrl: city.image_url,
+        .map((country) => ({
+            name: country.name,
+            slug: country.slug,
+            imageUrl: country.image_url,
         }));
 
     return (

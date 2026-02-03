@@ -120,6 +120,7 @@ export async function POST(req: Request) {
             heading: data.heading,
             excerpt: data.excerpt,
             parent_id: data.parentId,
+            id: 0,
         });
 
         return NextResponse.json(

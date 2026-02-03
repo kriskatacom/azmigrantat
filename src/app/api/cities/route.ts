@@ -119,6 +119,7 @@ export async function POST(req: Request) {
             heading: data.heading,
             excerpt: data.excerpt,
             country_id: data.countryId,
+            id: 0,
         });
 
         return NextResponse.json(

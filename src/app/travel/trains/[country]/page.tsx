@@ -8,6 +8,7 @@ import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { getCities } from "@/lib/services/city-service";
+import { City } from "@/lib/types";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Железопътен превоз в Европа – влакове, гари и полезна информация`;
@@ -87,7 +88,7 @@ export default async function TrainsByCountryPage({ params }: Props) {
         .filter(
             (
                 city,
-            ): city is {
+            ): city is City & {
                 name: string;
                 slug: string;
                 image_url: string;

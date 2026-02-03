@@ -6,11 +6,11 @@ import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
 import { getCountries } from "@/lib/services/country-service";
+import { Country } from "@/lib/types";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Таксиметрови компании в Европа – контакти и полезна информация`;
-    const description =
-        `Открийте таксиметровите компании в Европа – услуги, адреси и телефони, подредени по държави и градове. Намерете снимки, описания и официални сайтове за бърз и удобен градски транспорт.`;
+    const description = `Открийте таксиметровите компании в Европа – услуги, адреси и телефони, подредени по държави и градове. Намерете снимки, описания и официални сайтове за бърз и удобен градски транспорт.`;
     const url = "/europe/taxis";
 
     const image = absoluteUrl("/images/taxis.png") as string;
@@ -71,7 +71,7 @@ export default async function TrainsPage() {
         .filter(
             (
                 country,
-            ): country is {
+            ): country is Country & {
                 name: string;
                 slug: string;
                 image_url: string;

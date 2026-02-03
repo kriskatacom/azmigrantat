@@ -1,5 +1,6 @@
 import { Country, CountryElement } from "@/lib/types";
 import { getDb } from "@/lib/db";
+import { ResultSetHeader } from "mysql2";
 
 /**
  * Създава нов елемент за държава
@@ -16,7 +17,7 @@ export async function createCountryElement(
   `;
 
     try {
-        const [result] = await getDb().execute(sql, [
+        const [result] = await getDb().execute<ResultSetHeader>(sql, [
             name,
             slug,
             content ?? "",
@@ -24,14 +25,18 @@ export async function createCountryElement(
             country_id,
         ]);
 
-        return { id: (result as any).insertId, ...countryElement };
+        const elements = await getCountryElementsByColumn("id", result.insertId.toString());
+        return elements[0];
     } catch (err) {
         console.error("Error creating country:", err);
         throw err;
     }
 }
 
-export async function getCountryElementsByColumn(column: string, value: string) {
+export async function getCountryElementsByColumn(
+    column: "id" | "slug" | "country_id",
+    value: string,
+) {
     const [rows] = await getDb().execute(
         `SELECT * FROM country_elements WHERE ${column} = ?`,
         [value],
