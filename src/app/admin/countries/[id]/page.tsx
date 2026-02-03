@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { websiteName } from "@/lib/utils";
-import { MainSidebar } from "@/components/main-sidebar";
+import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import CountryForm from "@/app/admin/countries/[id]/country-form";
 import ImageUpload from "@/components/image-upload";
 import { Breadcrumbs } from "@/components/admin-breadcrumbs";
@@ -54,7 +54,7 @@ export default async function NewCountry({ params }: Params) {
 
     return (
         <div className="flex">
-            <MainSidebar />
+            <MainSidebarServer />
             <main className="flex-1">
                 <div className="border-b flex items-center gap-5">
                     <h1 className="text-2xl font-semibold p-5">

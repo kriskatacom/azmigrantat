@@ -2,13 +2,13 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { FiPlus } from "react-icons/fi";
 import { websiteName } from "@/lib/utils";
-import { MainSidebar } from "@/components/main-sidebar";
+import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import ImageUpload from "@/components/image-upload";
 import { Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { getAirportByColumn } from "@/lib/services/airports-service";
-import NewAirportForm from "@/app/admin/airports/[id]/airport-form";
 import { getCountries } from "@/lib/services/country-service";
+import NewAirportForm from "@/app/admin/airports/[id]/airport-form";
 
 type Props = {
     params: Promise<{
@@ -52,7 +52,7 @@ export default async function NewCompany({ params }: Params) {
 
     return (
         <div className="flex">
-            <MainSidebar />
+            <MainSidebarServer />
             <main className="flex-1">
                 <div className="border-b flex items-center gap-5">
                     <h1 className="text-2xl font-semibold p-5">
@@ -61,7 +61,7 @@ export default async function NewCompany({ params }: Params) {
                             : "Добавяне на ново летище"}
                     </h1>
                     <Link href="/admin/airports/new">
-                        <Button variant={"default"} size={"xl"}>
+                        <Button variant={"outline"} size={"xl"}>
                             <FiPlus />
                             <span>Добавяне</span>
                         </Button>

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { FiPlus } from "react-icons/fi";
 import { websiteName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { MainSidebar } from "@/components/main-sidebar";
+import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
 import ClientPage from "@/app/admin/embassies/client-page";
 import { Country } from "@/lib/types";
@@ -48,7 +48,7 @@ export default async function Embassies({ searchParams }: EmbassyProps) {
 
     return (
         <div className="flex">
-            <MainSidebar />
+            <MainSidebarServer />
 
             <main className="flex-1">
                 <div className="flex items-center gap-5 border-b">

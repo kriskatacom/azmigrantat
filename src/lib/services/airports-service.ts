@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db";
 import { Airport } from "@/lib/types";
+import { ResultSetHeader } from "mysql2";
 
 type AirportCondition = {
     column:
@@ -43,7 +44,7 @@ export async function createAirport(airport: Airport): Promise<Airport> {
     `;
 
     try {
-        const [result] = await getDb().execute(sql, [
+        const [result] = await getDb().execute<ResultSetHeader>(sql, [
             name,
             slug,
             iata_code ?? null,
@@ -55,10 +56,7 @@ export async function createAirport(airport: Airport): Promise<Airport> {
             country_id ?? null,
         ]);
 
-        return {
-            id: (result as any).insertId,
-            ...airport,
-        };
+        return await getAirportByColumn("id", result.insertId) as Airport;
     } catch (err) {
         console.error("Error creating airport:", err);
         throw err;
@@ -79,6 +77,8 @@ export async function getAirports(
 
         sql += ` WHERE ` + conditions.join(" AND ");
     }
+
+    sql += " ORDER BY sort_order";
 
     const [rows] = await getDb().query<any[]>(sql, params);
 

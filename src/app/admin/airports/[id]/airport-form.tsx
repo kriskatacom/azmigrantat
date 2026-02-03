@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
@@ -8,10 +9,15 @@ import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Airport, City, Country } from "@/lib/types";
+import { Airport, Country } from "@/lib/types";
 import RichTextEditor from "@/components/rich-text-editor";
-import { extractIframeSrc } from "@/lib/utils";
 import { RelationForm } from "@/components/relation-form";
+import { MapMarker } from "@/components/leaflet-map";
+import { slugify } from "@/lib/utils";
+
+const LeafletMap = dynamic(() => import("@/components/leaflet-map"), {
+    ssr: false,
+});
 
 export interface NewAirport {
     id: number | null;
@@ -114,75 +120,84 @@ export default function NewAirportForm({ airport, countries }: Params) {
                         Това поле е задължително!
                     </div>
                 )}
-            </div>
-
-            <div className="flex gap-5">
-                <div className="w-full space-y-2">
-                    <Label>IATA код</Label>
-                    <Input
-                        value={formData.iata_code}
-                        onChange={(e) =>
-                            handleChange(
-                                "iata_code",
-                                e.target.value.toUpperCase(),
-                            )
-                        }
-                    />
-                </div>
-                <div className="w-full space-y-2">
-                    <Label>ICAO код</Label>
-                    <Input
-                        value={formData.icao_code}
-                        onChange={(e) =>
-                            handleChange(
-                                "icao_code",
-                                e.target.value.toUpperCase(),
-                            )
-                        }
-                    />
-                </div>
-            </div>
-
-            <div className="space-y-2">
-                <Label>Описание</Label>
-                <RichTextEditor
-                    content={formData.description}
-                    onChange={(v) => handleChange("description", v)}
-                />
-            </div>
-
-            <div className="flex gap-5">
-                <div className="flex-1 space-y-2">
-                    <Label>Lat</Label>
-                    <Input
-                        placeholder="Latitude"
-                        value={formData.latitude}
-                        onChange={(e) =>
-                            handleChange("latitude", e.target.value)
-                        }
-                    />
-                </div>
-                <div className="flex-1 space-y-2">
-                    <Label>Lon</Label>
-                    <Input
-                        placeholder="Longitude"
-                        value={formData.longitude}
-                        onChange={(e) =>
-                            handleChange("longitude", e.target.value)
-                        }
-                    />
-                </div>
-            </div>
-
-            <div className="space-y-2">
-                <Label>Официален сайт</Label>
-                <Input
-                    value={formData.website_url}
-                    onChange={(e) =>
-                        handleChange("website_url", e.target.value)
+                <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                        setFormData((prev) => ({
+                            ...prev,
+                            slug: slugify(prev.name),
+                        }))
                     }
-                />
+                >
+                    Генериране
+                </Button>
             </div>
+
+            {formData.id && (
+                <>
+                    <div className="space-y-2">
+                        <Label>Описание</Label>
+                        <RichTextEditor
+                            content={formData.description}
+                            onChange={(v) => handleChange("description", v)}
+                        />
+                    </div>
+
+                    <div className="flex gap-5">
+                        <div className="flex-1 space-y-2">
+                            <Label>Lat</Label>
+                            <Input
+                                placeholder="Latitude"
+                                value={formData.latitude}
+                                onChange={(e) =>
+                                    handleChange("latitude", e.target.value)
+                                }
+                            />
+                        </div>
+                        <div className="flex-1 space-y-2">
+                            <Label>Lon</Label>
+                            <Input
+                                placeholder="Longitude"
+                                value={formData.longitude}
+                                onChange={(e) =>
+                                    handleChange("longitude", e.target.value)
+                                }
+                            />
+                        </div>
+                    </div>
+
+                    {formData.latitude &&
+                    formData.longitude &&
+                    formData.website_url ? (
+                        <LeafletMap
+                            center={[formData.latitude, formData.longitude]}
+                            zoom={7}
+                            markers={[
+                                {
+                                    id: "1",
+                                    lat: formData.latitude,
+                                    lng: formData.longitude,
+                                    label: formData.name,
+                                    description: formData.description,
+                                    image: airport?.image_url ?? "",
+                                    websiteUrl: formData.website_url,
+                                } as MapMarker,
+                            ]}
+                        />
+                    ) : null}
+
+                    <div className="space-y-2">
+                        <Label>Официален сайт</Label>
+                        <Input
+                            value={formData.website_url}
+                            onChange={(e) =>
+                                handleChange("website_url", e.target.value)
+                            }
+                        />
+                    </div>
+                </>
+            )}
 
             <div className="flex gap-5">
                 <div className="space-y-2">
@@ -198,7 +213,7 @@ export default function NewAirportForm({ airport, countries }: Params) {
                                 country_id: id as number,
                             }))
                         }
-                        placeholder="Държава"
+                        placeholder="Изберете държава"
                     />
                     {errors.country_id && (
                         <div className="text-destructive">
@@ -208,7 +223,12 @@ export default function NewAirportForm({ airport, countries }: Params) {
                 </div>
             </div>
 
-            <Button type="submit" size="xl" disabled={isSubmitting}>
+            <Button
+                type="submit"
+                variant={"outline"}
+                size="lg"
+                disabled={isSubmitting}
+            >
                 {isSubmitting ? (
                     <FiLoader className="animate-spin" />
                 ) : (

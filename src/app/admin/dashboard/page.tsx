@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { websiteName } from "@/lib/utils";
-import { MainSidebar } from "@/components/main-sidebar";
+import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 
 export const metadata: Metadata = {
     title: websiteName("Табло"),
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function Dashboard() {
     return (
         <div className="flex">
-            <MainSidebar />
+            <MainSidebarServer />
             <main className="flex-1">
                 <h1 className="text-2xl font-semibold p-5 border-b">Табло</h1>
             </main>

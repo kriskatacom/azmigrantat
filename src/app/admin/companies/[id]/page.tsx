@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { FiPlus } from "react-icons/fi";
 import { websiteName } from "@/lib/utils";
-import { MainSidebar } from "@/components/main-sidebar";
+import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import ImageUpload from "@/components/image-upload";
 import { Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { Button } from "@/components/ui/button";
@@ -57,7 +57,7 @@ export default async function NewCompany({ params }: Params) {
 
     return (
         <div className="flex">
-            <MainSidebar />
+            <MainSidebarServer />
             <main className="flex-1">
                 <div className="border-b flex items-center gap-5">
                     <h1 className="text-2xl font-semibold p-5">

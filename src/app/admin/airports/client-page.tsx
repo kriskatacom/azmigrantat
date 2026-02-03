@@ -12,15 +12,18 @@ type ClientPageProps = {
 };
 
 export default function ClientPage({ data }: ClientPageProps) {
-
     const router = useRouter();
 
     async function onBulkDelete(selectedIds: (string | number)[]) {
         try {
-            const res = await axios.post("/api/airports/bulk-delete", { ids: selectedIds });
+            const res = await axios.post("/api/airports/bulk-delete", {
+                ids: selectedIds,
+            });
 
             if (res.status === 200) {
-                toast.success(`Бяха премахнати ${res.data.deletedCount} летища.`);
+                toast.success(
+                    `Бяха премахнати ${res.data.deletedCount} летища.`,
+                );
                 router.refresh();
             }
         } catch (error) {
@@ -28,10 +31,37 @@ export default function ClientPage({ data }: ClientPageProps) {
         }
     }
 
+    const handleReorder = async (reorderedData: Airport[]) => {
+        try {
+            const response = await fetch("/api/reorder", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    tableName: "airports",
+                    items: reorderedData.map((item, index) => ({
+                        id: item.id,
+                        order: index + 1,
+                    })),
+                }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Пренареждането на записите беше провалено.");
+            }
+
+            console.log("Редът е запазен успешно");
+        } catch (error) {
+            console.error("Грешка при запазване на реда:", error);
+        }
+    };
+
     return (
         <DataTable
             columns={columns}
             data={data}
+            onReorder={handleReorder}
             onBulkDelete={(selectedIds) => onBulkDelete(selectedIds)}
         />
     );

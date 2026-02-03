@@ -24,7 +24,7 @@ export type City = {
 };
 
 export interface Airport {
-    id?: number;
+    id: number;
     name: string;
     slug: string;
     iata_code?: string;

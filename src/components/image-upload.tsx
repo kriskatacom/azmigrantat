@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { FaSave, FaTimes } from "react-icons/fa";
 import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type Props = {
     imageUrl?: string;
@@ -16,6 +17,7 @@ type Props = {
 };
 
 export default function ImageUpload(props: Props) {
+    const router = useRouter();
     const [progress, setProgress] = useState(0);
     const [file, setFile] = useState<File | null>(null);
     const [imageUrl, setImageUrl] = useState<string | null>(
@@ -61,6 +63,7 @@ export default function ImageUpload(props: Props) {
             setImageUrl(res.data.url);
             setIsShow(false);
             props.onUploadSuccess && props.onUploadSuccess();
+            router.refresh();
         } catch (error) {
             console.error("Upload error:", error);
         } finally {

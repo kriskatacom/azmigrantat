@@ -79,52 +79,52 @@ export const mainSidebarItems: AdminSidebarItem[] = [
     {
         name: "Табло",
         icon: MdOutlineDashboard,
-        link: "dashboard",
+        link: "/admin/dashboard",
     },
     {
         name: "Потребители",
         icon: FiUsers,
-        link: "users",
+        link: "/admin/users",
     },
     {
         name: "Държави",
         icon: CiBank,
-        link: "countries",
+        link: "/admin/countries",
     },
     {
         name: "Градове",
         icon: BsBuildings,
-        link: "cities",
+        link: "/admin/cities",
     },
     {
         name: "Категории",
         icon: MdOutlineCategory,
-        link: "categories",
+        link: "/admin/categories",
     },
     {
         name: "Компании",
         icon: TbBuildingStore,
-        link: "companies",
+        link: "/admin/companies",
     },
     {
         name: "Посолства",
         icon: FaBuildingColumns,
-        link: "embassies",
+        link: "/admin/embassies",
     },
     {
         name: "Забележителности",
         icon: LiaLandmarkSolid,
-        link: "landmarks",
+        link: "/admin/landmarks",
     },
     {
         name: "Летища",
         icon: IoAirplaneSharp,
-        link: "airports",
+        link: "/admin/airports",
     },
     {
         name: "Настройки",
         icon: IoSettingsOutline,
-        link: "settings",
+        link: "/admin/settings",
     },
 ];
 

@@ -17,6 +17,7 @@ import {
     CommandInput,
     CommandItem,
 } from "@/components/ui/command";
+import { Label } from "./ui/label";
 
 export type RelationItem = {
     id: number | string;
@@ -49,17 +50,24 @@ export function RelationForm<T extends RelationItem>({
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button
-                    variant="outline"
-                    role="combobox"
-                    size="xl"
-                    aria-expanded={open}
-                    className="min-w-xs flex justify-between text-lg font-normal"
-                    disabled={disabled}
-                >
-                    {selectedItem ? selectedItem.label : placeholder}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
+                <div className="space-y-2">
+                    <Label>{placeholder}</Label>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        size="xl"
+                        aria-expanded={open}
+                        className={cn(
+                            !selectedItem ? "text-muted-foreground" : "",
+                            "min-w-xs flex justify-between text-lg font-normal",
+                        )}
+                        disabled={disabled}
+                    >
+                        {selectedItem ? selectedItem.label : placeholder}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                </div>
             </PopoverTrigger>
 
             <PopoverContent className="max-h-100 h-fit overflow-y-auto min-w-xs p-0">
@@ -81,7 +89,7 @@ export function RelationForm<T extends RelationItem>({
                                         "mr-2 h-4 w-4",
                                         value === item.id
                                             ? "opacity-100"
-                                            : "opacity-0"
+                                            : "opacity-0",
                                     )}
                                 />
                                 {item.label}

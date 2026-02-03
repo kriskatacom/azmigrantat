@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { websiteName } from "@/lib/utils";
 import { FiPlus } from "react-icons/fi";
-import { MainSidebar } from "@/components/main-sidebar";
+import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import CategoryForm from "@/app/admin/categories/[id]/category-form";
 import ImageUpload from "@/components/image-upload";
 import { Breadcrumbs } from "@/components/admin-breadcrumbs";
@@ -64,7 +64,7 @@ export default async function NewCity({ params }: Params) {
 
     return (
         <div className="flex">
-            <MainSidebar />
+            <MainSidebarServer />
             <main className="flex-1">
                 <div className="border-b flex items-center gap-5">
                     <h1 className="text-2xl font-semibold p-5">

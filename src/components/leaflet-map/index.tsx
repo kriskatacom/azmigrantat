@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import { motion, AnimatePresence } from "framer-motion";
+import { FaChevronRight } from "react-icons/fa";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { cn } from "@/lib/utils";
-import { Input } from "../ui/input";
-import AppImage from "../AppImage";
-import { Button } from "../ui/button";
-import { FaChevronRight } from "react-icons/fa";
+import { Input } from "@/components/ui/input";
+import AppImage from "@/components/AppImage";
+import { Button } from "@/components/ui/button";
 
 // Икони за Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -92,20 +92,25 @@ const LeafletMap = ({ center, zoom = 6, markers = [] }: LeafletMapProps) => {
                             onClick={() => setSelectedAirport(m)}
                             className={`flex cursor-pointer items-center gap-4 rounded-lg p-3 transition-all hover:bg-blue-50/50 ${selectedAirport?.id === m.id ? "bg-blue-50 shadow-sm" : ""}`}
                         >
-                            <AppImage
-                                src={m.image}
-                                alt={m.label}
-                                width={200}
-                                height={100}
-                                className="w-30 h-25 shrink-0 rounded-lg object-cover shadow-sm"
-                            />
+                            {m?.image && (
+                                <AppImage
+                                    src={m.image}
+                                    alt={m.label}
+                                    width={200}
+                                    height={100}
+                                    className="w-30 h-25 shrink-0 rounded-lg object-cover shadow-sm"
+                                />
+                            )}
                             <div className="flex flex-col min-w-0">
                                 <span className="font-semibold text-gray-800 text-[15px] truncate">
                                     {m.label}
                                 </span>
-                                <span className="text-sm text-gray-500 line-clamp-2 leading-tight">
-                                    {m.description}
-                                </span>
+                                <div
+                                    className="text-sm text-gray-500 line-clamp-2 leading-tight"
+                                    dangerouslySetInnerHTML={{
+                                        __html: m.description,
+                                    }}
+                                ></div>
                             </div>
                         </div>
                     ))}
@@ -134,12 +139,14 @@ const LeafletMap = ({ center, zoom = 6, markers = [] }: LeafletMapProps) => {
                         >
                             <div className="h-full overflow-y-auto">
                                 <div className="relative h-60 w-full">
-                                    <AppImage
-                                        src={selectedAirport.image}
-                                        className="h-full w-full object-cover"
-                                        fill
-                                        alt=""
-                                    />
+                                    {selectedAirport.image && (
+                                        <AppImage
+                                            src={selectedAirport.image}
+                                            className="h-full w-full object-cover"
+                                            fill
+                                            alt=""
+                                        />
+                                    )}
                                     <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
                                     <Button
                                         onClick={() => setSelectedAirport(null)}
@@ -154,9 +161,12 @@ const LeafletMap = ({ center, zoom = 6, markers = [] }: LeafletMapProps) => {
                                 </div>
 
                                 <div className="p-5 text-center">
-                                    <p className="text-[15px] leading-relaxed text-gray-700">
-                                        {selectedAirport.description}
-                                    </p>
+                                    <div
+                                        className="text-[15px] leading-relaxed text-gray-700"
+                                        dangerouslySetInnerHTML={{
+                                            __html: selectedAirport.description,
+                                        }}
+                                    ></div>
                                 </div>
                             </div>
 
