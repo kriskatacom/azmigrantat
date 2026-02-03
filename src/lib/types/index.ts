@@ -1,7 +1,7 @@
 import { IconType } from "react-icons";
 
 export type Country = {
-    id?: number;
+    id: number;
     name?: string;
     slug?: string;
     heading?: string;
@@ -12,7 +12,7 @@ export type Country = {
 };
 
 export type City = {
-    id?: number;
+    id: number;
     name?: string;
     slug?: string;
     heading?: string;
@@ -40,7 +40,7 @@ export interface Airport {
 }
 
 export type CountryElement = {
-    id?: number;
+    id: number;
     name?: string;
     slug?: string;
     content?: string;
@@ -57,7 +57,7 @@ export type AdminSidebarItem = {
 };
 
 export type Embassy = {
-    id?: number;
+    id: number;
     name?: string;
     slug?: string;
     heading?: string;
@@ -83,7 +83,7 @@ export type Embassy = {
 };
 
 export type Landmark = {
-    id?: number;
+    id: number;
     name?: string;
     slug?: string;
     heading?: string;
@@ -107,7 +107,7 @@ export type Landmark = {
 };
 
 export type Category = {
-    id?: number;
+    id: number;
     parent_id?: number | null;
     name?: string;
     slug?: string;
@@ -125,7 +125,7 @@ export type Location = {
 };
 
 export type Company = {
-    id?: number;
+    id: number;
     name: string;
     slug: string;
     excerpt: string;

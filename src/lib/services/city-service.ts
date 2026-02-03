@@ -1,6 +1,7 @@
 import { City } from "@/lib/types";
 import { getDb } from "@/lib/db";
 import { CityWithCountry } from "@/app/admin/cities/columns";
+import { ResultSetHeader } from "mysql2";
 
 export async function createCity(city: City): Promise<City> {
     const { country_id, name, slug, heading, excerpt, image_url } = city;
@@ -11,7 +12,7 @@ export async function createCity(city: City): Promise<City> {
     `;
 
     try {
-        const [result] = await getDb().execute(sql, [
+        const [result] = await getDb().execute<ResultSetHeader>(sql, [
             country_id,
             name,
             slug,
@@ -20,7 +21,7 @@ export async function createCity(city: City): Promise<City> {
             image_url ?? "",
         ]);
 
-        return { id: (result as any).insertId, ...city };
+        return await getCityByColumn("id", result.insertId) as City;
     } catch (err) {
         console.error("Error creating city:", err);
         throw err;

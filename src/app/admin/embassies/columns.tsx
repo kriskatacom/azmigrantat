@@ -19,12 +19,14 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Country, Embassy } from "@/lib/types";
+import { createDragHandleColumn } from "@/components/data-table";
 
 export type EmbassyWithCountry = Embassy & {
     country?: Country;
 };
 
 export const columns: ColumnDef<EmbassyWithCountry>[] = [
+    createDragHandleColumn<EmbassyWithCountry>(),
     {
         id: "select",
         header: ({ table }) => (

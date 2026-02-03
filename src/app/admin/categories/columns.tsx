@@ -19,12 +19,14 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Category } from "@/lib/types";
+import { createDragHandleColumn } from "@/components/data-table";
 
 export type CategoryWithCategory = Category & {
     parent?: Category;
 };
 
 export const columns: ColumnDef<CategoryWithCategory>[] = [
+    createDragHandleColumn<CategoryWithCategory>(),
     {
         id: "select",
         header: ({ table }) => (

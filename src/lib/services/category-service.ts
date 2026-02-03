@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db";
 import { Category } from "@/lib/types";
+import { ResultSetHeader } from "mysql2";
 
 export async function createCategory(category: Category): Promise<Category> {
     const { parent_id, name, slug } = category;
@@ -10,16 +11,13 @@ export async function createCategory(category: Category): Promise<Category> {
     `;
 
     try {
-        const [result] = await getDb().execute(sql, [
+        const [result] = await getDb().execute<ResultSetHeader>(sql, [
             parent_id ?? null,
             name,
             slug,
         ]);
 
-        return {
-            id: (result as any).insertId,
-            ...category,
-        };
+        return (await getCategoryByColumn("id", result.insertId)) as Category;
     } catch (err) {
         console.error("Error creating category:", err);
         throw err;
@@ -60,6 +58,8 @@ export async function getCategories(
             params.push(options.value);
         }
     }
+
+    sql += " ORDER BY c.sort_order";
 
     const [rows] = await getDb().query<any[]>(sql, params);
 

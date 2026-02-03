@@ -9,7 +9,6 @@ import { Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { getCityByColumn } from "@/lib/services/city-service";
 import {
-    getCategories,
     getCategoryByColumn,
     getCategoryTree,
 } from "@/lib/services/category-service";

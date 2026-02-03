@@ -1,5 +1,6 @@
 import { Country } from "@/lib/types";
 import { getDb } from "@/lib/db";
+import { ResultSetHeader } from "mysql2";
 
 /**
  * Създава нова държава
@@ -14,7 +15,7 @@ export async function createCountry(country: Country): Promise<Country> {
   `;
 
     try {
-        const [result] = await getDb().execute(sql, [
+        const [result] = await getDb().execute<ResultSetHeader>(sql, [
             name,
             slug,
             heading ?? "",
@@ -22,7 +23,7 @@ export async function createCountry(country: Country): Promise<Country> {
             image_url ?? "",
         ]);
 
-        return { id: (result as any).insertId, ...country };
+        return await getCountryByColumn("id", result.insertId) as Country;
     } catch (err) {
         console.error("Error creating country:", err);
         throw err;

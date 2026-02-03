@@ -19,12 +19,14 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Country, Landmark } from "@/lib/types";
+import { createDragHandleColumn } from "@/components/data-table";
 
 export type LandmarkWithCountry = Landmark & {
     country?: Country;
 };
 
 export const columns: ColumnDef<LandmarkWithCountry>[] = [
+    createDragHandleColumn<LandmarkWithCountry>(),
     {
         id: "select",
         header: ({ table }) => (

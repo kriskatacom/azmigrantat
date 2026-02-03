@@ -1,5 +1,6 @@
 import { Company } from "@/lib/types";
 import { getDb } from "@/lib/db";
+import { ResultSetHeader } from "mysql2";
 
 /**
  * Създава нова компания
@@ -40,7 +41,7 @@ export async function createCompany(company: Company): Promise<Company> {
     `;
 
     try {
-        const [result] = await getDb().execute(sql, [
+        const [result] = await getDb().execute<ResultSetHeader>(sql, [
             name,
             slug,
             excerpt,
@@ -56,10 +57,7 @@ export async function createCompany(company: Company): Promise<Company> {
             category_id ?? null,
         ]);
 
-        return {
-            id: (result as any).insertId,
-            ...company,
-        };
+        return await getCompanyByColumn("id", result.insertId) as Company;
     } catch (err) {
         console.error("Error creating company:", err);
         throw err;
