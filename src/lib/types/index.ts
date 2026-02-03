@@ -50,6 +50,17 @@ export interface Airline {
     updated_at?: string;
 }
 
+export interface Autobus {
+    id: number;
+    name: string;
+    slug: string;
+    image_url?: string;
+    website_url?: string;
+    country_id?: number;
+    created_at?: string;
+    updated_at?: string;
+}
+
 export type CountryElement = {
     id: number;
     name?: string;
