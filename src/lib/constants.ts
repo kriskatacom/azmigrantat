@@ -64,7 +64,7 @@ export const COUNTRY_ELEMENTS: Record<string, string> = {
 
 import { FiUsers } from "react-icons/fi";
 import { MdOutlineDashboard } from "react-icons/md";
-import { IoSettingsOutline } from "react-icons/io5";
+import { IoAirplaneSharp, IoSettingsOutline } from "react-icons/io5";
 import { BsBuildings } from "react-icons/bs";
 import { CiBank } from "react-icons/ci";
 import { MdOutlineCategory } from "react-icons/md";
@@ -115,6 +115,11 @@ export const mainSidebarItems: AdminSidebarItem[] = [
         name: "Забележителности",
         icon: LiaLandmarkSolid,
         link: "landmarks",
+    },
+    {
+        name: "Летища",
+        icon: IoAirplaneSharp,
+        link: "airports",
     },
     {
         name: "Настройки",

@@ -23,6 +23,22 @@ export type City = {
     updated_at?: string;
 };
 
+export interface Airport {
+    id?: number;
+    name: string;
+    slug: string;
+    iata_code?: string;
+    icao_code?: string;
+    description?: string;
+    image_url?: string;
+    latitude?: number;
+    longitude?: number;
+    website_url?: string;
+    country_id?: number;
+    created_at?: string;
+    updated_at?: string;
+}
+
 export type CountryElement = {
     id?: number;
     name?: string;
