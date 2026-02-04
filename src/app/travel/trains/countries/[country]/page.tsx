@@ -4,28 +4,20 @@ import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { MainNavbar } from "@/components/main-navbar";
 import PageHeader from "@/components/page-header";
 import { absoluteUrl, websiteName } from "@/lib/utils";
+import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
 import { getCountryByColumn } from "@/lib/services/country-service";
-import { CardGrid } from "@/components/card-grid";
-import { Train } from "@/lib/types";
-import { getCityByColumn } from "@/lib/services/city-service";
-import { getTrains } from "@/lib/services/train-service";
+import { getCities } from "@/lib/services/city-service";
+import { City } from "@/lib/types";
 import AppImage from "@/components/AppImage";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 
-type Props = {
-    params: Promise<{
-        country: string;
-        city: string;
-    }>;
-};
-
 export async function generateMetadata(): Promise<Metadata> {
-    const title = `Европейски летища – информация и връзки към официални сайтове`;
-    const description = `Разгледайте всички големи европейски летища с персонализирани пинчета на карта. На всяко летище ще намерите снимка, описание и линк към официалния сайт.`;
-    const url = "/europe/airports";
+    const title = `Железопътен превоз в Европа – влакове, гари и полезна информация`;
+    const description = `Разгледайте железопътния превоз в Европа – жп гари, влакове и маршрути, подредени по държави и градове. Намерете адреси, снимки, описания и официални сайтове за пътуване с влак.`;
+    const url = "/europe/trains";
 
-    const image = absoluteUrl("/images/air-tickets.png") as string;
+    const image = absoluteUrl("/images/trains.png") as string;
 
     return {
         title: websiteName(title),
@@ -47,7 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
                     url: image,
                     width: 1200,
                     height: 630,
-                    alt: "Европейски летища",
+                    alt: "Железопътен превоз и жп гари в Европа",
                 },
             ],
         },
@@ -60,58 +52,57 @@ export async function generateMetadata(): Promise<Metadata> {
         },
 
         keywords: [
-            "летища в Европа",
-            "европейски летища",
-            "международни летища",
-            "карта на летища в Европа",
-            "информация за летища",
-            "официални сайтове летища",
+            "железопътен превоз в Европа",
+            "влакове в Европа",
+            "жп гари Европа",
+            "международни влакове",
+            "пътуване с влак в Европа",
+            "адреси на жп гари",
+            "разписания на влакове Европа",
         ],
     };
 }
 
-export default async function Airports({ params }: Props) {
-    const countrySlug = (await params).country;
-    const citySlug = (await params).city;
+type Props = {
+    params: Promise<{
+        country: string;
+    }>;
+};
 
-    const banner = await getBannerByColumn("link", `/travel/trains/${countrySlug}/${citySlug}`);
+export default async function TrainsByCountryPage({ params }: Props) {
+    const countrySlug = (await params).country;
+
+    const banner = await getBannerByColumn("link", `/travel/trains/${countrySlug}`);
 
     const country = await getCountryByColumn("slug", countrySlug);
-    const city = await getCityByColumn("slug", citySlug);
 
-    if (!country || !country.name || !city || !city.name) {
-        return redirect("/");
+    if (!country) {
+        return redirect("/travel/trains");
     }
 
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
         { name: "Железопътни гари", href: "/travel/trains" },
-        { name: country.name, href: `/travel/trains/${country.slug}` },
-        { name: city.name },
+        { name: "Железопътни гари по държави", href: "/travel/trains/countries" },
+        { name: `Железопътни гари в ${country.name}` },
     ];
 
-    const trains = await getTrains({
-        where: [
-            { column: "country_id", value: country.id },
-            { column: "city_id", value: city.id },
-        ],
-    });
-    const mappedTrains: CardEntity[] = trains
+    const cities = await getCities({ column: "country_id", value: country.id });
+    const mappedCities: CardEntity[] = cities
         .filter(
             (
-                train,
-            ): train is Train & {
+                city,
+            ): city is City & {
                 name: string;
-                website_url: string;
+                slug: string;
                 image_url: string;
-            } => Boolean(train.name && train.website_url && train.image_url),
+            } => Boolean(city.name && city.slug && city.image_url),
         )
-        .map((train) => ({
-            name: train.name,
-            slug: train.website_url,
-            imageUrl: train.image_url,
-            linkType: "external",
+        .map((city) => ({
+            name: city.name,
+            slug: city.slug,
+            imageUrl: city.image_url,
         }));
 
     return (
@@ -132,14 +123,14 @@ export default async function Airports({ params }: Props) {
                 breadcrumbs={breadcrumbs}
             />
             <CardGrid
-                items={mappedTrains}
-                id="airports"
+                items={mappedCities}
+                id="cities"
                 isWithSearch
-                searchPlaceholder={`Търсене на железопътни гари в ${country.name}...`}
-                noItemsMessage={`Няма намерени железопътни гари в ${country.name}.`}
+                searchPlaceholder="Търсене на градове"
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"
+                hrefPrefix={`/travel/trains/countries/${country.slug}`}
                 columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             />
         </>

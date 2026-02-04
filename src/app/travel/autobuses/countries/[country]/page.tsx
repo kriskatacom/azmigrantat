@@ -81,8 +81,9 @@ export default async function AutobusesByCountryPage({ params }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
-        { name: "Автобуси", href: country.name },
-        { name: `Автобуси в ${country.name}` },
+        { name: "Автогари", href: "/travel/autobuses" },
+        { name: "Автогари по държави", href: "/travel/autobuses/countries" },
+        { name: `Автогари в ${country.name}` },
     ];
 
     const cities = await getCities({ column: "country_id", value: country.id });
@@ -114,11 +115,11 @@ export default async function AutobusesByCountryPage({ params }: Props) {
                 items={mappedCities}
                 id="cities"
                 isWithSearch
-                searchPlaceholder="Търсене на автогари"
+                searchPlaceholder="Търсене на градове"
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"
-                hrefPrefix={`/travel/autobuses/${country.slug}`}
+                hrefPrefix={`/travel/autobuses/countries/${country.slug}`}
                 columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             />
         </>

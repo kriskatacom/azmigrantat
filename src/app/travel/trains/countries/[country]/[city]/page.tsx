@@ -7,9 +7,9 @@ import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardEntity } from "@/components/card-item";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { CardGrid } from "@/components/card-grid";
-import { Autobus } from "@/lib/types";
+import { Train } from "@/lib/types";
 import { getCityByColumn } from "@/lib/services/city-service";
-import { getAutobuses } from "@/lib/services/autobus-service";
+import { getTrains } from "@/lib/services/train-service";
 import AppImage from "@/components/AppImage";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 
@@ -74,46 +74,44 @@ export default async function Airports({ params }: Props) {
     const countrySlug = (await params).country;
     const citySlug = (await params).city;
 
-    const banner = await getBannerByColumn("link", `/travel/autobuses/${countrySlug}/${citySlug}`);
+    const banner = await getBannerByColumn("link", `/travel/trains/${countrySlug}/${citySlug}`);
 
     const country = await getCountryByColumn("slug", countrySlug);
     const city = await getCityByColumn("slug", citySlug);
 
-    if (!country || !country.name || !city || !city.id) {
+    if (!country || !country.name || !city || !city.name) {
         return redirect("/");
     }
 
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
-        { name: "Автобусни гари", href: "/travel/autobuses" },
-        { name: "Градове", href: `/travel/air-tickets/${country.slug}` },
-        { name: country.name },
+        { name: "Железопътни гари", href: "/travel/trains" },
+        { name: "Железопътни гари по държави", href: "/travel/trains/countries" },
+        { name: `Железопътни гари в ${country.name}`, href: `/travel/trains/countries/${country.slug}` },
+        { name: city.name },
     ];
 
-    const autobuses = await getAutobuses({
+    const trains = await getTrains({
         where: [
             { column: "country_id", value: country.id },
             { column: "city_id", value: city.id },
         ],
     });
-    const mappedAutobuses: CardEntity[] = autobuses
+    const mappedTrains: CardEntity[] = trains
         .filter(
             (
-                autobus,
-            ): autobus is Autobus & {
+                train,
+            ): train is Train & {
                 name: string;
                 website_url: string;
                 image_url: string;
-            } =>
-                Boolean(
-                    autobus.name && autobus.website_url && autobus.image_url,
-                ),
+            } => Boolean(train.name && train.website_url && train.image_url),
         )
-        .map((autobus) => ({
-            name: autobus.name,
-            slug: autobus.website_url,
-            imageUrl: autobus.image_url,
+        .map((train) => ({
+            name: train.name,
+            slug: train.website_url,
+            imageUrl: train.image_url,
             linkType: "external",
         }));
 
@@ -123,7 +121,7 @@ export default async function Airports({ params }: Props) {
             {banner?.image && (
                 <div className="relative w-full h-130 shrink-0">
                     <AppImage
-                        src={banner.image}
+                        src={"/images/plane-travel.png"}
                         alt={websiteName("Пътуване")}
                         fill
                         className="object-cover rounded w-full h-full"
@@ -131,15 +129,15 @@ export default async function Airports({ params }: Props) {
                 </div>
             )}
             <PageHeader
-                title={`Летища в ${country.name}`}
+                title={`Железопътни гари в ${country.name}`}
                 breadcrumbs={breadcrumbs}
             />
             <CardGrid
-                items={mappedAutobuses}
-                id="airports"
+                items={mappedTrains}
+                id="trains"
                 isWithSearch
-                searchPlaceholder={`Търсене на летища в ${country.name}...`}
-                noItemsMessage={`Няма намерени летища в ${country.name}.`}
+                searchPlaceholder={`Търсене на железопътни гари в ${city.name}`}
+                noItemsMessage={`Няма намерени железопътни гари в ${city.name}.`}
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"

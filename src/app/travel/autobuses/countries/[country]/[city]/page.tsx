@@ -1,11 +1,24 @@
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { MainNavbar } from "@/components/main-navbar";
 import PageHeader from "@/components/page-header";
 import { absoluteUrl, websiteName } from "@/lib/utils";
+import { CardEntity } from "@/components/card-item";
+import { getCountryByColumn } from "@/lib/services/country-service";
 import { CardGrid } from "@/components/card-grid";
+import { Autobus } from "@/lib/types";
+import { getCityByColumn } from "@/lib/services/city-service";
+import { getAutobuses } from "@/lib/services/autobus-service";
+import AppImage from "@/components/AppImage";
 import { getBannerByColumn } from "@/lib/services/banner-service";
-import { AUTOBUSES_PAGE_ITEMS } from "@/lib/constants";
+
+type Props = {
+    params: Promise<{
+        country: string;
+        city: string;
+    }>;
+};
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Автобусни гари и автобусни превози в Европа – информация и адреси`;
@@ -58,30 +71,71 @@ export async function generateMetadata(): Promise<Metadata> {
     };
 }
 
-export default async function AutobusesPage() {
-    const banner = await getBannerByColumn("link", `/travel/autobuses`);
+export default async function Airports({ params }: Props) {
+    const countrySlug = (await params).country;
+    const citySlug = (await params).city;
+
+    const banner = await getBannerByColumn("link", `/travel/autobuses/countries/${countrySlug}/${citySlug}`);
+
+    const country = await getCountryByColumn("slug", countrySlug);
+    const city = await getCityByColumn("slug", citySlug);
+
+    if (!country || !country.name || !city || !city.name) {
+        return redirect("/");
+    }
 
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
-        { name: "Автобуси" },
+        { name: "Автогари", href: "/travel/autobuses" },
+        { name: "Автогари по държави", href: "/travel/autobuses/countries" },
+        { name: `Автогари в ${country.name}`, href: `/travel/autobuses/countries/${country.slug}` },
+        { name: city.name }
     ];
+
+    const autobuses = await getAutobuses({
+        where: [
+            { column: "country_id", value: country.id },
+            { column: "city_id", value: city.id },
+        ],
+    });
+    const mappedAutobuses: CardEntity[] = autobuses
+        .filter(
+            (
+                autobus,
+            ): autobus is Autobus & {
+                name: string;
+                website_url: string;
+                image_url: string;
+            } =>
+                Boolean(
+                    autobus.name && autobus.website_url && autobus.image_url,
+                ),
+        )
+        .map((autobus) => ({
+            name: autobus.name,
+            slug: autobus.website_url,
+            imageUrl: autobus.image_url,
+            linkType: "external",
+        }));
 
     return (
         <>
             <MainNavbar />
             <PageHeader
-                title="Автобуси"
+                title={`Автогари в ${country.name}`}
                 breadcrumbs={breadcrumbs}
                 banner={banner}
             />
             <CardGrid
-                items={AUTOBUSES_PAGE_ITEMS}
-                id="countries"
+                items={mappedAutobuses}
+                id="autobuses"
+                isWithSearch
+                searchPlaceholder={`Търсене на автогари в ${city.name}`}
+                noItemsMessage={`Няма намерени автогари в ${city.name}.`}
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"
-                hrefPrefix="/travel/autobuses"
                 columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             />
         </>

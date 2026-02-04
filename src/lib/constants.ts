@@ -451,6 +451,34 @@ export const AIR_TICKETS_PAGE_ITEMS: CardEntity[] = [
     },
 ];
 
+export const AUTOBUSES_PAGE_ITEMS: CardEntity[] = [
+    {
+        name: "Търсене на автобусни спирки",
+        slug: "https://www.flixbus.bg",
+        imageUrl: "/images/FlixBus.png",
+        linkType: "external",
+    },
+    {
+        name: "Държави",
+        slug: "countries",
+        imageUrl: "/images/autobuses.png",
+    }
+];
+
+export const TRAINS_PAGE_ITEMS: CardEntity[] = [
+    {
+        name: "Държави",
+        slug: "countries",
+        imageUrl: "/images/trains-transport.png",
+    },
+    {
+        name: "Търсене на ЖП гари",
+        slug: "https://www.chronotrains.com/en?city=Sofia%2CBG",
+        imageUrl: "/images/chronotrains.png",
+        linkType: "external",
+    },
+];
+
 export const HOME_TYPEWRITER_TEXTS: string[] = [
     "Кредити",
     "Пътиване",

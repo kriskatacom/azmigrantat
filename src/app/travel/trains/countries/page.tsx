@@ -1,14 +1,12 @@
 import { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { MainNavbar } from "@/components/main-navbar";
 import PageHeader from "@/components/page-header";
 import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
-import { getCountryByColumn } from "@/lib/services/country-service";
-import { getCities } from "@/lib/services/city-service";
-import { City } from "@/lib/types";
+import { getCountries } from "@/lib/services/country-service";
+import { Country } from "@/lib/types";
 import AppImage from "@/components/AppImage";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 
@@ -63,45 +61,31 @@ export async function generateMetadata(): Promise<Metadata> {
     };
 }
 
-type Props = {
-    params: Promise<{
-        country: string;
-    }>;
-};
-
-export default async function TrainsByCountryPage({ params }: Props) {
-    const countrySlug = (await params).country;
-
-    const banner = await getBannerByColumn("link", `/travel/trains/${countrySlug}`);
-
-    const country = await getCountryByColumn("slug", countrySlug);
-
-    if (!country) {
-        return redirect("/travel/trains");
-    }
+export default async function TrainsPage() {
+    const banner = await getBannerByColumn("link", `/travel/trains`);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
-        { name: "Влакове", href: country.name },
-        { name: `Влакове в ${country.name}` },
+        { name: "Железопътни гари", href: "/travel/trains" },
+        { name: "Железопътни гари по държави" },
     ];
 
-    const cities = await getCities({ column: "country_id", value: country.id });
-    const mappedCities: CardEntity[] = cities
+    const countries = await getCountries();
+    const mappedCountries: CardEntity[] = countries
         .filter(
             (
-                city,
-            ): city is City & {
+                country,
+            ): country is Country & {
                 name: string;
                 slug: string;
                 image_url: string;
-            } => Boolean(city.name && city.slug && city.image_url),
+            } => Boolean(country.name && country.slug && country.image_url),
         )
-        .map((city) => ({
-            name: city.name,
-            slug: city.slug,
-            imageUrl: city.image_url,
+        .map((country) => ({
+            name: country.name,
+            slug: country.slug,
+            imageUrl: country.image_url,
         }));
 
     return (
@@ -117,17 +101,16 @@ export default async function TrainsByCountryPage({ params }: Props) {
                     />
                 </div>
             )}
-            <PageHeader
-                title={`Железопътни гари в ${country.name}`}
-                breadcrumbs={breadcrumbs}
-            />
+            <PageHeader title="Влакове" breadcrumbs={breadcrumbs} />
             <CardGrid
-                items={mappedCities}
-                id="cities"
+                items={mappedCountries}
+                id="countries"
+                isWithSearch
+                searchPlaceholder="Търсене на ЖП гари"
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"
-                hrefPrefix={`/travel/trains/${country.slug}`}
+                hrefPrefix="/travel/trains/countries"
                 columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             />
         </>

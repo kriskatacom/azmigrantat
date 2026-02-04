@@ -27,7 +27,7 @@ export const Hero: React.FC<HeroProps> = ({
             
             <div className="absolute inset-0 bg-black/40" />
             
-            <div className="max-w-4xl mx-auto relative z-10 px-5">
+            <div className="mt-130 max-w-4xl mx-auto relative z-10 px-5">
                 <h1 className="text-white text-3xl lg:text-4xl font-bold drop-shadow-lg">
                     {title}
                 </h1>
@@ -36,14 +36,6 @@ export const Hero: React.FC<HeroProps> = ({
                     <p className="text-secondary text-3xl lg:text-4xl font-bold drop-shadow-lg mt-2">
                         {subtitle}
                     </p>
-                )}
-                
-                {ctaText && ctaLink && (
-                    <div className="mt-5">
-                        <Button variant={"outline"} size={"xl"}>
-                            <a href={ctaLink}>{ctaText}</a>
-                        </Button>
-                    </div>
                 )}
             </div>
         </section>

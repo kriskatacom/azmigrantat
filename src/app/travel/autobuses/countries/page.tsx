@@ -3,9 +3,11 @@ import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { MainNavbar } from "@/components/main-navbar";
 import PageHeader from "@/components/page-header";
 import { absoluteUrl, websiteName } from "@/lib/utils";
+import { CardEntity } from "@/components/card-item";
+import { getCountries } from "@/lib/services/country-service";
 import { CardGrid } from "@/components/card-grid";
+import { Country } from "@/lib/types";
 import { getBannerByColumn } from "@/lib/services/banner-service";
-import { AUTOBUSES_PAGE_ITEMS } from "@/lib/constants";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Автобусни гари и автобусни превози в Европа – информация и адреси`;
@@ -58,30 +60,50 @@ export async function generateMetadata(): Promise<Metadata> {
     };
 }
 
-export default async function AutobusesPage() {
-    const banner = await getBannerByColumn("link", `/travel/autobuses`);
+export default async function Airports() {
+    const banner = await getBannerByColumn("link", "/travel/air-tickets");
 
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
-        { name: "Автобуси" },
+        { name: "Автобуси", href: "/travel/autobuses" },
+        { name: "Автобуси по държави" },
     ];
+
+    const countries = await getCountries();
+    const mappedCountries: CardEntity[] = countries
+        .filter(
+            (
+                country,
+            ): country is Country & {
+                name: string;
+                slug: string;
+                image_url: string;
+            } => Boolean(country.name && country.slug && country.image_url),
+        )
+        .map((country) => ({
+            name: country.name!,
+            slug: country.slug!,
+            imageUrl: country.image_url,
+        }));
 
     return (
         <>
             <MainNavbar />
             <PageHeader
-                title="Автобуси"
+                title="Автобуси по държави"
                 breadcrumbs={breadcrumbs}
                 banner={banner}
             />
             <CardGrid
-                items={AUTOBUSES_PAGE_ITEMS}
+                items={mappedCountries}
                 id="countries"
+                isWithSearch
+                searchPlaceholder="Търсене на държави"
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"
-                hrefPrefix="/travel/autobuses"
+                hrefPrefix="/travel/autobuses/countries"
                 columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             />
         </>

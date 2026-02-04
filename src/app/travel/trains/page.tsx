@@ -4,11 +4,8 @@ import { MainNavbar } from "@/components/main-navbar";
 import PageHeader from "@/components/page-header";
 import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardGrid } from "@/components/card-grid";
-import { CardEntity } from "@/components/card-item";
-import { getCountries } from "@/lib/services/country-service";
-import { Country } from "@/lib/types";
-import AppImage from "@/components/AppImage";
 import { getBannerByColumn } from "@/lib/services/banner-service";
+import { TRAINS_PAGE_ITEMS } from "@/lib/constants";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Железопътен превоз в Европа – влакове, гари и полезна информация`;
@@ -70,42 +67,17 @@ export default async function TrainsPage() {
         { name: "Влакове" },
     ];
 
-    const countries = await getCountries();
-    const mappedCountries: CardEntity[] = countries
-        .filter(
-            (
-                country,
-            ): country is Country & {
-                name: string;
-                slug: string;
-                image_url: string;
-            } => Boolean(country.name && country.slug && country.image_url),
-        )
-        .map((country) => ({
-            name: country.name,
-            slug: country.slug,
-            imageUrl: country.image_url,
-        }));
-
     return (
         <>
             <MainNavbar />
-            {banner?.image && (
-                <div className="relative w-full h-130 shrink-0">
-                    <AppImage
-                        src={"/images/plane-travel.png"}
-                        alt={websiteName("Пътуване")}
-                        fill
-                        className="object-cover rounded w-full h-full"
-                    />
-                </div>
-            )}
-            <PageHeader title="Влакове" breadcrumbs={breadcrumbs} />
+            <PageHeader
+                title="Влакове"
+                breadcrumbs={breadcrumbs}
+                banner={banner}
+            />
             <CardGrid
-                items={mappedCountries}
+                items={TRAINS_PAGE_ITEMS}
                 id="countries"
-                isWithSearch
-                searchPlaceholder="Търсене на ЖП гари"
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"

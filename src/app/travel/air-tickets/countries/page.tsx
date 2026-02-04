@@ -60,7 +60,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Airports() {
-    const banner = await getBannerByColumn("link", "/travel/air-tickets");
+    const banner = await getBannerByColumn("link", "/travel/air-tickets/countries");
 
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
