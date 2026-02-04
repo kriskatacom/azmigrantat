@@ -7,6 +7,7 @@ import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
 import { Country, Cruise } from "@/lib/types";
 import { getCruises } from "@/lib/services/cruise-service";
+import AppImage from "@/components/AppImage";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Круизи в Европа – маршрути, пристанища и полезна информация`;
@@ -81,12 +82,20 @@ export default async function CruisesPage() {
             name: cruise.name,
             slug: cruise.website_url,
             imageUrl: cruise.image_url,
-            linkType: "external"
+            linkType: "external",
         }));
 
     return (
         <>
             <MainNavbar />
+            <div className="relative w-full h-130 shrink-0">
+                <AppImage
+                    src={"/images/plane-travel.png"}
+                    alt={websiteName("Пътуване")}
+                    fill
+                    className="object-cover rounded w-full h-full"
+                />
+            </div>
             <PageHeader title="Круизи" breadcrumbs={breadcrumbs} />
             <CardGrid
                 items={mappedCruises}

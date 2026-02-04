@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import striptags from "striptags";
 import { EyeIcon } from "lucide-react";
 import AppImage from "./AppImage";
+import { GridColumns } from "./card-grid";
 
 type LinkType = "internal" | "external";
 
@@ -19,22 +20,47 @@ type CardItemProps = {
     item: CardEntity;
     hrefPrefix?: string;
     variant?: "standart" | "modern";
+    height: GridColumns;
 };
 
 export const CardItem: React.FC<CardItemProps> = ({
     item,
     hrefPrefix = "",
     variant = "standart",
+    height,
 }) => {
-    const [imageLoading, setImageLoading] = React.useState(true);
+    const [cellHeight, setCellHeight] = useState(height.base);
+
+    const getHeight = () => {
+        if (typeof window === "undefined") return height.base;
+
+        const w = window.innerWidth;
+        if (w >= 1536 && height.xxl) return height.xxl;
+        if (w >= 1280 && height.xl) return height.xl;
+        if (w >= 1024 && height.lg) return height.lg;
+        if (w >= 768 && height.md) return height.md;
+        if (w >= 640 && height.sm) return height.sm;
+
+        return height.base;
+    };
+
+    useEffect(() => {
+        const update = () => setCellHeight(getHeight());
+        update();
+        window.addEventListener("resize", update);
+        return () => window.removeEventListener("resize", update);
+    }, []);
 
     if (variant === "standart") {
         return (
-            <div className="relative h-60 rounded-xl overflow-hidden shadow-lg group">
+            <div
+                className="relative rounded-xl overflow-hidden shadow-lg group"
+                style={{ height: `${cellHeight}px` }}
+            >
                 <Link
                     href={
                         item.linkType === "external"
-                            ? item.slug ?? "#"
+                            ? (item.slug ?? "#")
                             : `${hrefPrefix}/${item.slug}`
                     }
                     target={item.linkType === "external" ? "_blank" : "_self"}

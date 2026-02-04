@@ -10,6 +10,7 @@ import { getAirports } from "@/lib/services/airports-service";
 import { CardEntity } from "@/components/card-item";
 import { Airport } from "@/lib/types";
 import { MapMarker } from "@/components/leaflet-map";
+import AppImage from "@/components/AppImage";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Европейски летища – информация и връзки към официални сайтове`;
@@ -97,8 +98,15 @@ export default async function AirTickets() {
     return (
         <>
             <MainNavbar />
+            <div className="relative w-full h-130 shrink-0">
+                <AppImage
+                    src={"/images/plane-travel.png"}
+                    alt={websiteName("Пътуване")}
+                    fill
+                    className="object-cover rounded w-full h-full"
+                />
+            </div>
             <PageHeader title="Самолетни билети" breadcrumbs={breadcrumbs} />
-            <LeafletMap markers={mappedAirports} />
             <CardGrid
                 items={AIR_TICKETS_PAGE_ITEMS}
                 id="countries"
@@ -108,6 +116,7 @@ export default async function AirTickets() {
                 hrefPrefix="/travel/air-tickets"
                 columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             />
+            <LeafletMap markers={mappedAirports} />
         </>
     );
 }

@@ -9,6 +9,7 @@ import { getCountryByColumn } from "@/lib/services/country-service";
 import { CardGrid } from "@/components/card-grid";
 import { Airport } from "@/lib/types";
 import { getAirports } from "@/lib/services/airports-service";
+import AppImage from "@/components/AppImage";
 
 type Props = {
     params: Promise<{
@@ -106,6 +107,14 @@ export default async function Airports({ params }: Props) {
     return (
         <>
             <MainNavbar />
+            <div className="relative w-full h-130 shrink-0">
+                <AppImage
+                    src={"/images/plane-travel.png"}
+                    alt={websiteName("Пътуване")}
+                    fill
+                    className="object-cover rounded w-full h-full"
+                />
+            </div>
             <PageHeader
                 title={`Летища в ${country.name}`}
                 breadcrumbs={breadcrumbs}

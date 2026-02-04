@@ -14,7 +14,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
     const firstCategoryImage = TRAVEL_CATEGORIES[0]?.image
         ? absoluteUrl(TRAVEL_CATEGORIES[0].image) as string
-        : absoluteUrl("/images/travel.png") as string;
+        : absoluteUrl("/images/plane-travel.png") as string;
 
     const categoryKeywords = TRAVEL_CATEGORIES.map((c) => c.name);
 
@@ -82,7 +82,7 @@ export default async function TravelPage() {
 
             <div className="relative w-full h-130 shrink-0">
                 <AppImage
-                    src={"/images/travel.png"}
+                    src={"/images/plane-travel.png"}
                     alt={websiteName("Пътуване")}
                     fill
                     className="object-cover rounded w-full h-full"

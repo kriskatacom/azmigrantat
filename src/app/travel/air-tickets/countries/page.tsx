@@ -7,6 +7,7 @@ import { CardEntity } from "@/components/card-item";
 import { getCountries } from "@/lib/services/country-service";
 import { CardGrid } from "@/components/card-grid";
 import { Country } from "@/lib/types";
+import AppImage from "@/components/AppImage";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Европейски летища – информация и връзки към официални сайтове`;
@@ -86,6 +87,14 @@ export default async function AirPorts() {
     return (
         <>
             <MainNavbar />
+            <div className="relative w-full h-130 shrink-0">
+                <AppImage
+                    src={"/images/plane-travel.png"}
+                    alt={websiteName("Пътуване")}
+                    fill
+                    className="object-cover rounded w-full h-full"
+                />
+            </div>
             <PageHeader title="Летища по държави" breadcrumbs={breadcrumbs} />
             <CardGrid
                 items={mappedCountries}

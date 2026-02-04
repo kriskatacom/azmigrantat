@@ -11,6 +11,7 @@ import { Airport, Autobus } from "@/lib/types";
 import { getAirports } from "@/lib/services/airports-service";
 import { getCityByColumn } from "@/lib/services/city-service";
 import { getAutobuses } from "@/lib/services/autobus-service";
+import AppImage from "@/components/AppImage";
 
 type Props = {
     params: Promise<{
@@ -102,7 +103,10 @@ export default async function Airports({ params }: Props) {
                 name: string;
                 website_url: string;
                 image_url: string;
-            } => Boolean(autobus.name && autobus.website_url && autobus.image_url),
+            } =>
+                Boolean(
+                    autobus.name && autobus.website_url && autobus.image_url,
+                ),
         )
         .map((autobus) => ({
             name: autobus.name,
@@ -110,10 +114,18 @@ export default async function Airports({ params }: Props) {
             imageUrl: autobus.image_url,
             linkType: "external",
         }));
-console.log(mappedAutobuses);
+
     return (
         <>
             <MainNavbar />
+            <div className="relative w-full h-130 shrink-0">
+                <AppImage
+                    src={"/images/plane-travel.png"}
+                    alt={websiteName("Пътуване")}
+                    fill
+                    className="object-cover rounded w-full h-full"
+                />
+            </div>
             <PageHeader
                 title={`Летища в ${country.name}`}
                 breadcrumbs={breadcrumbs}

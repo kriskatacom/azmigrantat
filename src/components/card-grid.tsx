@@ -7,7 +7,7 @@ import { CardEntity, CardItem } from "@/components/card-item";
 import { cn } from "@/lib/utils";
 import { Alert } from "./alert";
 
-type GridColumns = {
+export type GridColumns = {
     base?: number;
     sm?: number;
     md?: number;
@@ -28,6 +28,7 @@ type CardGridProps = {
     loadMoreStep?: number;
     variant?: "standart" | "modern";
     columns?: GridColumns;
+    height?: GridColumns;
 };
 
 export const CardGrid: React.FC<CardGridProps> = ({
@@ -47,6 +48,13 @@ export const CardGrid: React.FC<CardGridProps> = ({
         lg: 3,
         xl: 4,
         xxl: 5,
+    },
+    height = {
+        base: 240,
+        sm: 240,
+        lg: 250,
+        xl: 260,
+        xxl: 260,
     },
 }) => {
     const [visibleCount, setVisibleCount] = useState(initialVisible);
@@ -123,6 +131,7 @@ export const CardGrid: React.FC<CardGridProps> = ({
                                 item={item}
                                 hrefPrefix={hrefPrefix}
                                 variant={variant}
+                                height={height}
                             />
                         </li>
                     );

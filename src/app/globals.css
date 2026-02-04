@@ -4,7 +4,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-    --color-primary: #1D293D;
+    --color-website-blue: #8CD1E6;
+    --color-primary: #1d293d;
     --color-secondary: #e3e295;
     --color-light: #efefef;
     --color-website-dark: #0e3545;
@@ -315,7 +316,9 @@
     border: 1px solid #d1d5db; /* gray-300 */
 
     cursor: pointer;
-    transition: background-color 0.25s ease, border-color 0.25s ease;
+    transition:
+        background-color 0.25s ease,
+        border-color 0.25s ease;
 }
 
 /* ON state */
@@ -398,11 +401,15 @@
 /* Loading Bar */
 
 @keyframes loading-bar {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
 }
 .animate-loading-bar {
-  animation: loading-bar 1s ease-in-out infinite;
+    animation: loading-bar 1s ease-in-out infinite;
 }
 
 /* ============================== */
@@ -661,4 +668,49 @@
 
 .bulgaria-cities-map svg a:hover path {
     fill: #38bdf8;
+}
+
+/* Tipewriter Text */
+
+.typewriter {
+    display: inline-flex;
+    align-items: center;
+}
+
+.text {
+    display: inline-flex;
+}
+
+.char {
+    display: inline-block;
+    transition:
+        opacity 0.25s ease,
+        transform 0.25s ease;
+}
+
+.char--hidden {
+    opacity: 0;
+}
+
+.char--visible {
+    opacity: 1;
+}
+
+/* Курсор */
+.caret {
+    margin-left: 1px;
+    animation: blink 1s infinite;
+    display: inline-block;
+}
+
+@keyframes blink {
+    0%,
+    50%,
+    100% {
+        opacity: 1;
+    }
+    25%,
+    75% {
+        opacity: 0;
+    }
 }

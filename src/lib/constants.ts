@@ -204,7 +204,7 @@ export const TRAVEL_CATEGORIES = [
         name: "Споделено пътуване",
         buttonText: "Информация",
         slug: "/shared-travel",
-        image: "/images/shared-travel.png",
+        image: "/images/shared-plane-travel.png",
     },
 ];
 
@@ -444,4 +444,42 @@ export const AIR_TICKETS_PAGE_ITEMS: CardEntity[] = [
         imageUrl: "/images/flightradar.png",
         linkType: "external"
     },
+];
+
+export const HOME_TYPEWRITER_TEXTS: string[] = [
+    "Кредити",
+    "Пътиване",
+    "Търся/пр. работа",
+    "Обяви",
+    "Музика",
+    "Застраховка",
+    "Преводи"
+];
+
+export const HOME_ELEMENTS: CardEntity[] = [
+    {
+        name: "Пътуване",
+        slug: "travel",
+        imageUrl: "/images/travel.png"
+    },
+    {
+        name: "Услуги",
+        slug: "services",
+        imageUrl: "/images/services.png"
+    },
+    {
+        name: "Търся/пр. работа",
+        slug: "looking-offering-job",
+        imageUrl: "/images/looking-offering-job.png"
+    },
+    {
+        name: "Обяви",
+        slug: "jobs",
+        imageUrl: "/images/jobs.png"
+    },
+    {
+        name: "Мусика",
+        slug: "music",
+        imageUrl: "/images/music.png"
+    }
 ];

@@ -9,6 +9,7 @@ import { CardEntity } from "@/components/card-item";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { getCities } from "@/lib/services/city-service";
 import { City } from "@/lib/types";
+import AppImage from "@/components/AppImage";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Железопътен превоз в Европа – влакове, гари и полезна информация`;
@@ -103,6 +104,14 @@ export default async function TrainsByCountryPage({ params }: Props) {
     return (
         <>
             <MainNavbar />
+            <div className="relative w-full h-130 shrink-0">
+                <AppImage
+                    src={"/images/plane-travel.png"}
+                    alt={websiteName("Пътуване")}
+                    fill
+                    className="object-cover rounded w-full h-full"
+                />
+            </div>
             <PageHeader
                 title={`Железопътни гари в ${country.name}`}
                 breadcrumbs={breadcrumbs}
