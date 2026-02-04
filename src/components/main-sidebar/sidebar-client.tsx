@@ -15,7 +15,7 @@ export function SidebarClient() {
         <>
             <aside
                 className={cn(
-                    "fixed top-0 left-0 h-screen border-r bg-background transition-all",
+                    "fixed top-0 left-0 h-screen border-r bg-background transition-all overflow-y-auto",
                     collapsed ? "w-20" : "w-72",
                 )}
                 style={{ zIndex: 100 }}

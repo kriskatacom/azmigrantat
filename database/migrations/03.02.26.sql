@@ -195,3 +195,87 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+CREATE TABLE `trains` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(255) NOT NULL,
+    `slug` VARCHAR(255) NOT NULL UNIQUE,
+    `image_url` VARCHAR(500) DEFAULT NULL,
+    `website_url` VARCHAR(500) DEFAULT NULL,
+    `sort_order` INT(11) DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+DELIMITER $$
+
+CREATE TRIGGER trains_before_insert
+BEFORE INSERT ON trains
+FOR EACH ROW
+BEGIN
+    IF NEW.sort_order IS NULL OR NEW.sort_order <= 0 THEN
+        SET NEW.sort_order = (
+            SELECT COALESCE(MAX(sort_order), 0) + 1
+            FROM trains
+        );
+    END IF;
+END$$
+
+DELIMITER ;
+
+CREATE TABLE `taxis` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(255) NOT NULL,
+    `slug` VARCHAR(255) NOT NULL UNIQUE,
+    `image_url` VARCHAR(500) DEFAULT NULL,
+    `website_url` VARCHAR(500) DEFAULT NULL,
+    `sort_order` INT(11) DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+DELIMITER $$
+
+CREATE TRIGGER taxis_before_insert
+BEFORE INSERT ON taxis
+FOR EACH ROW
+BEGIN
+    IF NEW.sort_order IS NULL OR NEW.sort_order <= 0 THEN
+        SET NEW.sort_order = (
+            SELECT COALESCE(MAX(sort_order), 0) + 1
+            FROM taxis
+        );
+    END IF;
+END$$
+
+DELIMITER ;
+
+CREATE TABLE `cruises` (
+    `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(255) NOT NULL,
+    `slug` VARCHAR(255) NOT NULL UNIQUE,
+    `image_url` VARCHAR(500) DEFAULT NULL,
+    `website_url` VARCHAR(500) DEFAULT NULL,
+    `sort_order` INT(11) DEFAULT NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+DELIMITER $$
+
+CREATE TRIGGER cruises_before_insert
+BEFORE INSERT ON cruises
+FOR EACH ROW
+BEGIN
+    IF NEW.sort_order IS NULL OR NEW.sort_order <= 0 THEN
+        SET NEW.sort_order = (
+            SELECT COALESCE(MAX(sort_order), 0) + 1
+            FROM cruises
+        );
+    END IF;
+END$$
+
+DELIMITER ;

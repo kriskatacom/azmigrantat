@@ -74,7 +74,7 @@ import { LiaLandmarkSolid } from "react-icons/lia";
 import { AdminSidebarItem } from "@/lib/types";
 import { MapMarker } from "@/components/leaflet-map";
 import { CardEntity } from "@/components/card-item";
-import { FaBus } from "react-icons/fa";
+import { FaBus, FaShip, FaTaxi, FaTrain } from "react-icons/fa";
 
 export const mainSidebarItems: AdminSidebarItem[] = [
     {
@@ -131,6 +131,21 @@ export const mainSidebarItems: AdminSidebarItem[] = [
         name: "Автобусни гари",
         icon: FaBus,
         link: "/admin/autobuses",
+    },
+    {
+        name: "Железопътни гари",
+        icon: FaTrain,
+        link: "/admin/trains",
+    },
+    {
+        name: "Таксита",
+        icon: FaTaxi,
+        link: "/admin/taxis",
+    },
+    {
+        name: "Круиз компании",
+        icon: FaShip,
+        link: "/admin/cruises",
     },
     {
         name: "Настройки",
