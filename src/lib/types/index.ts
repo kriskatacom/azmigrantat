@@ -97,6 +97,15 @@ export interface Cruise {
     updated_at?: string;
 }
 
+export interface Banner {
+    id: number;
+    name?: string;
+    link?: string;
+    description?: string;
+    image?: string;
+    sort_order?: number;
+}
+
 export type CountryElement = {
     id: number;
     name?: string;

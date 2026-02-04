@@ -6,6 +6,8 @@ import PageHeader from "@/components/page-header";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { CardGrid } from "@/components/card-grid";
 import { TRAVEL_CATEGORIES } from "@/lib/constants";
+import { getBannerByColumn } from "@/lib/services/banner-service";
+import { headers } from "next/headers";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Пътуване – информация за транспорт и услуги`;
@@ -13,8 +15,8 @@ export async function generateMetadata(): Promise<Metadata> {
     const url = "/travel";
 
     const firstCategoryImage = TRAVEL_CATEGORIES[0]?.image
-        ? absoluteUrl(TRAVEL_CATEGORIES[0].image) as string
-        : absoluteUrl("/images/plane-travel.png") as string;
+        ? (absoluteUrl(TRAVEL_CATEGORIES[0].image) as string)
+        : (absoluteUrl("/images/plane-travel.png") as string);
 
     const categoryKeywords = TRAVEL_CATEGORIES.map((c) => c.name);
 
@@ -65,6 +67,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function TravelPage() {
+    const path = new URL((await headers()).get("referer") || "").pathname;
+    const banner = await getBannerByColumn("link", path);
+
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване" },
@@ -81,12 +86,14 @@ export default async function TravelPage() {
             <MainNavbar />
 
             <div className="relative w-full h-130 shrink-0">
-                <AppImage
-                    src={"/images/plane-travel.png"}
-                    alt={websiteName("Пътуване")}
-                    fill
-                    className="object-cover rounded w-full h-full"
-                />
+                {banner?.image && (
+                    <AppImage
+                        src={banner.image}
+                        alt={websiteName("Пътуване")}
+                        fill
+                        className="object-cover rounded w-full h-full"
+                    />
+                )}
 
                 <PageHeader
                     title={

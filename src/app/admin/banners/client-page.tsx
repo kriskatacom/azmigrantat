@@ -16,13 +16,13 @@ export default function ClientPage({ data }: ClientPageProps) {
 
     async function onBulkDelete(selectedIds: (string | number)[]) {
         try {
-            const res = await axios.post("/api/banners/bulk-delete", {
+            const res = await axios.post("/api/cruises/bulk-delete", {
                 ids: selectedIds,
             });
 
             if (res.status === 200) {
                 toast.success(
-                    `Бяха премахнати ${res.data.deletedCount} банери.`,
+                    `Бяха премахнати ${res.data.deletedCount} круизни компании.`,
                 );
                 router.refresh();
             }

@@ -11,6 +11,8 @@ import { CardEntity } from "@/components/card-item";
 import { Airport } from "@/lib/types";
 import { MapMarker } from "@/components/leaflet-map";
 import AppImage from "@/components/AppImage";
+import { headers } from "next/headers";
+import { getBannerByColumn } from "@/lib/services/banner-service";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Европейски летища – информация и връзки към официални сайтове`;
@@ -63,6 +65,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AirTickets() {
+    const path = new URL((await headers()).get("referer") || "").pathname;
+    const banner = await getBannerByColumn("link", path);
+
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
@@ -98,14 +103,16 @@ export default async function AirTickets() {
     return (
         <>
             <MainNavbar />
-            <div className="relative w-full h-130 shrink-0">
-                <AppImage
-                    src={"/images/plane-travel.png"}
-                    alt={websiteName("Пътуване")}
-                    fill
-                    className="object-cover rounded w-full h-full"
-                />
-            </div>
+            {banner?.image && (
+                <div className="relative w-full h-130 shrink-0">
+                    <AppImage
+                        src={banner.image}
+                        alt={websiteName("Пътуване")}
+                        fill
+                        className="object-cover rounded w-full h-full"
+                    />
+                </div>
+            )}
             <PageHeader title="Самолетни билети" breadcrumbs={breadcrumbs} />
             <CardGrid
                 items={AIR_TICKETS_PAGE_ITEMS}

@@ -8,6 +8,8 @@ import { CardEntity } from "@/components/card-item";
 import { Country, Cruise } from "@/lib/types";
 import { getCruises } from "@/lib/services/cruise-service";
 import AppImage from "@/components/AppImage";
+import { headers } from "next/headers";
+import { getBannerByColumn } from "@/lib/services/banner-service";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Круизи в Европа – маршрути, пристанища и полезна информация`;
@@ -61,6 +63,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function CruisesPage() {
+    const path = new URL((await headers()).get("referer") || "").pathname;
+    const banner = await getBannerByColumn("link", path);
+
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
@@ -88,14 +93,16 @@ export default async function CruisesPage() {
     return (
         <>
             <MainNavbar />
-            <div className="relative w-full h-130 shrink-0">
-                <AppImage
-                    src={"/images/plane-travel.png"}
-                    alt={websiteName("Пътуване")}
-                    fill
-                    className="object-cover rounded w-full h-full"
-                />
-            </div>
+            {banner?.image && (
+                <div className="relative w-full h-130 shrink-0">
+                    <AppImage
+                        src={banner.image}
+                        alt={websiteName("Пътуване")}
+                        fill
+                        className="object-cover rounded w-full h-full"
+                    />
+                </div>
+            )}
             <PageHeader title="Круизи" breadcrumbs={breadcrumbs} />
             <CardGrid
                 items={mappedCruises}
