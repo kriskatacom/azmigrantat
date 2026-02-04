@@ -8,6 +8,7 @@ import { Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { getTaxiByColumn } from "@/lib/services/taxi-service";
 import NewTaxiForm from "./new-taxi-form";
+import { getCountries } from "@/lib/services/country-service";
 
 type Props = {
     params: Promise<{
@@ -47,6 +48,8 @@ export default async function NewTaxiPage({ params }: Params) {
         taxi = await getTaxiByColumn("id", id);
     }
 
+    const countries = await getCountries();
+
     return (
         <div className="flex">
             <MainSidebarServer />
@@ -73,7 +76,7 @@ export default async function NewTaxiPage({ params }: Params) {
                         },
                     ]}
                 />
-                <NewTaxiForm taxi={taxi} />
+                <NewTaxiForm taxi={taxi} countries={countries} />
                 {taxi?.id && (
                     <>
                         <h2 className="px-5 text-xl font-semibold">

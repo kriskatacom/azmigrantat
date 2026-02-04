@@ -104,7 +104,7 @@ export default async function TrainsByCountryPage({ params }: Props) {
         <>
             <MainNavbar />
             <PageHeader
-                title={`Автобуси в ${country.name}`}
+                title={`Железопътни гари в ${country.name}`}
                 breadcrumbs={breadcrumbs}
             />
             <CardGrid

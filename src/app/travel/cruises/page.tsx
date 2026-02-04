@@ -5,8 +5,8 @@ import PageHeader from "@/components/page-header";
 import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
-import { getCountries } from "@/lib/services/country-service";
-import { Country } from "@/lib/types";
+import { Country, Cruise } from "@/lib/types";
+import { getCruises } from "@/lib/services/cruise-service";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Круизи в Европа – маршрути, пристанища и полезна информация`;
@@ -66,21 +66,22 @@ export default async function CruisesPage() {
         { name: "Круизи" },
     ];
 
-    const countries = await getCountries();
-    const mappedCountries: CardEntity[] = countries
+    const cruises = await getCruises();
+    const mappedCruises: CardEntity[] = cruises
         .filter(
             (
-                country,
-            ): country is Country & {
+                cruise,
+            ): cruise is Cruise & {
                 name: string;
-                slug: string;
+                website_url: string;
                 image_url: string;
-            } => Boolean(country.name && country.slug && country.image_url),
+            } => Boolean(cruise.name && cruise.website_url && cruise.image_url),
         )
-        .map((country) => ({
-            name: country.name,
-            slug: country.slug,
-            imageUrl: country.image_url,
+        .map((cruise) => ({
+            name: cruise.name,
+            slug: cruise.website_url,
+            imageUrl: cruise.image_url,
+            linkType: "external"
         }));
 
     return (
@@ -88,14 +89,13 @@ export default async function CruisesPage() {
             <MainNavbar />
             <PageHeader title="Круизи" breadcrumbs={breadcrumbs} />
             <CardGrid
-                items={mappedCountries}
-                id="countries"
+                items={mappedCruises}
+                id="cruises"
                 isWithSearch
-                searchPlaceholder="Търсене на круизни компании"
+                searchPlaceholder="Търсене на круизни компании..."
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"
-                hrefPrefix="/travel/cruises"
                 columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             />
         </>

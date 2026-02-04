@@ -76,6 +76,8 @@ export async function POST(req: Request) {
                 name: data.name,
                 slug: data.slug,
                 website_url: data.website_url,
+                country_id: data.country_id,
+                city_id: data.city_id,
             });
 
             return NextResponse.json(
@@ -111,6 +113,8 @@ export async function POST(req: Request) {
         const taxi = await createTaxi({
             name: data.name,
             slug: data.slug,
+            country_id: data.country_id,
+            city_id: data.city_id,
             id: 0,
         });
 

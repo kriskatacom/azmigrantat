@@ -56,7 +56,8 @@ export interface Autobus {
     slug: string;
     image_url?: string;
     website_url?: string;
-    country_id?: number;
+    country_id?: number | null;
+    city_id?: number | null;
     created_at?: string;
     updated_at?: string;
 }
@@ -67,7 +68,8 @@ export interface Train {
     slug: string;
     image_url?: string;
     website_url?: string;
-    country_id?: number;
+    country_id?: number | null;
+    city_id?: number | null;
     created_at?: string;
     updated_at?: string;
 }
@@ -78,7 +80,8 @@ export interface Taxi {
     slug: string;
     image_url?: string;
     website_url?: string;
-    country_id?: number;
+    country_id?: number | null;
+    city_id?: number | null;
     created_at?: string;
     updated_at?: string;
 }
@@ -89,7 +92,7 @@ export interface Cruise {
     slug: string;
     image_url?: string;
     website_url?: string;
-    country_id?: number;
+    country_id?: number | null;
     created_at?: string;
     updated_at?: string;
 }

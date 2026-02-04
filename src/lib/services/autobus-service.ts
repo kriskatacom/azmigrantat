@@ -3,7 +3,7 @@ import { ResultSetHeader } from "mysql2";
 import { Autobus } from "../types";
 
 type AutobusCondition = {
-    column: "id" | "slug" | "country_id";
+    column: "id" | "slug" | "country_id" | "city_id";
     value: string | number;
 };
 
@@ -16,8 +16,8 @@ export async function createAutobus(autobus: Autobus): Promise<Autobus> {
     const { name, slug, image_url, website_url, country_id } = autobus;
 
     const sql = `
-        INSERT INTO autobuses (name, slug, image_url, website_url)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO autobuses (name, slug, image_url, website_url, country_id)
+        VALUES (?, ?, ?, ?, ?)
     `;
 
     try {
@@ -26,6 +26,7 @@ export async function createAutobus(autobus: Autobus): Promise<Autobus> {
             slug,
             image_url ?? null,
             website_url ?? null,
+            country_id ?? null,
         ]);
 
         const created = await getAutobusByColumn("id", result.insertId);

@@ -1,9 +1,9 @@
-import React, { useEffect } from "react";
-import Image from "next/image";
+import React from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import striptags from "striptags";
 import { EyeIcon } from "lucide-react";
+import AppImage from "./AppImage";
 
 type LinkType = "internal" | "external";
 
@@ -31,13 +31,22 @@ export const CardItem: React.FC<CardItemProps> = ({
     if (variant === "standart") {
         return (
             <div className="relative h-60 rounded-xl overflow-hidden shadow-lg group">
-                <Link href={item.linkType === "external" ? item.slug : `${hrefPrefix}/${item.slug}`}>
-                    <div
-                        className="absolute inset-0 bg-cover bg-center transition-transform duration-300 group-hover:scale-105"
-                        style={{
-                            backgroundImage: `url(${item.imageUrl || "/images/default.webp"})`,
-                        }}
-                    />
+                <Link
+                    href={
+                        item.linkType === "external"
+                            ? item.slug ?? "#"
+                            : `${hrefPrefix}/${item.slug}`
+                    }
+                    target={item.linkType === "external" ? "_blank" : "_self"}
+                >
+                    <div className="absolute top-0 left-0 w-full h-full">
+                        <AppImage
+                            src={item.imageUrl || "/images/default.webp"}
+                            alt={item.name}
+                            fill
+                            className={`object-cover transition-opacity duration-500`}
+                        />
+                    </div>
 
                     <div className="absolute inset-0 bg-black/25" />
 
@@ -61,15 +70,11 @@ export const CardItem: React.FC<CardItemProps> = ({
             <Link href={`${hrefPrefix}/${item.slug}`} className="flex h-full">
                 {/* Image */}
                 <div className="relative w-40 md:w-50 shrink-0">
-                    <Image
+                    <AppImage
                         src={item.imageUrl || "/images/default.webp"}
                         alt={item.name}
                         fill
-                        className={`object-cover transition-opacity duration-500 ${
-                            imageLoading ? "opacity-0" : "opacity-100"
-                        }`}
-                        onLoad={() => setImageLoading(false)}
-                        onError={() => setImageLoading(false)}
+                        className={`object-cover transition-opacity duration-500`}
                     />
                 </div>
 

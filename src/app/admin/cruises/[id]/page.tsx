@@ -8,6 +8,7 @@ import { Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { getCruiseByColumn } from "@/lib/services/cruise-service";
 import NewCruiseForm from "@/app/admin/cruises/[id]/new-cruise-form";
+import { getCountries } from "@/lib/services/country-service";
 
 type Props = {
     params: Promise<{
@@ -46,6 +47,8 @@ export default async function cruisePage({ params }: Params) {
     if (id !== "new") {
         cruise = await getCruiseByColumn("id", id);
     }
+
+    const countries = await getCountries();
 
     return (
         <div className="flex">

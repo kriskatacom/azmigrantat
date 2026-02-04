@@ -10,33 +10,41 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { slugify } from "@/lib/utils";
-import { Autobus } from "@/lib/types";
+import { Autobus, City, Country } from "@/lib/types";
+import { RelationForm } from "@/components/relation-form";
 
 export interface NewAutobus {
     id: number | null;
     name: string;
     slug: string;
     website_url: string;
+    country_id: number | null;
+    city_id: number | null;
 }
 
 type Params = {
-    airline: Autobus | null;
+    autobus: Autobus | null;
+    countries: Country[];
 };
 
 type FormErrors = Partial<Record<keyof NewAutobus, string>>;
 
-export default function NewAutobusForm({ airline }: Params) {
+export default function NewAutobusForm({ autobus, countries }: Params) {
     const router = useRouter();
 
     const [formData, setFormData] = useState<NewAutobus>({
-        id: airline?.id ?? null,
-        name: airline?.name ?? "",
-        slug: airline?.slug ?? "",
-        website_url: airline?.website_url ?? "",
+        id: autobus?.id ?? null,
+        name: autobus?.name ?? "",
+        slug: autobus?.slug ?? "",
+        website_url: autobus?.website_url ?? "",
+        country_id: autobus?.country_id ?? null,
+        city_id: autobus?.city_id ?? null,
     });
 
     const [errors, setErrors] = useState<FormErrors>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [cities, setCities] = useState<City[]>([]);
+    const [isCitiesLoading, setIsCitiesLoading] = useState(false);
 
     const handleChange = (field: keyof NewAutobus, value: string) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
@@ -74,6 +82,34 @@ export default function NewAutobusForm({ airline }: Params) {
             setIsSubmitting(false);
         }
     };
+
+    useEffect(() => {
+        if (!formData.country_id) {
+            setCities([]);
+            setFormData((prev) => ({ ...prev, cityId: null }));
+            return;
+        }
+
+        setIsCitiesLoading(true);
+
+        const fetchCities = async () => {
+            try {
+                const res = await axios.get(
+                    `/api/cities?countryId=${formData.country_id}`,
+                );
+
+                setCities(res.data);
+            } catch (error) {
+                console.error(error);
+                toast.error("Грешка при зареждане на градовете");
+                setCities([]);
+            } finally {
+                setIsCitiesLoading(false);
+            }
+        };
+
+        fetchCities();
+    }, [formData.country_id]);
 
     return (
         <form
@@ -113,6 +149,57 @@ export default function NewAutobusForm({ airline }: Params) {
                 </Button>
             </div>
 
+            <div className="flex items-center gap-5">
+                <div className="flex gap-5">
+                    <div className="space-y-2">
+                        <RelationForm
+                            items={countries.map((c) => ({
+                                id: c.id!,
+                                label: c.name!,
+                            }))}
+                            value={formData.country_id as number}
+                            onChange={(id) =>
+                                setFormData((p) => ({
+                                    ...p,
+                                    country_id: id as number,
+                                }))
+                            }
+                            placeholder="Изберете държава"
+                        />
+                        {errors.country_id && (
+                            <div className="text-destructive">
+                                Моля, изберете държава!
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="flex gap-5">
+                    <div className="space-y-2">
+                        <RelationForm
+                            items={cities.map((c) => ({
+                                id: c.id!,
+                                label: c.name!,
+                            }))}
+                            value={formData.city_id as number}
+                            onChange={(id) =>
+                                setFormData((p) => ({
+                                    ...p,
+                                    city_id: id as number,
+                                }))
+                            }
+                            disabled={isCitiesLoading}
+                            placeholder="Изберете град"
+                        />
+                        {errors.city_id && (
+                            <div className="text-destructive">
+                                Моля, изберете град!
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
             {formData.id && (
                 <>
                     <div className="space-y-2">
@@ -138,7 +225,7 @@ export default function NewAutobusForm({ airline }: Params) {
                 ) : (
                     <FiSave />
                 )}
-                {airline?.id ? "Записване" : "Създаване"}
+                {autobus?.id ? "Записване" : "Създаване"}
             </Button>
         </form>
     );

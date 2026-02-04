@@ -8,6 +8,7 @@ import { Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { getAutobusByColumn } from "@/lib/services/autobus-service";
 import NewAutobusForm from "./new-autobus-form";
+import { getCountries } from "@/lib/services/country-service";
 
 type Props = {
     params: Promise<{
@@ -47,6 +48,8 @@ export default async function NewAutobusPage({ params }: Params) {
         autobus = await getAutobusByColumn("id", id);
     }
 
+    const countries = await getCountries();
+
     return (
         <div className="flex">
             <MainSidebarServer />
@@ -73,7 +76,7 @@ export default async function NewAutobusPage({ params }: Params) {
                         },
                     ]}
                 />
-                <NewAutobusForm airline={autobus} />
+                <NewAutobusForm autobus={autobus} countries={countries} />
                 {autobus?.id && (
                     <>
                         <h2 className="px-5 text-xl font-semibold">

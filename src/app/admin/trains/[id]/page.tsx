@@ -8,6 +8,7 @@ import { Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { Button } from "@/components/ui/button";
 import NewTrainForm from "@/app/admin/trains/[id]/new-train-form";
 import { getTrainByColumn } from "@/lib/services/train-service";
+import { getCountries } from "@/lib/services/country-service";
 
 type Props = {
     params: Promise<{
@@ -47,6 +48,8 @@ export default async function NewTrainPage({ params }: Params) {
         train = await getTrainByColumn("id", id);
     }
 
+    const countries = await getCountries();
+
     return (
         <div className="flex">
             <MainSidebarServer />
@@ -73,7 +76,7 @@ export default async function NewTrainPage({ params }: Params) {
                         },
                     ]}
                 />
-                <NewTrainForm airline={train} />
+                <NewTrainForm train={train} countries={countries} />
                 {train?.id && (
                     <>
                         <h2 className="px-5 text-xl font-semibold">

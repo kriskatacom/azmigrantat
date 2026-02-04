@@ -10,22 +10,26 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { slugify } from "@/lib/utils";
-import { Taxi } from "@/lib/types";
+import { City, Country, Taxi } from "@/lib/types";
+import { RelationForm } from "@/components/relation-form";
 
 export interface NewTaxi {
     id: number | null;
     name: string;
     slug: string;
     website_url: string;
+    country_id: number | null;
+    city_id: number | null;
 }
 
 type Params = {
     taxi: Taxi | null;
+    countries: Country[];
 };
 
 type FormErrors = Partial<Record<keyof NewTaxi, string>>;
 
-export default function NewTaxiForm({ taxi }: Params) {
+export default function NewTaxiForm({ taxi, countries }: Params) {
     const router = useRouter();
 
     const [formData, setFormData] = useState<NewTaxi>({
@@ -33,10 +37,14 @@ export default function NewTaxiForm({ taxi }: Params) {
         name: taxi?.name ?? "",
         slug: taxi?.slug ?? "",
         website_url: taxi?.website_url ?? "",
+        country_id: taxi?.country_id ?? null,
+        city_id: taxi?.city_id ?? null,
     });
 
     const [errors, setErrors] = useState<FormErrors>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [cities, setCities] = useState<City[]>([]);
+    const [isCitiesLoading, setIsCitiesLoading] = useState(false);
 
     const handleChange = (field: keyof NewTaxi, value: string) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
@@ -74,6 +82,34 @@ export default function NewTaxiForm({ taxi }: Params) {
             setIsSubmitting(false);
         }
     };
+
+    useEffect(() => {
+        if (!formData.country_id) {
+            setCities([]);
+            setFormData((prev) => ({ ...prev, cityId: null }));
+            return;
+        }
+
+        setIsCitiesLoading(true);
+
+        const fetchCities = async () => {
+            try {
+                const res = await axios.get(
+                    `/api/cities?countryId=${formData.country_id}`,
+                );
+
+                setCities(res.data);
+            } catch (error) {
+                console.error(error);
+                toast.error("Грешка при зареждане на градовете");
+                setCities([]);
+            } finally {
+                setIsCitiesLoading(false);
+            }
+        };
+
+        fetchCities();
+    }, [formData.country_id]);
 
     return (
         <form
@@ -126,6 +162,56 @@ export default function NewTaxiForm({ taxi }: Params) {
                     </div>
                 </>
             )}
+
+            <div className="flex items-center gap-5">
+                <div className="flex gap-5">
+                    <div className="space-y-2">
+                        <RelationForm
+                            items={countries.map((c) => ({
+                                id: c.id!,
+                                label: c.name!,
+                            }))}
+                            value={formData.country_id as number}
+                            onChange={(id) =>
+                                setFormData((p) => ({
+                                    ...p,
+                                    country_id: id as number,
+                                }))
+                            }
+                            placeholder="Изберете държава"
+                        />
+                        {errors.country_id && (
+                            <div className="text-destructive">
+                                Моля, изберете държава!
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                <div className="flex gap-5">
+                    <div className="space-y-2">
+                        <RelationForm
+                            items={cities.map((c) => ({
+                                id: c.id!,
+                                label: c.name!,
+                            }))}
+                            value={formData.city_id as number}
+                            onChange={(id) =>
+                                setFormData((p) => ({
+                                    ...p,
+                                    city_id: id as number,
+                                }))
+                            }
+                            placeholder="Изберете град"
+                        />
+                        {errors.city_id && (
+                            <div className="text-destructive">
+                                Моля, изберете град!
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
 
             <Button
                 type="submit"

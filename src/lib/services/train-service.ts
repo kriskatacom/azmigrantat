@@ -3,7 +3,7 @@ import { ResultSetHeader } from "mysql2";
 import { Train } from "@/lib/types";
 
 type TrainCondition = {
-    column: "id" | "slug" | "country_id";
+    column: "id" | "slug" | "country_id" | "city_id";
     value: string | number;
 };
 
@@ -13,11 +13,11 @@ type GetTrainsOptions = {
 
 // ------------------ CREATE ------------------
 export async function createTrain(train: Train): Promise<Train> {
-    const { name, slug, image_url, website_url } = train;
+    const { name, slug, image_url, website_url, country_id } = train;
 
     const sql = `
-        INSERT INTO trains (name, slug, image_url, website_url)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO trains (name, slug, image_url, website_url, country_id)
+        VALUES (?, ?, ?, ?, ?)
     `;
 
     try {
@@ -26,6 +26,7 @@ export async function createTrain(train: Train): Promise<Train> {
             slug,
             image_url ?? null,
             website_url ?? null,
+            country_id ?? null,
         ]);
 
         const created = await getTrainByColumn("id", result.insertId);

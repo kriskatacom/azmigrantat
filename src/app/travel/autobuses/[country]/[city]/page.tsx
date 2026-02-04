@@ -1,15 +1,23 @@
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
-import LeafletMap from "@/app/travel/air-tickets/leaflet-map";
 import { MainNavbar } from "@/components/main-navbar";
 import PageHeader from "@/components/page-header";
-import { AIR_TICKETS_PAGE_ITEMS, AIRPORTS_DATA } from "@/lib/constants";
 import { absoluteUrl, websiteName } from "@/lib/utils";
-import { CardGrid } from "@/components/card-grid";
-import { getAirports } from "@/lib/services/airports-service";
 import { CardEntity } from "@/components/card-item";
-import { Airport } from "@/lib/types";
-import { MapMarker } from "@/components/leaflet-map";
+import { getCountryByColumn } from "@/lib/services/country-service";
+import { CardGrid } from "@/components/card-grid";
+import { Airport, Autobus } from "@/lib/types";
+import { getAirports } from "@/lib/services/airports-service";
+import { getCityByColumn } from "@/lib/services/city-service";
+import { getAutobuses } from "@/lib/services/autobus-service";
+
+type Props = {
+    params: Promise<{
+        country: string;
+        city: string;
+    }>;
+};
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Европейски летища – информация и връзки към официални сайтове`;
@@ -61,51 +69,64 @@ export async function generateMetadata(): Promise<Metadata> {
     };
 }
 
-export default async function AirTickets() {
+export default async function Airports({ params }: Props) {
+    const countrySlug = (await params).country;
+    const citySlug = (await params).city;
+
+    const country = await getCountryByColumn("slug", countrySlug);
+    const city = await getCityByColumn("slug", citySlug);
+
+    if (!country || !country.name || !city || !city.id) {
+        return redirect("/");
+    }
+
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
-        { name: "Самолетни билети" },
+        { name: "Автобусни гари", href: "/travel/autobuses" },
+        { name: "Градове", href: `/travel/air-tickets/${country.slug}` },
+        { name: country.name },
     ];
 
-    const airports = await getAirports();
-    const mappedAirports: MapMarker[] = airports
+    const autobuses = await getAutobuses({
+        where: [
+            { column: "country_id", value: country.id },
+            { column: "city_id", value: city.id },
+        ],
+    });
+    const mappedAutobuses: CardEntity[] = autobuses
         .filter(
             (
-                airport,
-            ): airport is Airport & {
-                latitude: number;
-                longitude: number;
-                description: string;
+                autobus,
+            ): autobus is Autobus & {
+                name: string;
+                website_url: string;
                 image_url: string;
-            } =>
-                airport.latitude !== undefined &&
-                airport.longitude !== undefined &&
-                airport.description !== undefined &&
-                airport.image_url !== undefined,
+            } => Boolean(autobus.name && autobus.website_url && autobus.image_url),
         )
-        .map((airport) => ({
-            id: airport.id,
-            label: airport.name,
-            lat: airport.latitude,
-            lng: airport.longitude,
-            description: airport.description,
-            image: airport.image_url,
-            websiteUrl: airport.website_url,
+        .map((autobus) => ({
+            name: autobus.name,
+            slug: autobus.website_url,
+            imageUrl: autobus.image_url,
+            linkType: "external",
         }));
-
+console.log(mappedAutobuses);
     return (
         <>
             <MainNavbar />
-            <PageHeader title="Самолетни билети" breadcrumbs={breadcrumbs} />
-            <LeafletMap markers={mappedAirports} />
+            <PageHeader
+                title={`Летища в ${country.name}`}
+                breadcrumbs={breadcrumbs}
+            />
             <CardGrid
-                items={AIR_TICKETS_PAGE_ITEMS}
-                id="countries"
+                items={mappedAutobuses}
+                id="airports"
+                isWithSearch
+                searchPlaceholder={`Търсене на летища в ${country.name}...`}
+                noItemsMessage={`Няма намерени летища в ${country.name}.`}
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"
-                hrefPrefix="/travel/air-tickets"
                 columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             />
         </>

@@ -3,7 +3,7 @@ import { ResultSetHeader } from "mysql2";
 import { Taxi } from "../types";
 
 type TaxiCondition = {
-    column: "id" | "slug" | "country_id";
+    column: "id" | "slug" | "country_id" | "city_id";
     value: string | number;
 };
 

@@ -5,10 +5,10 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { columns } from "@/app/admin/trains/columns";
 import { DataTable } from "@/components/data-table";
-import { Airline } from "@/lib/types";
+import { Train } from "@/lib/types";
 
 type ClientPageProps = {
-    data: Airline[];
+    data: Train[];
 };
 
 export default function ClientPage({ data }: ClientPageProps) {
@@ -31,7 +31,7 @@ export default function ClientPage({ data }: ClientPageProps) {
         }
     }
 
-    const handleReorder = async (reorderedData: Airline[]) => {
+    const handleReorder = async (reorderedData: Train[]) => {
         try {
             const response = await fetch("/api/reorder", {
                 method: "POST",
