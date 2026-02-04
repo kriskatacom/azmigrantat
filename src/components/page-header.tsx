@@ -14,7 +14,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({ title, breadcrumbs }) => {
             </h1>
 
             <div className="text-white text-lg flex justify-center">
-                <Breadcrumbs items={breadcrumbs} />
+                <Breadcrumbs items={breadcrumbs} classes="justify-center" />
             </div>
         </div>
     );

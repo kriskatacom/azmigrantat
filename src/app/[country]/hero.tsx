@@ -52,7 +52,7 @@ export const Hero: React.FC<HeroProps> = ({
                 )}
                 {ctaText && ctaLink && (
                     <div className="mt-5">
-                        <a href={ctaLink}>
+                        <a href={ctaLink} className="text-website-dark">
                             <Button variant={"outline"} size={"xl"}>
                                 {ctaText}
                             </Button>

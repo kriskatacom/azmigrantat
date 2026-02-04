@@ -35,6 +35,7 @@ export default async function HomePage() {
                 items={mappedCountries}
                 id="countries"
                 isWithSearch={true}
+                buttonText=""
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"

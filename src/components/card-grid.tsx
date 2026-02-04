@@ -57,6 +57,7 @@ export const CardGrid: React.FC<CardGridProps> = ({
         xxl: 260,
     },
 }) => {
+    const [filteredItems, setFilteredItems] = useState(items);
     const [visibleCount, setVisibleCount] = useState(initialVisible);
 
     const handleLoadMore = () => {
@@ -64,7 +65,13 @@ export const CardGrid: React.FC<CardGridProps> = ({
     };
 
     const handleSearch = (query: string) => {
-        console.log("Търсене на:", query);
+        setFilteredItems(
+            items.filter(
+                (item) =>
+                    item.name.toLowerCase().includes(query.toLowerCase()) ||
+                    item.slug.toLowerCase().includes(query.toLowerCase()),
+            ),
+        );
     };
 
     const [cols, setCols] = useState(columns.base);
@@ -89,16 +96,6 @@ export const CardGrid: React.FC<CardGridProps> = ({
         return () => window.removeEventListener("resize", update);
     }, []);
 
-    const visibleItems = items.slice(0, visibleCount);
-
-    if (visibleItems.length === 0) {
-        return (
-            <div className="max-w-md mx-auto my-5">
-                <Alert title="Няма намерени данни!">{noItemsMessage}</Alert>
-            </div>
-        );
-    }
-
     return (
         <section id={id} className="p-5">
             {isWithSearch && (
@@ -109,41 +106,47 @@ export const CardGrid: React.FC<CardGridProps> = ({
                 />
             )}
 
-            <ul
-                className={cn(isWithSearch && "mt-5", "card-grid")}
-                style={{
-                    gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-                }}
-            >
-                {visibleItems.map((item, index) => {
-                    const isNew = index >= visibleCount - loadMoreStep;
-                    const delay = isNew
-                        ? (index - (visibleCount - loadMoreStep)) * 150
-                        : 0;
+            {filteredItems.length === 0 ? (
+                <div className="max-w-md mx-auto my-5">
+                    <Alert title="Няма намерени данни!">{noItemsMessage}</Alert>
+                </div>
+            ) : (
+                <ul
+                    className={cn(isWithSearch && "mt-5", "card-grid")}
+                    style={{
+                        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+                    }}
+                >
+                    {filteredItems.slice(0, visibleCount).map((item, index) => {
+                        const isNew = index >= visibleCount - loadMoreStep;
+                        const delay = isNew
+                            ? (index - (visibleCount - loadMoreStep)) * 150
+                            : 0;
 
-                    return (
-                        <li
-                            key={index}
-                            className="animate-fade-in-up"
-                            style={{ animationDelay: `${delay}ms` }}
-                        >
-                            <CardItem
-                                item={item}
-                                hrefPrefix={hrefPrefix}
-                                variant={variant}
-                                height={height}
-                            />
-                        </li>
-                    );
-                })}
-            </ul>
+                        return (
+                            <li
+                                key={item.slug || index}
+                                className="animate-fade-in-up"
+                                style={{ animationDelay: `${delay}ms` }}
+                            >
+                                <CardItem
+                                    item={item}
+                                    hrefPrefix={hrefPrefix}
+                                    variant={variant}
+                                    height={height}
+                                />
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
 
-            {visibleCount < items.length && (
+            {visibleCount < filteredItems.length && (
                 <div className="mt-6 flex justify-center">
                     <Button
                         onClick={handleLoadMore}
-                        variant={"outline"}
-                        size={"xl"}
+                        variant="outline"
+                        size="xl"
                     >
                         Зареждане на още
                     </Button>
