@@ -102,6 +102,7 @@ export interface Banner {
     name?: string;
     link?: string;
     description?: string;
+    height?: number;
     image?: string;
     sort_order?: number;
 }

@@ -1,13 +1,11 @@
 import { Metadata } from "next";
 import { absoluteUrl, websiteName } from "@/lib/utils";
 import { MainNavbar } from "@/components/main-navbar";
-import AppImage from "@/components/AppImage";
 import PageHeader from "@/components/page-header";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { CardGrid } from "@/components/card-grid";
 import { TRAVEL_CATEGORIES } from "@/lib/constants";
 import { getBannerByColumn } from "@/lib/services/banner-service";
-import { headers } from "next/headers";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Пътуване – информация за транспорт и услуги`;
@@ -67,8 +65,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function TravelPage() {
-    const path = new URL((await headers()).get("referer") || "").pathname;
-    const banner = await getBannerByColumn("link", path);
+    const banner = await getBannerByColumn("link", "/travel");
 
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
@@ -86,15 +83,6 @@ export default async function TravelPage() {
             <MainNavbar />
 
             <div className="relative w-full h-130 shrink-0">
-                {banner?.image && (
-                    <AppImage
-                        src={banner.image}
-                        alt={websiteName("Пътуване")}
-                        fill
-                        className="object-cover rounded w-full h-full"
-                    />
-                )}
-
                 <PageHeader
                     title={
                         <div>
@@ -104,6 +92,7 @@ export default async function TravelPage() {
                             </span>
                         </div>
                     }
+                    banner={banner}
                     breadcrumbs={breadcrumbs}
                 />
 

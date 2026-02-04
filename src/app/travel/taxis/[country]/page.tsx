@@ -8,9 +8,7 @@ import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { getCities } from "@/lib/services/city-service";
-import { City, Country } from "@/lib/types";
-import AppImage from "@/components/AppImage";
-import { headers } from "next/headers";
+import { City } from "@/lib/types";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -71,10 +69,9 @@ type Props = {
 };
 
 export default async function TaxisByCountryPage({ params }: Props) {
-    const path = new URL((await headers()).get("referer") || "").pathname;
-    const banner = await getBannerByColumn("link", path);
-
     const countrySlug = (await params).country;
+
+    const banner = await getBannerByColumn("link", `/travel/taxis/${countrySlug}`);
 
     const country = await getCountryByColumn("slug", countrySlug);
 
@@ -109,19 +106,10 @@ export default async function TaxisByCountryPage({ params }: Props) {
     return (
         <>
             <MainNavbar />
-            {banner?.image && (
-                <div className="relative w-full h-130 shrink-0">
-                    <AppImage
-                        src={banner.image}
-                        alt={websiteName("Пътуване")}
-                        fill
-                        className="object-cover rounded w-full h-full"
-                    />
-                </div>
-            )}
             <PageHeader
                 title={`Таксита в ${country.name}`}
                 breadcrumbs={breadcrumbs}
+                banner={banner}
             />
             <CardGrid
                 items={mappedCities}

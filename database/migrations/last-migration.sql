@@ -3,6 +3,7 @@ CREATE TABLE `azmigrantat`.`banners` (
     `name` VARCHAR(255) NULL,
     `link` VARCHAR(255) NULL,
     `description` VARCHAR(255) NULL,
+    `height` INT(11) NOT NULL DEFAULT '520',
     `image` VARCHAR(255) NULL,
     `sort_order` INT(11) NOT NULL,
     PRIMARY KEY (`id`)

@@ -11,7 +11,6 @@ import { getCities } from "@/lib/services/city-service";
 import { City } from "@/lib/types";
 import AppImage from "@/components/AppImage";
 import { getBannerByColumn } from "@/lib/services/banner-service";
-import { headers } from "next/headers";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Железопътен превоз в Европа – влакове, гари и полезна информация`;
@@ -71,10 +70,9 @@ type Props = {
 };
 
 export default async function TrainsByCountryPage({ params }: Props) {
-    const path = new URL((await headers()).get("referer") || "").pathname;
-    const banner = await getBannerByColumn("link", path);
-
     const countrySlug = (await params).country;
+
+    const banner = await getBannerByColumn("link", `/travel/trains/${countrySlug}`);
 
     const country = await getCountryByColumn("slug", countrySlug);
 

@@ -7,13 +7,11 @@ import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardEntity } from "@/components/card-item";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { CardGrid } from "@/components/card-grid";
-import { Autobus, Train } from "@/lib/types";
+import { Train } from "@/lib/types";
 import { getCityByColumn } from "@/lib/services/city-service";
-import { getAutobuses } from "@/lib/services/autobus-service";
 import { getTrains } from "@/lib/services/train-service";
 import AppImage from "@/components/AppImage";
 import { getBannerByColumn } from "@/lib/services/banner-service";
-import { headers } from "next/headers";
 
 type Props = {
     params: Promise<{
@@ -73,11 +71,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Airports({ params }: Props) {
-    const path = new URL((await headers()).get("referer") || "").pathname;
-    const banner = await getBannerByColumn("link", path);
-
     const countrySlug = (await params).country;
     const citySlug = (await params).city;
+
+    const banner = await getBannerByColumn("link", `/travel/trains/${countrySlug}/${citySlug}`);
 
     const country = await getCountryByColumn("slug", countrySlug);
     const city = await getCityByColumn("slug", citySlug);

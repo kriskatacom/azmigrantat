@@ -13,11 +13,11 @@ type GetBannersOptions = {
 
 // ------------------ CREATE ------------------
 export async function createBanner(banner: Banner): Promise<Banner> {
-    const { name, link, description } = banner;
+    const { name, link, description, height } = banner;
 
     const sql = `
-        INSERT INTO banners (name, link, description)
-        VALUES (?, ?, ?)
+        INSERT INTO banners (name, link, description, height)
+        VALUES (?, ?, ?, ?)
     `;
 
     try {
@@ -25,6 +25,7 @@ export async function createBanner(banner: Banner): Promise<Banner> {
             name,
             link,
             description,
+            height,
         ]);
 
         const created = await getBannerByColumn("id", result.insertId);
@@ -61,6 +62,7 @@ export async function getBanners(
         name: row.name,
         link: row.link,
         description: row.description,
+        height: row.height,
         image: row.image,
         sort_order: row.sort_order,
         created_at: row.created_at,

@@ -7,9 +7,7 @@ import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
 import { getCountries } from "@/lib/services/country-service";
 import { Country } from "@/lib/types";
-import AppImage from "@/components/AppImage";
 import { getBannerByColumn } from "@/lib/services/banner-service";
-import { headers } from "next/headers";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Автобусни гари и автобусни превози в Европа – информация и адреси`;
@@ -63,8 +61,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AutobusesPage() {
-    const path = new URL((await headers()).get("referer") || "").pathname;
-    const banner = await getBannerByColumn("link", path);
+    const banner = await getBannerByColumn("link", `/travel/autobuses`);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
@@ -92,17 +89,11 @@ export default async function AutobusesPage() {
     return (
         <>
             <MainNavbar />
-            {banner?.image && (
-                <div className="relative w-full h-130 shrink-0">
-                    <AppImage
-                        src={banner.image}
-                        alt={websiteName("Пътуване")}
-                        fill
-                        className="object-cover rounded w-full h-full"
-                    />
-                </div>
-            )}
-            <PageHeader title="Автобуси" breadcrumbs={breadcrumbs} />
+            <PageHeader
+                title="Автобуси"
+                breadcrumbs={breadcrumbs}
+                banner={banner}
+            />
             <CardGrid
                 items={mappedCountries}
                 id="countries"

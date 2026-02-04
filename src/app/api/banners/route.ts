@@ -9,18 +9,6 @@ import {
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-async function makeUniqueSlug(slug: string) {
-    let uniqueSlug = slug;
-    let counter = 2;
-
-    while (await getBannerByColumn("slug", uniqueSlug)) {
-        uniqueSlug = `${slug}-${counter}`;
-        counter++;
-    }
-
-    return uniqueSlug;
-}
-
 export async function POST(req: Request) {
     try {
         const data: NewBanner = await req.json();
@@ -57,6 +45,7 @@ export async function POST(req: Request) {
                 name: data.name,
                 description: data.description,
                 link: data.link,
+                height: data.height,
             });
 
             return NextResponse.json(
@@ -75,6 +64,7 @@ export async function POST(req: Request) {
             name: data.name,
             description: data.description,
             link: data.link,
+            height: data.height,
             id: 0,
         });
 

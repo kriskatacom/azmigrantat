@@ -9,9 +9,7 @@ import { getCountryByColumn } from "@/lib/services/country-service";
 import { CardGrid } from "@/components/card-grid";
 import { Airport } from "@/lib/types";
 import { getAirports } from "@/lib/services/airports-service";
-import AppImage from "@/components/AppImage";
 import { getBannerByColumn } from "@/lib/services/banner-service";
-import { headers } from "next/headers";
 
 type Props = {
     params: Promise<{
@@ -70,10 +68,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Airports({ params }: Props) {
-    const path = new URL((await headers()).get("referer") || "").pathname;
-    const banner = await getBannerByColumn("link", path);
-
     const countrySlug = (await params).country;
+    const banner = await getBannerByColumn("link", `/travel/air-tickets/countries/${countrySlug}`);
 
     const country = await getCountryByColumn("slug", countrySlug);
 
@@ -112,19 +108,10 @@ export default async function Airports({ params }: Props) {
     return (
         <>
             <MainNavbar />
-            {banner?.image && (
-                <div className="relative w-full h-130 shrink-0">
-                    <AppImage
-                        src={banner.image}
-                        alt={websiteName("Пътуване")}
-                        fill
-                        className="object-cover rounded w-full h-full"
-                    />
-                </div>
-            )}
             <PageHeader
                 title={`Летища в ${country.name}`}
                 breadcrumbs={breadcrumbs}
+                banner={banner}
             />
             <CardGrid
                 items={mappedAirports}

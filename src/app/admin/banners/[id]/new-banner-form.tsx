@@ -17,6 +17,7 @@ export interface NewBanner {
     name: string;
     link: string;
     description: string;
+    height: number;
 }
 
 type Params = {
@@ -33,6 +34,7 @@ export default function NewBannerForm({ banner }: Params) {
         name: banner?.name ?? "",
         link: banner?.link ?? "",
         description: banner?.description ?? "",
+        height: banner?.height ?? 520,
     });
 
     const [errors, setErrors] = useState<FormErrors>({});
@@ -87,6 +89,17 @@ export default function NewBannerForm({ banner }: Params) {
                 />
                 {errors.name && (
                     <div className="text-destructive">{errors.name}</div>
+                )}
+            </div>
+
+            <div className="space-y-2">
+                <Label>Височина на изображението (px)</Label>
+                <Input
+                    value={formData.height}
+                    onChange={(e) => handleChange("height", e.target.value)}
+                />
+                {errors.name && (
+                    <div className="text-destructive">{errors.height}</div>
                 )}
             </div>
 

@@ -3,15 +3,12 @@ import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import LeafletMap from "@/app/travel/air-tickets/leaflet-map";
 import { MainNavbar } from "@/components/main-navbar";
 import PageHeader from "@/components/page-header";
-import { AIR_TICKETS_PAGE_ITEMS, AIRPORTS_DATA } from "@/lib/constants";
+import { AIR_TICKETS_PAGE_ITEMS } from "@/lib/constants";
 import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardGrid } from "@/components/card-grid";
 import { getAirports } from "@/lib/services/airports-service";
-import { CardEntity } from "@/components/card-item";
 import { Airport } from "@/lib/types";
 import { MapMarker } from "@/components/leaflet-map";
-import AppImage from "@/components/AppImage";
-import { headers } from "next/headers";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -65,8 +62,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AirTickets() {
-    const path = new URL((await headers()).get("referer") || "").pathname;
-    const banner = await getBannerByColumn("link", path);
+    const banner = await getBannerByColumn("link", "/travel");
 
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
@@ -103,17 +99,11 @@ export default async function AirTickets() {
     return (
         <>
             <MainNavbar />
-            {banner?.image && (
-                <div className="relative w-full h-130 shrink-0">
-                    <AppImage
-                        src={banner.image}
-                        alt={websiteName("Пътуване")}
-                        fill
-                        className="object-cover rounded w-full h-full"
-                    />
-                </div>
-            )}
-            <PageHeader title="Самолетни билети" breadcrumbs={breadcrumbs} />
+            <PageHeader
+                title="Самолетни билети"
+                breadcrumbs={breadcrumbs}
+                banner={banner}
+            />
             <CardGrid
                 items={AIR_TICKETS_PAGE_ITEMS}
                 id="countries"
