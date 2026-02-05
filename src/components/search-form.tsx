@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Input } from "@/components/ui/input";
 import { Button } from "./ui/button";
 
@@ -12,9 +13,10 @@ type SearchFormProps = {
 
 export const SearchForm: React.FC<SearchFormProps> = ({
     onSearch,
-    placeholder = "Търсене...",
-    buttonText = "Търсене",
+    placeholder,
+    buttonText,
 }) => {
+    const t = useTranslations("common");
     const [query, setQuery] = useState("");
 
     // Старият submit handler остава за бутона
@@ -30,6 +32,9 @@ export const SearchForm: React.FC<SearchFormProps> = ({
         onSearch(value.trim()); // търси при всяка промяна
     };
 
+    const finalPlaceholder = placeholder || t("searchPlaceholder");
+    const finalButtonText = buttonText !== undefined ? buttonText : t("search");
+
     return (
         <form
             onSubmit={handleSubmit}
@@ -39,17 +44,17 @@ export const SearchForm: React.FC<SearchFormProps> = ({
                 type="text"
                 value={query}
                 onChange={handleChange}
-                placeholder={placeholder}
+                placeholder={finalPlaceholder}
                 className="flex-1 py-2 px-4 rounded-l-md bg-white border-2 border-website-blue focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
             />
-            {buttonText && (
+            {finalButtonText && (
                 <Button
                     type="submit"
                     className="border-2 border-website-blue"
                     variant="outline"
                     size="xl"
                 >
-                    {buttonText}
+                    {finalButtonText}
                 </Button>
             )}
         </form>

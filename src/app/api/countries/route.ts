@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateSlug } from "@/app/api/lib";
-import { NewCountry } from "@/app/admin/countries/[id]/country-form";
+import { NewCountry } from "@/app/[locale]/admin/countries/[id]/country-form";
 import { createCountry, getCountryByColumn, updateCountry } from "@/lib/services/country-service";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));

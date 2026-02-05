@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateSlug } from "@/app/api/lib";
-import { NewCategory } from "@/app/admin/categories/[id]/category-form";
+import { NewCategory } from "@/app/[locale]/admin/categories/[id]/category-form";
 import {
     createCategory,
     getCategoryByColumn,

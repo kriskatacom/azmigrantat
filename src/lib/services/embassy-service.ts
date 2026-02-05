@@ -1,6 +1,6 @@
 import { Embassy } from "@/lib/types";
 import { getDb } from "@/lib/db";
-import { EmbassyWithCountry } from "@/app/admin/embassies/columns";
+import { EmbassyWithCountry } from "@/app/[locale]/admin/embassies/columns";
 
 export async function createEmbassy(
     embassy: Partial<Embassy>,

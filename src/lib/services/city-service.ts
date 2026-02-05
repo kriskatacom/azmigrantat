@@ -1,6 +1,6 @@
 import { City } from "@/lib/types";
 import { getDb } from "@/lib/db";
-import { CityWithCountry } from "@/app/admin/cities/columns";
+import { CityWithCountry } from "@/app/[locale]/admin/cities/columns";
 import { ResultSetHeader } from "mysql2";
 
 export async function createCity(city: City): Promise<City> {

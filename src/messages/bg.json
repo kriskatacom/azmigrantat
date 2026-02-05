@@ -1,0 +1,164 @@
+{
+    "navigation": {
+        "home": "Аз мигрантът",
+        "travel": "Пътуване",
+        "services": "Услуги",
+        "jobs": "Търся/Предлагам работа",
+        "ads": "Обяви",
+        "music": "Музика"
+    },
+    "common": {
+        "search": "Търсене",
+        "searchPlaceholder": "Търсене...",
+        "loadMore": "Зареди още",
+        "learnMore": "Научете повече",
+        "browse": "РАЗГЛЕЖДАНЕ",
+        "home": "Начало",
+        "information": "Информация",
+        "countries": "Държави"
+    },
+    "countries": {
+        "bulgaria": "България",
+        "turkey": "Турция",
+        "united-kingdom": "Обединеното кралство",
+        "greece": "Гърция",
+        "germany": "Германия",
+        "denmark": "Дания",
+        "bosna-i-hercegovina": "Босна и Херцеховина",
+        "belarus": "Беларус",
+        "switzerland": "Швейцария",
+        "north-macedonia": "Северна Македония",
+        "finland": "Финландия",
+        "poland": "Полша",
+        "slovakia": "Словакия",
+        "czechya": "Чехия",
+        "austria": "Австрия",
+        "monaco": "Монако",
+        "albania": "Албания",
+        "russia": "Русия",
+        "belgium": "Белгия",
+        "sweden": "Швеция",
+        "portugal": "Португалия",
+        "france": "Франция",
+        "hungary": "Унгария",
+        "norway": "Норвегия",
+        "croatia": "Хърватия",
+        "estonia": "Естония",
+        "serbia": "Сърбия",
+        "netherlands": "Нидерландия",
+        "latvia": "Латвия",
+        "iceland": "Исландия",
+        "ukraine": "Украйна",
+        "kosovo": "Косово",
+        "montenegro": "Черна гора",
+        "romania": "Румъния",
+        "italya": "Италия",
+        "ispania": "Испания",
+        "ireland": "Ирландия",
+        "malta": "Малта"
+    },
+    "countryElements": {
+        "cities": "Градове",
+        "embassies": "Посолства",
+        "residence": "Пребиваване",
+        "landmarks": "Забележителности"
+    },
+    "admin": {
+        "sidebar": {
+            "dashboard": "Табло",
+            "users": "Потребители",
+            "countries": "Държави",
+            "cities": "Градове",
+            "categories": "Категории",
+            "companies": "Компании",
+            "embassies": "Посолства",
+            "landmarks": "Забележителности",
+            "airports": "Летища",
+            "airlines": "Авиокомпании",
+            "autobuses": "Автобусни гари",
+            "trains": "Железопътни гари",
+            "taxis": "Таксита",
+            "cruises": "Круиз компании",
+            "banners": "Банери",
+            "settings": "Настройки"
+        },
+        "actions": {
+            "add": "Добавяне",
+            "edit": "Редактиране",
+            "delete": "Изтриване",
+            "save": "Запази",
+            "cancel": "Откажи"
+        }
+    },
+    "homepage": {
+        "title": "ПЪТУВАЙ, РАБОТИ, ЖИВЕЙ",
+        "subtitle": "С \"АЗ МИГРАНТЪТ\"!",
+        "cta": "РАЗГЛЕЖДАНЕ",
+        "countriesSection": "Държави",
+        "typewriterTexts": {
+            "credits": "Кредити",
+            "travel": "Пътиване",
+            "jobs": "Търся/пр. работа",
+            "ads": "Обяви",
+            "music": "Музика",
+            "insurance": "Застраховка",
+            "translation": "Преводи"
+        },
+        "elements": {
+            "travel": "Пътуване",
+            "services": "Услуги",
+            "lookingJob": "Търся/пр. работа",
+            "ads": "Обяви",
+            "music": "Мусика"
+        }
+    },
+    "travel": {
+        "title": "Пътуване",
+        "heading": "Пътувай с \"Аз мигрантът\"!",
+        "categories": {
+            "airTickets": "Самолетни билети",
+            "autobuses": "Автобуси",
+            "trains": "Железопътен превоз",
+            "cruises": "Круизи",
+            "taxis": "Таксита",
+            "sharedTravel": "Споделено пътуване"
+        },
+        "airTickets": {
+            "airports": "Летища",
+            "airlines": "Авиокомпании",
+            "flightRadar": "Радар на полети"
+        },
+        "autobuses": {
+            "searchStations": "Търсене на автобусни спирки"
+        },
+        "trains": {
+            "searchStations": "Търсене на ЖП гари"
+        },
+        "taxis": {
+            "orderTaxi": "Поръчка на таксита",
+            "privateTaxis": "Частни таксита"
+        },
+        "cruises": {
+            "cruiseCompanies": "Круизни компании",
+            "searchPorts": "Търсене на пристанища"
+        }
+    },
+    "metadata": {
+        "default": {
+            "title": "Аз мигрантът",
+            "description": "Информация за мигранти - пътуване, работа, живот в чужбина"
+        },
+        "countryPage": {
+            "titleTemplate": "{country} – информация, забележителности и посолства",
+            "descriptionTemplate": "Научете повече за {country} – забележителности, посолства, култура и полезна информация за пътуващи и граждани."
+        },
+        "citiesPage": {
+            "titleTemplate": "Градове в {country} | Информация и карта",
+            "descriptionTemplate": "Разгледай градовете в {country} – основни населени места, карта, полезна информация и интересни факти."
+        },
+        "travelPage": {
+            "title": "Пътуване – информация за транспорт и услуги",
+            "description": "Научете всичко за различните видове транспорт: самолетни билети, автобуси, влакове, круизи, таксита и споделено пътуване."
+        }
+    }
+}

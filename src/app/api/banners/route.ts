@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateSlug } from "@/app/api/lib";
-import { NewBanner } from "@/app/admin/banners/[id]/new-banner-form";
+import { NewBanner } from "@/app/[locale]/admin/banners/[id]/new-banner-form";
 import {
     createBanner,
     getBannerByColumn,

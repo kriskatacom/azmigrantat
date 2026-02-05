@@ -5,7 +5,7 @@ import {
     getCompanyByColumn,
     updateCompany,
 } from "@/lib/services/companies-service";
-import { NewCompany } from "@/app/admin/companies/[id]/company-form";
+import { NewCompany } from "@/app/[locale]/admin/companies/[id]/company-form";
 import { getCities } from "@/lib/services/city-service";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));

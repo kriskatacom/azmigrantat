@@ -6,7 +6,7 @@ import {
     getCityByColumn,
     updateCity,
 } from "@/lib/services/city-service";
-import { NewCity } from "@/app/admin/cities/[id]/city-form";
+import { NewCity } from "@/app/[locale]/admin/cities/[id]/city-form";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

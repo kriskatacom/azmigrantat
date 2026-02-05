@@ -1,6 +1,6 @@
 import { Landmark } from "@/lib/types";
 import { getDb } from "@/lib/db";
-import { LandmarkWithCountry } from "@/app/admin/landmarks/columns";
+import { LandmarkWithCountry } from "@/app/[locale]/admin/landmarks/columns";
 
 export async function createLandmark(
     landmark: Partial<Landmark>,

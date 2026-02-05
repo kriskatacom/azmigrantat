@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateSlug } from "@/app/api/lib";
-import { NewTrain } from "@/app/admin/trains/[id]/new-train-form";
+import { NewTrain } from "@/app/[locale]/admin/trains/[id]/new-train-form";
 import {
     createTrain,
     getTrainByColumn,
