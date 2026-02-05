@@ -1,11 +1,15 @@
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { MainNavbar } from "@/components/main-navbar";
 import PageHeader from "@/components/page-header";
 import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardGrid } from "@/components/card-grid";
+import { CardEntity } from "@/components/card-item";
+import { getCountryByColumn } from "@/lib/services/country-service";
+import { getCities } from "@/lib/services/city-service";
+import { City } from "@/lib/types";
 import { getBannerByColumn } from "@/lib/services/banner-service";
-import { AUTOBUSES_PAGE_ITEMS, TAXIS_PAGE_ITEMS } from "@/lib/constants";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Таксиметрови компании в Европа – контакти и полезна информация`;
@@ -58,30 +62,68 @@ export async function generateMetadata(): Promise<Metadata> {
     };
 }
 
-export default async function TaxisPage() {
-    const banner = await getBannerByColumn("link", `/travel/taxis`);
+type Props = {
+    params: Promise<{
+        country: string;
+    }>;
+};
+
+export default async function TaxisByCountryPage({ params }: Props) {
+    const countrySlug = (await params).country;
+
+    const banner = await getBannerByColumn("link", `/travel/taxis/countries/${countrySlug}`,);
+
+    const country = await getCountryByColumn("slug", countrySlug);
+
+    if (!country) {
+        return redirect("/travel/trains");
+    }
 
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
-        { name: "Таксита" },
+        { name: "Таксита", href: "/travel/taxis" },
+        {
+            name: "Таксиметрови компании по държави",
+            href: "/travel/taxis/countries",
+        },
+        { name: `Градове в ${country.name}` },
     ];
+
+    const cities = await getCities({ column: "country_id", value: country.id });
+    const mappedCities: CardEntity[] = cities
+        .filter(
+            (
+                country,
+            ): country is City & {
+                name: string;
+                slug: string;
+                image_url: string;
+            } => Boolean(country.name && country.slug && country.image_url),
+        )
+        .map((country) => ({
+            name: country.name,
+            slug: country.slug,
+            imageUrl: country.image_url,
+        }));
 
     return (
         <>
             <MainNavbar />
             <PageHeader
-                title="Таксита"
+                title={`Таксиметрови компании по градове в ${country.name}`}
                 breadcrumbs={breadcrumbs}
                 banner={banner}
             />
             <CardGrid
-                items={TAXIS_PAGE_ITEMS}
-                id="private-taxis"
+                items={mappedCities}
+                id="cities"
+                isWithSearch
+                searchPlaceholder="Търсене на градове"
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"
-                hrefPrefix="/travel/taxis"
+                hrefPrefix={`/travel/taxis/countries/${country.slug}`}
                 columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             />
         </>

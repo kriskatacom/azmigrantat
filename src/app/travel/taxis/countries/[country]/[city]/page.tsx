@@ -73,7 +73,10 @@ export default async function Airports({ params }: Props) {
     const countrySlug = (await params).country;
     const citySlug = (await params).city;
 
-    const banner = await getBannerByColumn("link", `/travel/taxis/${countrySlug}/${citySlug}`);
+    const banner = await getBannerByColumn(
+        "link",
+        `/travel/taxis/countries/${countrySlug}/${citySlug}`,
+    );
 
     const country = await getCountryByColumn("slug", countrySlug);
     const city = await getCityByColumn("slug", citySlug);
@@ -85,8 +88,12 @@ export default async function Airports({ params }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
-        { name: "Таксиметрови компании", href: "/travel/taxis" },
-        { name: country.name, href: `/travel/taxis/${country.slug}` },
+        { name: "Таксита", href: "/travel/taxis" },
+        {
+            name: "Таксиметрови компании по държави",
+            href: "/travel/taxis/countries",
+        },
+        { name: country.name, href: `/travel/taxis/countries/${country.slug}` },
         { name: city.name },
     ];
 
@@ -117,7 +124,7 @@ export default async function Airports({ params }: Props) {
         <>
             <MainNavbar />
             <PageHeader
-                title={`Таксиметрови компании в ${country.name}`}
+                title={`Таксиметрови компании в ${city.name}`}
                 breadcrumbs={breadcrumbs}
                 banner={banner}
             />
@@ -125,8 +132,8 @@ export default async function Airports({ params }: Props) {
                 items={mappedTaxis}
                 id="airports"
                 isWithSearch
-                searchPlaceholder={`Търсене на таксиметрови компании в ${country.name}...`}
-                noItemsMessage={`Няма намерени таксиметрови компании в ${country.name}.`}
+                searchPlaceholder={`Търсене на таксиметрови компании в ${city.name}, ${country.name}`}
+                noItemsMessage={`Няма намерени таксиметрови компании в ${city.name}.`}
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"

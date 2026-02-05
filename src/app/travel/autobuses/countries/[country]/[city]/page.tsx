@@ -123,7 +123,7 @@ export default async function Airports({ params }: Props) {
         <>
             <MainNavbar />
             <PageHeader
-                title={`Автогари в ${country.name}`}
+                title={`Автогари в ${city.name}`}
                 breadcrumbs={breadcrumbs}
                 banner={banner}
             />
@@ -131,7 +131,7 @@ export default async function Airports({ params }: Props) {
                 items={mappedAutobuses}
                 id="autobuses"
                 isWithSearch
-                searchPlaceholder={`Търсене на автогари в ${city.name}`}
+                searchPlaceholder={`Търсене на автогари в ${city.name}, ${country.name}`}
                 noItemsMessage={`Няма намерени автогари в ${city.name}.`}
                 loadMoreStep={8}
                 initialVisible={8}

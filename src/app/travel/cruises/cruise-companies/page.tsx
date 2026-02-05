@@ -4,8 +4,10 @@ import { MainNavbar } from "@/components/main-navbar";
 import PageHeader from "@/components/page-header";
 import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardGrid } from "@/components/card-grid";
+import { CardEntity } from "@/components/card-item";
+import { Cruise } from "@/lib/types";
+import { getCruises } from "@/lib/services/cruise-service";
 import { getBannerByColumn } from "@/lib/services/banner-service";
-import { AUTOBUSES_PAGE_ITEMS, CRUISES_PAGE_ITEMS } from "@/lib/constants";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Круизи в Европа – маршрути, пристанища и полезна информация`;
@@ -59,29 +61,49 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function CruisesPage() {
-    const banner = await getBannerByColumn("link", `/travel/cruises`);
+    const banner = await getBannerByColumn("link", `/travel/cruise-companies`);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
-        { name: "Круизи" },
+        { name: "Круизи", href: "/travel/cruise-companies" },
+        { name: "Круизни компании" },
     ];
+
+    const cruises = await getCruises();
+    const mappedCruises: CardEntity[] = cruises
+        .filter(
+            (
+                cruise,
+            ): cruise is Cruise & {
+                name: string;
+                website_url: string;
+                image_url: string;
+            } => Boolean(cruise.name && cruise.website_url && cruise.image_url),
+        )
+        .map((cruise) => ({
+            name: cruise.name,
+            slug: cruise.website_url,
+            imageUrl: cruise.image_url,
+            linkType: "external",
+        }));
 
     return (
         <>
             <MainNavbar />
             <PageHeader
-                title="Круизи"
+                title="Круизни компании"
                 breadcrumbs={breadcrumbs}
                 banner={banner}
             />
             <CardGrid
-                items={CRUISES_PAGE_ITEMS}
-                id="cruises-elements"
+                items={mappedCruises}
+                id="cruises"
+                isWithSearch
+                searchPlaceholder="Търсене на круизни компании"
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"
-                hrefPrefix="/travel/cruises"
                 columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             />
         </>

@@ -10,11 +10,11 @@ import { Country } from "@/lib/types";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 
 export async function generateMetadata(): Promise<Metadata> {
-    const title = `Железопътен превоз в Европа – влакове, гари и полезна информация`;
-    const description = `Разгледайте железопътния превоз в Европа – жп гари, влакове и маршрути, подредени по държави и градове. Намерете адреси, снимки, описания и официални сайтове за пътуване с влак.`;
-    const url = "/europe/trains";
+    const title = `Таксиметрови компании в Европа – контакти и полезна информация`;
+    const description = `Открийте таксиметровите компании в Европа – услуги, адреси и телефони, подредени по държави и градове. Намерете снимки, описания и официални сайтове за бърз и удобен градски транспорт.`;
+    const url = "/europe/taxis";
 
-    const image = absoluteUrl("/images/trains.png") as string;
+    const image = absoluteUrl("/images/taxis.png") as string;
 
     return {
         title: websiteName(title),
@@ -36,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
                     url: image,
                     width: 1200,
                     height: 630,
-                    alt: "Железопътен превоз и жп гари в Европа",
+                    alt: "Таксиметрови компании в Европа",
                 },
             ],
         },
@@ -49,25 +49,25 @@ export async function generateMetadata(): Promise<Metadata> {
         },
 
         keywords: [
-            "железопътен превоз в Европа",
-            "влакове в Европа",
-            "жп гари Европа",
-            "международни влакове",
-            "пътуване с влак в Европа",
-            "адреси на жп гари",
-            "разписания на влакове Европа",
+            "таксита в Европа",
+            "таксиметрови компании",
+            "такси услуги Европа",
+            "градски транспорт такси",
+            "такси телефони Европа",
+            "официални таксиметрови компании",
+            "такси по държави и градове",
         ],
     };
 }
 
-export default async function TrainsPage() {
-    const banner = await getBannerByColumn("link", `/travel/trains/countries`);
+export default async function TaxisPage() {
+    const banner = await getBannerByColumn("link", `/travel/taxis/private-taxis`);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
-        { name: "Железопътни гари", href: "/travel/trains" },
-        { name: "Железопътни гари по държави" },
+        { name: "Таксита", href: "/travel/taxis" },
+        { name: "Частни таксита по държави", href: "/travel/taxis" },
     ];
 
     const countries = await getCountries();
@@ -91,7 +91,7 @@ export default async function TrainsPage() {
         <>
             <MainNavbar />
             <PageHeader
-                title="Железопътни гари по държави"
+                title="Частни таксита по държави"
                 breadcrumbs={breadcrumbs}
                 banner={banner}
             />
@@ -99,11 +99,11 @@ export default async function TrainsPage() {
                 items={mappedCountries}
                 id="countries"
                 isWithSearch
-                searchPlaceholder="Търсене на ЖП гари"
+                searchPlaceholder="Търсене на държави"
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"
-                hrefPrefix="/travel/trains/countries"
+                hrefPrefix="/travel/taxis/private-taxis"
                 columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             />
         </>

@@ -479,6 +479,39 @@ export const TRAINS_PAGE_ITEMS: CardEntity[] = [
     },
 ];
 
+export const TAXIS_PAGE_ITEMS: CardEntity[] = [
+    {
+        name: "Държави",
+        slug: "countries",
+        imageUrl: "/images/taxi-companies.png",
+    },
+    {
+        name: "Поръчка на таксита",
+        slug: "https://www.taxi.eu/en",
+        imageUrl: "/images/taxieu.png",
+        linkType: "external",
+    },
+    {
+        name: "Частни таксита",
+        slug: "private-taxis",
+        imageUrl: "/images/private-taxis.png",
+    },
+];
+
+export const CRUISES_PAGE_ITEMS: CardEntity[] = [
+    {
+        name: "Круизни компании",
+        slug: "cruise-companies",
+        imageUrl: "/images/cruise-companies.png",
+    },
+    {
+        name: "Търсене на пристанища",
+        slug: "https://portguide.org",
+        imageUrl: "/images/portguide.png",
+        linkType: "external",
+    },
+];
+
 export const HOME_TYPEWRITER_TEXTS: string[] = [
     "Кредити",
     "Пътиване",

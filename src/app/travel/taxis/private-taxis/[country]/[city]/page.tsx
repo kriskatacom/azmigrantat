@@ -7,9 +7,9 @@ import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardEntity } from "@/components/card-item";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { CardGrid } from "@/components/card-grid";
-import { Train } from "@/lib/types";
+import { Taxi } from "@/lib/types";
 import { getCityByColumn } from "@/lib/services/city-service";
-import { getTrains } from "@/lib/services/train-service";
+import { getTaxis } from "@/lib/services/taxi-service";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 
 type Props = {
@@ -73,7 +73,7 @@ export default async function Airports({ params }: Props) {
     const countrySlug = (await params).country;
     const citySlug = (await params).city;
 
-    const banner = await getBannerByColumn("link", `/travel/trains/countries/${countrySlug}/${citySlug}`);
+    const banner = await getBannerByColumn("link", `/travel/taxis/private-taxis/${countrySlug}/${citySlug}`);
 
     const country = await getCountryByColumn("slug", countrySlug);
     const city = await getCityByColumn("slug", citySlug);
@@ -85,32 +85,34 @@ export default async function Airports({ params }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
-        { name: "Железопътни гари", href: "/travel/trains" },
-        { name: "Железопътни гари по държави", href: "/travel/trains/countries" },
-        { name: `Железопътни гари в ${country.name}`, href: `/travel/trains/countries/${country.slug}` },
-        { name: city.name },
+        { name: "Таксита", href: "/travel/taxis" },
+        {
+            name: "Частни таксита по държави",
+            href: "/travel/taxis/private-taxis",
+        },
+        { name: `Градове в ${country.name}` },
     ];
 
-    const trains = await getTrains({
+    const taxis = await getTaxis({
         where: [
             { column: "country_id", value: country.id },
             { column: "city_id", value: city.id },
         ],
     });
-    const mappedTrains: CardEntity[] = trains
+    const mappedTaxis: CardEntity[] = taxis
         .filter(
             (
-                train,
-            ): train is Train & {
+                taxi,
+            ): taxi is Taxi & {
                 name: string;
                 website_url: string;
                 image_url: string;
-            } => Boolean(train.name && train.website_url && train.image_url),
+            } => Boolean(taxi.name && taxi.website_url && taxi.image_url),
         )
-        .map((train) => ({
-            name: train.name,
-            slug: train.website_url,
-            imageUrl: train.image_url,
+        .map((taxi) => ({
+            name: taxi.name,
+            slug: taxi.website_url,
+            imageUrl: taxi.image_url,
             linkType: "external",
         }));
 
@@ -118,16 +120,16 @@ export default async function Airports({ params }: Props) {
         <>
             <MainNavbar />
             <PageHeader
-                title={`Железопътни гари в ${country.name}`}
+                title={`Таксиметрови компании в ${country.name}`}
                 breadcrumbs={breadcrumbs}
                 banner={banner}
             />
             <CardGrid
-                items={mappedTrains}
-                id="trains"
+                items={mappedTaxis}
+                id="airports"
                 isWithSearch
-                searchPlaceholder={`Търсене на железопътни гари в ${city.name}`}
-                noItemsMessage={`Няма намерени железопътни гари в ${city.name}.`}
+                searchPlaceholder={`Търсене на таксиметрови компании в ${country.name}...`}
+                noItemsMessage={`Няма намерени таксиметрови компании в ${country.name}.`}
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"

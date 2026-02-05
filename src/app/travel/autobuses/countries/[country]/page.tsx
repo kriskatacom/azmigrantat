@@ -70,7 +70,7 @@ type Props = {
 
 export default async function AutobusesByCountryPage({ params }: Props) {
     const countrySlug = (await params).country;
-    const banner = await getBannerByColumn("link", `/travel/autobuses/${countrySlug}`);
+    const banner = await getBannerByColumn("link", `/travel/autobuses/countries/${countrySlug}`);
 
     const country = await getCountryByColumn("slug", countrySlug);
 

@@ -1,14 +1,12 @@
 import { Metadata } from "next";
-import { redirect } from "next/navigation";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { MainNavbar } from "@/components/main-navbar";
 import PageHeader from "@/components/page-header";
 import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
-import { getCountryByColumn } from "@/lib/services/country-service";
-import { getCities } from "@/lib/services/city-service";
-import { City } from "@/lib/types";
+import { getCountries } from "@/lib/services/country-service";
+import { Country } from "@/lib/types";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -62,36 +60,22 @@ export async function generateMetadata(): Promise<Metadata> {
     };
 }
 
-type Props = {
-    params: Promise<{
-        country: string;
-    }>;
-};
-
-export default async function TaxisByCountryPage({ params }: Props) {
-    const countrySlug = (await params).country;
-
-    const banner = await getBannerByColumn("link", `/travel/taxis/${countrySlug}`);
-
-    const country = await getCountryByColumn("slug", countrySlug);
-
-    if (!country) {
-        return redirect("/travel/trains");
-    }
+export default async function TaxisPage() {
+    const banner = await getBannerByColumn("link", `/travel/taxis/countries`);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
-        { name: "Таксита", href: country.name },
-        { name: `Таксита в ${country.name}` },
+        { name: "Таксита", href: "/travel/taxis" },
+        { name: "Таксиметрови компании по държави" },
     ];
 
-    const cities = await getCities({ column: "country_id", value: country.id });
-    const mappedCities: CardEntity[] = cities
+    const countries = await getCountries();
+    const mappedCountries: CardEntity[] = countries
         .filter(
             (
                 country,
-            ): country is City & {
+            ): country is Country & {
                 name: string;
                 slug: string;
                 image_url: string;
@@ -107,19 +91,19 @@ export default async function TaxisByCountryPage({ params }: Props) {
         <>
             <MainNavbar />
             <PageHeader
-                title={`Таксита в ${country.name}`}
+                title="Таксиметрови компании по държави"
                 breadcrumbs={breadcrumbs}
                 banner={banner}
             />
             <CardGrid
-                items={mappedCities}
-                id="cities"
+                items={mappedCountries}
+                id="countries"
                 isWithSearch
-                searchPlaceholder="Търсене на таксиметрови компании"
+                searchPlaceholder="Търсене на държави"
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"
-                hrefPrefix={`/travel/taxis/${country.slug}`}
+                hrefPrefix="/travel/taxis/countries"
                 columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             />
         </>
