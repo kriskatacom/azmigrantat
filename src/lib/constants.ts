@@ -514,11 +514,11 @@ export const CRUISES_PAGE_ITEMS: CardEntity[] = [
 
 export const HOME_TYPEWRITER_TEXTS: string[] = [
     "Кредити",
-    "Пътиване",
+    "Пътуване",
     "Търся/пр. работа",
     "Обяви",
     "Музика",
-    "Застраховка",
+    "Застраховки",
     "Преводи"
 ];
 
@@ -534,7 +534,7 @@ export const HOME_ELEMENTS: CardEntity[] = [
         imageUrl: "/images/services.png"
     },
     {
-        name: "Търся/пр. работа",
+        name: "Търся/предлагам работа",
         slug: "looking-offering-job",
         imageUrl: "/images/looking-offering-job.png"
     },

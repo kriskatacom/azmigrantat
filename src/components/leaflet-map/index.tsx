@@ -93,13 +93,15 @@ const LeafletMap = ({ center, zoom = 6, markers = [] }: LeafletMapProps) => {
                             className={`flex cursor-pointer items-center gap-4 rounded-lg p-3 transition-all hover:bg-blue-50/50 ${selectedAirport?.id === m.id ? "bg-blue-50 shadow-sm" : ""}`}
                         >
                             {m?.image && (
-                                <AppImage
-                                    src={m.image}
-                                    alt={m.label}
-                                    width={200}
-                                    height={100}
-                                    className="w-30 h-25 shrink-0 rounded-lg object-cover shadow-sm"
-                                />
+                                <div className="min-w-30 h-30">
+                                    <img
+                                        src={m.image}
+                                        alt={m.label}
+                                        width={120}
+                                        height={120}
+                                        className="w-full h-full rounded-lg object-cover shadow-sm"
+                                    />
+                                </div>
                             )}
                             <div className="flex flex-col min-w-0">
                                 <span className="font-semibold text-gray-800 text-[15px] truncate">
@@ -139,14 +141,14 @@ const LeafletMap = ({ center, zoom = 6, markers = [] }: LeafletMapProps) => {
                         >
                             <div className="h-full overflow-y-auto">
                                 <div className="relative h-60 w-full">
-                                    {selectedAirport.image && (
+                                    <div className="relative h-60 w-full">
                                         <AppImage
                                             src={selectedAirport.image}
-                                            className="h-full w-full object-cover"
                                             fill
+                                            className="object-cover"
                                             alt=""
                                         />
-                                    )}
+                                    </div>
                                     <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
                                     <Button
                                         onClick={() => setSelectedAirport(null)}

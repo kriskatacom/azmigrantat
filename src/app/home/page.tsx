@@ -28,8 +28,6 @@ export default async function HomePage() {
                 title={`ПЪТУВАЙ, РАБОТИ, ЖИВЕЙ`}
                 subtitle={`С "АЗ МИГРАНТЪТ"!`}
                 imageUrl="/images/azmigrantat-hero-background.webp"
-                ctaText="РАЗГЛЕЖДАНЕ"
-                ctaLink="#countries"
             />
             <CardGrid
                 items={mappedCountries}
