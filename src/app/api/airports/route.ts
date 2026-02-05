@@ -5,7 +5,7 @@ import {
     getAirportByColumn,
     updateAirport,
 } from "@/lib/services/airports-service";
-import { NewAirport } from "@/app/admin/airports/[id]/airport-form";
+import { NewAirport } from "@/app/[locale]/admin/airports/[id]/airport-form";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

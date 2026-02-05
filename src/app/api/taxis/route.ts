@@ -5,7 +5,7 @@ import {
     getTaxiByColumn,
     updateTaxi,
 } from "@/lib/services/taxi-service";
-import { NewTaxi } from "@/app/admin/taxis/[id]/new-taxi-form";
+import { NewTaxi } from "@/app/[locale]/admin/taxis/[id]/new-taxi-form";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

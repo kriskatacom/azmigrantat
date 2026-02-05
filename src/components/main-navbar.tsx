@@ -1,33 +1,43 @@
 "use client";
 
-import { usePathname } from "next/navigation";
-import Link from "next/link";
+import { usePathname, Link } from "@/i18n/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import { IoIosSearch } from "react-icons/io";
-import { CiGlobe } from "react-icons/ci";
-import { iconLargeSize, mainMenuItems } from "@/lib/constants";
+import { iconLargeSize } from "@/lib/constants";
+import LanguageSwitcher from "@/components/language-switcher";
 
 export const MainNavbar = () => {
     const pathname = usePathname();
+    const t = useTranslations("navigation");
+    const locale = useLocale();
 
-    if (pathname === "/")
+    const mainMenuItems = [
+        { title: t("home"), slug: "/" },
+        { title: t("travel"), slug: `${locale}/travel` },
+        { title: t("services"), slug: "/services" },
+        { title: t("jobs"), slug: "/jobs" },
+        { title: t("ads"), slug: "/ads" },
+        { title: t("music"), slug: "https://lyricskeeper.eu" },
+    ];
+
+    // Check if we're on the homepage (locale root)
+    // next-intl's usePathname returns pathname without locale prefix
+    const isHomePage = pathname === "/";
+
+    if (isHomePage)
         return (
             <div className="absolute top-0 left-0 w-full z-40">
                 <nav className="container mx-auto flex justify-between items-center py-5">
-                    <a href="/">
+                    <Link href="/">
                         <img
                             src="/images/azmigrantat-website-logo.webp"
                             alt="Аз мигрантът"
                             className="object-cover w-20"
                         />
-                    </a>
+                    </Link>
                     <ul className="flex items-center gap-2">
                         <li>
-                            <button className="p-3 rounded-md hover:bg-primary cursor-pointer duration-300">
-                                <CiGlobe
-                                    size={iconLargeSize}
-                                    className="text-light"
-                                />
-                            </button>
+                            <LanguageSwitcher />
                         </li>
                         <li>
                             <button className="p-3 rounded-md hover:bg-primary cursor-pointer duration-300">
@@ -46,13 +56,24 @@ export const MainNavbar = () => {
                                 key={item.slug}
                                 className="rounded-4xl text-secondary hover:text-light hover:bg-primary"
                             >
-                                <a
-                                    className="block py-3 px-5 text-lg"
-                                    href={item.slug}
-                                    title={item.title}
-                                >
-                                    {item.title}
-                                </a>
+                                {item.slug.startsWith("http") ? (
+                                    <a
+                                        className="block py-3 px-5 text-lg"
+                                        href={item.slug}
+                                        title={item.title}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        {item.title}
+                                    </a>
+                                ) : (
+                                    <Link
+                                        className="block py-3 px-5 text-lg"
+                                        href={item.slug}
+                                    >
+                                        {item.title}
+                                    </Link>
+                                )}
                             </li>
                         ))}
                     </ul>
@@ -63,21 +84,16 @@ export const MainNavbar = () => {
     return (
         <div className="bg-website-dark">
             <div className="container mx-auto flex justify-between items-center py-5">
-                <a href="/">
+                <Link href="/">
                     <img
                         src="/images/azmigrantat-website-logo.webp"
                         alt="Аз мигрантът"
                         className="object-cover w-20"
                     />
-                </a>
+                </Link>
                 <ul className="flex items-center gap-2">
                     <li>
-                        <button className="p-3 rounded-md hover:bg-primary cursor-pointer duration-300">
-                            <CiGlobe
-                                size={iconLargeSize}
-                                className="text-light"
-                            />
-                        </button>
+                        <LanguageSwitcher />
                     </li>
                     <li>
                         <button className="p-3 rounded-md hover:bg-primary cursor-pointer duration-300">
@@ -92,7 +108,10 @@ export const MainNavbar = () => {
             <div className="container mx-auto">
                 <ul className="flex items-center gap-2 whitespace-nowrap overflow-x-auto pb-5">
                     {mainMenuItems.map((item) => {
-                        const isActive = pathname === item.slug;
+                        // next-intl's usePathname returns pathname without locale
+                        const isActive =
+                            !item.slug.startsWith("http") &&
+                            pathname === item.slug;
 
                         return (
                             <li
@@ -102,13 +121,24 @@ export const MainNavbar = () => {
                                     "bg-website-dark hover:bg-website-menu-item"
                                 }`}
                             >
-                                <Link
-                                    className="block py-3 px-5 text-lg"
-                                    href={item.slug}
-                                    title={item.title}
-                                >
-                                    {item.title}
-                                </Link>
+                                {item.slug.startsWith("http") ? (
+                                    <a
+                                        className="block py-3 px-5 text-lg"
+                                        href={item.slug}
+                                        title={item.title}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                    >
+                                        {item.title}
+                                    </a>
+                                ) : (
+                                    <Link
+                                        className="block py-3 px-5 text-lg"
+                                        href={item.slug}
+                                    >
+                                        {item.title}
+                                    </Link>
+                                )}
                             </li>
                         );
                     })}

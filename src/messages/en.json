@@ -1,0 +1,164 @@
+{
+    "navigation": {
+        "home": "I The Migrant",
+        "travel": "Travel",
+        "services": "Services",
+        "jobs": "Looking for/Offering Work",
+        "ads": "Ads",
+        "music": "Music"
+    },
+    "common": {
+        "search": "Search",
+        "searchPlaceholder": "Search...",
+        "loadMore": "Load More",
+        "learnMore": "Learn More",
+        "browse": "BROWSE",
+        "home": "Home",
+        "information": "Information",
+        "countries": "Countries"
+    },
+    "countries": {
+        "bulgaria": "Bulgaria",
+        "turkey": "Turkey",
+        "united-kingdom": "United Kingdom",
+        "greece": "Greece",
+        "germany": "Germany",
+        "denmark": "Denmark",
+        "bosna-i-hercegovina": "Bosnia and Herzegovina",
+        "belarus": "Belarus",
+        "switzerland": "Switzerland",
+        "north-macedonia": "North Macedonia",
+        "finland": "Finland",
+        "poland": "Poland",
+        "slovakia": "Slovakia",
+        "czechya": "Czech Republic",
+        "austria": "Austria",
+        "monaco": "Monaco",
+        "albania": "Albania",
+        "russia": "Russia",
+        "belgium": "Belgium",
+        "sweden": "Sweden",
+        "portugal": "Portugal",
+        "france": "France",
+        "hungary": "Hungary",
+        "norway": "Norway",
+        "croatia": "Croatia",
+        "estonia": "Estonia",
+        "serbia": "Serbia",
+        "netherlands": "Netherlands",
+        "latvia": "Latvia",
+        "iceland": "Iceland",
+        "ukraine": "Ukraine",
+        "kosovo": "Kosovo",
+        "montenegro": "Montenegro",
+        "romania": "Romania",
+        "italya": "Italy",
+        "ispania": "Spain",
+        "ireland": "Ireland",
+        "malta": "Malta"
+    },
+    "countryElements": {
+        "cities": "Cities",
+        "embassies": "Embassies",
+        "residence": "Residence",
+        "landmarks": "Landmarks"
+    },
+    "admin": {
+        "sidebar": {
+            "dashboard": "Dashboard",
+            "users": "Users",
+            "countries": "Countries",
+            "cities": "Cities",
+            "categories": "Categories",
+            "companies": "Companies",
+            "embassies": "Embassies",
+            "landmarks": "Landmarks",
+            "airports": "Airports",
+            "airlines": "Airlines",
+            "autobuses": "Bus Stations",
+            "trains": "Train Stations",
+            "taxis": "Taxis",
+            "cruises": "Cruise Companies",
+            "banners": "Banners",
+            "settings": "Settings"
+        },
+        "actions": {
+            "add": "Add",
+            "edit": "Edit",
+            "delete": "Delete",
+            "save": "Save",
+            "cancel": "Cancel"
+        }
+    },
+    "homepage": {
+        "title": "TRAVEL, WORK, LIVE",
+        "subtitle": "WITH \"I THE MIGRANT\"!",
+        "cta": "BROWSE",
+        "countriesSection": "Countries",
+        "typewriterTexts": {
+            "credits": "Credits",
+            "travel": "Travel",
+            "jobs": "Looking for/offering work",
+            "ads": "Ads",
+            "music": "Music",
+            "insurance": "Insurance",
+            "translation": "Translation"
+        },
+        "elements": {
+            "travel": "Travel",
+            "services": "Services",
+            "lookingJob": "Looking for/offering work",
+            "ads": "Ads",
+            "music": "Music"
+        }
+    },
+    "travel": {
+        "title": "Travel",
+        "heading": "Travel with \"I Migrant\"!",
+        "categories": {
+            "airTickets": "Air Tickets",
+            "autobuses": "Buses",
+            "trains": "Train Transport",
+            "cruises": "Cruises",
+            "taxis": "Taxis",
+            "sharedTravel": "Shared Travel"
+        },
+        "airTickets": {
+            "airports": "Airports",
+            "airlines": "Airlines",
+            "flightRadar": "Flight Radar"
+        },
+        "autobuses": {
+            "searchStations": "Search for bus stops"
+        },
+        "trains": {
+            "searchStations": "Search for train stations"
+        },
+        "taxis": {
+            "orderTaxi": "Order taxi",
+            "privateTaxis": "Private taxis"
+        },
+        "cruises": {
+            "cruiseCompanies": "Cruise companies",
+            "searchPorts": "Search for ports"
+        }
+    },
+    "metadata": {
+        "default": {
+            "title": "I Migrant",
+            "description": "Information for migrants - travel, work, life abroad"
+        },
+        "countryPage": {
+            "titleTemplate": "{country} – information, landmarks and embassies",
+            "descriptionTemplate": "Learn more about {country} – landmarks, embassies, culture and useful information for travelers and citizens."
+        },
+        "citiesPage": {
+            "titleTemplate": "Cities in {country} | Information and map",
+            "descriptionTemplate": "Browse cities in {country} – major settlements, map, useful information and interesting facts."
+        },
+        "travelPage": {
+            "title": "Travel – transport and services information",
+            "description": "Learn everything about different types of transport: air tickets, buses, trains, cruises, taxis and shared travel."
+        }
+    }
+}

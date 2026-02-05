@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { generateSlug } from "@/app/api/lib";
-import { NewEmbassy } from "@/app/admin/embassies/[id]/embassy-form";
+import { NewEmbassy } from "@/app/[locale]/admin/embassies/[id]/embassy-form";
 import {
     createLandmark,
     getLandmarkByColumn,
     updateLandmark,
 } from "@/lib/services/landmark-service";
-import { NewLandmark } from "@/app/admin/landmarks/[id]/landmark-form";
+import { NewLandmark } from "@/app/[locale]/admin/landmarks/[id]/landmark-form";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
