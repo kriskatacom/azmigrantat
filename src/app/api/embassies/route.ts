@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { generateSlug } from "@/app/api/lib";
-import { NewEmbassy } from "@/app/admin/embassies/[id]/embassy-form";
+import { NewEmbassy } from "@/app/[locale]/admin/embassies/[id]/embassy-form";
 import {
     createEmbassy,
     getEmbassyByColumn,

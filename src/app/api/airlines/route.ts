@@ -5,7 +5,7 @@ import {
     getAirlineByColumn,
     updateAirline,
 } from "@/lib/services/airline-service";
-import { NewAirline } from "@/app/admin/airlines/[id]/new-airline-form";
+import { NewAirline } from "@/app/[locale]/admin/airlines/[id]/new-airline-form";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

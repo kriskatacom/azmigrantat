@@ -5,7 +5,7 @@ import {
     getAutobusByColumn,
     updateAutobus,
 } from "@/lib/services/autobus-service";
-import { NewAutobus } from "@/app/admin/autobuses/[id]/new-autobus-form";
+import { NewAutobus } from "@/app/[locale]/admin/autobuses/[id]/new-autobus-form";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

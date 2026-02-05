@@ -5,7 +5,7 @@ import {
     getCruiseByColumn,
     updateCruise,
 } from "@/lib/services/cruise-service";
-import { NewCruise } from "@/app/admin/cruises/[id]/new-cruise-form";
+import { NewCruise } from "@/app/[locale]/admin/cruises/[id]/new-cruise-form";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

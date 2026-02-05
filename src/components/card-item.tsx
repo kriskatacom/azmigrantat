@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import striptags from "striptags";
 import { EyeIcon } from "lucide-react";
 import AppImage from "./AppImage";
 import { GridColumns } from "./card-grid";
+import { useTranslations } from "use-intl";
 
 type LinkType = "internal" | "external";
 
@@ -30,6 +31,8 @@ export const CardItem: React.FC<CardItemProps> = ({
     height,
 }) => {
     const [cellHeight, setCellHeight] = useState(height.base);
+
+    const t = useTranslations("common");
 
     const getHeight = () => {
         if (typeof window === "undefined") return height.base;
@@ -82,7 +85,7 @@ export const CardItem: React.FC<CardItemProps> = ({
                         </span>
                         <div>
                             <button className="inline-block py-2 px-4 mt-5 rounded-md text-white font-semibold text-xl border-2 border-white">
-                                Информация
+                                {t("loadMore")}
                             </button>
                         </div>
                     </div>
@@ -118,7 +121,7 @@ export const CardItem: React.FC<CardItemProps> = ({
 
                     <Button variant="outline" className="text-base md:text-lg">
                         <EyeIcon />
-                        <span>Вижте повече</span>
+                        <span>Вижте п`овече</span>
                     </Button>
                 </div>
             </Link>
