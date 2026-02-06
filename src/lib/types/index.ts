@@ -23,6 +23,19 @@ export type City = {
     updated_at?: string;
 };
 
+export type Municipaliy = {
+    id: number;
+    name?: string;
+    slug?: string;
+    heading?: string;
+    excerpt?: string;
+    image_url?: string | null;
+    city_id?: number | null;
+    country_id?: number | null;
+    created_at?: string;
+    updated_at?: string;
+};
+
 export interface Coordinates {
     latitude: number;
     longitude: number;

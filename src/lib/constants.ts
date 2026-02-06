@@ -65,7 +65,7 @@ export const COUNTRY_ELEMENTS: Record<string, string> = {
 import { FiUsers } from "react-icons/fi";
 import { MdOutlineDashboard } from "react-icons/md";
 import { IoAirplaneSharp, IoSettingsOutline } from "react-icons/io5";
-import { BsBuildings, BsFillBuildingsFill } from "react-icons/bs";
+import { BsBuildings, BsBuildingSlash, BsFillBuildingsFill } from "react-icons/bs";
 import { CiBank } from "react-icons/ci";
 import { MdOutlineCategory } from "react-icons/md";
 import { TbBuildingStore } from "react-icons/tb";
@@ -96,6 +96,11 @@ export const mainSidebarItems: AdminSidebarItem[] = [
         name: "Градове",
         icon: BsBuildings,
         link: "/admin/cities",
+    },
+    {
+        name: "Общини",
+        icon: BsBuildingSlash,
+        link: "/admin/municipalities",
     },
     {
         name: "Категории",

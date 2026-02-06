@@ -38,11 +38,10 @@ type GetCountriesOptions = {
 export async function getCountries(
     options?: GetCountriesOptions,
 ): Promise<Country[]> {
-    let sql = `SELECT * FROM countries`;
+    let sql = `SELECT * FROM countries ORDER BY sort_order`;
 
     const params: (string | number)[] = [];
 
-    // Ако има подадени опции за WHERE
     if (options?.column && options.value !== undefined) {
         sql += ` WHERE ${options.column} = ?`;
         params.push(options.value);
@@ -81,7 +80,6 @@ export async function deleteCountry(id: number): Promise<boolean> {
             [id],
         );
 
-        // mysql2 връща result.affectedRows
         const affectedRows = (result as any).affectedRows ?? 0;
         return affectedRows > 0;
     } catch (err) {
@@ -94,7 +92,6 @@ export async function updateCountry(
     id: number,
     country: Partial<Country>,
 ): Promise<Country> {
-    // Генерираме SET частта динамично
     const fields: string[] = [];
     const values: any[] = [];
 
@@ -113,12 +110,10 @@ export async function updateCountry(
         WHERE id = ?
     `;
 
-    values.push(id); // id за WHERE
+    values.push(id);
 
     try {
         const [result] = await getDb().execute(sql, values);
-
-        // Връщаме обновената версия
         return {
             id,
             ...country,

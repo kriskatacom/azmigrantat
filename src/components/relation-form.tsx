@@ -32,6 +32,7 @@ type RelationFormProps<T extends RelationItem> = {
     searchPlaceholder?: string;
     emptyText?: string;
     disabled?: boolean;
+    label?: boolean;
 };
 
 export function RelationForm<T extends RelationItem>({
@@ -42,6 +43,7 @@ export function RelationForm<T extends RelationItem>({
     searchPlaceholder = "Търсене...",
     emptyText = "Няма намерени резултати",
     disabled = false,
+    label = true,
 }: RelationFormProps<T>) {
     const [open, setOpen] = React.useState(false);
 
@@ -51,7 +53,7 @@ export function RelationForm<T extends RelationItem>({
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
                 <div className="space-y-2">
-                    <Label>{placeholder}</Label>
+                    {label && <Label>{placeholder}</Label>}
                     <Button
                         type="button"
                         variant="outline"
