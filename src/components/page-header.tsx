@@ -17,14 +17,23 @@ const PageHeader: React.FC<PageHeaderProps> = ({
 }) => {
     return (
         <>
-            {banner?.image && (
-                <div className="relative w-full shrink-0" style={{ height: `${banner.height}px` }}>
-                    <AppImage
-                        src={banner.image}
-                        alt={websiteName("Пътуване")}
-                        fill
-                        className="object-cover rounded w-full h-full"
-                    />
+            {banner && (
+                <div
+                    className="relative w-full shrink-0"
+                    style={{ height: `${banner.height}px` }}
+                >
+                    {banner.image ? (
+                        <AppImage
+                            src={banner.image}
+                            alt={websiteName("Пътуване")}
+                            fill
+                            className="object-cover rounded w-full h-full"
+                        />
+                    ) : (
+                        <div className="bg-gray-600 w-full h-full flex justify-center items-center text-light text-2xl">
+                            Няма поставено изображение
+                        </div>
+                    )}
                 </div>
             )}
             <div className="text-center bg-website-menu-item py-5 xl:py-10">

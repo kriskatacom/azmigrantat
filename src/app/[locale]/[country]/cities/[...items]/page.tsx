@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { MainNavbar } from "@/components/main-navbar";
 import { CardGrid } from "@/components/card-grid";
-import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
+import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { getCityByColumn } from "@/lib/services/city-service";
 import {
@@ -9,10 +9,15 @@ import {
     getCategoryByColumn,
     getCategoryTree,
 } from "@/lib/services/category-service";
-import { Company } from "@/lib/types";
+import { Banner, Company } from "@/lib/types";
 import { getCompanies } from "@/lib/services/companies-service";
 import { CardEntity } from "@/components/card-item";
 import PageHeader from "@/components/page-header";
+import { getBannerByColumn } from "@/lib/services/banner-service";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import AppImage from "@/components/AppImage";
+import { websiteName } from "@/lib/utils";
 
 type PageProps = {
     params: Promise<{
@@ -24,23 +29,37 @@ type PageProps = {
 export default async function CityPage({ params }: PageProps) {
     const { country, items = [] } = await params;
 
+    /* -----------------------------
+     * URL parsing
+     * ----------------------------- */
     const citySlug = items[0];
     const categoryPath = items.slice(1);
+    const hasCategoryPath = categoryPath.length > 0;
 
     if (!citySlug) {
         return redirect("/");
     }
 
+    /* -----------------------------
+     * Base data
+     * ----------------------------- */
     const countryData = await getCountryByColumn("slug", country ?? "");
     const city = await getCityByColumn("slug", citySlug ?? "");
+    const categoryData = await getCategoryByColumn(
+        "slug",
+        categoryPath[0] ?? "",
+    );
 
     if (!countryData || !countryData.name || !city || !city.id || !city.name) {
         return redirect("/");
     }
 
+    /* -----------------------------
+     * Categories & breadcrumbs
+     * ----------------------------- */
     const categories = await getCategoryTree();
-
     const visibleCategories = getCategoryChildren(categories, categoryPath);
+    const isCategoryListing = visibleCategories.length > 0;
 
     const baseCityHref = `/${countryData.slug}/cities/${city.slug}`;
 
@@ -54,15 +73,23 @@ export default async function CityPage({ params }: PageProps) {
         { name: "Начало", href: "/" },
         { name: countryData.name, href: `/${countryData.slug}` },
         { name: "Градове", href: `/${countryData.slug}/cities` },
-        { name: city.name, href: `/${countryData.slug}/cities/${city.slug}` },
+        { name: city.name, href: baseCityHref },
         ...categoryBreadcrumbs.map((b, index) =>
             index === categoryBreadcrumbs.length - 1 ? { name: b.name } : b,
         ),
     ];
 
+    const currentCategory = {
+        ...categoryBreadcrumbs[categoryBreadcrumbs.length - 1],
+        image_url: categoryData?.image_url,
+    };
+
+    /* -----------------------------
+     * Companies (only on leaf)
+     * ----------------------------- */
     let companies: Company[] = [];
 
-    if (visibleCategories.length === 0) {
+    if (!isCategoryListing) {
         const categorySlug = items[items.length - 1];
         const category = await getCategoryByColumn("slug", categorySlug ?? "");
 
@@ -85,16 +112,59 @@ export default async function CityPage({ params }: PageProps) {
         excerpt: company.excerpt!,
     }));
 
+    /* -----------------------------
+     * Banners (LOGIC UNCHANGED)
+     * ----------------------------- */
+    const cityBanner = await getBannerByColumn(
+        "link",
+        `/${countryData.slug}/cities/${city.slug}`,
+    );
+
+    let categoryBanner: Banner | null = null;
+
+    if (hasCategoryPath) {
+        categoryBanner = await getBannerByColumn(
+            "link",
+            `/${countryData.slug}/cities/${city.slug}/${categoryPath.join("/")}`,
+        );
+    }
+
+    let activeBanner = !hasCategoryPath
+        ? cityBanner
+        : categoryBanner
+          ? categoryBanner
+          : null;
+
+    if (!activeBanner && currentCategory.image_url) {
+        activeBanner = {
+            id: 1,
+            image: currentCategory.image_url,
+            height: 300,
+        } as Banner;
+    } else if (!activeBanner && city.image_url) {
+        activeBanner = { id: 1, image: city.image_url, height: 300 } as Banner;
+    }
+    /* -----------------------------
+     * Page title
+     * ----------------------------- */
+    const pageTitle = isCategoryListing
+        ? (currentCategory?.name ?? `Информационен справочник на ${city.name}`)
+        : currentCategory?.name;
+
+    /* -----------------------------
+     * Render
+     * ----------------------------- */
     return (
         <>
             <MainNavbar />
 
             <PageHeader
-                title={`Информационен справочник на ${city.name}`}
+                title={pageTitle}
                 breadcrumbs={breadcrumbs}
+                banner={activeBanner}
             />
 
-            {visibleCategories.length > 0 ? (
+            {isCategoryListing ? (
                 <CardGrid
                     items={visibleCategories}
                     searchPlaceholder="Търсене на категории..."
@@ -112,13 +182,14 @@ export default async function CityPage({ params }: PageProps) {
                         items={mappedCompanies}
                         id="companies"
                         searchPlaceholder="Търсене на компании..."
-                        isWithSearch={true}
+                        isWithSearch
                         loadMoreStep={8}
                         initialVisible={8}
                         variant="modern"
                         hrefPrefix="/companies"
                         columns={{ base: 1, xl: 2, xxl: 3 }}
                     />
+
                     {companies.length === 0 && (
                         <div className="text-center text-xl font-semibold">
                             Няма намерени компании
@@ -129,6 +200,10 @@ export default async function CityPage({ params }: PageProps) {
         </>
     );
 }
+
+/* ========================================================================
+ * Helpers
+ * ===================================================================== */
 
 function getCategoryChildren(
     categories: CategoryNode[],

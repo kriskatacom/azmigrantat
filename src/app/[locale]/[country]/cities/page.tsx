@@ -4,12 +4,12 @@ import { MainNavbar } from "@/components/main-navbar";
 import { CardGrid } from "@/components/card-grid";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { getCities } from "@/lib/services/city-service";
-import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
-import ClientPage from "@/app/[locale]/[country]/cities/client-page";
+import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import BulgariaCitiesMap from "@/app/[locale]/[country]/cities/bulgaria-cities-map";
 import { CardEntity } from "@/components/card-item";
 import { absoluteUrl, websiteName } from "@/lib/utils";
 import PageHeader from "@/components/page-header";
+import { getBannerByColumn } from "@/lib/services/banner-service";
 
 type PageProps = {
     params: Promise<{
@@ -104,6 +104,8 @@ export default async function CitiesPage({ params }: PageProps) {
 
     const isBulgaria = country.slug === "bulgaria";
 
+    const banner = await getBannerByColumn("link", `/${country.slug}/cities`);
+
     return (
         <>
             <MainNavbar />
@@ -111,9 +113,8 @@ export default async function CitiesPage({ params }: PageProps) {
             <PageHeader
                 title={`Градове в ${country.name}`}
                 breadcrumbs={breadcrumbs}
+                banner={banner}
             />
-
-            <ClientPage country={country} />
 
             {!isBulgaria && cities.length > 0 && (
                 <CardGrid
