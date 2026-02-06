@@ -1,14 +1,10 @@
+import { CreateAirportInput } from "@/app/[locale]/admin/airports/[id]/airport-form";
 import { getDb } from "@/lib/db";
 import { Airport } from "@/lib/types";
 import { ResultSetHeader } from "mysql2";
 
 type AirportCondition = {
-    column:
-        | "id"
-        | "slug"
-        | "iata_code"
-        | "icao_code"
-        | "country_id";
+    column: "id" | "slug" | "iata_code" | "icao_code" | "country_id";
     value: string | number;
 };
 
@@ -16,47 +12,27 @@ type GetAirportsOptions = {
     where?: AirportCondition[];
 };
 
-export async function createAirport(airport: Airport): Promise<Airport> {
-    const {
-        name,
-        slug,
-        iata_code,
-        icao_code,
-        description,
-        latitude,
-        longitude,
-        website_url,
-        country_id,
-    } = airport;
+export async function createAirport(
+    airport: CreateAirportInput,
+): Promise<Airport> {
+    const { name, slug, country_id } = airport;
 
     const sql = `
         INSERT INTO airports (
             name,
             slug,
-            iata_code,
-            icao_code,
-            description,
-            latitude,
-            longitude,
-            website_url,
             country_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?)
     `;
 
     try {
         const [result] = await getDb().execute<ResultSetHeader>(sql, [
             name,
             slug,
-            iata_code ?? null,
-            icao_code ?? null,
-            description ?? null,
-            latitude ?? null,
-            longitude ?? null,
-            website_url ?? null,
             country_id ?? null,
         ]);
 
-        return await getAirportByColumn("id", result.insertId) as Airport;
+        return (await getAirportByColumn("id", result.insertId)) as Airport;
     } catch (err) {
         console.error("Error creating airport:", err);
         throw err;
@@ -90,8 +66,7 @@ export async function getAirports(
         icao_code: row.icao_code,
         description: row.description,
         image_url: row.image_url,
-        latitude: row.latitude,
-        longitude: row.longitude,
+        coordinates: { latitude: row.latitude, longitude: row.longitude },
         website_url: row.website_url,
         country_id: row.country_id,
         created_at: row.created_at,
@@ -103,6 +78,11 @@ export async function getAirportByColumn(
     column: "id" | "slug" | "iata_code",
     value: string | number,
 ): Promise<Airport | null> {
+    const allowedColumns = ["id", "slug", "iata_code"] as const;
+    if (!allowedColumns.includes(column)) {
+        throw new Error(`Invalid column: ${column}`);
+    }
+
     const [rows] = await getDb().execute(
         `SELECT * FROM airports WHERE ${column} = ? LIMIT 1`,
         [value],
@@ -111,7 +91,24 @@ export async function getAirportByColumn(
     const row = (rows as any[])[0];
     if (!row) return null;
 
-    return row;
+    const airport: Airport = {
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        description: row.description ?? undefined,
+        image_url: row.image_url ?? undefined,
+        location_link: row.location_link ?? undefined,
+        coordinates:
+            row.latitude != null && row.longitude != null
+                ? { latitude: Number(row.latitude), longitude: Number(row.longitude) }
+                : null,
+        website_url: row.website_url ?? undefined,
+        country_id: row.country_id ?? undefined,
+        created_at: row.created_at ?? undefined,
+        updated_at: row.updated_at ?? undefined,
+    };
+
+    return airport;
 }
 
 export async function updateAirport(
@@ -121,9 +118,28 @@ export async function updateAirport(
     const fields: string[] = [];
     const values: any[] = [];
 
-    for (const [key, value] of Object.entries(airport)) {
+    const { coordinates, ...rest } = airport;
+
+    for (const [key, value] of Object.entries(rest)) {
+        if (value === undefined) continue;
+
         fields.push(`${key} = ?`);
         values.push(value);
+    }
+
+    if (coordinates) {
+        const latitude =
+            typeof coordinates?.latitude === "number"
+                ? coordinates.latitude
+                : null;
+
+        const longitude =
+            typeof coordinates?.longitude === "number"
+                ? coordinates.longitude
+                : null;
+
+        fields.push("latitude = ?", "longitude = ?");
+        values.push(latitude, longitude);
     }
 
     if (!fields.length) {

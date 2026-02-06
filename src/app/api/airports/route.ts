@@ -5,7 +5,7 @@ import {
     getAirportByColumn,
     updateAirport,
 } from "@/lib/services/airports-service";
-import { NewAirport } from "@/app/[locale]/admin/airports/[id]/airport-form";
+import { CreateAirportInput } from "@/app/[locale]/admin/airports/[id]/airport-form";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -23,7 +23,7 @@ async function makeUniqueSlug(slug: string) {
 
 export async function POST(req: Request) {
     try {
-        const data: NewAirport = await req.json();
+        const data: CreateAirportInput = await req.json();
 
         if (process.env.NODE_ENV === "development") {
             await delay(100);
@@ -75,13 +75,11 @@ export async function POST(req: Request) {
             await updateAirport(airportId, {
                 name: data.name,
                 slug: data.slug,
-                iata_code: data.iata_code,
-                icao_code: data.icao_code,
                 description: data.description,
-                latitude: data.latitude,
-                longitude: data.longitude,
+                coordinates: data.coordinates,
                 website_url: data.website_url,
-                country_id: data.country_id as number,
+                location_link: data.location_link,
+                country_id: Number(data.country_id),
             });
 
             return NextResponse.json(
@@ -114,18 +112,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const airport = await createAirport({
-            name: data.name,
-            slug: data.slug,
-            iata_code: data.iata_code,
-            icao_code: data.icao_code,
-            description: data.description,
-            latitude: data.latitude,
-            longitude: data.longitude,
-            website_url: data.website_url,
-            country_id: data.country_id as number,
-            id: 0,
-        });
+        const airport = await createAirport({ ...data });
 
         return NextResponse.json(
             { success: true, airportId: airport.id },

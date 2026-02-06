@@ -1,7 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { FiLoader, FiSave } from "react-icons/fi";
@@ -9,12 +8,8 @@ import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Airline, Country } from "@/lib/types";
+import { Airline } from "@/lib/types";
 import { slugify } from "@/lib/utils";
-
-const LeafletMap = dynamic(() => import("@/components/leaflet-map"), {
-    ssr: false,
-});
 
 export interface NewAirline {
     id: number | null;
@@ -66,7 +61,7 @@ export default function NewAirlineForm({ airline }: Params) {
             const res = await axios.post("/api/airlines", formData);
 
             if (res.data.success) {
-                toast.success("Летището е запазено!");
+                toast.success("Авиокомпанията е запазено!");
 
                 if (res.status === 201)
                     router.push(`/admin/airlines/${res.data.airlineId}`);
@@ -85,7 +80,7 @@ export default function NewAirlineForm({ airline }: Params) {
             className="m-5 p-5 border rounded-md space-y-10"
         >
             <div className="space-y-2">
-                <Label>Име на летището *</Label>
+                <Label>Име на авиокомпанията *</Label>
                 <Input
                     value={formData.name}
                     onChange={(e) => handleChange("name", e.target.value)}
@@ -99,9 +94,7 @@ export default function NewAirlineForm({ airline }: Params) {
                     onChange={(e) => handleChange("slug", e.target.value)}
                 />
                 {errors.slug && (
-                    <div className="text-destructive">
-                        Това поле е задължително!
-                    </div>
+                    <div className="text-destructive">{errors.slug}</div>
                 )}
                 <Button
                     type="button"

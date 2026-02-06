@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { Location } from "./types";
+import { Coordinates, Location } from "./types";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -104,6 +104,30 @@ export function slugify(text: string): string {
         .trim()
         .replace(/\s+/g, "-")
         .replace(/-+/g, "-");
+}
+
+export function extractCoordinatesFromLocationLink(
+    locationLink?: string,
+): Coordinates | null {
+    if (!locationLink) {
+        return null;
+    }
+
+    // търсим "lat,lng" навсякъде в URL-а
+    const match = locationLink.match(/(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
+
+    if (!match) {
+        return null;
+    }
+
+    const latitude = Number(match[1]);
+    const longitude = Number(match[2]);
+
+    if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+        return null;
+    }
+
+    return { latitude, longitude };
 }
 
 // navigator.geolocation.getCurrentPosition((pos) => {

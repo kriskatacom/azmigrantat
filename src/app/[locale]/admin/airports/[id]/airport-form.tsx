@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { FiLoader, FiSave } from "react-icons/fi";
@@ -9,25 +9,22 @@ import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Airport, Country } from "@/lib/types";
+import { Airport, Coordinates, Country } from "@/lib/types";
 import RichTextEditor from "@/components/rich-text-editor";
 import { RelationForm } from "@/components/relation-form";
-import { MapMarker } from "@/components/leaflet-map";
-import { slugify } from "@/lib/utils";
+import { extractCoordinatesFromLocationLink, slugify } from "@/lib/utils";
 
 const LeafletMap = dynamic(() => import("@/components/leaflet-map"), {
     ssr: false,
 });
 
-export interface NewAirport {
+export interface CreateAirportInput {
     id: number | null;
     name: string;
     slug: string;
-    iata_code: string;
-    icao_code: string;
+    coordinates: Coordinates | null;
+    location_link: string;
     description: string;
-    latitude: number;
-    longitude: number;
     website_url: string;
     country_id?: number | null;
 }
@@ -37,28 +34,29 @@ type Params = {
     countries: Country[];
 };
 
-type FormErrors = Partial<Record<keyof NewAirport, string>>;
+type FormErrors = Partial<Record<keyof CreateAirportInput, string>>;
 
-export default function NewAirportForm({ airport, countries }: Params) {
+export default function CreateAirportInputForm({ airport, countries }: Params) {
     const router = useRouter();
 
-    const [formData, setFormData] = useState<NewAirport>({
+    const [formData, setFormData] = useState<CreateAirportInput>({
         id: airport?.id ?? null,
         name: airport?.name ?? "",
         slug: airport?.slug ?? "",
-        iata_code: airport?.iata_code ?? "",
-        icao_code: airport?.icao_code ?? "",
+        coordinates: airport?.coordinates ?? null,
         description: airport?.description ?? "",
-        latitude: airport?.latitude ?? 0,
-        longitude: airport?.longitude ?? 0,
+        location_link: airport?.location_link ?? "",
         website_url: airport?.website_url ?? "",
         country_id: airport?.country_id ?? null,
     });
 
     const [errors, setErrors] = useState<FormErrors>({});
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+    const [hasCoordinates, setHasCoordinates] = useState(
+        !!airport?.coordinates,
+    );
 
-    const handleChange = (field: keyof NewAirport, value: string) => {
+    const handleChange = (field: keyof CreateAirportInput, value: string) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
     };
 
@@ -94,6 +92,50 @@ export default function NewAirportForm({ airport, countries }: Params) {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const onToggleCoordinates = () => {
+        if (hasCoordinates) {
+            setHasCoordinates(false);
+            setFormData((prev) => ({
+                ...prev,
+                coordinates: null,
+            }));
+            return;
+        }
+
+        if (!canLoadCoordinates(formData.location_link)) {
+            setHasCoordinates(false);
+            return;
+        }
+
+        const coordinates = extractCoordinatesFromLocationLink(
+            formData.location_link,
+        );
+
+        setHasCoordinates(Boolean(coordinates));
+
+        if (!coordinates) {
+            setErrors({
+                coordinates:
+                    "Моля, въведете валиден линк към локацията, например от Google Maps.",
+            });
+            return;
+        }
+
+        if (coordinates) {
+            setFormData((prev) => ({
+                ...prev,
+                coordinates,
+            }));
+            setErrors({ coordinates: "" });
+        }
+    };
+
+    const canLoadCoordinates = (locationLink?: string) => {
+        return (
+            typeof locationLink === "string" && locationLink.trim().length > 0
+        );
     };
 
     return (
@@ -144,49 +186,6 @@ export default function NewAirportForm({ airport, countries }: Params) {
                         />
                     </div>
 
-                    <div className="flex gap-5">
-                        <div className="flex-1 space-y-2">
-                            <Label>Lat</Label>
-                            <Input
-                                placeholder="Latitude"
-                                value={formData.latitude}
-                                onChange={(e) =>
-                                    handleChange("latitude", e.target.value)
-                                }
-                            />
-                        </div>
-                        <div className="flex-1 space-y-2">
-                            <Label>Lon</Label>
-                            <Input
-                                placeholder="Longitude"
-                                value={formData.longitude}
-                                onChange={(e) =>
-                                    handleChange("longitude", e.target.value)
-                                }
-                            />
-                        </div>
-                    </div>
-
-                    {formData.latitude &&
-                    formData.longitude &&
-                    formData.website_url ? (
-                        <LeafletMap
-                            center={[formData.latitude, formData.longitude]}
-                            zoom={7}
-                            markers={[
-                                {
-                                    id: "1",
-                                    lat: formData.latitude,
-                                    lng: formData.longitude,
-                                    label: formData.name,
-                                    description: formData.description,
-                                    image: airport?.image_url ?? "",
-                                    websiteUrl: formData.website_url,
-                                } as MapMarker,
-                            ]}
-                        />
-                    ) : null}
-
                     <div className="space-y-2">
                         <Label>Официален сайт</Label>
                         <Input
@@ -196,6 +195,61 @@ export default function NewAirportForm({ airport, countries }: Params) {
                             }
                         />
                     </div>
+
+                    <div className="space-y-2">
+                        <Label>Линк към локацията</Label>
+
+                        <Input
+                            value={formData.location_link ?? ""}
+                            placeholder="https://maps.google.com/..."
+                            onChange={(e) =>
+                                handleChange("location_link", e.target.value)
+                            }
+                        />
+
+                        {errors.coordinates && (
+                            <div className="text-destructive">
+                                {errors.coordinates}
+                            </div>
+                        )}
+
+                        <Button
+                            type="button"
+                            variant="outline"
+                            disabled={
+                                !canLoadCoordinates(formData.location_link) &&
+                                !hasCoordinates
+                            }
+                            onClick={onToggleCoordinates}
+                        >
+                            {!hasCoordinates
+                                ? "Зареждане на координатите"
+                                : "Премахване на координатите"}
+                        </Button>
+                    </div>
+
+                    {hasCoordinates && formData.coordinates && (
+                        <LeafletMap
+                            center={formData.coordinates}
+                            zoom={14}
+                            markers={[
+                                {
+                                    id: "preview",
+                                    coordinates: formData.coordinates,
+                                    label: formData.name || "Локация",
+                                    description: formData.description ?? "",
+                                    image: airport?.image_url,
+                                    websiteUrl: formData.website_url,
+                                },
+                            ]}
+                        />
+                    )}
+
+                    {!hasCoordinates && !formData.location_link && (
+                        <p className="text-sm text-gray-500">
+                            Поставете Google Maps линк и натисни „Зареждане“
+                        </p>
+                    )}
                 </>
             )}
 

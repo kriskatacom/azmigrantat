@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaChevronRight } from "react-icons/fa";
@@ -10,8 +10,9 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import AppImage from "@/components/AppImage";
 import { Button } from "@/components/ui/button";
+import { Coordinates } from "@/lib/types";
 
-// Икони за Leaflet
+// Leaflet icon fix
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: "/leaflet/marker-icon-2x.png",
@@ -20,25 +21,49 @@ L.Icon.Default.mergeOptions({
 
 export interface MapMarker {
     id: string | number;
-    lat: number;
-    lng: number;
+    coordinates: Coordinates;
     label: string;
-    description: string;
-    image: string;
+    description?: string;
+    image?: string;
     websiteUrl?: string;
 }
 
 interface LeafletMapProps {
-    center: [number, number];
+    center: Coordinates;
     zoom?: number;
-    markers: MapMarker[];
+    markers?: MapMarker[];
 }
 
-function RecenterMap({ coords }: { coords: [number, number] }) {
+/* ================= helpers ================= */
+
+const isValidCoordinates = (coords?: Coordinates): coords is Coordinates => {
+    if (!coords) return false;
+
+    const { latitude, longitude } = coords;
+
+    return (
+        typeof latitude === "number" &&
+        typeof longitude === "number" &&
+        latitude >= -90 &&
+        latitude <= 90 &&
+        longitude >= -180 &&
+        longitude <= 180
+    );
+};
+
+function RecenterMap({ coords }: { coords: Coordinates }) {
     const map = useMap();
-    map.setView(coords, 9);
+
+    useEffect(() => {
+        if (isValidCoordinates(coords)) {
+            map.setView([coords.latitude, coords.longitude], map.getZoom());
+        }
+    }, [coords, map]);
+
     return null;
 }
+
+/* ================= component ================= */
 
 const LeafletMap = ({ center, zoom = 6, markers = [] }: LeafletMapProps) => {
     const [searchTerm, setSearchTerm] = useState("");
@@ -46,10 +71,16 @@ const LeafletMap = ({ center, zoom = 6, markers = [] }: LeafletMapProps) => {
         null,
     );
 
-    const filteredMarkers = markers.filter((m) =>
-        m.label.toLowerCase().includes(searchTerm.toLowerCase()),
-    );
+    const filteredMarkers = useMemo(() => {
+        return markers.filter(
+            (m) =>
+                m.label &&
+                m.label.toLowerCase().includes(searchTerm.toLowerCase()) &&
+                isValidCoordinates(m.coordinates),
+        );
+    }, [markers, searchTerm]);
 
+    /* body scroll lock */
     useEffect(() => {
         document.body.style.overflow = selectedAirport ? "hidden" : "";
         return () => {
@@ -57,25 +88,15 @@ const LeafletMap = ({ center, zoom = 6, markers = [] }: LeafletMapProps) => {
         };
     }, [selectedAirport]);
 
-    useEffect(() => {
-        if (selectedAirport) {
-            document.body.style.overflow = "hidden";
-        } else {
-            document.body.style.overflow = "";
-        }
-
-        return () => {
-            document.body.style.overflow = "";
-        };
-    }, [selectedAirport]);
-
     return (
         <div className="relative flex h-100 md:h-175 w-full overflow-hidden rounded-xl border border-gray-200 shadow-2xl">
-            <div className="absolute left-5 top-5 z-1000 w-100 max-h-[85%] overflow-hidden rounded-xl bg-white/95 shadow-2xl backdrop-blur-md border border-white/20 flex flex-col">
-                <div className="border-b border-gray-100 p-5">
+            {/* ================= Sidebar ================= */}
+            <div className="absolute left-5 top-5 z-1000 w-100 max-h-[85%] overflow-hidden rounded-xl bg-white/95 shadow-2xl backdrop-blur-md border flex flex-col">
+                <div className="border-b p-5">
                     <Input
                         type="text"
                         placeholder="Търсене на летище..."
+                        value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
@@ -90,42 +111,46 @@ const LeafletMap = ({ center, zoom = 6, markers = [] }: LeafletMapProps) => {
                         <div
                             key={m.id}
                             onClick={() => setSelectedAirport(m)}
-                            className={`flex cursor-pointer items-center gap-4 rounded-lg p-3 transition-all hover:bg-blue-50/50 ${selectedAirport?.id === m.id ? "bg-blue-50 shadow-sm" : ""}`}
+                            className={cn(
+                                "flex cursor-pointer gap-4 rounded-lg p-3 transition hover:bg-blue-50/50",
+                                selectedAirport?.id === m.id &&
+                                    "bg-blue-50 shadow-sm",
+                            )}
                         >
-                            {m?.image && (
+                            {m.image && (
                                 <div className="min-w-30 h-30">
                                     <img
                                         src={m.image}
                                         alt={m.label}
-                                        width={120}
-                                        height={120}
-                                        className="w-full h-full rounded-lg object-cover shadow-sm"
+                                        className="w-full h-full rounded-lg object-cover"
                                     />
                                 </div>
                             )}
-                            <div className="flex flex-col min-w-0">
-                                <span className="font-semibold text-gray-800 text-[15px] truncate">
+
+                            <div className="min-w-0">
+                                <p className="font-semibold truncate">
                                     {m.label}
-                                </span>
-                                <div
-                                    className="text-sm text-gray-500 line-clamp-2 leading-tight"
-                                    dangerouslySetInnerHTML={{
-                                        __html: m.description,
-                                    }}
-                                ></div>
+                                </p>
+
+                                {m.description && (
+                                    <p className="text-sm text-gray-500 line-clamp-2">
+                                        {m.description.replace(/<[^>]*>/g, "")}
+                                    </p>
+                                )}
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
 
+            {/* ================= Modal ================= */}
             <AnimatePresence>
                 {selectedAirport && (
                     <motion.div
+                        className="fixed inset-0 z-9999 bg-black/40"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-9999 bg-black/40 backdrop-blur-sm"
                         onClick={() => setSelectedAirport(null)}
                     >
                         <motion.div
@@ -134,61 +159,54 @@ const LeafletMap = ({ center, zoom = 6, markers = [] }: LeafletMapProps) => {
                             exit={{ y: "100%" }}
                             transition={{ type: "spring", damping: 30 }}
                             onClick={(e) => e.stopPropagation()}
-                            className={cn(
-                                "fixed inset-0 h-dvh w-screen bg-white flex flex-col justify-between",
-                                "md:inset-auto md:top-10 md:left-1/2 md:-translate-x-1/2 md:max-w-3xl md:max-h-[80vh] md:rounded-xl md:overflow-hidden",
-                            )}
+                            className="fixed inset-0 bg-white md:inset-auto md:top-10 md:left-1/2 md:-translate-x-1/2 md:max-w-3xl md:rounded-xl"
                         >
-                            <div className="h-full overflow-y-auto">
-                                <div className="relative h-60 w-full">
-                                    <div className="relative h-60 w-full">
-                                        <AppImage
-                                            src={selectedAirport.image}
-                                            fill
-                                            className="object-cover"
-                                            alt=""
-                                        />
-                                    </div>
-                                    <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/20 to-transparent" />
-                                    <Button
-                                        onClick={() => setSelectedAirport(null)}
-                                        variant={"default"}
-                                        className="absolute top-5 right-5"
-                                    >
-                                        ✕
-                                    </Button>
-                                    <h2 className="absolute bottom-4 left-0 right-0 text-center text-2xl font-bold text-white uppercase tracking-wide">
-                                        {selectedAirport.label}
-                                    </h2>
+                            {selectedAirport.image && (
+                                <div className="relative h-60">
+                                    <AppImage
+                                        src={selectedAirport.image}
+                                        fill
+                                        className="object-cover"
+                                        alt={selectedAirport.label}
+                                    />
                                 </div>
+                            )}
 
-                                <div className="p-5 text-center">
-                                    <div
-                                        className="text-[15px] leading-relaxed text-gray-700"
-                                        dangerouslySetInnerHTML={{
-                                            __html: selectedAirport.description,
-                                        }}
-                                    ></div>
-                                </div>
+                            <div className="p-5 text-center">
+                                <h2 className="text-2xl font-bold mb-4">
+                                    {selectedAirport.label}
+                                </h2>
+
+                                {selectedAirport.description && (
+                                    <p className="text-gray-700 leading-relaxed">
+                                        {selectedAirport.description.replace(
+                                            /<[^>]*>/g,
+                                            "",
+                                        )}
+                                    </p>
+                                )}
                             </div>
 
-                            <a
-                                href={selectedAirport.websiteUrl || "#"}
-                                target="_blank"
-                                className="sticky bottom-0 flex items-center justify-center gap-2 w-full bg-[#0a2333] py-4 text-center font-semibold text-white transition-colors hover:bg-[#153448]"
-                            >
-                                <span>Официален сайт</span>
-                                <FaChevronRight />
-                            </a>
+                            {selectedAirport.websiteUrl && (
+                                <a
+                                    href={selectedAirport.websiteUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex justify-center items-center gap-2 bg-[#0a2333] py-4 text-white font-semibold"
+                                >
+                                    Официален сайт <FaChevronRight />
+                                </a>
+                            )}
                         </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>
 
+            {/* ================= Map ================= */}
             <MapContainer
-                center={center}
+                center={[center.latitude, center.longitude]}
                 zoom={zoom}
-                className="h-full w-full z-0"
+                className="h-full w-full"
                 zoomControl={false}
             >
                 <TileLayer
@@ -196,17 +214,21 @@ const LeafletMap = ({ center, zoom = 6, markers = [] }: LeafletMapProps) => {
                     attribution="&copy; OpenStreetMap contributors"
                 />
 
-                {selectedAirport && (
-                    <RecenterMap
-                        coords={[selectedAirport.lat, selectedAirport.lng]}
-                    />
-                )}
+                {selectedAirport &&
+                    isValidCoordinates(selectedAirport.coordinates) && (
+                        <RecenterMap coords={selectedAirport.coordinates} />
+                    )}
 
                 {filteredMarkers.map((m) => (
                     <Marker
                         key={m.id}
-                        position={[m.lat, m.lng]}
-                        eventHandlers={{ click: () => setSelectedAirport(m) }}
+                        position={[
+                            m.coordinates.latitude,
+                            m.coordinates.longitude,
+                        ]}
+                        eventHandlers={{
+                            click: () => setSelectedAirport(m),
+                        }}
                     />
                 ))}
             </MapContainer>
