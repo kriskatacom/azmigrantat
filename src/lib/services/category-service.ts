@@ -24,9 +24,14 @@ export async function createCategory(category: Category): Promise<Category> {
     }
 }
 
+type CategoryWhere = {
+    id?: number;
+    slug?: string;
+    parent_id?: number | null;
+};
+
 type GetCategoriesOptions = {
-    column?: "id" | "slug" | "parent_id";
-    value?: string | number | null;
+    where?: CategoryWhere;
 };
 
 export async function getCategories(
@@ -48,15 +53,32 @@ export async function getCategories(
         LEFT JOIN categories p ON p.id = c.parent_id
     `;
 
-    const params: (string | number | null)[] = [];
+    const whereClauses: string[] = [];
+    const params: (string | number)[] = [];
 
-    if (options?.column) {
-        if (options.value === null) {
-            sql += ` WHERE c.${options.column} IS NULL`;
-        } else if (options.value !== undefined) {
-            sql += ` WHERE c.${options.column} = ?`;
-            params.push(options.value);
+    const where = options?.where;
+
+    if (where?.id !== undefined) {
+        whereClauses.push("c.id = ?");
+        params.push(where.id);
+    }
+
+    if (where?.slug !== undefined) {
+        whereClauses.push("c.slug = ?");
+        params.push(where.slug);
+    }
+
+    if (where?.parent_id !== undefined) {
+        if (where.parent_id === null) {
+            whereClauses.push("c.parent_id IS NULL");
+        } else {
+            whereClauses.push("c.parent_id = ?");
+            params.push(where.parent_id);
         }
+    }
+
+    if (whereClauses.length > 0) {
+        sql += " WHERE " + whereClauses.join(" AND ");
     }
 
     sql += " ORDER BY c.sort_order";
@@ -67,7 +89,7 @@ export async function getCategories(
         id: row.id,
         name: row.name,
         slug: row.slug,
-        image_url: row.image_url,
+        imageUrl: row.image_url,
         parent_id: row.parent_id,
         created_at: row.created_at,
         updated_at: row.updated_at,

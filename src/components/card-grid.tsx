@@ -17,7 +17,7 @@ export type GridColumns = {
 };
 
 type CardGridProps = {
-    items: CardEntity[];
+    items: any[];
     searchPlaceholder?: string;
     buttonText?: string;
     hrefPrefix?: string;
@@ -43,7 +43,7 @@ export const CardGrid: React.FC<CardGridProps> = ({
     loadMoreStep = 4,
     variant = "standart",
     columns = {
-        base: 1,
+        base: 4,
         sm: 2,
         lg: 3,
         xl: 4,

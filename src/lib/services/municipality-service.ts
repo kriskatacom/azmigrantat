@@ -30,15 +30,8 @@ export interface CreateMunicipalityInput {
 export async function createMunicipality(
     data: CreateMunicipalityInput,
 ): Promise<Municipality> {
-    const {
-        name,
-        slug,
-        heading,
-        excerpt,
-        image_url,
-        city_id,
-        country_id,
-    } = data;
+    const { name, slug, heading, excerpt, image_url, city_id, country_id } =
+        data;
 
     const sql = `
         INSERT INTO municipalities (
@@ -57,7 +50,10 @@ export async function createMunicipality(
             country_id ?? null,
         ]);
 
-        return (await getMunicipalityByColumn("id", result.insertId)) as Municipality;
+        return (await getMunicipalityByColumn(
+            "id",
+            result.insertId,
+        )) as Municipality;
     } catch (err) {
         console.error("Error creating municipality:", err);
         throw err;
@@ -103,11 +99,16 @@ export async function getMunicipalities(
 
     return rows.map((row) => ({
         ...row,
+        imageUrl: row.image_url,
         city: row.city_id
             ? { id: row.city_id, name: row.city_name, slug: row.city_slug }
             : undefined,
         country: row.country_id
-            ? { id: row.country_id, name: row.country_name, slug: row.country_slug }
+            ? {
+                  id: row.country_id,
+                  name: row.country_name,
+                  slug: row.country_slug,
+              }
             : undefined,
     }));
 }
