@@ -11,7 +11,7 @@ export async function createCompany(company: Company): Promise<Company> {
         slug,
         excerpt,
         description,
-        image_url,
+        imageUrl,
         additional_images,
         your_location,
         google_map,
@@ -46,7 +46,7 @@ export async function createCompany(company: Company): Promise<Company> {
             slug,
             excerpt,
             description,
-            image_url,
+            imageUrl,
             additional_images ? JSON.stringify(additional_images) : null,
             your_location ?? null,
             google_map ?? null,
@@ -96,10 +96,10 @@ export async function getCompanies(
         slug: row.slug,
         excerpt: row.excerpt,
         description: row.description,
-        image_url: row.image_url,
-        additional_images: row.additional_images
-            ? JSON.parse(row.additional_images)
-            : null,
+        imageUrl: row.image_url,
+        offerImageUrl: row.offer_image_url,
+        adsImageUrl: row.ads_image_url,
+        bottomImageUrl: row.bottom_image_url,
         your_location: row.your_location,
         google_map: row.google_map,
         company_slogan: row.company_slogan,
@@ -126,9 +126,10 @@ export async function getCompanyByColumn(
 
     return {
         ...row,
-        additional_images: row.additional_images
-            ? JSON.parse(row.additional_images)
-            : null,
+        imageUrl: row.image_url,
+        offerImageUrl: row.offer_image_url,
+        adsImageUrl: row.ads_image_url,
+        bottomImageUrl: row.bottom_image_url,
     };
 }
 
@@ -140,13 +141,8 @@ export async function updateCompany(
     const values: any[] = [];
 
     for (const [key, value] of Object.entries(company)) {
-        if (key === "additional_images") {
-            fields.push(`${key} = ?`);
-            values.push(value ? JSON.stringify(value) : null);
-        } else {
-            fields.push(`${key} = ?`);
-            values.push(value);
-        }
+        fields.push(`${key} = ?`);
+        values.push(value);
     }
 
     if (fields.length === 0) {

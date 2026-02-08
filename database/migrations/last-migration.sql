@@ -40,3 +40,6 @@ BEGIN
 END$$
 
 DELIMITER ;
+
+ALTER TABLE `companies` DROP `additional_images`;
+ALTER TABLE `companies` ADD `offer_image_url` VARCHAR(255) NULL AFTER `category_id`, ADD `ads_image_url` VARCHAR(255) NULL AFTER `offer_image_url`, ADD `bottom_image_url` VARCHAR(255) NULL AFTER `ads_image_url`;

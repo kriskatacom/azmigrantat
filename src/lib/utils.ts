@@ -1,6 +1,8 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { Coordinates, Location } from "./types";
+import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
+import { CategoryNode } from "./services/category-service";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -143,3 +145,32 @@ export function extractCoordinatesFromLocationLink(
 //                 your_location: directionsUrl,
 //             }));
 //         });
+
+export function buildCategoryBreadcrumbs(
+    categories: CategoryNode[],
+    path: string[],
+    baseHref: string,
+): BreadcrumbItem[] {
+    const breadcrumbs: BreadcrumbItem[] = [];
+    let currentCategories = categories;
+    let currentPath: string[] = [];
+
+    for (const slug of path) {
+        const category = currentCategories.find(
+            (c) => c.slug.toLowerCase() === slug.toLowerCase(),
+        );
+
+        if (!category) break;
+
+        currentPath.push(category.slug);
+
+        breadcrumbs.push({
+            name: category.name,
+            href: `${baseHref}/${currentPath.join("/")}`,
+        });
+
+        currentCategories = category.children;
+    }
+
+    return breadcrumbs;
+}

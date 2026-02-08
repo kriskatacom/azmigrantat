@@ -9,7 +9,7 @@ interface PageHeaderProps {
     title: ReactNode;
     breadcrumbs: BreadcrumbItem[];
     banner?: Banner | null;
-    municipalitiesLink: string;
+    municipalitiesLink?: string;
 }
 
 export default function CustomHeader({
@@ -53,13 +53,15 @@ export default function CustomHeader({
                             />
                         </div>
                     </div>
-                    <div className="hidden lg:block">
-                        <Link href={municipalitiesLink}>
-                            <button className="py-3 px-5 rounded-md text-lg bg-website-blue cursor-pointer">
-                                Общински градове
-                            </button>
-                        </Link>
-                    </div>
+                    {municipalitiesLink && (
+                        <div className="hidden lg:block">
+                            <Link href={municipalitiesLink}>
+                                <button className="py-3 px-5 rounded-md text-lg bg-website-blue cursor-pointer">
+                                    Общински градове
+                                </button>
+                            </Link>
+                        </div>
+                    )}
                 </div>
             </div>
         </>

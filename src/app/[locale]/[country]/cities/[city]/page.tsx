@@ -7,6 +7,7 @@ import { getCategories } from "@/lib/services/category-service";
 import { getCityByColumn } from "@/lib/services/city-service";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import CustomHeader from "@/app/[locale]/[country]/cities/[city]/custom-header";
+import { Banner } from "@/lib/types";
 
 type PageProps = {
     params: Promise<{
@@ -42,17 +43,45 @@ export default async function CityPage({ params }: PageProps) {
         activeBanner = await getBannerByColumn("link", baseCityHref);
     }
 
+    const municipalitiesBanner = await getBannerByColumn(
+        "link",
+        `${baseCityHref}/municipalities`,
+    );
+
     const categories = await getCategories({ where: { parent_id: null } });
 
     return (
         <main>
             <MainNavbar />
-            <CustomHeader
-                title={`Информационен справочник на ${city.name}`}
-                breadcrumbs={breadcrumbs}
-                banner={activeBanner}
-                municipalitiesLink={`${baseCityHref}/municipalities`}
-            />
+            <div className="block lg:hidden">
+                <CardGrid
+                    id="municipalities-banner"
+                    items={[
+                        {
+                            name: "Общински градове",
+                            slug: `municipalities`,
+                            imageUrl: municipalitiesBanner?.image,
+                        },
+                    ]}
+                    variant="standart"
+                    columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
+                    hrefPrefix={baseCityHref}
+                />
+            </div>
+            <div className="hidden lg:block">
+                <CustomHeader
+                    title={`Информационен справочник на ${city.name}`}
+                    breadcrumbs={breadcrumbs}
+                    banner={activeBanner}
+                    municipalitiesLink={`${baseCityHref}/municipalities`}
+                />
+            </div>
+            <div className="block lg:hidden">
+                <CustomHeader
+                    title={`Информационен справочник на ${city.name}`}
+                    breadcrumbs={breadcrumbs}
+                />
+            </div>
             <CardGrid
                 id="categories"
                 isWithSearch

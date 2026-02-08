@@ -85,7 +85,7 @@ export const CardItem: React.FC<CardItemProps> = ({
                         </span>
                         <div>
                             <button className="inline-block py-2 px-4 mt-5 rounded-md text-white font-semibold text-xl border-2 border-white">
-                                {t("loadMore")}
+                                {t("information")}
                             </button>
                         </div>
                     </div>

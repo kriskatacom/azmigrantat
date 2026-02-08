@@ -28,8 +28,8 @@ export async function DELETE(_: Request, { params }: Params) {
             );
         }
 
-        if (company.image_url) {
-            await deleteUploadedFile(company.image_url);
+        if (company.imageUrl) {
+            await deleteUploadedFile(company.imageUrl);
         }
 
         await deleteCompany(companyId);

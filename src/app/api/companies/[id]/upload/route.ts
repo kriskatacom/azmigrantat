@@ -22,7 +22,7 @@ export async function POST(req: Request, { params }: Params) {
         const url = await saveUploadedFile(file);
 
         const company = await updateCompany(Number(id), {
-            image_url: url,
+            imageUrl: url,
         });
 
         return NextResponse.json({
@@ -54,13 +54,13 @@ export async function DELETE(req: Request, { params }: Params) {
         }
 
         // 2️⃣ Изтриваме файла от public/uploads
-        if (company.image_url) {
-            deleteUploadedFile(company.image_url);
+        if (company.imageUrl) {
+            deleteUploadedFile(company.imageUrl);
         }
 
         // 3️⃣ Нулираме imageUrl в базата
         const companyUpdated = await updateCompany(Number(id), {
-            image_url: "",
+            imageUrl: "",
         });
 
         return NextResponse.json({ success: true, country: companyUpdated });

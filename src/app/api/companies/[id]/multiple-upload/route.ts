@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { deleteUploadedFile, saveUploadedFile } from "@/app/api/lib";
-import { getCompanyByColumn, updateCompany } from "@/lib/services/companies-service";
+import {
+    getCompanyByColumn,
+    updateCompany,
+} from "@/lib/services/companies-service";
 
 type Params = {
     params: Promise<{ id: string }>;
@@ -31,17 +34,6 @@ export async function POST(req: Request, { params }: Params) {
             );
         }
 
-        let currentImages: string[] = [];
-        if (Array.isArray(company.additional_images)) {
-            currentImages = company.additional_images;
-        } else if (typeof company.additional_images === "string" && company.additional_images) {
-            try {
-                currentImages = JSON.parse(company.additional_images);
-            } catch {
-                currentImages = [];
-            }
-        }
-
         // Запазваме всеки файл и събираме URL-тата
         const uploadedUrls: string[] = [];
         for (const file of files) {
@@ -50,7 +42,7 @@ export async function POST(req: Request, { params }: Params) {
         }
 
         // Актуализираме базата
-        const updatedImages = [...currentImages, ...uploadedUrls];
+        const updatedImages = [...company.additional_images, ...uploadedUrls];
 
         const updatedCompany = await updateCompany(Number(id), {
             additional_images: JSON.stringify(updatedImages),
