@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import { getCountryByColumn } from "@/lib/services/country-service";
-import { MainNavbar } from "@/components/main-navbar";
+import { MainNavbar } from "@/components/main-right-navbar";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import Hero from "@/app/[locale]/[country]/landmarks/[landmark]/hero";
 import { getLandmarkByColumn } from "@/lib/services/landmark-service";
@@ -11,6 +11,8 @@ import WorkingTime from "@/app/[locale]/[country]/landmarks/[landmark]/working-t
 import Tickets from "@/app/[locale]/[country]/landmarks/[landmark]/tickets";
 import DisplayGallery from "@/app/[locale]/[country]/landmarks/[landmark]/display-gallery";
 import Map from "@/components/map";
+import PageHeader from "@/components/page-header";
+import { getBannerByColumn } from "@/lib/services/banner-service";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const countrySlug = (await params).country;
@@ -83,14 +85,11 @@ export default async function EmbassiesPage({ params }: Props) {
     const landmarkSlug = (await params).landmark;
 
     const country = await getCountryByColumn("slug", countrySlug);
-
-    if (!country || !country.name) {
-        return redirect("/");
-    }
-
     const landmark = await getLandmarkByColumn("slug", landmarkSlug);
 
-    if (!landmark || !landmark.name) {
+    const landmarkTitle = landmark?.name ?? landmark?.heading;
+
+    if (!country?.name || !landmark || !landmarkTitle) {
         return redirect("/");
     }
 
@@ -98,11 +97,16 @@ export default async function EmbassiesPage({ params }: Props) {
         { name: "Начало", href: "/" },
         { name: country.name, href: `/${country.slug}` },
         { name: "Забележителнисти", href: `/${country.slug}/landmarks` },
-        { name: landmark.name },
+        { name: landmarkTitle },
     ];
 
-    const additionalImages: string[] = JSON.parse(
-        landmark.additional_images || "",
+    const additionalImages: string[] = landmark.additional_images
+        ? JSON.parse(landmark.additional_images || "")
+        : [];
+
+    const banner = await getBannerByColumn(
+        "link",
+        `/${country.slug}/landmarks/${landmarkSlug}`,
     );
 
     return (
@@ -110,6 +114,7 @@ export default async function EmbassiesPage({ params }: Props) {
             <header>
                 <MainNavbar />
                 <Hero landmark={landmark} />
+                <PageHeader breadcrumbs={breadcrumbs} banner={banner} />
             </header>
 
             <main className="md:px-5">

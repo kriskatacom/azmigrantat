@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import LeafletMap from "@/app/[locale]/travel/air-tickets/leaflet-map";
-import { MainNavbar } from "@/components/main-navbar";
+import { MainNavbar } from "@/components/main-right-navbar";
 import PageHeader from "@/components/page-header";
 import { AIR_TICKETS_PAGE_ITEMS } from "@/lib/constants";
 import { absoluteUrl, websiteName } from "@/lib/utils";

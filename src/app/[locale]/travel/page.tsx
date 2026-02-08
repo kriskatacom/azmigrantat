@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { getTranslations } from "next-intl/server";
 import { absoluteUrl, websiteName } from "@/lib/utils";
-import { MainNavbar } from "@/components/main-navbar";
+import { MainNavbar } from "@/components/main-right-navbar";
 import PageHeader from "@/components/page-header";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { CardGrid } from "@/components/card-grid";

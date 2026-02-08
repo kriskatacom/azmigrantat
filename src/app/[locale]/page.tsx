@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { MainNavbar } from "@/components/main-navbar";
+import { MainNavbar } from "@/components/main-right-navbar";
 import { Hero } from "@/app/[locale]/hero";
 import { getCountries } from "@/lib/services/country-service";
 import { CardGrid } from "@/components/card-grid";

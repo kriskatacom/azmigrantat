@@ -3,7 +3,7 @@ import { Metadata } from "next";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { getCountryElementsByColumn } from "@/lib/services/country-element-service";
 import { CountryElement } from "@/lib/types";
-import { MainNavbar } from "@/components/main-navbar";
+import { MainNavbar } from "@/components/main-right-navbar";
 import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
 import { Hero } from "@/app/[locale]/[country]/hero";

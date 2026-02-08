@@ -79,6 +79,7 @@ import { AdminSidebarItem } from "@/lib/types";
 import { MapMarker } from "@/components/leaflet-map";
 import { CardEntity } from "@/components/card-item";
 import { FaBus, FaImage, FaShip, FaTaxi, FaTrain } from "react-icons/fa";
+import { Building2, FileText, Home, PhoneCall, ShieldCheck } from "lucide-react";
 
 export const mainSidebarItems: AdminSidebarItem[] = [
     {
@@ -337,5 +338,33 @@ export const HOME_ELEMENTS: CardEntity[] = [
         name: "Мусика",
         slug: "music",
         image_url: "/images/music.png",
+    },
+];
+
+export const MAIN_LEFT_SIDEBAR_ITEMS = [
+    {
+        label: "Начало",
+        href: "/",
+        icon: Home,
+    },
+    {
+        label: "Условия за ползване",
+        href: "/legal/terms",
+        icon: FileText,
+    },
+    {
+        label: "Политика за поверителност",
+        href: "/legal/privacy",
+        icon: ShieldCheck,
+    },
+    {
+        label: "Контакти",
+        href: "/#contacts",
+        icon: PhoneCall,
+    },
+    {
+        label: "За нас",
+        href: "/about-us",
+        icon: Building2,
     },
 ];

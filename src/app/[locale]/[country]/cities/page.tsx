@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
-import { MainNavbar } from "@/components/main-navbar";
+import { MainNavbar } from "@/components/main-right-navbar";
 import { CardGrid } from "@/components/card-grid";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { getCities } from "@/lib/services/city-service";

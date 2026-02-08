@@ -45,7 +45,7 @@ export default function Description({ landmark }: Props) {
 
                     {hasContent ? (
                         <div
-                            className="prose prose-sm max-w-none"
+                            className="prose prose-sm max-w-none text-editor"
                             dangerouslySetInnerHTML={{
                                 __html: landmark.content as string,
                             }}

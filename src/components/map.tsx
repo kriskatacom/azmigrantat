@@ -29,10 +29,7 @@ export default function Map({ google_map, your_location }: Props) {
                     lng: pos.coords.longitude,
                 };
 
-                const url = googleMapsLinkToDirections(
-                    your_location,
-                    origin,
-                );
+                const url = googleMapsLinkToDirections(your_location, origin);
 
                 setDirectionUrl(url);
                 setLoading(false);
@@ -51,22 +48,29 @@ export default function Map({ google_map, your_location }: Props) {
                     {loading ? (
                         <div className="h-6 w-2/3 bg-gray-200 rounded animate-pulse" />
                     ) : (
-                        <a
-                            href={directionUrl ?? undefined}
-                            target="_blank"
-                            className={
-                                directionUrl
-                                    ? "inline-block"
-                                    : "pointer-events-none"
-                            }
-                        >
-                            <h2 className="text-xl flex items-center flex-wrap gap-1">
-                                <Button variant={"default"}>
-                                    <MdLocationPin className="text-red-500" />
-                                    <span>Как да стигнете ?</span>
-                                </Button>
-                            </h2>
-                        </a>
+                        (directionUrl && (
+                            <a
+                                href={directionUrl}
+                                target="_blank"
+                                className={
+                                    directionUrl
+                                        ? "inline-block"
+                                        : "pointer-events-none"
+                                }
+                            >
+                                <h2 className="text-xl flex items-center flex-wrap gap-1">
+                                    <Button variant={"default"}>
+                                        <MdLocationPin className="text-red-500" />
+                                        <span>Как да стигнете ?</span>
+                                    </Button>
+                                </h2>
+                            </a>
+                        )) || (
+                            <div className="text-muted-foreground p-5">
+                                Не сте дали разрешение за достъп до
+                                местонахождението Ви.
+                            </div>
+                        )
                     )}
                 </div>
 

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
-import { MainNavbar } from "@/components/main-navbar";
+import { MainNavbar } from "@/components/main-right-navbar";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
@@ -8,6 +8,7 @@ import { getCountryByColumn } from "@/lib/services/country-service";
 import { getLandmarks } from "@/lib/services/landmark-service";
 import { websiteName } from "@/lib/utils";
 import PageHeader from "@/components/page-header";
+import { getBannerByColumn } from "@/lib/services/banner-service";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const countrySlug = (await params).country;
@@ -89,6 +90,11 @@ export default async function LandmarksPage({ params }: Props) {
         { name: "Забележителности", href: `/${country.slug}/landmarks` },
     ];
 
+    const banner = await getBannerByColumn(
+        "link",
+        `/${country.slug}/landmarks`,
+    );
+
     return (
         <>
             <MainNavbar />
@@ -96,6 +102,7 @@ export default async function LandmarksPage({ params }: Props) {
             <PageHeader
                 title={`Забележителности в ${country.name}`}
                 breadcrumbs={breadcrumbs}
+                banner={banner}
             />
 
             <CardGrid

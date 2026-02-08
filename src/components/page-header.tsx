@@ -5,7 +5,7 @@ import AppImage from "@/components/AppImage";
 import { Banner } from "@/lib/types";
 
 interface PageHeaderProps {
-    title: ReactNode;
+    title?: ReactNode;
     breadcrumbs: BreadcrumbItem[];
     banner?: Banner | null;
 }
@@ -37,12 +37,14 @@ const PageHeader: React.FC<PageHeaderProps> = ({
                 </div>
             )}
             <div className="text-center bg-website-menu-item py-5 xl:py-10">
-                <h1 className="text-light text-2xl xl:text-3xl 2xl:text-4xl font-bold uppercase">
-                    {title}
-                </h1>
+                {title && (
+                    <h1 className="text-light text-2xl xl:text-3xl 2xl:text-4xl font-bold uppercase">
+                        {title}
+                    </h1>
+                )}
 
                 <div className="text-white text-lg flex justify-center">
-                    <Breadcrumbs items={breadcrumbs} classes="justify-center" />
+                    <Breadcrumbs items={breadcrumbs} classes="justify-center pt-0" />
                 </div>
             </div>
         </>

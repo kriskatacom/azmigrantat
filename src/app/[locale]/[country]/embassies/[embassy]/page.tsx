@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import { getCountryByColumn } from "@/lib/services/country-service";
-import { MainNavbar } from "@/components/main-navbar";
+import { MainNavbar } from "@/components/main-right-navbar";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { getEmbassyByColumn } from "@/lib/services/embassy-service";
 import { absoluteUrl, websiteName } from "@/lib/utils";
@@ -11,6 +11,8 @@ import ContactsDescription from "@/app/[locale]/[country]/embassies/[embassy]/co
 import WorkingTime from "@/app/[locale]/[country]/embassies/[embassy]/working-time";
 import Emergencies from "@/app/[locale]/[country]/embassies/[embassy]/emergencies";
 import Map from "@/components/map";
+import PageHeader from "@/components/page-header";
+import { getBannerByColumn } from "@/lib/services/banner-service";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const countrySlug = (await params).country;
@@ -83,14 +85,11 @@ export default async function EmbassiesPage({ params }: Props) {
     const embassySlug = (await params).embassy;
 
     const country = await getCountryByColumn("slug", countrySlug);
-
-    if (!country || !country.name) {
-        return redirect("/");
-    }
-
     const embassy = await getEmbassyByColumn("slug", embassySlug);
 
-    if (!embassy || !embassy.name) {
+    const embassyTitle = embassy?.name ?? embassy?.heading;
+
+    if (!country?.name || !embassy || !embassyTitle) {
         return redirect("/");
     }
 
@@ -98,14 +97,20 @@ export default async function EmbassiesPage({ params }: Props) {
         { name: "Начало", href: "/" },
         { name: country.name, href: `/${country.slug}` },
         { name: "Посолства", href: `/${country.slug}/embassies` },
-        { name: embassy.name },
+        { name: embassyTitle },
     ];
+
+    const banner = await getBannerByColumn(
+        "link",
+        `/${country.slug}/embassies/${embassySlug}`,
+    );
 
     return (
         <>
             <header>
                 <MainNavbar />
                 <Hero embassy={embassy} />
+                <PageHeader breadcrumbs={breadcrumbs} banner={banner} />
             </header>
 
             <main className="md:px-5">

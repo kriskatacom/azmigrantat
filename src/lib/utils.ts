@@ -132,6 +132,10 @@ export function extractCoordinatesFromLocationLink(
     return { latitude, longitude };
 }
 
+export function isAdminPanel(pathname: string): boolean {
+  return pathname.startsWith("/admin");
+}
+
 // navigator.geolocation.getCurrentPosition((pos) => {
 //             const origin = {
 //                 lat: pos.coords.latitude,

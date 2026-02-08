@@ -1,6 +1,6 @@
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { CardGrid } from "@/components/card-grid";
-import { MainNavbar } from "@/components/main-navbar";
+import { MainNavbar } from "@/components/main-right-navbar";
 import PageHeader from "@/components/page-header";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 import { getCityByColumn } from "@/lib/services/city-service";

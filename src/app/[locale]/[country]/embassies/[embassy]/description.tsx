@@ -18,21 +18,31 @@ export default function Description({ embassy }: Props) {
                 </h2>
             </div>
 
-            <div className="px-2 md:px-5 md:mt-5">
-                <a href={embassy.website_link} target="_blank">
-                    <Button className="bg-website-dark hover:bg-website-menu-item max-sm:text-xs max-md:w-full">
-                        Повече информация
-                    </Button>
-                </a>
-            </div>
+            {embassy.website_link && (
+                <div className="px-2 md:px-5 md:mt-5">
+                    <a href={embassy.website_link} target="_blank">
+                        <Button className="bg-website-dark hover:bg-website-menu-item max-sm:text-xs max-md:w-full">
+                            Повече информация
+                        </Button>
+                    </a>
+                </div>
+            )}
 
-            <div className="relative max-sm:text-xs p-2 md:p-5 overflow-hidden">
-                <div
-                    dangerouslySetInnerHTML={{
-                        __html: embassy.content as string,
-                    }}
-                />
-            </div>
+            {(embassy.content && (
+                <div className="relative max-sm:text-xs p-2 md:p-5 overflow-hidden">
+                    <div
+                        dangerouslySetInnerHTML={{
+                            __html: embassy.content,
+                        }}
+                    />
+                </div>
+            )) || (
+                <div className="my-5 ml-5">
+                    <div className="text-muted-foreground">
+                        Няма добавено описание
+                    </div>
+                </div>
+            )}
         </section>
     );
 }

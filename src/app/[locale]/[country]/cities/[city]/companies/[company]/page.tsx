@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
-import { MainNavbar } from "@/components/main-navbar";
+import { MainNavbar } from "@/components/main-right-navbar";
 import PageHeader from "@/components/page-header";
 import {
     buildCategoryBreadcrumbs,

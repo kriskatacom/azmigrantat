@@ -2,7 +2,7 @@ import { FaFacebook, FaTiktok } from "react-icons/fa";
 
 export default function ContactsInfo() {
     return (
-        <div className="bg-website-dark">
+        <section id="contacts" className="bg-website-dark">
             <div className="container mx-auto grid xl:grid-cols-2 lg:gap-10">
                 <div className="grid gap-5 p-5 md:py-10">
                     <a
@@ -100,6 +100,6 @@ export default function ContactsInfo() {
                     </a>
                 </div>
             </div>
-        </div>
+        </section>
     );
 }

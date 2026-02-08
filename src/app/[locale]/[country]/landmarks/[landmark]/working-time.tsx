@@ -1,7 +1,15 @@
 "use client";
 
+import { MdPunchClock } from "react-icons/md";
+import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { Landmark } from "@/lib/types";
-import { MdLocationPin, MdLockClock, MdPunchClock } from "react-icons/md";
 
 type Props = {
     landmark: Landmark;
@@ -17,12 +25,43 @@ export default function WorkingTime({ landmark }: Props) {
                 </h2>
             </div>
 
-            <div className="relative max-sm:text-xs p-2 md:p-5">
+            {(landmark.working_time && (
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <div className="px-2 md:px-5 md:mt-5">
+                            <Button className="bg-website-dark hover:bg-website-menu-item max-sm:text-xs max-md:w-full">
+                                Показване
+                            </Button>
+                        </div>
+                    </DialogTrigger>
+
+                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle>{landmark.name}</DialogTitle>
+                        </DialogHeader>
+
+                        <div
+                            className="prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{
+                                __html: landmark.working_time as string,
+                            }}
+                        />
+                    </DialogContent>
+                </Dialog>
+            )) || (
+                <div className="text-muted-foreground p-5">
+                    Не е посочено работно време
+                </div>
+            )}
+
+            <div className="relative max-sm:text-xs p-2 md:p-5 max-h-10 overflow-hidden">
                 <div
                     dangerouslySetInnerHTML={{
                         __html: landmark.working_time as string,
                     }}
                 />
+
+                <div className="pointer-events-none absolute left-0 bottom-0 w-full h-10 md:h-20 bg-linear-to-t from-white to-transparent z-10" />
             </div>
         </section>
     );

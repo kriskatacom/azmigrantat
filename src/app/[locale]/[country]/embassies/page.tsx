@@ -2,12 +2,13 @@ import { redirect } from "next/navigation";
 import { Metadata } from "next";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { getEmbassies } from "@/lib/services/embassy-service";
-import { MainNavbar } from "@/components/main-navbar";
+import { MainNavbar } from "@/components/main-right-navbar";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
 import { websiteName } from "@/lib/utils";
 import PageHeader from "@/components/page-header";
+import { getBannerByColumn } from "@/lib/services/banner-service";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const countrySlug = (await params).country;
@@ -89,6 +90,11 @@ export default async function EmbassiesPage({ params }: Props) {
         { name: "Посолства", href: `/${country.slug}/embassies` },
     ];
 
+    const banner = await getBannerByColumn(
+        "link",
+        `/${country.slug}/embassies`,
+    );
+
     return (
         <>
             <MainNavbar />
@@ -96,6 +102,7 @@ export default async function EmbassiesPage({ params }: Props) {
             <PageHeader
                 title={`Посолства в ${country.name}`}
                 breadcrumbs={breadcrumbs}
+                banner={banner}
             />
 
             <CardGrid

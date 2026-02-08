@@ -3,8 +3,10 @@
 import { usePathname, Link } from "@/i18n/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { IoIosSearch } from "react-icons/io";
+import { RiMenuAddLine } from "react-icons/ri";
 import { iconLargeSize } from "@/lib/constants";
 import LanguageSwitcher from "@/components/language-switcher";
+import MainRightSidebar from "@/components/main-right-navbar/main-right-sidebar";
 
 export const MainNavbar = () => {
     const pathname = usePathname();
@@ -37,6 +39,9 @@ export const MainNavbar = () => {
                     </Link>
                     <ul className="flex items-center gap-2">
                         <li>
+                            <MainRightSidebar />
+                        </li>
+                        <li>
                             <LanguageSwitcher />
                         </li>
                         <li>
@@ -54,7 +59,7 @@ export const MainNavbar = () => {
                         {mainMenuItems.map((item) => (
                             <li
                                 key={item.slug}
-                                className="rounded-4xl text-secondary hover:text-light hover:bg-primary"
+                                className="rounded-4xl text-website-light hover:bg-website-dark"
                             >
                                 {item.slug.startsWith("http") ? (
                                     <a
@@ -92,6 +97,9 @@ export const MainNavbar = () => {
                     />
                 </Link>
                 <ul className="flex items-center gap-2">
+                    <li>
+                        <MainRightSidebar />
+                    </li>
                     <li>
                         <LanguageSwitcher />
                     </li>

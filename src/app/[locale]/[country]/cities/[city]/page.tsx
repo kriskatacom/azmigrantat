@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { CardGrid } from "@/components/card-grid";
-import { MainNavbar } from "@/components/main-navbar";
+import { MainNavbar } from "@/components/main-right-navbar";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 import { getCategories } from "@/lib/services/category-service";
 import { getCityByColumn } from "@/lib/services/city-service";

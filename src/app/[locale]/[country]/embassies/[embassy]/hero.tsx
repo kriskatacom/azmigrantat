@@ -16,7 +16,7 @@ export default function Hero({ embassy }: Props) {
             <div className="relative w-full h-60 lg:h-80 xl:h-120 overflow-hidden">
                 <SmartImage
                     src={embassy.image_url as string}
-                    alt={embassy.heading as string}
+                    alt={embassy.name ?? embassy.heading as string}
                     fill
                     className="object-cover"
                     loading="eager"
@@ -28,30 +28,34 @@ export default function Hero({ embassy }: Props) {
             {/* TITLE */}
             <div className="bg-white text-website-dark text-center p-5 md:py-10 border-b">
                 <div className="flex justify-center items-center gap-2">
-                    <Image
-                        src={embassy.logo as string}
-                        alt={embassy.name as string}
-                        className="object-cover"
-                        loading="eager"
-                        width={120}
-                        height={120}
-                        unoptimized
-                    />
+                    {embassy.logo && (
+                        <Image
+                            src={embassy.logo as string}
+                            alt={embassy.name as string}
+                            className="object-cover"
+                            loading="eager"
+                            width={120}
+                            height={120}
+                            unoptimized
+                        />
+                    )}
                     <SmartText
-                        value={embassy.heading}
+                        value={embassy.heading || embassy.name}
                         as="h1"
                         className="text-xl sm:text-2xl md:text-4xl font-semibold text-center"
                         skeletonClassName="h-8 md:h-10 w-3/4 md:w-1/2"
                     />
-                    <Image
-                        src={embassy.right_heading_image as string}
-                        alt={embassy.name as string}
-                        className="object-cover"
-                        loading="eager"
-                        width={120}
-                        height={120}
-                        unoptimized
-                    />
+                    {embassy.right_heading_image && (
+                        <Image
+                            src={embassy.right_heading_image as string}
+                            alt={embassy.name as string}
+                            className="object-cover"
+                            loading="eager"
+                            width={120}
+                            height={120}
+                            unoptimized
+                        />
+                    )}
                 </div>
             </div>
         </>

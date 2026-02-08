@@ -1,7 +1,13 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { Embassy } from "@/lib/types";
 import { MdPunchClock } from "react-icons/md";
 
@@ -19,28 +25,34 @@ export default function WorkingTime({ embassy }: Props) {
                 </h2>
             </div>
 
-            <Dialog>
-                <DialogTrigger asChild>
-                    <div className="px-2 md:px-5 md:mt-5">
-                        <Button className="bg-website-dark hover:bg-website-menu-item max-sm:text-xs max-md:w-full">
-                            Показване
-                        </Button>
-                    </div>
-                </DialogTrigger>
+            {(embassy.working_time && (
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <div className="px-2 md:px-5 md:mt-5">
+                            <Button className="bg-website-dark hover:bg-website-menu-item max-sm:text-xs max-md:w-full">
+                                Показване
+                            </Button>
+                        </div>
+                    </DialogTrigger>
 
-                <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>{embassy.name}</DialogTitle>
-                    </DialogHeader>
+                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                            <DialogTitle>{embassy.name}</DialogTitle>
+                        </DialogHeader>
 
-                    <div
-                        className="prose prose-sm max-w-none"
-                        dangerouslySetInnerHTML={{
-                            __html: embassy.working_time as string,
-                        }}
-                    />
-                </DialogContent>
-            </Dialog>
+                        <div
+                            className="prose prose-sm max-w-none"
+                            dangerouslySetInnerHTML={{
+                                __html: embassy.working_time as string,
+                            }}
+                        />
+                    </DialogContent>
+                </Dialog>
+            )) || (
+                <div className="text-muted-foreground p-5">
+                    Не е посочено работно време
+                </div>
+            )}
 
             <div className="relative max-sm:text-xs p-2 md:p-5 max-h-10 overflow-hidden">
                 <div
