@@ -214,7 +214,10 @@ export type Company = {
     slug: string;
     excerpt: string;
     description: string;
-    imageUrl: string;
+    image_url: string;
+    offer_image_url: string;
+    ads_image_url: string;
+    bottom_image_url: string;
     your_location?: string;
     google_map?: string;
     company_slogan?: string;

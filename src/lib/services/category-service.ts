@@ -1,3 +1,4 @@
+import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { getDb } from "@/lib/db";
 import { Category } from "@/lib/types";
 import { ResultSetHeader } from "mysql2";
@@ -89,7 +90,7 @@ export async function getCategories(
         id: row.id,
         name: row.name,
         slug: row.slug,
-        imageUrl: row.image_url,
+        image_url: row.image_url,
         parent_id: row.parent_id,
         created_at: row.created_at,
         updated_at: row.updated_at,
@@ -108,7 +109,7 @@ export type CategoryNode = {
     name: string;
     slug: string;
     parent_id: number | null;
-    imageUrl: string;
+    image_url: string;
     created_at?: string;
     updated_at?: string;
     children: CategoryNode[];
@@ -138,7 +139,7 @@ export async function getCategoryTree(): Promise<CategoryNode[]> {
             name: row.name,
             slug: row.slug,
             parent_id: row.parent_id,
-            imageUrl: row.image_url,
+            image_url: row.image_url,
             created_at: row.created_at,
             updated_at: row.updated_at,
             children: [],
@@ -234,4 +235,70 @@ export async function deleteCategoriesBulk(ids: number[]): Promise<number> {
         console.error("Error bulk deleting categories:", err);
         throw err;
     }
+}
+
+import { RowDataPacket } from "mysql2";
+
+export async function getCategoryParentSlugs(
+    categoryId: number,
+): Promise<string[]> {
+    const slugs: string[] = [];
+
+    let currentId: number | null = categoryId;
+
+    while (currentId !== null) {
+        const [rows] = await getDb().execute<RowDataPacket[]>(
+            `
+            SELECT slug, parent_id
+            FROM categories
+            WHERE id = ?
+            LIMIT 1
+        `,
+            [currentId],
+        );
+
+        if (rows.length === 0) break;
+
+        const row = rows[0] as {
+            slug: string | null;
+            parent_id: number | null;
+        };
+
+        if (row.slug) {
+            slugs.push(row.slug);
+        }
+
+        currentId = row.parent_id;
+    }
+
+    return slugs.reverse();
+}
+
+export function buildCategoryBreadcrumbs(
+    categories: CategoryNode[],
+    path: string[],
+    baseHref: string,
+): BreadcrumbItem[] {
+    const breadcrumbs: BreadcrumbItem[] = [];
+    let currentCategories = categories;
+    let currentPath: string[] = [];
+
+    for (const slug of path) {
+        const category = currentCategories.find(
+            (c) => c.slug.toLowerCase() === slug.toLowerCase(),
+        );
+
+        if (!category) break;
+
+        currentPath.push(category.slug);
+
+        breadcrumbs.push({
+            name: category.name,
+            href: `${baseHref}/${currentPath.join("/")}`,
+        });
+
+        currentCategories = category.children;
+    }
+
+    return breadcrumbs;
 }

@@ -145,32 +145,3 @@ export function extractCoordinatesFromLocationLink(
 //                 your_location: directionsUrl,
 //             }));
 //         });
-
-export function buildCategoryBreadcrumbs(
-    categories: CategoryNode[],
-    path: string[],
-    baseHref: string,
-): BreadcrumbItem[] {
-    const breadcrumbs: BreadcrumbItem[] = [];
-    let currentCategories = categories;
-    let currentPath: string[] = [];
-
-    for (const slug of path) {
-        const category = currentCategories.find(
-            (c) => c.slug.toLowerCase() === slug.toLowerCase(),
-        );
-
-        if (!category) break;
-
-        currentPath.push(category.slug);
-
-        breadcrumbs.push({
-            name: category.name,
-            href: `${baseHref}/${currentPath.join("/")}`,
-        });
-
-        currentCategories = category.children;
-    }
-
-    return breadcrumbs;
-}

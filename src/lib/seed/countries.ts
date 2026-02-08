@@ -54,18 +54,18 @@ export async function scrapeCountriesFromHtml(
     for (const el of countryElements) {
         const name = $(el).find("h3").text().trim();
         const link = $(el).attr("href");
-        const imageUrl = $(el).find("img").attr("src");
+        const image_url = $(el).find("img").attr("src");
 
-        if (!name || !link || !imageUrl) continue;
+        if (!name || !link || !image_url) continue;
 
         const slug = COUNTRIES[name];
         const { folder, year, month, day } = await getTodayFolder(uploadsDir);
 
-        const ext = path.extname(imageUrl).split("?")[0] || ".webp";
+        const ext = path.extname(image_url).split("?")[0] || ".webp";
         const filename = `${slug}${ext}`;
         const filepath = path.join(folder, filename);
 
-        await downloadImage(imageUrl, filepath);
+        await downloadImage(image_url, filepath);
 
         const boxes = await scrapeBoxes(link, uploadsDir, COUNTRIES[name]);
 

@@ -12,7 +12,7 @@ type LinkType = "internal" | "external";
 export type CardEntity = {
     name: string;
     slug: string;
-    imageUrl?: string | null;
+    image_url?: string | null;
     excerpt?: string | null;
     linkType?: LinkType;
 };
@@ -70,7 +70,7 @@ export const CardItem: React.FC<CardItemProps> = ({
                 >
                     <div className="absolute top-0 left-0 w-full h-full">
                         <AppImage
-                            src={item.imageUrl || "/images/default.webp"}
+                            src={item.image_url || "/images/default.webp"}
                             alt={item.name}
                             fill
                             className={`object-cover transition-opacity duration-500`}
@@ -100,7 +100,7 @@ export const CardItem: React.FC<CardItemProps> = ({
                 {/* Image */}
                 <div className="relative w-40 md:w-50 shrink-0">
                     <AppImage
-                        src={item.imageUrl || "/images/default.webp"}
+                        src={item.image_url || "/images/default.webp"}
                         alt={item.name}
                         fill
                         className={`object-cover transition-opacity duration-500`}

@@ -44,7 +44,7 @@ export const columns: ColumnDef<Autobus>[] = [
     },
 
     {
-        accessorKey: "imageUrl",
+        accessorKey: "image_url",
         meta: { label: "Изображение" },
         header: "Изображение",
         cell: ({ row }) => {

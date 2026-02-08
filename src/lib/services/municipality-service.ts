@@ -99,7 +99,7 @@ export async function getMunicipalities(
 
     return rows.map((row) => ({
         ...row,
-        imageUrl: row.image_url,
+        image_url: row.image_url,
         city: row.city_id
             ? { id: row.city_id, name: row.city_name, slug: row.city_slug }
             : undefined,

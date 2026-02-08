@@ -83,7 +83,7 @@ export default async function NewAutobusPage({ params }: Params) {
                             Изображение
                         </h2>
                         <ImageUpload
-                            imageUrl={autobus.image_url as string}
+                            image_url={autobus.image_url as string}
                             url={
                                 autobus?.id
                                     ? `/api/autobuses/${autobus.id}/upload`

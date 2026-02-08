@@ -86,7 +86,7 @@ export default async function NewCity({ params }: Params) {
                             Изображение
                         </h2>
                         <ImageUpload
-                            imageUrl={category.image_url as string}
+                            image_url={category.image_url as string}
                             url={
                                 category?.id
                                     ? `/api/categories/${category.id}/upload`

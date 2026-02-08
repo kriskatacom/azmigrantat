@@ -83,7 +83,7 @@ export default async function cruisePage({ params }: Params) {
                             Изображение
                         </h2>
                         <ImageUpload
-                            imageUrl={cruise.image_url as string}
+                            image_url={cruise.image_url as string}
                             url={
                                 cruise?.id
                                     ? `/api/cruises/${cruise.id}/upload`

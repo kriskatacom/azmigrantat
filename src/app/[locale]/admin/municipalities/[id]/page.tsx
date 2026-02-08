@@ -89,7 +89,7 @@ export default async function NewCity({ params }: Params) {
                             Изображение
                         </h2>
                         <ImageUpload
-                            imageUrl={municipality.image_url as string}
+                            image_url={municipality.image_url as string}
                             url={
                                 municipality?.id
                                     ? `/api/municipalities/${municipality.id}/upload`

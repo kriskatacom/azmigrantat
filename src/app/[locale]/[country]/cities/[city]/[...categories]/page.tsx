@@ -5,6 +5,7 @@ import { MainNavbar } from "@/components/main-navbar";
 import PageHeader from "@/components/page-header";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 import {
+    buildCategoryBreadcrumbs,
     getCategories,
     getCategoryByColumn,
     getCategoryTree,
@@ -13,7 +14,6 @@ import { getCityByColumn } from "@/lib/services/city-service";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { Company } from "@/lib/types";
 import { getCompanies } from "@/lib/services/companies-service";
-import { buildCategoryBreadcrumbs } from "@/lib/utils";
 
 type PageProps = {
     params: Promise<{
@@ -52,7 +52,14 @@ export default async function Categories({ params }: PageProps) {
     });
 
     const companies: Company[] =
-        categories.length === 0 ? await getCompanies() : [];
+        categories.length === 0
+            ? await getCompanies({
+                  where: [
+                      { column: "city_id", value: city.id },
+                      { column: "category_id", value: category.id },
+                  ],
+              })
+            : [];
 
     const categoriesTree = await getCategoryTree();
 
@@ -110,7 +117,7 @@ export default async function Categories({ params }: PageProps) {
                     items={companies}
                     variant="standart"
                     columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
-                    hrefPrefix={`/${countrySlug}/cities/${citySlug}`}
+                    hrefPrefix={`/${countrySlug}/cities/${citySlug}/companies`}
                 />
             )}
         </main>

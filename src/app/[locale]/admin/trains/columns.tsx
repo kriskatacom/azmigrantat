@@ -44,7 +44,7 @@ export const columns: ColumnDef<Train>[] = [
     },
 
     {
-        accessorKey: "imageUrl",
+        accessorKey: "image_url",
         meta: { label: "Изображение" },
         header: "Изображение",
         cell: ({ row }) => {

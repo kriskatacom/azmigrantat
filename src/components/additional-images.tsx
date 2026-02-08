@@ -11,7 +11,7 @@ import { CircleProgress } from "@/components/circle-progress";
 import { ALLOWED_IMAGE_TYPES } from "@/lib/constants";
 
 type Props = {
-    imageUrls?: string[];
+    image_urls?: string[];
     url: string;
     isWithBaseName?: boolean;
     onUploadSuccess?: (urls: string[]) => void;
@@ -19,18 +19,18 @@ type Props = {
 };
 
 export default function ModernImageUpload({
-    imageUrls = [],
+    image_urls = [],
     url,
     isWithBaseName,
     onUploadSuccess,
     onDeleteSuccess,
 }: Props) {
-    const [images, setImages] = useState<string[]>(imageUrls);
+    const [images, setImages] = useState<string[]>(image_urls);
     const [files, setFiles] = useState<File[]>([]);
     const [progresses, setProgresses] = useState<number[]>([]);
     const [loading, setLoading] = useState(false);
     const [imageLoading, setImageLoading] = useState<boolean[]>(
-        imageUrls.map(() => true),
+        image_urls.map(() => true),
     );
     const [isDragging, setIsDragging] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -100,7 +100,7 @@ export default function ModernImageUpload({
     const removeImage = async (imgUrl: string, idx: number) => {
         setLoading(true);
         try {
-            await axios.delete(`${url}?imageUrl=${encodeURIComponent(imgUrl)}`);
+            await axios.delete(`${url}?image_url=${encodeURIComponent(imgUrl)}`);
             const updated = images.filter((i) => i !== imgUrl);
             setImages(updated);
             setImageLoading((prev) => prev.filter((_, i) => i !== idx));

@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { getCompanyByColumn } from "@/lib/services/companies-service";
 import NewCompanyForm from "@/app/[locale]/admin/companies/[id]/company-form";
 import { getCountries } from "@/lib/services/country-service";
-import AdditionalImages from "@/components/additional-images";
 import { getCategories } from "@/lib/services/category-service";
+
+export type ImageField = "image_url" | "offer_image_url" | "ads_image_url" | "bottom_image_url";
 
 type Props = {
     params: Promise<{
@@ -53,8 +54,6 @@ export default async function NewCompany({ params }: Params) {
     const countries = await getCountries();
     const categories = await getCategories();
 
-    const additionalImages = company?.additional_images ? JSON.parse(company.additional_images) : null;
-
     return (
         <div className="flex">
             <MainSidebarServer />
@@ -75,7 +74,7 @@ export default async function NewCompany({ params }: Params) {
                 <Breadcrumbs
                     items={[
                         { name: "Табло", href: "/admin/dashboard" },
-                        { name: "Държави", href: "/admin/companies" },
+                        { name: "Компании", href: "/admin/companies" },
                         {
                             name: `${id !== "new" ? "Редактиране" : "Добавяне"}`,
                         },
@@ -92,24 +91,58 @@ export default async function NewCompany({ params }: Params) {
                             Изображение
                         </h2>
                         <ImageUpload
-                            imageUrl={company.image_url as string}
+                            image_url={company.image_url as string}
+                            url={
+                                company?.id
+                                    ? `/api/companies/${company.id}/upload?image_to_update=image_url`
+                                    : ""
+                            }
+                            additionalFormData={[
+                                { name: "image_to_update", value: "image_url" },
+                            ]}
+                        />
+                        <h2 className="px-5 text-xl font-semibold">
+                            Изображение на обявите
+                        </h2>
+                        <ImageUpload
+                            image_url={company.offer_image_url as string}
                             url={
                                 company?.id
                                     ? `/api/companies/${company.id}/upload`
                                     : ""
                             }
+                            additionalFormData={[
+                                { name: "image_to_update", value: "offer_image_url" },
+                            ]}
                         />
-                        {company?.id && (
-                            <>
-                                <h2 className="px-5 text-xl font-semibold">
-                                    Допълнителни изображения
-                                </h2>
-                                <AdditionalImages
-                                    imageUrls={additionalImages ?? []}
-                                    url={`/api/companies/${company.id}/multiple-upload`}
-                                />
-                            </>
-                        )}
+                        <h2 className="px-5 text-xl font-semibold">
+                            Изображение на рекламите
+                        </h2>
+                        <ImageUpload
+                            image_url={company.ads_image_url as string}
+                            url={
+                                company?.id
+                                    ? `/api/companies/${company.id}/upload`
+                                    : ""
+                            }
+                            additionalFormData={[
+                                { name: "image_to_update", value: "ads_image_url" },
+                            ]}
+                        />
+                        <h2 className="px-5 text-xl font-semibold">
+                            Изображение на отдолу
+                        </h2>
+                        <ImageUpload
+                            image_url={company.bottom_image_url as string}
+                            url={
+                                company?.id
+                                    ? `/api/companies/${company.id}/upload`
+                                    : ""
+                            }
+                            additionalFormData={[
+                                { name: "image_to_update", value: "bottom_image_url" },
+                            ]}
+                        />
                     </>
                 )}
             </main>

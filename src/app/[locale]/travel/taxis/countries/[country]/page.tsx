@@ -104,7 +104,7 @@ export default async function TaxisByCountryPage({ params }: Props) {
         .map((country) => ({
             name: country.name,
             slug: country.slug,
-            imageUrl: country.image_url,
+            image_url: country.image_url,
         }));
 
     return (

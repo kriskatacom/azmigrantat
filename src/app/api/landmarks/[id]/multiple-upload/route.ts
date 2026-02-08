@@ -85,11 +85,11 @@ export async function DELETE(req: Request, { params }: Params) {
     }
 
     const { searchParams } = new URL(req.url);
-    const imageUrl = searchParams.get("imageUrl");
+    const image_url = searchParams.get("image_url");
 
-    if (!imageUrl) {
+    if (!image_url) {
         return NextResponse.json(
-            { error: "Липсва imageUrl за изтриване" },
+            { error: "Липсва image_url за изтриване" },
             { status: 400 },
         );
     }
@@ -119,11 +119,11 @@ export async function DELETE(req: Request, { params }: Params) {
 
         // Премахваме снимката
         const updatedImages = additionalImages.filter(
-            (img) => img !== imageUrl,
+            (img) => img !== image_url,
         );
 
         // Изтриваме файла от диска
-        await deleteUploadedFile(imageUrl);
+        await deleteUploadedFile(image_url);
 
         // Update в базата
         const landmarkUpdated = await updateLandmark(landmarkId, {

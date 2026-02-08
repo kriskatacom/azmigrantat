@@ -79,7 +79,7 @@ export default async function LandmarksPage({ params }: Props) {
     const mappedLandmarks: CardEntity[] = landmarks.map((landmark) => ({
         slug: landmark.slug!,
         name: landmark.name!,
-        imageUrl: landmark.image_url!,
+        image_url: landmark.image_url!,
         excerpt: landmark.excerpt!,
     }));
 

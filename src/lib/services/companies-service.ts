@@ -11,8 +11,10 @@ export async function createCompany(company: Company): Promise<Company> {
         slug,
         excerpt,
         description,
-        imageUrl,
-        additional_images,
+        image_url,
+        offer_image_url,
+        ads_image_url,
+        bottom_image_url,
         your_location,
         google_map,
         company_slogan,
@@ -28,8 +30,6 @@ export async function createCompany(company: Company): Promise<Company> {
             slug,
             excerpt,
             description,
-            image_url,
-            additional_images,
             your_location,
             google_map,
             company_slogan,
@@ -37,7 +37,7 @@ export async function createCompany(company: Company): Promise<Company> {
             country_id,
             city_id,
             category_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     try {
@@ -46,8 +46,6 @@ export async function createCompany(company: Company): Promise<Company> {
             slug,
             excerpt,
             description,
-            imageUrl,
-            additional_images ? JSON.stringify(additional_images) : null,
             your_location ?? null,
             google_map ?? null,
             company_slogan ?? null,
@@ -90,26 +88,7 @@ export async function getCompanies(
 
     const [rows] = await getDb().query<any[]>(sql, params);
 
-    return rows.map((row) => ({
-        id: row.id,
-        name: row.name,
-        slug: row.slug,
-        excerpt: row.excerpt,
-        description: row.description,
-        imageUrl: row.image_url,
-        offerImageUrl: row.offer_image_url,
-        adsImageUrl: row.ads_image_url,
-        bottomImageUrl: row.bottom_image_url,
-        your_location: row.your_location,
-        google_map: row.google_map,
-        company_slogan: row.company_slogan,
-        contacts_content: row.contacts_content,
-        country_id: row.country_id,
-        city_id: row.city_id,
-        category_id: row.category_id,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-    }));
+    return rows;
 }
 
 export async function getCompanyByColumn(
@@ -124,13 +103,7 @@ export async function getCompanyByColumn(
     const row = (rows as any[])[0];
     if (!row) return null;
 
-    return {
-        ...row,
-        imageUrl: row.image_url,
-        offerImageUrl: row.offer_image_url,
-        adsImageUrl: row.ads_image_url,
-        bottomImageUrl: row.bottom_image_url,
-    };
+    return row;
 }
 
 export async function updateCompany(

@@ -60,7 +60,7 @@ export default async function CityPage({ params }: PageProps) {
                         {
                             name: "Общински градове",
                             slug: `municipalities`,
-                            imageUrl: municipalitiesBanner?.image,
+                            image_url: municipalitiesBanner?.image,
                         },
                     ]}
                     variant="standart"

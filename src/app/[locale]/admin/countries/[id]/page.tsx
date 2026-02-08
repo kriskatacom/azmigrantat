@@ -85,7 +85,7 @@ export default async function NewCountry({ params }: Params) {
                             Изображение
                         </h2>
                         <ImageUpload
-                            imageUrl={country.image_url as string}
+                            image_url={country.image_url as string}
                             url={
                                 country?.id
                                     ? `/api/countries/${country.id}/upload`

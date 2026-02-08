@@ -44,7 +44,7 @@ export const columns: ColumnDef<Airline>[] = [
     },
 
     {
-        accessorKey: "imageUrl",
+        accessorKey: "image_url",
         meta: { label: "Изображение" },
         header: "Изображение",
         cell: ({ row }) => {

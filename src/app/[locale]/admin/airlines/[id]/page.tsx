@@ -80,7 +80,7 @@ export default async function NewAirlinePage({ params }: Params) {
                             Изображение
                         </h2>
                         <ImageUpload
-                            imageUrl={airline.image_url as string}
+                            image_url={airline.image_url as string}
                             url={
                                 airline?.id
                                     ? `/api/airlines/${airline.id}/upload`

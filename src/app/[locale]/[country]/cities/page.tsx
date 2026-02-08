@@ -92,7 +92,7 @@ export default async function CitiesPage({ params }: PageProps) {
     const mappedCities: CardEntity[] = cities.map((city) => ({
         slug: city.slug!,
         name: city.name!,
-        imageUrl: city.image_url!,
+        image_url: city.image_url!,
         excerpt: city.excerpt!,
     }));
 

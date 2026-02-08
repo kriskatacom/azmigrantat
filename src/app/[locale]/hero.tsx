@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 type HeroProps = {
     title: string;
     subtitle?: string;
-    imageUrl: string;
+    image_url: string;
     ctaText?: string;
     ctaLink?: string;
 };
@@ -12,7 +12,7 @@ type HeroProps = {
 export const Hero: React.FC<HeroProps> = ({
     title,
     subtitle,
-    imageUrl,
+    image_url,
     ctaText,
     ctaLink,
 }) => {
@@ -21,7 +21,7 @@ export const Hero: React.FC<HeroProps> = ({
             <div
                 className="absolute inset-0 bg-cover bg-center transition-transform duration-500 transform scale-100 hover:scale-105"
                 style={{
-                    backgroundImage: `url(${imageUrl || "/images/default.webp"})`,
+                    backgroundImage: `url(${image_url || "/images/default.webp"})`,
                 }}
             />
 

@@ -83,7 +83,7 @@ export default async function NewTrainPage({ params }: Params) {
                             Изображение
                         </h2>
                         <ImageUpload
-                            imageUrl={train.image_url as string}
+                            image_url={train.image_url as string}
                             url={
                                 train?.id
                                     ? `/api/trains/${train.id}/upload`

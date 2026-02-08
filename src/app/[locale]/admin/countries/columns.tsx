@@ -44,7 +44,7 @@ export const columns: ColumnDef<Country>[] = [
     },
 
     {
-        accessorKey: "imageUrl",
+        accessorKey: "image_url",
         meta: { label: "Изображение" },
         header: "Изображение",
         cell: ({ row }) => {

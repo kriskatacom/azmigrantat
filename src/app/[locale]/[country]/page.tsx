@@ -94,7 +94,7 @@ export default async function CountryPage({ params }: PageProps) {
         (countryElement) => ({
             slug: countryElement.slug!,
             name: countryElement.name!,
-            imageUrl: countryElement.image_url!,
+            image_url: countryElement.image_url!,
         }),
     );
 
@@ -104,7 +104,7 @@ export default async function CountryPage({ params }: PageProps) {
             <Hero
                 title={countryData.name}
                 excerpt={countryData.excerpt}
-                imageUrl={countryData.image_url as string}
+                image_url={countryData.image_url as string}
                 ctaText="Научете повече"
                 ctaLink="#learn-more"
             />

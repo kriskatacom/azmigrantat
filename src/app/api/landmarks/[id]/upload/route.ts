@@ -43,7 +43,7 @@ export async function DELETE(req: Request, { params }: Params) {
     const { id } = await params;
 
     try {
-        // 1️⃣ Взимаме държавата с текущото imageUrl
+        // 1️⃣ Взимаме държавата с текущото image_url
         const landmark = await getLandmarkByColumn("id", id);
 
         if (!landmark) {
@@ -58,7 +58,7 @@ export async function DELETE(req: Request, { params }: Params) {
             deleteUploadedFile(landmark.image_url);
         }
 
-        // 3️⃣ Нулираме imageUrl в базата
+        // 3️⃣ Нулираме image_url в базата
         const landmarkUpdated = await updateLandmark(Number(id), {
             image_url: null,
         });

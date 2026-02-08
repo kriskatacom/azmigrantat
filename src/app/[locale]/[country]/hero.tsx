@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 type HeroProps = {
     title?: string;
     excerpt?: string;
-    imageUrl?: string;
+    image_url?: string;
     ctaText?: string;
     ctaLink?: string;
     height?: number;
@@ -16,7 +16,7 @@ type HeroProps = {
 export const Hero: React.FC<HeroProps> = ({
     title,
     excerpt,
-    imageUrl,
+    image_url,
     ctaText,
     ctaLink,
     height = 600,
@@ -28,9 +28,9 @@ export const Hero: React.FC<HeroProps> = ({
             className="relative w-full flex items-center justify-center text-center overflow-hidden"
             style={{ height: `${height}px` }}
         >
-            {title && imageUrl && (
+            {title && image_url && (
                 <Image
-                    src={imageUrl}
+                    src={image_url}
                     alt={title}
                     fill
                     className={`object-cover transition-opacity duration-500 ${

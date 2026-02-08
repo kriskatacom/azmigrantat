@@ -95,7 +95,7 @@ export default async function TravelPage({ params }: PageProps) {
     const mappedCategories = TRAVEL_CATEGORY_SLUGS.map((key) => ({
         name: tCategories(key),
         slug: TRAVEL_CATEGORY_PATHS[key],
-        imageUrl: TRAVEL_CATEGORY_IMAGES[key],
+        image_url: TRAVEL_CATEGORY_IMAGES[key],
     }));
 
     return (

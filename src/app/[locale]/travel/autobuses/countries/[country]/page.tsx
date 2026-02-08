@@ -100,7 +100,7 @@ export default async function AutobusesByCountryPage({ params }: Props) {
         .map((city) => ({
             name: city.name,
             slug: city.slug,
-            imageUrl: city.image_url,
+            image_url: city.image_url,
         }));
 
     return (

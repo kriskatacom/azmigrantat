@@ -84,7 +84,7 @@ export default async function CruisesPage() {
         .map((cruise) => ({
             name: cruise.name,
             slug: cruise.website_url,
-            imageUrl: cruise.image_url,
+            image_url: cruise.image_url,
             linkType: "external",
         }));
 

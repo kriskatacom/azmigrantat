@@ -441,17 +441,17 @@ export const AIR_TICKETS_PAGE_ITEMS: CardEntity[] = [
     {
         name: "Летища",
         slug: "countries",
-        imageUrl: "/images/airports.png",
+        image_url: "/images/airports.png",
     },
     {
         name: "Авиокомпании",
         slug: "airlines",
-        imageUrl: "/images/airlines.png",
+        image_url: "/images/airlines.png",
     },
     {
         name: "Радар на полети",
         slug: "https://www.airnavradar.com/@52.52065,13.40978,z6",
-        imageUrl: "/images/flightradar.png",
+        image_url: "/images/flightradar.png",
         linkType: "external"
     },
 ];
@@ -460,13 +460,13 @@ export const AUTOBUSES_PAGE_ITEMS: CardEntity[] = [
     {
         name: "Търсене на автобусни спирки",
         slug: "https://www.flixbus.bg",
-        imageUrl: "/images/FlixBus.png",
+        image_url: "/images/FlixBus.png",
         linkType: "external",
     },
     {
         name: "Държави",
         slug: "countries",
-        imageUrl: "/images/autobuses.png",
+        image_url: "/images/autobuses.png",
     }
 ];
 
@@ -474,12 +474,12 @@ export const TRAINS_PAGE_ITEMS: CardEntity[] = [
     {
         name: "Държави",
         slug: "countries",
-        imageUrl: "/images/trains-transport.png",
+        image_url: "/images/trains-transport.png",
     },
     {
         name: "Търсене на ЖП гари",
         slug: "https://www.chronotrains.com/en?city=Sofia%2CBG",
-        imageUrl: "/images/chronotrains.png",
+        image_url: "/images/chronotrains.png",
         linkType: "external",
     },
 ];
@@ -488,18 +488,18 @@ export const TAXIS_PAGE_ITEMS: CardEntity[] = [
     {
         name: "Държави",
         slug: "countries",
-        imageUrl: "/images/taxi-companies.png",
+        image_url: "/images/taxi-companies.png",
     },
     {
         name: "Поръчка на таксита",
         slug: "https://www.taxi.eu/en",
-        imageUrl: "/images/taxieu.png",
+        image_url: "/images/taxieu.png",
         linkType: "external",
     },
     {
         name: "Частни таксита",
         slug: "private-taxis",
-        imageUrl: "/images/private-taxis.png",
+        image_url: "/images/private-taxis.png",
     },
 ];
 
@@ -507,12 +507,12 @@ export const CRUISES_PAGE_ITEMS: CardEntity[] = [
     {
         name: "Круизни компании",
         slug: "cruise-companies",
-        imageUrl: "/images/cruise-companies.png",
+        image_url: "/images/cruise-companies.png",
     },
     {
         name: "Търсене на пристанища",
         slug: "https://portguide.org",
-        imageUrl: "/images/portguide.png",
+        image_url: "/images/portguide.png",
         linkType: "external",
     },
 ];
@@ -531,26 +531,26 @@ export const HOME_ELEMENTS: CardEntity[] = [
     {
         name: "Пътуване",
         slug: "travel",
-        imageUrl: "/images/travel.png"
+        image_url: "/images/travel.png"
     },
     {
         name: "Услуги",
         slug: "services",
-        imageUrl: "/images/services.png"
+        image_url: "/images/services.png"
     },
     {
         name: "Търся/предлагам работа",
         slug: "looking-offering-job",
-        imageUrl: "/images/looking-offering-job.png"
+        image_url: "/images/looking-offering-job.png"
     },
     {
         name: "Обяви",
         slug: "jobs",
-        imageUrl: "/images/jobs.png"
+        image_url: "/images/jobs.png"
     },
     {
         name: "Мусика",
         slug: "music",
-        imageUrl: "/images/music.png"
+        image_url: "/images/music.png"
     }
 ];

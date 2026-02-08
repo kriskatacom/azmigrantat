@@ -83,7 +83,7 @@ export default async function Airports() {
         .map((country) => ({
             name: country.name!,
             slug: country.slug!,
-            imageUrl: country.image_url,
+            image_url: country.image_url,
         }));
 
     return (

@@ -20,7 +20,7 @@ export default async function HomePage() {
     const mappedCountries: CardEntity[] = countries.map((country) => ({
         slug: country.slug!,
         name: country.name!,
-        imageUrl: country.image_url!,
+        image_url: country.image_url!,
         excerpt: country.excerpt!,
     }));
 
@@ -30,7 +30,7 @@ export default async function HomePage() {
             <Hero
                 title={t("title")}
                 subtitle={t("subtitle")}
-                imageUrl="/images/azmigrantat-hero-background.webp"
+                image_url="/images/azmigrantat-hero-background.webp"
                 ctaText={t("cta")}
                 ctaLink="#countries"
             />

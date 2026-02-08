@@ -83,7 +83,7 @@ export default async function NewTaxiPage({ params }: Params) {
                             Изображение
                         </h2>
                         <ImageUpload
-                            imageUrl={taxi.image_url as string}
+                            image_url={taxi.image_url as string}
                             url={
                                 taxi?.id
                                     ? `/api/taxis/${taxi.id}/upload`

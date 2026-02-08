@@ -110,7 +110,7 @@ export default async function Airports({ params }: Props) {
         .map((train) => ({
             name: train.name,
             slug: train.website_url,
-            imageUrl: train.image_url,
+            image_url: train.image_url,
             linkType: "external",
         }));
 

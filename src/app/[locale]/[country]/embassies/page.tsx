@@ -79,7 +79,7 @@ export default async function EmbassiesPage({ params }: Props) {
     const mappedEmbassies: CardEntity[] = embassies.map((embassy) => ({
         slug: embassy.slug!,
         name: embassy.name!,
-        imageUrl: embassy.image_url!,
+        image_url: embassy.image_url!,
         excerpt: embassy.excerpt!,
     }));
 

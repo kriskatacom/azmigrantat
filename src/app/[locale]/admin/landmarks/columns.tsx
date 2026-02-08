@@ -48,7 +48,7 @@ export const columns: ColumnDef<LandmarkWithCountry>[] = [
     },
 
     {
-        accessorKey: "imageUrl",
+        accessorKey: "image_url",
         meta: { label: "Изображение" },
         header: "Изображение",
         cell: ({ row }) => {

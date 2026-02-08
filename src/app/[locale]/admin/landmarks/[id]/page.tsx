@@ -82,7 +82,7 @@ export default async function NewCountry({ params }: Params) {
                     landmark?.id &&
                     <>
                         <h2 className="px-5 text-xl font-semibold">Изображение</h2>
-                        <ImageUpload imageUrl={landmark.image_url as string} url={landmark?.id ? `/api/landmarks/${landmark.id}/upload` : ""} />
+                        <ImageUpload image_url={landmark.image_url as string} url={landmark?.id ? `/api/landmarks/${landmark.id}/upload` : ""} />
                     </>
                 }
                 {
@@ -90,7 +90,7 @@ export default async function NewCountry({ params }: Params) {
                     <>
                         <h2 className="px-5 text-xl font-semibold">Допълнителни изображения</h2>
                         <AdditionalImages
-                            imageUrls={additionalImages ?? []}
+                            image_urls={additionalImages ?? []}
                             url={`/api/landmarks/${landmark.id}/multiple-upload`}
                         />
                     </>

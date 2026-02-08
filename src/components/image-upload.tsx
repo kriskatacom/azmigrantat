@@ -8,28 +8,34 @@ import { FaSave, FaTimes } from "react-icons/fa";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+export type AdditionalFormData = {
+    name: string;
+    value: string;
+};
+
 type Props = {
-    imageUrl?: string;
+    image_url?: string;
     url: string;
-    deleteImageUrl?: string;
+    deleteimage_url?: string;
     onUploadSuccess?: Function;
     onDeleteSuccess?: Function;
+    additionalFormData?: AdditionalFormData[];
 };
 
 export default function ImageUpload(props: Props) {
     const router = useRouter();
     const [progress, setProgress] = useState(0);
     const [file, setFile] = useState<File | null>(null);
-    const [imageUrl, setImageUrl] = useState<string | null>(
-        props.imageUrl || null
+    const [image_url, setImageUrl] = useState<string | null>(
+        props.image_url || null,
     );
     const [loading, setLoading] = useState(false);
     const [imageLoading, setImageLoading] = useState(true);
-    const [isShow, setIsShow] = useState(!props.imageUrl);
+    const [isShow, setIsShow] = useState(!props.image_url);
 
     useEffect(() => {
-        if (imageUrl) setImageLoading(true);
-    }, [imageUrl]);
+        if (image_url) setImageLoading(true);
+    }, [image_url]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0] || null;
@@ -45,6 +51,12 @@ export default function ImageUpload(props: Props) {
         const formData = new FormData();
         formData.append("image", file);
 
+        if (props.additionalFormData && props.additionalFormData.length > 0) {
+            props.additionalFormData.forEach((item) => {
+                formData.append(item.name, item.value);
+            });
+        }
+
         try {
             setLoading(true);
             setProgress(0);
@@ -54,7 +66,7 @@ export default function ImageUpload(props: Props) {
                 onUploadProgress: (progressEvent) => {
                     if (!progressEvent.total) return;
                     const percent = Math.round(
-                        (progressEvent.loaded * 100) / progressEvent.total
+                        (progressEvent.loaded * 100) / progressEvent.total,
                     );
                     setProgress(percent);
                 },
@@ -75,7 +87,16 @@ export default function ImageUpload(props: Props) {
         setLoading(true);
 
         try {
-            const res = await axios.delete(props.deleteImageUrl ?? props.url);
+            const dataToSend = props.additionalFormData?.reduce(
+                (acc, field) => {
+                    acc[field.name] = field.value;
+                    return acc;
+                },
+                {} as Record<string, any>,
+            );
+            const res = await axios.delete(props.deleteimage_url ?? props.url, {
+                data: dataToSend
+            });
             if (res.data.success) {
                 console.log("Снимката е изтрита успешно!");
                 props.onDeleteSuccess && props.onDeleteSuccess();
@@ -94,7 +115,7 @@ export default function ImageUpload(props: Props) {
     return (
         <div className="relative max-w-sm m-5 rounded-md space-y-5 duration-300">
             {/* Progress Bar */}
-            {progress > 0 && isShow && !imageUrl && (
+            {progress > 0 && isShow && !image_url && (
                 <div className="w-full h-3 rounded overflow-hidden">
                     <div
                         className="bg-primary h-full transition-all duration-300"
@@ -104,7 +125,7 @@ export default function ImageUpload(props: Props) {
             )}
 
             {/* Uploaded Image */}
-            {imageUrl && (
+            {image_url && (
                 <div className="relative w-full h-80 rounded-lg overflow-hidden border">
                     {imageLoading && (
                         <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -113,7 +134,7 @@ export default function ImageUpload(props: Props) {
                     )}
 
                     <Image
-                        src={imageUrl}
+                        src={image_url}
                         alt="Uploaded"
                         fill
                         className={`w-full h-full object-cover transition-opacity duration-500 ${
@@ -165,7 +186,11 @@ export default function ImageUpload(props: Props) {
                         size={"xl"}
                         disabled={!file || loading}
                     >
-                        {loading ? <Loader2 className="repeat-infinite animate-spin" /> : <FaSave />}
+                        {loading ? (
+                            <Loader2 className="repeat-infinite animate-spin" />
+                        ) : (
+                            <FaSave />
+                        )}
                         <span>
                             {loading
                                 ? "Качване..."

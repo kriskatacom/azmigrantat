@@ -131,7 +131,7 @@ export async function POST(req: Request) {
             country_id: data.country_id,
             city_id: data.city_id,
             category_id: data.category_id,
-            imageUrl: "",
+            image_url: "",
             id: 0,
         });
 

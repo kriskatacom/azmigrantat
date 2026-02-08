@@ -85,7 +85,7 @@ export default async function NewCountry({ params }: Params) {
                                 Изображение
                             </h2>
                             <ImageUpload
-                                imageUrl={embassy.image_url as string}
+                                image_url={embassy.image_url as string}
                                 url={
                                     embassy?.id
                                         ? `/api/embassies/${embassy.id}/upload`
@@ -100,7 +100,7 @@ export default async function NewCountry({ params }: Params) {
                                 Лого на посолството
                             </h2>
                             <ImageUpload
-                                imageUrl={
+                                image_url={
                                     embassy.logo as string
                                 }
                                 url={
@@ -117,7 +117,7 @@ export default async function NewCountry({ params }: Params) {
                                 Дясна снимка на заглавието на посолството
                             </h2>
                             <ImageUpload
-                                imageUrl={
+                                image_url={
                                     embassy.right_heading_image as string
                                 }
                                 url={

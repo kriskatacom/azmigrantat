@@ -36,7 +36,11 @@ type Params = {
 
 type FormErrors = Partial<Record<keyof NewCompany, string>>;
 
-export default function NewCompanyForm({ company, countries, categories }: Params) {
+export default function NewCompanyForm({
+    company,
+    countries,
+    categories,
+}: Params) {
     const router = useRouter();
     const [formData, setFormData] = useState<NewCompany>({
         id: company?.id ?? null,
@@ -149,7 +153,7 @@ export default function NewCompanyForm({ company, countries, categories }: Param
 
         setFormData((prev) => ({
             ...prev,
-            googleMap: src ?? value,
+            google_map: src ?? value,
         }));
     };
 
@@ -242,7 +246,7 @@ export default function NewCompanyForm({ company, countries, categories }: Param
             </div>
 
             <div>
-                <Label className="mb-1" htmlFor="company_slogan">
+                <Label className="mb-1" htmlFor="google_map">
                     Google Map
                 </Label>
                 <Input
@@ -290,29 +294,36 @@ export default function NewCompanyForm({ company, countries, categories }: Param
                         {errors.your_location}
                     </p>
                 )}
-                {formData.your_location && isValidUrl(formData.your_location) && (
-                    <div className="text-lg mt-3 space-x-2">
-                        <span>Вашето местоположение:</span>
-                        <a
-                            href={formData.your_location}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline"
-                        >
-                            Упътване
-                        </a>
-                    </div>
-                )}
+                {formData.your_location &&
+                    isValidUrl(formData.your_location) && (
+                        <div className="text-lg mt-3 space-x-2">
+                            <span>Вашето местоположение:</span>
+                            <a
+                                href={formData.your_location}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline"
+                            >
+                                Упътване
+                            </a>
+                        </div>
+                    )}
             </div>
 
             <div className="flex items-center gap-5">
                 <RelationForm
                     items={countries.map((country) => {
-                        return { id: country.id ?? "", label: country.name ?? "" };
+                        return {
+                            id: country.id ?? "",
+                            label: country.name ?? "",
+                        };
                     })}
                     value={formData.country_id}
                     onChange={(id) =>
-                        setFormData((prev) => ({ ...prev, country_id: id as number }))
+                        setFormData((prev) => ({
+                            ...prev,
+                            country_id: id as number,
+                        }))
                     }
                     placeholder="Изберете държава"
                     searchPlaceholder="Търсене на държава"
