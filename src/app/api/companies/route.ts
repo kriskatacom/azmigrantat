@@ -5,7 +5,7 @@ import {
     getCompanyByColumn,
     updateCompany,
 } from "@/lib/services/companies-service";
-import { NewCompany } from "@/app/[locale]/admin/companies/[id]/company-form";
+import { CreateCompanyInput } from "@/app/[locale]/admin/companies/[id]/company-form";
 import { getCities } from "@/lib/services/city-service";
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -24,7 +24,7 @@ async function makeUniqueSlug(slug: string) {
 
 export async function POST(req: Request) {
     try {
-        const data: NewCompany = await req.json();
+        const data: CreateCompanyInput = await req.json();
 
         if (process.env.NODE_ENV === "development") {
             await delay(100);
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
 
         /**
          * =========================
-         * UPDATE CITY
+         * UPDATE COMPANY
          * =========================
          */
         if (data.id) {
@@ -54,7 +54,6 @@ export async function POST(req: Request) {
                 );
             }
 
-            // Проверка дали slug е уникален при update
             if (!data.slug?.trim()) {
                 data.slug = generateSlug(data.name);
             }
@@ -95,7 +94,7 @@ export async function POST(req: Request) {
 
         /**
          * =========================
-         * CREATE CITY
+         * CREATE COMPANY
          * =========================
          */
 
@@ -119,21 +118,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const company = await createCompany({
-            name: data.name,
-            slug: data.slug,
-            excerpt: data.excerpt,
-            description: data.description,
-            company_slogan: data.company_slogan,
-            google_map: data.google_map,
-            your_location: data.your_location,
-            contacts_content: data.contacts_content,
-            country_id: data.country_id,
-            city_id: data.city_id,
-            category_id: data.category_id,
-            image_url: "",
-            id: 0,
-        });
+        const company = await createCompany(data);
 
         return NextResponse.json(
             { success: true, cityId: company.id },

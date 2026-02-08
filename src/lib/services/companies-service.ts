@@ -1,20 +1,19 @@
+import { ResultSetHeader } from "mysql2";
 import { Company } from "@/lib/types";
 import { getDb } from "@/lib/db";
-import { ResultSetHeader } from "mysql2";
+import { CreateCompanyInput } from "@/app/[locale]/admin/companies/[id]/company-form";
 
 /**
  * Създава нова компания
  */
-export async function createCompany(company: Company): Promise<Company> {
+export async function createCompany(
+    company: CreateCompanyInput,
+): Promise<Company> {
     const {
         name,
         slug,
         excerpt,
         description,
-        image_url,
-        offer_image_url,
-        ads_image_url,
-        bottom_image_url,
         your_location,
         google_map,
         company_slogan,
@@ -55,7 +54,7 @@ export async function createCompany(company: Company): Promise<Company> {
             category_id ?? null,
         ]);
 
-        return await getCompanyByColumn("id", result.insertId) as Company;
+        return (await getCompanyByColumn("id", result.insertId)) as Company;
     } catch (err) {
         console.error("Error creating company:", err);
         throw err;

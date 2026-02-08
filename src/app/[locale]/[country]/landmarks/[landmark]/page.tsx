@@ -6,12 +6,11 @@ import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import Hero from "@/app/[locale]/[country]/landmarks/[landmark]/hero";
 import { getLandmarkByColumn } from "@/lib/services/landmark-service";
 import { absoluteUrl, websiteName } from "@/lib/utils";
-import Map from "./map";
-import Description from "./description";
-import ContactsDescription from "./contacts-description";
-import WorkingTime from "./working-time";
-import Tickets from "./tickets";
-import DisplayGallery from "./display-gallery";
+import Description from "@/app/[locale]/[country]/landmarks/[landmark]/description";
+import WorkingTime from "@/app/[locale]/[country]/landmarks/[landmark]/working-time";
+import Tickets from "@/app/[locale]/[country]/landmarks/[landmark]/tickets";
+import DisplayGallery from "@/app/[locale]/[country]/landmarks/[landmark]/display-gallery";
+import Map from "@/components/map";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const countrySlug = (await params).country;
@@ -127,7 +126,10 @@ export default async function EmbassiesPage({ params }: Props) {
                     <Tickets landmark={landmark} />
                 </div>
 
-                <Map landmark={landmark} />
+                <Map
+                    google_map={landmark.google_map}
+                    your_location={landmark.your_location}
+                />
             </main>
         </>
     );

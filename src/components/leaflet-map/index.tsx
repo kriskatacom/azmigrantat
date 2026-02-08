@@ -76,7 +76,10 @@ const LeafletMap = ({ center, zoom = 6, markers = [] }: LeafletMapProps) => {
             (m) =>
                 m.label &&
                 m.label.toLowerCase().includes(searchTerm.toLowerCase()) &&
-                isValidCoordinates(m.coordinates),
+                isValidCoordinates({
+                    latitude: Number(m.coordinates.latitude),
+                    longitude: Number(m.coordinates.longitude),
+                }),
         );
     }, [markers, searchTerm]);
 

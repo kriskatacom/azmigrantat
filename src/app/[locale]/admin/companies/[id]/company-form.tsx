@@ -13,7 +13,7 @@ import RichTextEditor from "@/components/rich-text-editor";
 import { extractIframeSrc } from "@/lib/utils";
 import { RelationForm } from "@/components/relation-form";
 
-export interface NewCompany {
+export interface CreateCompanyInput {
     id: number | null;
     name: string;
     slug: string;
@@ -34,7 +34,7 @@ type Params = {
     categories: Category[];
 };
 
-type FormErrors = Partial<Record<keyof NewCompany, string>>;
+type FormErrors = Partial<Record<keyof CreateCompanyInput, string>>;
 
 export default function NewCompanyForm({
     company,
@@ -42,7 +42,7 @@ export default function NewCompanyForm({
     categories,
 }: Params) {
     const router = useRouter();
-    const [formData, setFormData] = useState<NewCompany>({
+    const [formData, setFormData] = useState<CreateCompanyInput>({
         id: company?.id ?? null,
         name: company?.name ?? "",
         slug: company?.slug ?? "",
@@ -62,7 +62,7 @@ export default function NewCompanyForm({
     const [cities, setCities] = useState<City[]>([]);
     const [isCitiesLoading, setIsCitiesLoading] = useState(false);
 
-    const handleChange = (field: keyof NewCompany, value: string) => {
+    const handleChange = (field: keyof CreateCompanyInput, value: string) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
     };
 

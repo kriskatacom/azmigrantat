@@ -7,7 +7,7 @@ import { AIR_TICKETS_PAGE_ITEMS } from "@/lib/constants";
 import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardGrid } from "@/components/card-grid";
 import { getAirports } from "@/lib/services/airports-service";
-import { Airport } from "@/lib/types";
+import { Airport, Coordinates } from "@/lib/types";
 import { MapMarker } from "@/components/leaflet-map";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 
@@ -71,31 +71,21 @@ export default async function AirTickets() {
     ];
 
     const airports = await getAirports();
+    
     const mappedAirports: MapMarker[] = airports
         .filter(
-            (
-                airport,
-            ): airport is Airport & {
-                latitude: number;
-                longitude: number;
-                description: string;
-                image_url: string;
-            } =>
-                airport.latitude !== undefined &&
-                airport.longitude !== undefined &&
-                airport.description !== undefined &&
-                airport.image_url !== undefined,
+            (x): x is Airport & { coordinates: Coordinates } =>
+                x.coordinates !== null,
         )
-        .map((airport) => ({
-            id: airport.id,
-            label: airport.name,
-            lat: airport.latitude,
-            lng: airport.longitude,
-            description: airport.description,
-            image: airport.image_url,
-            websiteUrl: airport.website_url,
+        .map((x) => ({
+            id: x.id,
+            coordinates: x.coordinates,
+            label: x.name,
+            description: x.description,
+            image: x.image_url,
+            websiteUrl: x.website_url,
         }));
-
+        
     return (
         <>
             <MainNavbar />

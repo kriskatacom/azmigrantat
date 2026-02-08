@@ -47,14 +47,12 @@ export default async function Categories({ searchParams }: CityProps) {
         });
 
         categories = await getCategories({
-            column: "parent_id",
-            value: parentCategory.id,
+            where: { parent_id: parentCategory.id }
         });
     } else {
         if (show === "main-categories") {
             categories = await getCategories({
-                column: "parent_id",
-                value: null,
+                where: { parent_id: null }
             });
 
             breadcrumbs.push({

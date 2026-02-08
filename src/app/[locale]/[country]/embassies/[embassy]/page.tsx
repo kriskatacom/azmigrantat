@@ -6,11 +6,11 @@ import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { getEmbassyByColumn } from "@/lib/services/embassy-service";
 import { absoluteUrl, websiteName } from "@/lib/utils";
 import Hero from "@/app/[locale]/[country]/embassies/[embassy]/hero";
-import Map from "@/app/[locale]/[country]/embassies/[embassy]/map";
 import Description from "@/app/[locale]/[country]/embassies/[embassy]/description";
 import ContactsDescription from "@/app/[locale]/[country]/embassies/[embassy]/contacts-description";
 import WorkingTime from "@/app/[locale]/[country]/embassies/[embassy]/working-time";
 import Emergencies from "@/app/[locale]/[country]/embassies/[embassy]/emergencies";
+import Map from "@/components/map";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const countrySlug = (await params).country;
@@ -117,7 +117,10 @@ export default async function EmbassiesPage({ params }: Props) {
                     <WorkingTime embassy={embassy} />
                     <Emergencies embassy={embassy} />
                 </div>
-                <Map embassy={embassy} />
+                <Map
+                    google_map={embassy.google_map}
+                    your_location={embassy.your_location}
+                />
             </main>
         </>
     );

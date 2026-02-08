@@ -13,7 +13,11 @@ interface ClientPageProps {
 
 const ClientPage: React.FC<ClientPageProps> = ({ markers }) => {
     return (
-        <LeafletMap center={[42.7339, 25.4858]} zoom={7} markers={markers} />
+        <LeafletMap
+            center={{ latitude: 42.7339, longitude: 25.4858 }}
+            zoom={7}
+            markers={markers}
+        />
     );
 };
 
