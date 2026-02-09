@@ -26,8 +26,14 @@ type PageProps = {
     }>;
 };
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-    const { country: countrySlug, city: citySlug, company: companySlug } = await params;
+export async function generateMetadata({
+    params,
+}: PageProps): Promise<Metadata> {
+    const {
+        country: countrySlug,
+        city: citySlug,
+        company: companySlug,
+    } = await params;
 
     // Проверка за country
     const country = await getCountryByColumn("slug", countrySlug);
@@ -49,11 +55,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     const companyName = company.name;
     const title = `${companyName} – ${city.name}, ${country.name}`;
-    const description =
-        `Информация за ${companyName} в ${city.name}, ${country.name} – контакти, услуги и полезни указания.`;
+    const description = `Информация за ${companyName} в ${city.name}, ${country.name} – контакти, услуги и полезни указания.`;
 
     const url = `/${country.slug}/cities/${city.slug}/${company.slug}`;
-    const image = company.image_url ? absoluteUrl(company.image_url) : undefined;
+    const image = company.image_url
+        ? absoluteUrl(company.image_url)
+        : undefined;
 
     return {
         title: websiteName(title),
@@ -166,16 +173,15 @@ export default async function CompanyPage({ params }: PageProps) {
                     className="rounded-lg overflow-hidden"
                 />
             </div>
-            <div className="relative w-full h-80 lg:h-100 rounded overflow-hidden">
-                <AppImage
+            <div className="relative w-full overflow-hidden rounded">
+                <img
                     src={company.bottom_image_url}
                     alt={company.name ?? "section image"}
-                    fill
-                    className="object-cover"
+                    className="absolute inset-0 w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-black/50 z-10" />
-                <div className="absolute inset-0 z-20">
-                    <div className="container mx-auto h-full flex items-center max-lg:p-5 overflow-auto">
+                <div className="relative z-20">
+                    <div className="container mx-auto py-16 max-lg:p-5">
                         {company.excerpt && (
                             <div
                                 className="text-white space-y-5 text-lg"

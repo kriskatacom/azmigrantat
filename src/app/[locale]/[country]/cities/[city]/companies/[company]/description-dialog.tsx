@@ -1,10 +1,4 @@
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
+import { AppDialog } from "@/components/app-dialog";
 import { Button } from "@/components/ui/button";
 
 interface DescriptionDialogProps {
@@ -19,23 +13,24 @@ export function DescriptionDialog({
     triggerText = "Научете повече за нас",
 }: DescriptionDialogProps) {
     return (
-        <Dialog>
-            <DialogTrigger asChild>
-                <Button variant={"default"} size={"xl"}>
+        <AppDialog
+            title={title}
+            size="lg"
+            trigger={
+                <Button variant="default" size="xl">
                     {triggerText}
                 </Button>
-            </DialogTrigger>
-
-            <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                    <DialogTitle>{title}</DialogTitle>
-                </DialogHeader>
-
-                <div
-                    className="text-editor max-h-[60vh] overflow-y-auto text-justify"
-                    dangerouslySetInnerHTML={{ __html: description }}
-                />
-            </DialogContent>
-        </Dialog>
+            }
+            footer={
+                <Button variant="outline" size="xl">
+                    Затваряне
+                </Button>
+            }
+        >
+            <div
+                className="text-editor"
+                dangerouslySetInnerHTML={{ __html: description }}
+            />
+        </AppDialog>
     );
 }

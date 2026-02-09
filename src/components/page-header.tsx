@@ -44,7 +44,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
                 )}
 
                 <div className="text-white text-lg flex justify-center">
-                    <Breadcrumbs items={breadcrumbs} classes="justify-center pt-0" />
+                    <Breadcrumbs items={breadcrumbs} classes="justify-center" />
                 </div>
             </div>
         </>
