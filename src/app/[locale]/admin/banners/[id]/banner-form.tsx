@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import {
     Form,
     FormControl,
+    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -55,7 +56,8 @@ export function BannerForm({ banner, isEdit }: BannerFormProps) {
             link: banner?.link ?? "",
             href: banner?.href ?? "",
             description: banner?.description ?? "",
-            button_text: banner?.button_text ?? "",
+            button_text: banner?.button_text ?? "Информация",
+            group_key: banner?.group_key,
             height: Number(banner?.height ?? 400),
             show_name: Boolean(banner?.show_name ?? true),
             show_description: Boolean(banner?.show_description ?? true),
@@ -84,7 +86,9 @@ export function BannerForm({ banner, isEdit }: BannerFormProps) {
                     : "Банерът беше създаден успешно!",
             );
 
-            if (submitAction === "save_redirect") {
+            if (!banner?.id && data.banner) {
+                router.push(`/admin/banners/${data.banner.id}`);
+            } else if (submitAction === "save_redirect") {
                 router.push("/admin/banners");
             }
         } catch (err) {
@@ -134,13 +138,18 @@ export function BannerForm({ banner, isEdit }: BannerFormProps) {
                                 name="link"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>Линк</FormLabel>
+                                        <FormLabel>Вътрешна връзка</FormLabel>
                                         <FormControl>
                                             <Input
-                                                placeholder="https://example.com"
+                                                placeholder="/travel"
                                                 {...field}
                                             />
                                         </FormControl>
+                                        <FormDescription>
+                                            Поставете линк към вътрешната
+                                            страница на сайта, на която искате
+                                            да се показва този банер.
+                                        </FormDescription>
                                         <FormMessage />
                                     </FormItem>
                                 )}
@@ -162,6 +171,11 @@ export function BannerForm({ banner, isEdit }: BannerFormProps) {
                                             />
                                         </FormControl>
                                         <FormMessage />
+                                        <FormDescription>
+                                            Поставете линк към страницата, на
+                                            която искате да отвежда банера при
+                                            кликване.
+                                        </FormDescription>
                                     </FormItem>
                                 )}
                             />
@@ -172,9 +186,7 @@ export function BannerForm({ banner, isEdit }: BannerFormProps) {
                                 name="button_text"
                                 render={({ field }) => (
                                     <FormItem>
-                                        <FormLabel>
-                                            Текст на бутона
-                                        </FormLabel>
+                                        <FormLabel>Текст на бутона</FormLabel>
                                         <FormControl>
                                             <Input
                                                 placeholder="Информация"
@@ -204,6 +216,7 @@ export function BannerForm({ banner, isEdit }: BannerFormProps) {
                                     </FormItem>
                                 )}
                             />
+
                             {/* Height */}
                             <Controller
                                 name="height"
@@ -232,60 +245,97 @@ export function BannerForm({ banner, isEdit }: BannerFormProps) {
                                     </FormItem>
                                 )}
                             />
-                            {/* Content Place */}
-                            <FormField
-                                control={form.control}
-                                name="content_place"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>
-                                            Позиция на съдържанието
-                                        </FormLabel>
-                                        <Select
-                                            onValueChange={field.onChange}
-                                            defaultValue={field.value}
-                                        >
-                                            <FormControl>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Избери позиция" />
-                                                </SelectTrigger>
-                                            </FormControl>
-                                            <SelectContent>
-                                                <SelectItem value="top_left">
-                                                    Горе ляво
-                                                </SelectItem>
-                                                <SelectItem value="top_center">
-                                                    Горе център
-                                                </SelectItem>
-                                                <SelectItem value="top_right">
-                                                    Горе дясно
-                                                </SelectItem>
-                                                <SelectItem value="center_left">
-                                                    Център ляво
-                                                </SelectItem>
-                                                <SelectItem value="center_center">
-                                                    Център
-                                                </SelectItem>
-                                                <SelectItem value="center_right">
-                                                    Център дясно
-                                                </SelectItem>
-                                                <SelectItem value="bottom_left">
-                                                    Долу ляво
-                                                </SelectItem>
-                                                <SelectItem value="bottom_center">
-                                                    Долу център
-                                                </SelectItem>
-                                                <SelectItem value="bottom_right">
-                                                    Долу дясно
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
+
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {/* Content Place */}
+                                <FormField
+                                    control={form.control}
+                                    name="content_place"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                Позиция на съдържанието
+                                            </FormLabel>
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                defaultValue={field.value}
+                                            >
+                                                <FormControl className="w-full">
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Избери позиция" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="top_left">
+                                                        Горе ляво
+                                                    </SelectItem>
+                                                    <SelectItem value="top_center">
+                                                        Горе център
+                                                    </SelectItem>
+                                                    <SelectItem value="top_right">
+                                                        Горе дясно
+                                                    </SelectItem>
+                                                    <SelectItem value="center_left">
+                                                        Център ляво
+                                                    </SelectItem>
+                                                    <SelectItem value="center_center">
+                                                        Център
+                                                    </SelectItem>
+                                                    <SelectItem value="center_right">
+                                                        Център дясно
+                                                    </SelectItem>
+                                                    <SelectItem value="bottom_left">
+                                                        Долу ляво
+                                                    </SelectItem>
+                                                    <SelectItem value="bottom_center">
+                                                        Долу център
+                                                    </SelectItem>
+                                                    <SelectItem value="bottom_right">
+                                                        Долу дясно
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {/* Group */}
+                                <FormField
+                                    control={form.control}
+                                    name="group_key"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>
+                                                Изберете група
+                                            </FormLabel>
+                                            <Select
+                                                onValueChange={field.onChange}
+                                                defaultValue={field.value}
+                                            >
+                                                <FormControl className="w-full">
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Изберете опция" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="none">
+                                                        Без група
+                                                    </SelectItem>
+                                                    <SelectItem value="HOME_ELEMENTS">
+                                                        Банери на началната
+                                                        страница
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
+
                             {/* Switches */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 <FormField
                                     control={form.control}
                                     name="show_name"

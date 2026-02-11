@@ -18,6 +18,7 @@ import AppImage from "@/components/AppImage";
 import Map from "@/components/map";
 import { absoluteUrl, websiteName } from "@/lib/utils";
 import { UserService } from "@/lib/services/user-service";
+import { Banner } from "@/lib/types";
 
 type PageProps = {
     params: Promise<{
@@ -148,7 +149,17 @@ export default async function CompanyPage({ params }: PageProps) {
         { name: company.name },
     ];
 
-    const activeBanner = { id: 1, image: company.image_url, height: 600 };
+    const activeBanner: Banner = {
+        id: 0,
+        image: company.image_url,
+        height: 600,
+        name: "",
+        show_name: false,
+        show_description: false,
+        show_overlay: false,
+        show_button: false,
+        content_place: "center_center",
+    };
 
     return (
         <main>

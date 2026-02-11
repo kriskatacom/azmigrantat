@@ -1,10 +1,11 @@
 import { getDb } from "@/lib/db";
 import { ResultSetHeader } from "mysql2";
 import { Banner } from "@/lib/types";
+import { BannerInput } from "@/app/[locale]/admin/banners/[id]/schema";
 
 type BannerCondition = {
-    column: "id" | "name" | "slug";
-    value: string | number;
+    column: "id" | "name" | "slug" | "group_key";
+    value: string | number | null | undefined;
 };
 
 type GetBannersOptions = {
@@ -12,13 +13,13 @@ type GetBannersOptions = {
 };
 
 // ------------------ CREATE ------------------
-export async function createBanner(banner: Banner): Promise<Banner> {
-    const { name, link, description, height, show_name, show_description, show_overlay, content_place, show_button, href, button_text } = banner;
+export async function createBanner(banner: BannerInput): Promise<Banner> {
+    const { name, link, description, height, show_name, show_description, show_overlay, content_place, show_button, href, button_text, group_key } = banner;
 
     const sql = `
         INSERT INTO banners 
-        (name, link, description, height, show_name, show_description, show_overlay, content_place, show_button, href, button_text)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (name, link, description, height, show_name, show_description, show_overlay, content_place, show_button, href, button_text, group_key)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     const [result] = await getDb().execute<ResultSetHeader>(sql, [
@@ -32,7 +33,8 @@ export async function createBanner(banner: Banner): Promise<Banner> {
         content_place,
         show_button,
         href,
-        button_text
+        button_text,
+        group_key
     ]);
 
     const created = await getBannerByColumn("id", result.insertId);
@@ -41,6 +43,7 @@ export async function createBanner(banner: Banner): Promise<Banner> {
 }
 
 // ------------------ GET ------------------
+
 export async function getBanners(
     options?: GetBannersOptions,
 ): Promise<Banner[]> {
@@ -49,8 +52,13 @@ export async function getBanners(
 
     if (options?.where?.length) {
         const conditions = options.where.map((cond) => {
-            params.push(cond.value);
-            return `${cond.column} = ?`;
+            // Ако стойността е null или "none", използваме IS NULL
+            if (cond.value === null || cond.value === undefined || cond.value === "none") {
+                return `${cond.column} IS NULL`;
+            } else {
+                params.push(cond.value);
+                return `${cond.column} = ?`;
+            }
         });
 
         sql += " WHERE " + conditions.join(" AND ");
@@ -75,6 +83,7 @@ export async function getBanners(
         show_button: Boolean(row.show_button),
         href: row.href,
         button_text: row.button_text,
+        group_key: row.group_key,
         created_at: row.created_at,
         updated_at: row.updated_at,
     }));
@@ -82,7 +91,7 @@ export async function getBanners(
 
 // ------------------ GET BY COLUMN ------------------
 export async function getBannerByColumn(
-    column: "id" | "name" | "link",
+    column: "id" | "name" | "link" | "group_key",
     value: string | number,
 ): Promise<Banner | null> {
     const [rows] = await getDb().execute(
@@ -109,6 +118,8 @@ export async function getBannerByColumn(
         show_overlay: Boolean(row.show_overlay),
         show_button: Boolean(row.show_button),
         content_place: row.content_place,
+
+        group_key: row.group_key,
 
         created_at: row.created_at,
         updated_at: row.updated_at,

@@ -1,3 +1,4 @@
+import { BannerGroup } from "@/app/[locale]/admin/banners/[id]/schema";
 import { IconType } from "react-icons";
 
 export type Country = {
@@ -114,7 +115,7 @@ export interface Cruise {
 }
 
 export interface Banner {
-    id?: number;
+    id: number;
     name: string;
     link?: string | null;
     href?: string | null;
@@ -139,6 +140,8 @@ export interface Banner {
         | "center_left"
         | "center_center";
 
+    group_key?: BannerGroup;
+    
     created_at?: Date;
     updated_at?: Date;
 }

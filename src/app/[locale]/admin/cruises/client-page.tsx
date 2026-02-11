@@ -3,12 +3,12 @@
 import axios from "axios";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { columns } from "@/app/[locale]/admin/banners/columns";
+import { columns } from "@/app/[locale]/admin/cruises/columns";
 import { DataTable } from "@/components/data-table";
-import { Banner } from "@/lib/types";
+import { Cruise } from "@/lib/types";
 
 type ClientPageProps = {
-    data: Banner[];
+    data: Cruise[];
 };
 
 export default function ClientPage({ data }: ClientPageProps) {
@@ -16,7 +16,7 @@ export default function ClientPage({ data }: ClientPageProps) {
 
     async function onBulkDelete(selectedIds: (string | number)[]) {
         try {
-            const res = await axios.post("/api/banners/bulk-delete", {
+            const res = await axios.post("/api/cruises/bulk-delete", {
                 ids: selectedIds,
             });
 
@@ -31,7 +31,7 @@ export default function ClientPage({ data }: ClientPageProps) {
         }
     }
 
-    const handleReorder = async (reorderedData: Banner[]) => {
+    const handleReorder = async (reorderedData: Cruise[]) => {
         try {
             const response = await fetch("/api/reorder", {
                 method: "POST",
@@ -39,7 +39,7 @@ export default function ClientPage({ data }: ClientPageProps) {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    tableName: "banners",
+                    tableName: "cruises",
                     items: reorderedData.map((item, index) => ({
                         id: item.id,
                         order: index + 1,

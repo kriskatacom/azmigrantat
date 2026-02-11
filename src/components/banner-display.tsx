@@ -47,14 +47,14 @@ export default function BannerDisplay({ banner }: BannerDisplayProps) {
 
                     <div className="relative z-20 text-light max-w-3xl">
                         {banner.show_name && banner.name?.trim() && (
-                            <h2 className="text-2xl xl:text-3xl 2xl:text-4xl font-bold uppercase mb-3">
+                            <h2 className="text-2xl xl:text-3xl 2xl:text-4xl font-semibold mb-5">
                                 {banner.name}
                             </h2>
                         )}
 
                         {banner.show_description &&
                             banner.description?.trim() && (
-                                <p className="max-w-lg mx-auto text-lg mb-4">
+                                <p className="max-w-lg mx-auto text-lg mb-5">
                                     {banner.description}
                                 </p>
                             )}
@@ -62,7 +62,7 @@ export default function BannerDisplay({ banner }: BannerDisplayProps) {
                         {banner.show_button && banner.button_text && (
                             <Button
                                 variant={"ghost"}
-                                className="border"
+                                className="border mb-2"
                                 size={"xl"}
                             >
                                 {banner.button_text}

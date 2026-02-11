@@ -39,12 +39,36 @@ export default async function CityPage({ params }: PageProps) {
         { name: city.name },
     ];
 
-    let activeBanner;
+    let activeBanner: Banner | null;
 
     if (city.image_url) {
-        activeBanner = { id: 1, image: city.image_url, height: 300 };
+        activeBanner = {
+            id: 1,
+            image: city.image_url,
+            height: 300,
+            name: "",
+            show_name: false,
+            show_description: false,
+            show_overlay: false,
+            show_button: false,
+            content_place: "center_center",
+        };
     } else {
         activeBanner = await getBannerByColumn("link", baseCityHref);
+
+        if (!activeBanner) {
+            activeBanner = {
+                id: 0,
+                image: null,
+                height: 300,
+                name: "",
+                show_name: false,
+                show_description: false,
+                show_overlay: false,
+                show_button: false,
+                content_place: "center_center",
+            };
+        }
     }
 
     const municipalitiesBanner = await getBannerByColumn(

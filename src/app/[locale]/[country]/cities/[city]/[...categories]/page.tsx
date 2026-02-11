@@ -12,7 +12,7 @@ import {
 } from "@/lib/services/category-service";
 import { getCityByColumn } from "@/lib/services/city-service";
 import { getCountryByColumn } from "@/lib/services/country-service";
-import { Company } from "@/lib/types";
+import { Banner, Company } from "@/lib/types";
 import { getCompanies } from "@/lib/services/companies-service";
 import { UserService } from "@/lib/services/user-service";
 
@@ -83,16 +83,41 @@ export default async function Categories({ params }: PageProps) {
         ),
     ];
 
-    let activeBanner;
+    let activeBanner: Banner | null;
 
     if (category.image_url) {
-        activeBanner = { id: 1, image: category.image_url, height: 300 };
+        activeBanner = {
+            id: 1,
+            image: category.image_url,
+            height: 300,
+            name: "",
+            show_name: false,
+            show_description: false,
+            show_overlay: false,
+            show_button: false,
+            content_place: "center_center",
+        };
     } else {
         const categorySlugs = categoryBreadcrumbs.map((x) => x.href);
         activeBanner = await getBannerByColumn(
             "link",
             `/${countrySlug}/cities/${citySlug}/${categorySlugs.join("/")}`,
         );
+
+        // Ако getBannerByColumn може да върне null, добави fallback
+        if (!activeBanner) {
+            activeBanner = {
+                id: 0,
+                image: null,
+                height: 300,
+                name: "",
+                show_name: false,
+                show_description: false,
+                show_overlay: false,
+                show_button: false,
+                content_place: "center_center",
+            };
+        }
     }
 
     return (

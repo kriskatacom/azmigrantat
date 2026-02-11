@@ -25,7 +25,9 @@ export const bannerSchema = z.object({
     show_button: z.boolean().default(true),
     href: z.string().optional(),
     button_text: z.string().max(20, "Твърде дълъг текст").default("Виж повече"),
+    group_key: z.enum(["none", "HOME_ELEMENTS"]).optional(),
 });
 
 export type BannerInput = z.input<typeof bannerSchema>;
 export type BannerOutput = z.output<typeof bannerSchema>;
+export type BannerGroup = BannerInput["group_key"];

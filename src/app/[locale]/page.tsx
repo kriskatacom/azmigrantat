@@ -12,6 +12,7 @@ import Map from "@/app/[locale]/map";
 import ContactsInfo from "@/app/[locale]/contacts-info";
 import FacebookPage from "@/app/[locale]/facebook-page";
 import { UserService } from "@/lib/services/user-service";
+import ServicesSections from "./services-sections";
 
 const userService = new UserService();
 
@@ -51,13 +52,7 @@ export default async function HomePage() {
                 columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             />
             <TypewriterTexts />
-            <CardGrid
-                items={HOME_ELEMENTS}
-                id="elements"
-                variant="standart"
-                columns={{ base: 1 }}
-                height={{ base: 240, lg: 400 }}
-            />
+            <ServicesSections />
             <Advertisement />
             <ContactsHeader />
             <Map />

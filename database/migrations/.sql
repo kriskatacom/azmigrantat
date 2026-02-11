@@ -38,3 +38,6 @@ ADD `content_place` ENUM (
 ALTER TABLE `banners` ADD `show_button` TINYINT (1) NOT NULL DEFAULT '1' AFTER `content_place`,
 ADD `href` VARCHAR(512) NULL AFTER `show_button`,
 ADD `button_text` VARCHAR(20) NOT NULL AFTER `href`;
+
+ALTER TABLE `banners` ADD `group_key` VARCHAR(20) NULL AFTER `button_text`,
+ADD `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `group_key`;

@@ -189,7 +189,7 @@ export const columns: ColumnDef<Banner>[] = [
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                     onClick={() =>
-                                        window.open(banner.link, "_blank", "noopener,noreferrer")
+                                        window.open(banner.link as string, "_blank", "noopener,noreferrer")
                                     }
                                 >
                                     Преглед
