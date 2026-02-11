@@ -36,7 +36,7 @@ export default async function LocaleLayout({
                     >
                         {children}
                         <ClientOnly>
-                            <Toaster />
+                            <Toaster position="top-center" />
                         </ClientOnly>
                     </ThemeProvider>
                 </NextIntlClientProvider>

@@ -114,13 +114,33 @@ export interface Cruise {
 }
 
 export interface Banner {
-    id: number;
-    name?: string;
-    link?: string;
-    description?: string;
-    height?: number;
-    image?: string;
+    id?: number;
+    name: string;
+    link?: string | null;
+    href?: string | null;
+    button_text?: string;
+    description?: string | null;
+    height?: number | null;
+    image?: string | null;
     sort_order?: number;
+
+    show_name: boolean;
+    show_description: boolean;
+    show_overlay: boolean;
+    show_button: boolean;
+    content_place:
+        | "top_left"
+        | "top_right"
+        | "top_center"
+        | "center_right"
+        | "bottom_right"
+        | "bottom_center"
+        | "bottom_left"
+        | "center_left"
+        | "center_center";
+
+    created_at?: Date;
+    updated_at?: Date;
 }
 
 export type CountryElement = {

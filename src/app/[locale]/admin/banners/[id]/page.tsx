@@ -7,8 +7,8 @@ import ImageUpload from "@/components/image-upload";
 import { Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { Button } from "@/components/ui/button";
 import { getCruiseByColumn } from "@/lib/services/cruise-service";
-import NewBannerForm from "@/app/[locale]/admin/banners/[id]/new-banner-form";
 import { getBannerByColumn, getBanners } from "@/lib/services/banner-service";
+import { BannerForm } from "./banner-form";
 
 type Props = {
     params: Promise<{
@@ -40,15 +40,13 @@ type Params = {
     }>;
 };
 
-export default async function cruisePage({ params }: Params) {
+export default async function BannerPage({ params }: Params) {
     const { id } = await params;
     let banner = null;
 
     if (id !== "new") {
         banner = await getBannerByColumn("id", id);
     }
-
-    const banners = await getBanners();
 
     return (
         <div className="flex">
@@ -76,7 +74,7 @@ export default async function cruisePage({ params }: Params) {
                         },
                     ]}
                 />
-                <NewBannerForm banner={banner} />
+                <BannerForm banner={banner} isEdit={!!banner?.id} />
                 {banner?.id && (
                     <>
                         <h2 className="px-5 text-xl font-semibold">

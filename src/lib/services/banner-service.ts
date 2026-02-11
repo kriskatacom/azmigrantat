@@ -13,28 +13,31 @@ type GetBannersOptions = {
 
 // ------------------ CREATE ------------------
 export async function createBanner(banner: Banner): Promise<Banner> {
-    const { name, link, description, height } = banner;
+    const { name, link, description, height, show_name, show_description, show_overlay, content_place, show_button, href, button_text } = banner;
 
     const sql = `
-        INSERT INTO banners (name, link, description, height)
-        VALUES (?, ?, ?, ?)
+        INSERT INTO banners 
+        (name, link, description, height, show_name, show_description, show_overlay, content_place, show_button, href, button_text)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
-    try {
-        const [result] = await getDb().execute<ResultSetHeader>(sql, [
-            name,
-            link,
-            description,
-            height,
-        ]);
+    const [result] = await getDb().execute<ResultSetHeader>(sql, [
+        name,
+        link,
+        description,
+        height,
+        show_name,
+        show_description,
+        show_overlay,
+        content_place,
+        show_button,
+        href,
+        button_text
+    ]);
 
-        const created = await getBannerByColumn("id", result.insertId);
-        if (!created) throw new Error("Banner not found after insert");
-        return created;
-    } catch (err) {
-        console.error("Error creating banner:", err);
-        throw err;
-    }
+    const created = await getBannerByColumn("id", result.insertId);
+    if (!created) throw new Error("Banner not found after insert");
+    return created;
 }
 
 // ------------------ GET ------------------
@@ -65,6 +68,13 @@ export async function getBanners(
         height: row.height,
         image: row.image,
         sort_order: row.sort_order,
+        show_name: Boolean(row.show_name),
+        show_description: Boolean(row.show_description),
+        show_overlay: Boolean(row.show_overlay),
+        content_place: row.content_place,
+        show_button: Boolean(row.show_button),
+        href: row.href,
+        button_text: row.button_text,
         created_at: row.created_at,
         updated_at: row.updated_at,
     }));
@@ -81,7 +91,28 @@ export async function getBannerByColumn(
     );
 
     const row = (rows as any[])[0];
-    return row ?? null;
+    if (!row) return null;
+
+    return {
+        id: row.id,
+        name: row.name,
+        link: row.link,
+        description: row.description,
+        button_text: row.button_text,
+        href: row.href,
+        height: row.height,
+        image: row.image,
+        sort_order: row.sort_order,
+
+        show_name: Boolean(row.show_name),
+        show_description: Boolean(row.show_description),
+        show_overlay: Boolean(row.show_overlay),
+        show_button: Boolean(row.show_button),
+        content_place: row.content_place,
+
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+    };
 }
 
 // ------------------ UPDATE ------------------
@@ -107,15 +138,10 @@ export async function updateBanner(
 
     values.push(id);
 
-    try {
-        await getDb().execute(sql, values);
-        const updated = await getBannerByColumn("id", id);
-        if (!updated) throw new Error("Banner not found after update");
-        return updated;
-    } catch (err) {
-        console.error("Error updating banner:", err);
-        throw err;
-    }
+    await getDb().execute(sql, values);
+    const updated = await getBannerByColumn("id", id);
+    if (!updated) throw new Error("Banner not found after update");
+    return updated;
 }
 
 // ------------------ DELETE ------------------

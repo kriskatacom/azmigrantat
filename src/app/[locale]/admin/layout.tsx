@@ -14,12 +14,7 @@ export default function AdminLayout({
             enableSystem
             disableTransitionOnChange
         >
-            <div className="bg-background">
-                {children}
-            </div>
-            <ClientOnly>
-                <Toaster />
-            </ClientOnly>
+            <div className="bg-background">{children}</div>
         </ThemeProvider>
     );
 }
