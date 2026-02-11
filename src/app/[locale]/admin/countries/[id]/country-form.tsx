@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Country } from "@/lib/types";
+import RichTextEditor from "@/components/rich-text-editor";
 
 export interface NewCountry {
     name: string;
@@ -142,6 +143,21 @@ export default function NewCountryForm({ country, countries }: Params) {
                         {errors.heading}
                     </p>
                 )}
+            </div>
+
+            <div className="rounded-md">
+                <h2 className="text-xl font-semibold mb-5">Описание</h2>
+                <div className="text-editor max-w-5xl max-h-200 overflow-auto">
+                    <RichTextEditor
+                        content={formData.excerpt}
+                        onChange={(value) =>
+                            setFormData((prev) => ({
+                                ...prev,
+                                excerpt: value,
+                            }))
+                        }
+                    />
+                </div>
             </div>
 
             <div className="text-lg text-muted-foreground">

@@ -14,8 +14,18 @@ import { Coordinates } from "@/lib/types";
 
 // Leaflet icon fix
 delete (L.Icon.Default.prototype as any)._getIconUrl;
+
+const customIcon = new L.Icon({
+    iconUrl: "/images/leaflet/marker-icon.png",
+    iconRetinaUrl: "/images/leaflet/marker-icon.png",
+    iconSize: [50, 82], // нов размер, примерно двойно по-голямо
+    iconAnchor: [25, 82], // точката на "закачане" на маркера (центъра в основата)
+    popupAnchor: [0, -82], // къде да се появяват popups спрямо маркера
+    shadowUrl: undefined, // ако имаш shadow, можеш да зададеш и него
+});
+
 L.Icon.Default.mergeOptions({
-    iconRetinaUrl: "/leaflet/marker-icon-2x.png",
+    iconRetinaUrl: "/images/leaflet/marker-icon.png",
     iconUrl: "/images/leaflet/marker-icon.png",
 });
 
@@ -223,16 +233,20 @@ const LeafletMap = ({ center, zoom = 6, markers = [] }: LeafletMapProps) => {
                     )}
 
                 {filteredMarkers.map((m) => (
-                    <Marker
-                        key={m.id}
-                        position={[
-                            m.coordinates.latitude,
-                            m.coordinates.longitude,
-                        ]}
-                        eventHandlers={{
-                            click: () => setSelectedAirport(m),
-                        }}
-                    />
+                    <div key={m.id}>
+                        {m.coordinates.latitude && m.coordinates.longitude && (
+                            <Marker
+                                position={[
+                                    m.coordinates.latitude,
+                                    m.coordinates.longitude,
+                                ]}
+                                icon={customIcon}
+                                eventHandlers={{
+                                    click: () => setSelectedAirport(m),
+                                }}
+                            />
+                        )}
+                    </div>
                 ))}
             </MapContainer>
         </div>

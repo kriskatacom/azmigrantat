@@ -46,9 +46,10 @@ export const Hero: React.FC<HeroProps> = ({
                     {title}
                 </h1>
                 {excerpt && (
-                    <p className="text-light text-xl lg:text-xl drop-shadow-lg py-5">
-                        {excerpt}
-                    </p>
+                    <p
+                        className="text-light text-xl lg:text-xl drop-shadow-lg py-5"
+                        dangerouslySetInnerHTML={{ __html: excerpt }}
+                    ></p>
                 )}
                 {ctaText && ctaLink && (
                     <div className="mt-5">
