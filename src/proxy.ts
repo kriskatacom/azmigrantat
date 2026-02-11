@@ -1,17 +1,39 @@
 import createMiddleware from "next-intl/middleware";
+import { NextRequest, NextResponse } from "next/server";
 import { routing } from "@/i18n/routing";
-import { NextRequest } from "next/server";
+import { UserService } from "@/lib/services/user-service";
 
 const intlMiddleware = createMiddleware(routing);
 
-export default function middleware(request: NextRequest) {
-    const response = intlMiddleware(request);
-    return response;
+const userService = new UserService();
+
+export default async function middleware(request: NextRequest) {
+    const { pathname } = request.nextUrl;
+
+    const isAdminPath = pathname.startsWith("/admin");
+
+    if (isAdminPath) {
+        const user = await userService.getCurrentUser();
+
+        if (!user) {
+            const loginUrl = new URL("/users/login", request.url);
+
+            const originalUrl =
+                request.nextUrl.pathname + request.nextUrl.search;
+            loginUrl.searchParams.set("redirect", originalUrl);
+
+            return NextResponse.redirect(loginUrl);
+        }
+
+        if (user.role !== "admin") {
+            const homeUrl = new URL("/", request.url);
+            return NextResponse.redirect(homeUrl);
+        }
+    }
+
+    return intlMiddleware(request);
 }
 
 export const config = {
-    // Match all pathnames except for
-    // - … if they start with `/api`, `/trpc`, `/_next` or `/_vercel`
-    // - … the ones containing a dot (e.g. `favicon.ico`)
     matcher: "/((?!api|trpc|_next|_vercel|.*\\..*).*)",
 };

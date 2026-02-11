@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import {
     Form,
@@ -23,6 +23,7 @@ import { loginAction } from "@/app/[locale]/users/actions";
 
 export function LoginForm() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [errorMessage, setErrorMessage] = useState<string>("");
 
@@ -45,8 +46,11 @@ export function LoginForm() {
                 return toast.error(data.error);
             }
 
+            const redirectUrl = searchParams.get("redirect");
+            const safeRedirect = redirectUrl && redirectUrl.startsWith("/") ? redirectUrl : "/";
+
             toast.success("Успешно влизане в профила!");
-            router.push("/");
+            router.push(safeRedirect);
         } catch (error: any) {
             console.log(error);
             toast.error("Грешка при влизане в профила");

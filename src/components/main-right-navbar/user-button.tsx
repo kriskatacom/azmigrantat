@@ -29,21 +29,15 @@ export default function UserButton({ user }: UserButtonProps) {
             <DropdownMenuContent align="end" className="w-48">
                 {user ? (
                     <>
-                        <DropdownMenuItem
-                            onClick={() => {
-                                // router.push("/profile");
-                            }}
-                        >
-                            Профил
+                        <DropdownMenuItem asChild>
+                            <Link href="/profile">Профил</Link>
                         </DropdownMenuItem>
 
-                        <DropdownMenuItem
-                            onClick={() => {
-                                // router.push("/settings");
-                            }}
-                        >
-                            Настройки
-                        </DropdownMenuItem>
+                        {user.role === "admin" && (
+                            <DropdownMenuItem asChild>
+                                <Link href="/admin/dashboard">Администрация</Link>
+                            </DropdownMenuItem>
+                        )}
 
                         <DropdownMenuSeparator />
 
@@ -58,10 +52,10 @@ export default function UserButton({ user }: UserButtonProps) {
                     </>
                 ) : (
                     <>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem asChild>
                             <Link href={"/users/login"}>Вход</Link>
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
+                        <DropdownMenuItem asChild>
                             <Link href={"/users/register"}>Регистрация</Link>
                         </DropdownMenuItem>
                     </>
