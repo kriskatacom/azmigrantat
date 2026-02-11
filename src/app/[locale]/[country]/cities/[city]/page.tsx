@@ -8,6 +8,7 @@ import { getCityByColumn } from "@/lib/services/city-service";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import CustomHeader from "@/app/[locale]/[country]/cities/[city]/custom-header";
 import { Banner } from "@/lib/types";
+import { UserService } from "@/lib/services/user-service";
 
 type PageProps = {
     params: Promise<{
@@ -17,6 +18,9 @@ type PageProps = {
 };
 
 export default async function CityPage({ params }: PageProps) {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const { country: countrySlug, city: citySlug } = await params;
 
     const country = await getCountryByColumn("slug", countrySlug);
@@ -52,7 +56,7 @@ export default async function CityPage({ params }: PageProps) {
 
     return (
         <main>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <div className="block lg:hidden">
                 <CardGrid
                     id="municipalities-banner"

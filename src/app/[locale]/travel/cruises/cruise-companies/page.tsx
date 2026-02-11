@@ -8,6 +8,7 @@ import { CardEntity } from "@/components/card-item";
 import { Cruise } from "@/lib/types";
 import { getCruises } from "@/lib/services/cruise-service";
 import { getBannerByColumn } from "@/lib/services/banner-service";
+import { UserService } from "@/lib/services/user-service";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Круизи в Европа – маршрути, пристанища и полезна информация`;
@@ -61,6 +62,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function CruisesPage() {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const banner = await getBannerByColumn("link", `/travel/cruise-companies`);
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -90,7 +94,7 @@ export default async function CruisesPage() {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader
                 title="Круизни компании"
                 breadcrumbs={breadcrumbs}

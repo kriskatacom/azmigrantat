@@ -10,6 +10,7 @@ import { CardEntity } from "@/components/card-item";
 import { absoluteUrl, websiteName } from "@/lib/utils";
 import PageHeader from "@/components/page-header";
 import { getBannerByColumn } from "@/lib/services/banner-service";
+import { UserService } from "@/lib/services/user-service";
 
 type PageProps = {
     params: Promise<{
@@ -79,6 +80,9 @@ export async function generateMetadata({
 }
 
 export default async function CitiesPage({ params }: PageProps) {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const countrySlug = (await params).country;
 
     const country = await getCountryByColumn("slug", countrySlug);
@@ -108,7 +112,7 @@ export default async function CitiesPage({ params }: PageProps) {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
 
             <PageHeader
                 title={`Градове в ${country.name}`}

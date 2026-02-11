@@ -10,6 +10,7 @@ import { getCountryByColumn } from "@/lib/services/country-service";
 import { getCities } from "@/lib/services/city-service";
 import { City } from "@/lib/types";
 import { getBannerByColumn } from "@/lib/services/banner-service";
+import { UserService } from "@/lib/services/user-service";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Автобусни гари и автобусни превози в Европа – информация и адреси`;
@@ -69,8 +70,14 @@ type Props = {
 };
 
 export default async function AutobusesByCountryPage({ params }: Props) {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const countrySlug = (await params).country;
-    const banner = await getBannerByColumn("link", `/travel/autobuses/countries/${countrySlug}`);
+    const banner = await getBannerByColumn(
+        "link",
+        `/travel/autobuses/countries/${countrySlug}`,
+    );
 
     const country = await getCountryByColumn("slug", countrySlug);
 
@@ -105,7 +112,7 @@ export default async function AutobusesByCountryPage({ params }: Props) {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader
                 title={`Автобуси в ${country.name}`}
                 breadcrumbs={breadcrumbs}

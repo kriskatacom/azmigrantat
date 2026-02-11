@@ -14,6 +14,7 @@ import { getCityByColumn } from "@/lib/services/city-service";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { Company } from "@/lib/types";
 import { getCompanies } from "@/lib/services/companies-service";
+import { UserService } from "@/lib/services/user-service";
 
 type PageProps = {
     params: Promise<{
@@ -24,6 +25,9 @@ type PageProps = {
 };
 
 export default async function Categories({ params }: PageProps) {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const {
         country: countrySlug,
         city: citySlug,
@@ -93,7 +97,7 @@ export default async function Categories({ params }: PageProps) {
 
     return (
         <main>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader
                 title={`Информационен справочник на ${city.name}`}
                 breadcrumbs={breadcrumbs}

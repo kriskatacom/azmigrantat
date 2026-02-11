@@ -10,6 +10,7 @@ import { getCountryByColumn } from "@/lib/services/country-service";
 import { getCities } from "@/lib/services/city-service";
 import { City } from "@/lib/types";
 import { getBannerByColumn } from "@/lib/services/banner-service";
+import { UserService } from "@/lib/services/user-service";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Таксиметрови компании в Европа – контакти и полезна информация`;
@@ -69,6 +70,9 @@ type Props = {
 };
 
 export default async function TaxisByCountryPage({ params }: Props) {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const countrySlug = (await params).country;
 
     const banner = await getBannerByColumn("link", `/travel/taxis/private-taxis/${countrySlug}`,);
@@ -109,7 +113,7 @@ export default async function TaxisByCountryPage({ params }: Props) {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader
                 title={`Частни таксита по градове в ${country.name}`}
                 breadcrumbs={breadcrumbs}

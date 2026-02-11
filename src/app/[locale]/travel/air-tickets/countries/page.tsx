@@ -8,6 +8,7 @@ import { getCountries } from "@/lib/services/country-service";
 import { CardGrid } from "@/components/card-grid";
 import { Country } from "@/lib/types";
 import { getBannerByColumn } from "@/lib/services/banner-service";
+import { UserService } from "@/lib/services/user-service";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Европейски летища – информация и връзки към официални сайтове`;
@@ -60,6 +61,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Airports() {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const banner = await getBannerByColumn("link", "/travel/air-tickets/countries");
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -88,7 +92,7 @@ export default async function Airports() {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader
                 title="Летища по държави"
                 breadcrumbs={breadcrumbs}

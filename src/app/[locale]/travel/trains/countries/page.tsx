@@ -8,6 +8,7 @@ import { CardEntity } from "@/components/card-item";
 import { getCountries } from "@/lib/services/country-service";
 import { Country } from "@/lib/types";
 import { getBannerByColumn } from "@/lib/services/banner-service";
+import { UserService } from "@/lib/services/user-service";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Железопътен превоз в Европа – влакове, гари и полезна информация`;
@@ -61,6 +62,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function TrainsPage() {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const banner = await getBannerByColumn("link", `/travel/trains/countries`);
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -89,7 +93,7 @@ export default async function TrainsPage() {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader
                 title="Железопътни гари по държави"
                 breadcrumbs={breadcrumbs}

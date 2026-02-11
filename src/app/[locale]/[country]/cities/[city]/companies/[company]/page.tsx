@@ -17,6 +17,7 @@ import SectionCard from "@/app/[locale]/[country]/cities/[city]/companies/[compa
 import AppImage from "@/components/AppImage";
 import Map from "@/components/map";
 import { absoluteUrl, websiteName } from "@/lib/utils";
+import { UserService } from "@/lib/services/user-service";
 
 type PageProps = {
     params: Promise<{
@@ -99,6 +100,9 @@ export async function generateMetadata({
 }
 
 export default async function CompanyPage({ params }: PageProps) {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const {
         country: countrySlug,
         city: citySlug,
@@ -148,7 +152,7 @@ export default async function CompanyPage({ params }: PageProps) {
 
     return (
         <main>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader title={company.name} breadcrumbs={breadcrumbs} />
             <CustomHeader
                 title={company.name}

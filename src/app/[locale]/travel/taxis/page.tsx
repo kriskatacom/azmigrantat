@@ -5,7 +5,8 @@ import PageHeader from "@/components/page-header";
 import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardGrid } from "@/components/card-grid";
 import { getBannerByColumn } from "@/lib/services/banner-service";
-import { AUTOBUSES_PAGE_ITEMS, TAXIS_PAGE_ITEMS } from "@/lib/constants";
+import { TAXIS_PAGE_ITEMS } from "@/lib/constants";
+import { UserService } from "@/lib/services/user-service";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Таксиметрови компании в Европа – контакти и полезна информация`;
@@ -59,6 +60,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function TaxisPage() {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const banner = await getBannerByColumn("link", `/travel/taxis`);
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -69,7 +73,7 @@ export default async function TaxisPage() {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader
                 title="Таксита"
                 breadcrumbs={breadcrumbs}

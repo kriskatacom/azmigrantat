@@ -10,6 +10,7 @@ import { getCountryByColumn } from "@/lib/services/country-service";
 import { getCities } from "@/lib/services/city-service";
 import { City } from "@/lib/types";
 import { getBannerByColumn } from "@/lib/services/banner-service";
+import { UserService } from "@/lib/services/user-service";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Железопътен превоз в Европа – влакове, гари и полезна информация`;
@@ -69,9 +70,15 @@ type Props = {
 };
 
 export default async function TrainsByCountryPage({ params }: Props) {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const countrySlug = (await params).country;
 
-    const banner = await getBannerByColumn("link", `/travel/trains/countries/${countrySlug}`);
+    const banner = await getBannerByColumn(
+        "link",
+        `/travel/trains/countries/${countrySlug}`,
+    );
 
     const country = await getCountryByColumn("slug", countrySlug);
 
@@ -83,7 +90,10 @@ export default async function TrainsByCountryPage({ params }: Props) {
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
         { name: "Железопътни гари", href: "/travel/trains" },
-        { name: "Железопътни гари по държави", href: "/travel/trains/countries" },
+        {
+            name: "Железопътни гари по държави",
+            href: "/travel/trains/countries",
+        },
         { name: `Железопътни гари в ${country.name}` },
     ];
 
@@ -106,7 +116,7 @@ export default async function TrainsByCountryPage({ params }: Props) {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader
                 title={`Железопътни гари в ${country.name}`}
                 breadcrumbs={breadcrumbs}

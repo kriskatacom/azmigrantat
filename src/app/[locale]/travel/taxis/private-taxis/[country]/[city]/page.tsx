@@ -11,6 +11,7 @@ import { Taxi } from "@/lib/types";
 import { getCityByColumn } from "@/lib/services/city-service";
 import { getTaxis } from "@/lib/services/taxi-service";
 import { getBannerByColumn } from "@/lib/services/banner-service";
+import { UserService } from "@/lib/services/user-service";
 
 type Props = {
     params: Promise<{
@@ -70,6 +71,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Airports({ params }: Props) {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const countrySlug = (await params).country;
     const citySlug = (await params).city;
 
@@ -118,7 +122,7 @@ export default async function Airports({ params }: Props) {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader
                 title={`Таксиметрови компании в ${country.name}`}
                 breadcrumbs={breadcrumbs}

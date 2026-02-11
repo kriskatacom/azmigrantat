@@ -10,6 +10,7 @@ import { getAirports } from "@/lib/services/airports-service";
 import { Airport, Coordinates } from "@/lib/types";
 import { MapMarker } from "@/components/leaflet-map";
 import { getBannerByColumn } from "@/lib/services/banner-service";
+import { UserService } from "@/lib/services/user-service";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Европейски летища – информация и връзки към официални сайтове`;
@@ -62,6 +63,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AirTickets() {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const banner = await getBannerByColumn("link", "/travel/air-tickets");
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -88,7 +92,7 @@ export default async function AirTickets() {
         
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader
                 title="Самолетни билети"
                 breadcrumbs={breadcrumbs}

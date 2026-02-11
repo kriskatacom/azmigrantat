@@ -8,6 +8,7 @@ import { CardEntity } from "@/components/card-item";
 import { getCountries } from "@/lib/services/country-service";
 import { Country } from "@/lib/types";
 import { getBannerByColumn } from "@/lib/services/banner-service";
+import { UserService } from "@/lib/services/user-service";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Таксиметрови компании в Европа – контакти и полезна информация`;
@@ -61,6 +62,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function TaxisPage() {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const banner = await getBannerByColumn("link", `/travel/taxis/private-taxis`);
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -89,7 +93,7 @@ export default async function TaxisPage() {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader
                 title="Частни таксита по държави"
                 breadcrumbs={breadcrumbs}

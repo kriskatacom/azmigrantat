@@ -6,6 +6,7 @@ import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardGrid } from "@/components/card-grid";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 import { AUTOBUSES_PAGE_ITEMS, CRUISES_PAGE_ITEMS } from "@/lib/constants";
+import { UserService } from "@/lib/services/user-service";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Круизи в Европа – маршрути, пристанища и полезна информация`;
@@ -59,6 +60,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function CruisesPage() {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const banner = await getBannerByColumn("link", `/travel/cruises`);
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -69,7 +73,7 @@ export default async function CruisesPage() {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader
                 title="Круизи"
                 breadcrumbs={breadcrumbs}

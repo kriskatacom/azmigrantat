@@ -11,6 +11,7 @@ import { Train } from "@/lib/types";
 import { getCityByColumn } from "@/lib/services/city-service";
 import { getTrains } from "@/lib/services/train-service";
 import { getBannerByColumn } from "@/lib/services/banner-service";
+import { UserService } from "@/lib/services/user-service";
 
 type Props = {
     params: Promise<{
@@ -70,10 +71,16 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Airports({ params }: Props) {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const countrySlug = (await params).country;
     const citySlug = (await params).city;
 
-    const banner = await getBannerByColumn("link", `/travel/trains/countries/${countrySlug}/${citySlug}`);
+    const banner = await getBannerByColumn(
+        "link",
+        `/travel/trains/countries/${countrySlug}/${citySlug}`,
+    );
 
     const country = await getCountryByColumn("slug", countrySlug);
     const city = await getCityByColumn("slug", citySlug);
@@ -86,8 +93,14 @@ export default async function Airports({ params }: Props) {
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
         { name: "Железопътни гари", href: "/travel/trains" },
-        { name: "Железопътни гари по държави", href: "/travel/trains/countries" },
-        { name: `Железопътни гари в ${country.name}`, href: `/travel/trains/countries/${country.slug}` },
+        {
+            name: "Железопътни гари по държави",
+            href: "/travel/trains/countries",
+        },
+        {
+            name: `Железопътни гари в ${country.name}`,
+            href: `/travel/trains/countries/${country.slug}`,
+        },
         { name: city.name },
     ];
 
@@ -116,7 +129,7 @@ export default async function Airports({ params }: Props) {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader
                 title={`Железопътни гари в ${country.name}`}
                 breadcrumbs={breadcrumbs}

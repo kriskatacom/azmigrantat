@@ -11,8 +11,13 @@ import ContactsHeader from "@/app/[locale]/contacts-header";
 import Map from "@/app/[locale]/map";
 import ContactsInfo from "@/app/[locale]/contacts-info";
 import FacebookPage from "@/app/[locale]/facebook-page";
+import { UserService } from "@/lib/services/user-service";
+
+const userService = new UserService();
 
 export default async function HomePage() {
+    const user = await userService.getCurrentUser();
+
     const t = await getTranslations("homepage");
 
     const countries = await getCountries();
@@ -26,7 +31,7 @@ export default async function HomePage() {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <Hero
                 title={t("title")}
                 subtitle={t("subtitle")}

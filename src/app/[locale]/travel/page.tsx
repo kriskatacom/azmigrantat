@@ -6,6 +6,7 @@ import PageHeader from "@/components/page-header";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { CardGrid } from "@/components/card-grid";
 import { getBannerByColumn } from "@/lib/services/banner-service";
+import { UserService } from "@/lib/services/user-service";
 
 type PageProps = {
     params: Promise<{ locale: string }>;
@@ -17,7 +18,7 @@ const TRAVEL_CATEGORY_SLUGS = [
     "trains",
     "cruises",
     "taxis",
-    "sharedTravel"
+    "sharedTravel",
 ] as const;
 
 const TRAVEL_CATEGORY_IMAGES: Record<string, string> = {
@@ -38,9 +39,14 @@ const TRAVEL_CATEGORY_PATHS: Record<string, string> = {
     sharedTravel: "/shared-travel",
 };
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+    params,
+}: PageProps): Promise<Metadata> {
     const { locale } = await params;
-    const t = await getTranslations({ locale, namespace: "metadata.travelPage" });
+    const t = await getTranslations({
+        locale,
+        namespace: "metadata.travelPage",
+    });
     const url = locale === "bg" ? "/travel" : `/${locale}/travel`;
 
     const firstCategoryImage = absoluteUrl("/images/air-tickets.png") as string;
@@ -80,10 +86,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function TravelPage({ params }: PageProps) {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const { locale } = await params;
     const t = await getTranslations({ locale, namespace: "travel" });
     const tCommon = await getTranslations({ locale, namespace: "common" });
-    const tCategories = await getTranslations({ locale, namespace: "travel.categories" });
+    const tCategories = await getTranslations({
+        locale,
+        namespace: "travel.categories",
+    });
 
     const banner = await getBannerByColumn("link", "/travel");
 
@@ -100,15 +112,11 @@ export default async function TravelPage({ params }: PageProps) {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
 
             <div className="relative w-full h-130 shrink-0">
                 <PageHeader
-                    title={
-                        <div>
-                            {t("heading")}
-                        </div>
-                    }
+                    title={<div>{t("heading")}</div>}
                     banner={banner}
                     breadcrumbs={breadcrumbs}
                 />

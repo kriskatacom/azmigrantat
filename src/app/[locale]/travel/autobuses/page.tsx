@@ -6,6 +6,7 @@ import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardGrid } from "@/components/card-grid";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 import { AUTOBUSES_PAGE_ITEMS } from "@/lib/constants";
+import { UserService } from "@/lib/services/user-service";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Автобусни гари и автобусни превози в Европа – информация и адреси`;
@@ -59,6 +60,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AutobusesPage() {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+    
     const banner = await getBannerByColumn("link", `/travel/autobuses`);
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -69,7 +73,7 @@ export default async function AutobusesPage() {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader
                 title="Автобуси"
                 breadcrumbs={breadcrumbs}

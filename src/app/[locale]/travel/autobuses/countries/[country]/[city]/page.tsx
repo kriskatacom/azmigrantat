@@ -10,8 +10,8 @@ import { CardGrid } from "@/components/card-grid";
 import { Autobus } from "@/lib/types";
 import { getCityByColumn } from "@/lib/services/city-service";
 import { getAutobuses } from "@/lib/services/autobus-service";
-import AppImage from "@/components/AppImage";
 import { getBannerByColumn } from "@/lib/services/banner-service";
+import { UserService } from "@/lib/services/user-service";
 
 type Props = {
     params: Promise<{
@@ -72,6 +72,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Airports({ params }: Props) {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const countrySlug = (await params).country;
     const citySlug = (await params).city;
 
@@ -121,7 +124,7 @@ export default async function Airports({ params }: Props) {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader
                 title={`Автогари в ${city.name}`}
                 breadcrumbs={breadcrumbs}

@@ -13,6 +13,7 @@ import DisplayGallery from "@/app/[locale]/[country]/landmarks/[landmark]/displa
 import Map from "@/components/map";
 import PageHeader from "@/components/page-header";
 import { getBannerByColumn } from "@/lib/services/banner-service";
+import { UserService } from "@/lib/services/user-service";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const countrySlug = (await params).country;
@@ -81,6 +82,9 @@ type Props = {
 };
 
 export default async function EmbassiesPage({ params }: Props) {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const countrySlug = (await params).country;
     const landmarkSlug = (await params).landmark;
 
@@ -112,7 +116,7 @@ export default async function EmbassiesPage({ params }: Props) {
     return (
         <>
             <header>
-                <MainNavbar />
+                <MainNavbar user={user} />
                 <Hero landmark={landmark} />
                 <PageHeader breadcrumbs={breadcrumbs} banner={banner} />
             </header>

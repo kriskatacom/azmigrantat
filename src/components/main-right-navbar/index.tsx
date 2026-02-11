@@ -3,12 +3,17 @@
 import { usePathname, Link } from "@/i18n/navigation";
 import { useTranslations, useLocale } from "next-intl";
 import { IoIosSearch } from "react-icons/io";
-import { RiMenuAddLine } from "react-icons/ri";
 import { iconLargeSize } from "@/lib/constants";
-import LanguageSwitcher from "@/components/language-switcher";
+import LanguageSwitcher from "@/components/main-right-navbar/language-switcher";
 import MainRightSidebar from "@/components/main-right-navbar/main-right-sidebar";
+import UserButton from "@/components/main-right-navbar/user-button";
+import { User } from "@/lib/services/user-service";
 
-export const MainNavbar = () => {
+type MainNavbarProps = {
+    user?: User;
+}
+
+export const MainNavbar = ({ user }: MainNavbarProps) => {
     const pathname = usePathname();
     const t = useTranslations("navigation");
     const locale = useLocale();
@@ -38,6 +43,9 @@ export const MainNavbar = () => {
                         />
                     </Link>
                     <ul className="flex items-center gap-2">
+                        <li>
+                            <UserButton user={user} />
+                        </li>
                         <li>
                             <MainRightSidebar />
                         </li>
@@ -97,6 +105,9 @@ export const MainNavbar = () => {
                     />
                 </Link>
                 <ul className="flex items-center gap-2">
+                    <li>
+                        <UserButton user={user} />
+                    </li>
                     <li>
                         <MainRightSidebar />
                     </li>

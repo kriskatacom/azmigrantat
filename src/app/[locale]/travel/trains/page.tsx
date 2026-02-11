@@ -6,6 +6,7 @@ import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardGrid } from "@/components/card-grid";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 import { TRAINS_PAGE_ITEMS } from "@/lib/constants";
+import { UserService } from "@/lib/services/user-service";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title = `Железопътен превоз в Европа – влакове, гари и полезна информация`;
@@ -59,6 +60,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function TrainsPage() {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const banner = await getBannerByColumn("link", `/travel/trains`);
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -69,7 +73,7 @@ export default async function TrainsPage() {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader
                 title="Влакове"
                 breadcrumbs={breadcrumbs}

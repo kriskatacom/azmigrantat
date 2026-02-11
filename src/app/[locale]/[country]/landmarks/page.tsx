@@ -9,6 +9,7 @@ import { getLandmarks } from "@/lib/services/landmark-service";
 import { websiteName } from "@/lib/utils";
 import PageHeader from "@/components/page-header";
 import { getBannerByColumn } from "@/lib/services/banner-service";
+import { UserService } from "@/lib/services/user-service";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const countrySlug = (await params).country;
@@ -64,6 +65,9 @@ type Props = {
 };
 
 export default async function LandmarksPage({ params }: Props) {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const countrySlug = (await params).country;
 
     const country = await getCountryByColumn("slug", countrySlug);
@@ -97,7 +101,7 @@ export default async function LandmarksPage({ params }: Props) {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
 
             <PageHeader
                 title={`Забележителности в ${country.name}`}

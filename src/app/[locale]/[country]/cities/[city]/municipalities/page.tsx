@@ -6,6 +6,7 @@ import { getBannerByColumn } from "@/lib/services/banner-service";
 import { getCityByColumn } from "@/lib/services/city-service";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { getMunicipalities } from "@/lib/services/municipality-service";
+import { UserService } from "@/lib/services/user-service";
 import { redirect } from "next/navigation";
 
 type PageProps = {
@@ -16,6 +17,9 @@ type PageProps = {
 };
 
 export default async function Municipalities({ params }: PageProps) {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const { country: countrySlug, city: citySlug } = await params;
 
     const country = await getCountryByColumn("slug", countrySlug);
@@ -46,7 +50,7 @@ export default async function Municipalities({ params }: PageProps) {
 
     return (
         <main>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <PageHeader
                 title={`Общини в ${city.name}`}
                 breadcrumbs={breadcrumbs}

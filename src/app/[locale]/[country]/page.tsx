@@ -8,6 +8,7 @@ import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
 import { Hero } from "@/app/[locale]/[country]/hero";
 import { absoluteUrl, websiteName } from "@/lib/utils";
+import { UserService } from "@/lib/services/user-service";
 
 type PageProps = {
     params: Promise<{
@@ -76,6 +77,9 @@ export async function generateMetadata({
 }
 
 export default async function CountryPage({ params }: PageProps) {
+    const userService = new UserService();
+    const user = await userService.getCurrentUser();
+
     const { country } = await params;
 
     const countryData = await getCountryByColumn("slug", country);
@@ -100,7 +104,7 @@ export default async function CountryPage({ params }: PageProps) {
 
     return (
         <>
-            <MainNavbar />
+            <MainNavbar user={user} />
             <Hero
                 title={countryData.name}
                 excerpt={countryData.excerpt}
