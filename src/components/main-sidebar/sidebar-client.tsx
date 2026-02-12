@@ -2,21 +2,23 @@
 
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { SidebarToggle } from "./sidebar-toggle";
-import { SidebarMap } from "./sidebar-map";
-import { useSidebar } from "./sidebar-context";
-import { mainSidebarItems } from "@/lib/constants";
+import { SidebarMap } from "@/components/main-sidebar/sidebar-map";
+import { useSidebar } from "@/components/main-sidebar/sidebar-context";
+import { AdminSidebarItem } from "@/lib/types";
 
-export function SidebarClient() {
-    const items = mainSidebarItems;
+type SidebarClientProps = {
+    items: AdminSidebarItem[];
+};
+
+export function SidebarClient({ items }: SidebarClientProps) {
     const { collapsed } = useSidebar();
 
     return (
-        <>
+        <div>
             <aside
                 className={cn(
-                    "fixed top-0 left-0 h-screen border-r bg-background transition-all overflow-y-auto",
-                    collapsed ? "w-20" : "w-72",
+                    collapsed ? "w-0" : "w-80 overflow-hidden sticky top-0",
+                    "border-r bg-background transition-all duration-300 overflow-auto min-h-screen max-h-screen",
                 )}
                 style={{ zIndex: 100 }}
             >
@@ -29,15 +31,12 @@ export function SidebarClient() {
                     >
                         Табло
                     </span>
-
-                    <SidebarToggle />
                 </div>
 
                 <ScrollArea className="flex-1 overflow-auto p-2">
                     <SidebarMap items={items} />
                 </ScrollArea>
             </aside>
-            <div className={cn("min-h-screen duration-300", collapsed ? "w-20" : "w-72")}></div>
-        </>
+        </div>
     );
 }

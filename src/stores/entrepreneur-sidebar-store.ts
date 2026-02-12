@@ -9,7 +9,7 @@ type SidebarState = {
 };
 
 export const useEntrepreneurSidebarStore = create<SidebarState>((set) => ({
-    isOpen: false,
+    isOpen: true,
 
     open: () => set({ isOpen: true }),
 

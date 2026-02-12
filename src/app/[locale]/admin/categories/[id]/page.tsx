@@ -1,17 +1,14 @@
 import { Metadata } from "next";
-import Link from "next/link";
 import { websiteName } from "@/lib/utils";
-import { FiPlus } from "react-icons/fi";
-import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import CategoryForm from "@/app/[locale]/admin/categories/[id]/category-form";
 import ImageUpload from "@/components/image-upload";
 import { Breadcrumbs } from "@/components/admin-breadcrumbs";
-import { Button } from "@/components/ui/button";
 import { getCityByColumn } from "@/lib/services/city-service";
 import {
     getCategoryByColumn,
     getCategoryTree,
 } from "@/lib/services/category-service";
+import PageHeader from "@/components/admin/page-header";
 
 type Props = {
     params: Promise<{
@@ -62,41 +59,34 @@ export default async function NewCity({ params }: Params) {
     ];
 
     return (
-        <div className="flex">
-            <MainSidebarServer />
-            <main className="flex-1">
-                <div className="border-b flex items-center gap-5">
-                    <h1 className="text-2xl font-semibold p-5">
-                        {category
-                            ? "Редактиране на категорията"
-                            : "Добавяне на нова категория"}
-                    </h1>
-                    <Link href="/admin/categories/new">
-                        <Button variant={"default"} size={"xl"}>
-                            <FiPlus />
-                            <span>Добавяне</span>
-                        </Button>
-                    </Link>
-                </div>
-                <Breadcrumbs items={breadcrumbs} />
-                <CategoryForm category={category} categories={categories} />
-                {category?.id && (
-                    <>
-                        <h2 className="px-5 text-xl font-semibold">
-                            Изображение
-                        </h2>
-                        <ImageUpload
-                            image_url={category.image_url as string}
-                            url={
-                                category?.id
-                                    ? `/api/categories/${category.id}/upload`
-                                    : ""
-                            }
-                        />
-                    </>
-                )}
-            </main>
-        </div>
+        <main className="flex-1">
+            <PageHeader
+                title={
+                    category
+                        ? "Редактиране на категорията"
+                        : "Добавяне на нова категория"
+                }
+                link="/admin/categories/new"
+            />
+
+            <Breadcrumbs items={breadcrumbs} />
+            
+            <CategoryForm category={category} categories={categories} />
+            
+            {category?.id && (
+                <>
+                    <h2 className="px-5 text-xl font-semibold">Изображение</h2>
+                    <ImageUpload
+                        image_url={category.image_url as string}
+                        url={
+                            category?.id
+                                ? `/api/categories/${category.id}/upload`
+                                : ""
+                        }
+                    />
+                </>
+            )}
+        </main>
     );
 }
 

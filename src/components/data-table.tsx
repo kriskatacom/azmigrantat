@@ -77,8 +77,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { useRouter } from "next/navigation";
 import { RiDragMove2Fill } from "react-icons/ri";
+import { useSidebar } from "./main-sidebar/sidebar-context";
+import { cn } from "@/lib/utils";
 
 type Identifiable = {
     id: string | number;
@@ -171,7 +172,7 @@ export function DataTable<TData extends Identifiable>({
     onBulkDelete,
     onReorder,
 }: DataTableProps<TData>) {
-    const router = useRouter();
+    const { collapsed } = useSidebar();
     const [mounted, setMounted] = React.useState(false);
     React.useEffect(() => setMounted(true), []);
 
@@ -323,8 +324,8 @@ export function DataTable<TData extends Identifiable>({
     }
 
     return (
-        <div className="w-full p-5">
-            <div className="flex items-center mb-5 gap-2">
+        <div className="w-full p-5 space-y-5">
+            <div className="bg-background flex items-center p-5 rounded-md border gap-5">
                 {/* Търсене */}
                 <Input
                     placeholder="Търсене..."
@@ -392,7 +393,7 @@ export function DataTable<TData extends Identifiable>({
                 onDragEnd={handleDragEnd}
                 modifiers={[restrictToVerticalAxis]}
             >
-                <div className="overflow-hidden rounded-md border">
+                <div className={cn(collapsed ? "max-w-[100vw]" : "max-w-[81.5vw]", "duration-300 bg-background overflow-auto rounded-md border")}>
                     <Table>
                         <TableHeader>
                             {table.getHeaderGroups().map((headerGroup) => (
@@ -458,13 +459,13 @@ export function DataTable<TData extends Identifiable>({
                     </Table>
                 </div>
             </DndContext>
-            <div className="flex items-center justify-end space-x-2 py-4">
+            <div className="bg-background flex items-center justify-end rounded-md border space-x-5 p-5">
                 <div className="text-muted-foreground flex-1 text-sm">
                     Избрани са {table.getFilteredSelectedRowModel().rows.length}{" "}
                     от {table.getFilteredRowModel().rows.length} реда.
                 </div>
-                <div className="flex items-center justify-between py-4">
-                    <div className="flex items-center justify-between p-5">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between px-5">
                         {/* Лява страна */}
                         <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             <Select

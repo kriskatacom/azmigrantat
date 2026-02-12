@@ -1,12 +1,11 @@
 import { Metadata } from "next";
-import Link from "next/link";
-import { FiPlus } from "react-icons/fi";
 import { websiteName } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
 import ClientPage from "@/app/[locale]/admin/countries/client-page";
 import { getCountries } from "@/lib/services/country-service";
+import PageHeader from "@/components/admin/page-header";
+import DataTableProvider from "@/components/admin/data-table-provider";
+import { columns } from "@/app/[locale]/admin/countries/columns";
 
 export const metadata: Metadata = {
     title: websiteName("Държави"),
@@ -21,24 +20,15 @@ export default async function Companies() {
     const countries = await getCountries();
 
     return (
-        <div className="flex">
-            <MainSidebarServer />
-
-            <main className="flex-1">
-                <div className="flex items-center gap-5 border-b">
-                    <h1 className="text-2xl font-semibold p-5">Държави</h1>
-                    <Link href="/admin/countries/new">
-                        <Button variant={"default"} size={"xl"}>
-                            <FiPlus />
-                            <span>Добавяне</span>
-                        </Button>
-                    </Link>
-                </div>
-
-                <Breadcrumbs items={breadcrumbs} />
-
-                <ClientPage data={countries} />
-            </main>
-        </div>
+        <main className="flex-1">
+            <PageHeader title="Държави" link="/admin/countries/new" />
+            <Breadcrumbs items={breadcrumbs} />
+            <DataTableProvider
+                data={countries}
+                columns={columns}
+                tableName="countries"
+                onBulkDeleteLink="/api/countries/bulk-delete"
+            />
+        </main>
     );
 }

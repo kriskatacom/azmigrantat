@@ -1,14 +1,11 @@
 import { Metadata } from "next";
-import Link from "next/link";
-import { FiPlus } from "react-icons/fi";
 import { websiteName } from "@/lib/utils";
-import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import ImageUpload from "@/components/image-upload";
 import { Breadcrumbs } from "@/components/admin-breadcrumbs";
-import { Button } from "@/components/ui/button";
 import NewTrainForm from "@/app/[locale]/admin/trains/[id]/new-train-form";
 import { getTrainByColumn } from "@/lib/services/train-service";
 import { getCountries } from "@/lib/services/country-service";
+import PageHeader from "@/components/admin/page-header";
 
 type Props = {
     params: Promise<{
@@ -51,48 +48,34 @@ export default async function NewTrainPage({ params }: Params) {
     const countries = await getCountries();
 
     return (
-        <div className="flex">
-            <MainSidebarServer />
-            <main className="flex-1">
-                <div className="border-b flex items-center gap-5">
-                    <h1 className="text-2xl font-semibold p-5">
-                        {train
-                            ? "Редактиране на железопътна гара"
-                            : "Добавяне на нова железопътна гара"}
-                    </h1>
-                    <Link href="/admin/airlines/new">
-                        <Button variant={"outline"} size={"xl"}>
-                            <FiPlus />
-                            <span>Добавяне</span>
-                        </Button>
-                    </Link>
-                </div>
-                <Breadcrumbs
-                    items={[
-                        { name: "Табло", href: "/admin/dashboard" },
-                        { name: "Железопътни гари", href: "/admin/trains" },
-                        {
-                            name: `${id !== "new" ? "Редактиране" : "Добавяне"}`,
-                        },
-                    ]}
-                />
-                <NewTrainForm train={train} countries={countries} />
-                {train?.id && (
-                    <>
-                        <h2 className="px-5 text-xl font-semibold">
-                            Изображение
-                        </h2>
-                        <ImageUpload
-                            image_url={train.image_url as string}
-                            url={
-                                train?.id
-                                    ? `/api/trains/${train.id}/upload`
-                                    : ""
-                            }
-                        />
-                    </>
-                )}
-            </main>
-        </div>
+        <main className="flex-1">
+            <PageHeader
+                title={
+                    train
+                        ? "Редактиране на железопътна гара"
+                        : "Добавяне на нова железопътна гара"
+                }
+                link="/admin/airlines/new"
+            />
+            <Breadcrumbs
+                items={[
+                    { name: "Табло", href: "/admin/dashboard" },
+                    { name: "Железопътни гари", href: "/admin/trains" },
+                    {
+                        name: `${id !== "new" ? "Редактиране" : "Добавяне"}`,
+                    },
+                ]}
+            />
+            <NewTrainForm train={train} countries={countries} />
+            {train?.id && (
+                <>
+                    <h2 className="px-5 text-xl font-semibold">Изображение</h2>
+                    <ImageUpload
+                        image_url={train.image_url as string}
+                        url={train?.id ? `/api/trains/${train.id}/upload` : ""}
+                    />
+                </>
+            )}
+        </main>
     );
 }

@@ -1,20 +1,20 @@
 import { Metadata } from "next";
-import Link from "next/link";
-import { FiPlus } from "react-icons/fi";
 import { websiteName } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
-import ClientPage from "@/app/[locale]/admin/municipalities/client-page";
 import { getCityByColumn } from "@/lib/services/city-service";
 import { City, Country } from "@/lib/types";
-import { MunicipalityWithCityAndCountry } from "@/app/[locale]/admin/municipalities/columns";
+import {
+    MunicipalityWithCityAndCountry,
+    columns,
+} from "@/app/[locale]/admin/municipalities/columns";
 import {
     getCountries,
     getCountryByColumn,
 } from "@/lib/services/country-service";
 import { getMunicipalities } from "@/lib/services/municipality-service";
-import MunicipalityFilters from "./municipality-filters";
+import MunicipalityFilters from "@/app/[locale]/admin/municipalities/municipality-filters";
+import PageHeader from "@/components/admin/page-header";
+import DataTableProvider from "@/components/admin/data-table-provider";
 
 export const metadata: Metadata = {
     title: websiteName("Общини"),
@@ -81,25 +81,19 @@ export default async function Municipalities({
     const countries = await getCountries();
 
     return (
-        <div className="flex">
-            <MainSidebarServer />
+        <main className="flex-1">
+            <PageHeader title="Общини" link="/admin/municipalities/new">
+                <MunicipalityFilters countries={countries} />
+            </PageHeader>
 
-            <main className="flex-1">
-                <div className="flex items-center gap-5 border-b">
-                    <h1 className="text-2xl font-semibold p-5">Общини</h1>
-                    <Link href="/admin/municipalities/new">
-                        <Button variant={"default"} size={"xl"}>
-                            <FiPlus />
-                            <span>Добавяне</span>
-                        </Button>
-                    </Link>
-                    <MunicipalityFilters countries={countries} />
-                </div>
-
-                <Breadcrumbs items={breadcrumbs} />
-
-                <ClientPage data={municipalities} />
-            </main>
-        </div>
+            <Breadcrumbs items={breadcrumbs} />
+            
+            <DataTableProvider
+                data={municipalities}
+                columns={columns}
+                tableName="municipalities"
+                onBulkDeleteLink="/api/municipalities/bulk-delete"
+            />
+        </main>
     );
 }

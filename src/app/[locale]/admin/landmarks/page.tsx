@@ -1,15 +1,16 @@
 import { Metadata } from "next";
-import Link from "next/link";
-import { FiPlus } from "react-icons/fi";
 import { websiteName } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
 import ClientPage from "@/app/[locale]/admin/landmarks/client-page";
 import { Country } from "@/lib/types";
 import { getCountryByColumn } from "@/lib/services/country-service";
-import { LandmarkWithCountry } from "@/app/[locale]/admin/landmarks/columns";
 import { getLandmarks } from "@/lib/services/landmark-service";
+import PageHeader from "@/components/admin/page-header";
+import DataTableProvider from "@/components/admin/data-table-provider";
+import {
+    columns,
+    LandmarkWithCountry,
+} from "@/app/[locale]/admin/landmarks/columns";
 
 export const metadata: Metadata = {
     title: websiteName("Забележителности"),
@@ -41,30 +42,24 @@ export default async function Landmarks({ searchParams }: EmbassyProps) {
             href: `/admin/landmarks?country=${country.slug}`,
         });
 
-        landmarks = await getLandmarks({ column: "country_id", value: country.id as number });
+        landmarks = await getLandmarks({
+            column: "country_id",
+            value: country.id as number,
+        });
     } else {
         landmarks = await getLandmarks();
     }
 
     return (
-        <div className="flex">
-            <MainSidebarServer />
-
-            <main className="flex-1">
-                <div className="flex items-center gap-5 border-b">
-                    <h1 className="text-2xl font-semibold p-5">Забележителности</h1>
-                    <Link href="/admin/landmarks/new">
-                        <Button variant={"default"} size={"xl"}>
-                            <FiPlus />
-                            <span>Добавяне</span>
-                        </Button>
-                    </Link>
-                </div>
-
-                <Breadcrumbs items={breadcrumbs} />
-
-                <ClientPage data={landmarks} />
-            </main>
-        </div>
+        <main className="flex-1">
+            <PageHeader title="Забележителности" link="/admin/landmarks/new" />
+            <Breadcrumbs items={breadcrumbs} />
+            <DataTableProvider
+                data={landmarks}
+                columns={columns}
+                tableName="landmarks"
+                onBulkDeleteLink="/api/landmarks/bulk-delete"
+            />
+        </main>
     );
 }

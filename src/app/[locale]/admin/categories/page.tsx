@@ -13,6 +13,7 @@ import {
 } from "@/lib/services/category-service";
 import { Category } from "@/lib/types";
 import { MdCategory } from "react-icons/md";
+import PageHeader from "@/components/admin/page-header";
 
 export const metadata: Metadata = {
     title: websiteName("Категории"),
@@ -47,12 +48,12 @@ export default async function Categories({ searchParams }: CityProps) {
         });
 
         categories = await getCategories({
-            where: { parent_id: parentCategory.id }
+            where: { parent_id: parentCategory.id },
         });
     } else {
         if (show === "main-categories") {
             categories = await getCategories({
-                where: { parent_id: null }
+                where: { parent_id: null },
             });
 
             breadcrumbs.push({
@@ -64,32 +65,19 @@ export default async function Categories({ searchParams }: CityProps) {
     }
 
     return (
-        <div className="flex">
-            <MainSidebarServer />
+        <main className="flex-1">
+            <PageHeader title="Категории" link="/admin/categories/new">
+                <Link href="/admin/categories?show=main-categories">
+                    <Button variant={"default"} size={"xl"}>
+                        <MdCategory />
+                        <span>Основни категории</span>
+                    </Button>
+                </Link>
+            </PageHeader>
 
-            <main className="flex-1">
-                <div className="flex items-center gap-5 border-b">
-                    <h1 className="text-2xl font-semibold p-5">Категории</h1>
+            <Breadcrumbs items={breadcrumbs} />
 
-                    <Link href="/admin/categories/new">
-                        <Button variant={"default"} size={"xl"}>
-                            <FiPlus />
-                            <span>Добавяне</span>
-                        </Button>
-                    </Link>
-
-                    <Link href="/admin/categories?show=main-categories">
-                        <Button variant={"default"} size={"xl"}>
-                            <MdCategory />
-                            <span>Основни категории</span>
-                        </Button>
-                    </Link>
-                </div>
-
-                <Breadcrumbs items={breadcrumbs} />
-
-                <ClientPage data={categories} />
-            </main>
-        </div>
+            <ClientPage data={categories} />
+        </main>
     );
 }

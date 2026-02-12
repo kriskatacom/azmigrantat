@@ -62,10 +62,11 @@ export const COUNTRY_ELEMENTS: Record<string, string> = {
 // ADMIN SIDEBAR
 // ===============================
 
-import { FiUsers } from "react-icons/fi";
+import { FiHome, FiSettings, FiUser, FiUsers } from "react-icons/fi";
 import { MdOutlineDashboard } from "react-icons/md";
 import { IoAirplaneSharp, IoSettingsOutline } from "react-icons/io5";
 import {
+    BsBuilding,
     BsBuildings,
     BsBuildingSlash,
     BsFillBuildingsFill,
@@ -76,10 +77,15 @@ import { TbBuildingStore } from "react-icons/tb";
 import { FaBuildingColumns } from "react-icons/fa6";
 import { LiaLandmarkSolid } from "react-icons/lia";
 import { AdminSidebarItem } from "@/lib/types";
-import { MapMarker } from "@/components/leaflet-map";
 import { CardEntity } from "@/components/card-item";
 import { FaBus, FaImage, FaShip, FaTaxi, FaTrain } from "react-icons/fa";
-import { Building2, FileText, Home, PhoneCall, ShieldCheck } from "lucide-react";
+import {
+    Building2,
+    FileText,
+    Home,
+    PhoneCall,
+    ShieldCheck,
+} from "lucide-react";
 
 export const mainSidebarItems: AdminSidebarItem[] = [
     {
@@ -167,6 +173,13 @@ export const mainSidebarItems: AdminSidebarItem[] = [
         icon: IoSettingsOutline,
         link: "/admin/settings",
     },
+];
+
+export const entrepreneurSidebarItems: AdminSidebarItem[] = [
+    { name: "Табло", link: "/entrepreneurs", icon: FiHome },
+    { name: "Реклами", link: "/entrepreneurs/ads", icon: FiUser },
+    { name: "Обяви", link: "/entrepreneurs/offers", icon: FiSettings },
+    { name: "Компании", link: "/entrepreneurs/companies", icon: BsBuilding },
 ];
 
 export const ALLOWED_IMAGE_TYPES = [

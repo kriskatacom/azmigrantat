@@ -1,15 +1,12 @@
 import { Metadata } from "next";
-import Link from "next/link";
-import { FiPlus } from "react-icons/fi";
 import { websiteName } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
 import ClientPage from "@/app/[locale]/admin/cities/client-page";
 import { getCities } from "@/lib/services/city-service";
 import { Country } from "@/lib/types";
 import { CityWithCountry } from "./columns";
 import { getCountryByColumn } from "@/lib/services/country-service";
+import PageHeader from "@/components/admin/page-header";
 
 export const metadata: Metadata = {
     title: websiteName("Градове"),
@@ -50,24 +47,10 @@ export default async function Cities({ searchParams }: CityProps) {
     }
 
     return (
-        <div className="flex">
-            <MainSidebarServer />
-
-            <main className="flex-1">
-                <div className="flex items-center gap-5 border-b">
-                    <h1 className="text-2xl font-semibold p-5">Градове</h1>
-                    <Link href="/admin/cities/new">
-                        <Button variant={"default"} size={"xl"}>
-                            <FiPlus />
-                            <span>Добавяне</span>
-                        </Button>
-                    </Link>
-                </div>
-
-                <Breadcrumbs items={breadcrumbs} />
-
-                <ClientPage data={cities} />
-            </main>
-        </div>
+        <main className="flex-1">
+            <PageHeader title="Градове" link="/admin/cities/new"></PageHeader>
+            <Breadcrumbs items={breadcrumbs} />
+            <ClientPage data={cities} />
+        </main>
     );
 }

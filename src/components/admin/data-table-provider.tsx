@@ -3,27 +3,38 @@
 import axios from "axios";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { columns } from "@/app/[locale]/admin/municipalities/columns";
 import { DataTable } from "@/components/data-table";
 import { Municipaliy } from "@/lib/types";
 
-type ClientPageProps = {
-    data: Municipaliy[];
+type DataTableProviderProps = {
+    data: any[];
+    columns: any[];
+    tableName?: string;
+    onBulkDeleteLink?: string;
 };
 
-export default function ClientPage({ data }: ClientPageProps) {
+export default function DataTableProvider({
+    data,
+    columns,
+    tableName,
+    onBulkDeleteLink,
+}: DataTableProviderProps) {
     const router = useRouter();
 
     async function onBulkDelete(selectedIds: (string | number)[]) {
+        if (!onBulkDeleteLink) return;
+
         try {
-            const res = await axios.post("/api/municipalities/bulk-delete", {
+            const res = await axios.post(onBulkDeleteLink, {
                 ids: selectedIds,
             });
 
             if (res.status === 200) {
-                toast.success(
-                    `Бяха премахнати ${res.data.deletedCount} общини.`,
-                );
+                const message =
+                    res.data.deletedCount == 1
+                        ? `Беше премахнат ${res.data.deletedCount} елемент`
+                        : `Бяха премахнати ${res.data.deletedCount} елемента.`;
+                toast.success(message);
                 router.refresh();
             }
         } catch (error) {
@@ -32,6 +43,8 @@ export default function ClientPage({ data }: ClientPageProps) {
     }
 
     const handleReorder = async (reorderedData: Municipaliy[]) => {
+        if (!tableName) return;
+
         try {
             const response = await fetch("/api/reorder", {
                 method: "POST",
@@ -39,7 +52,7 @@ export default function ClientPage({ data }: ClientPageProps) {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    tableName: "municipalities",
+                    tableName: tableName,
                     items: reorderedData.map((item, index) => ({
                         id: item.id,
                         order: index + 1,
@@ -61,7 +74,7 @@ export default function ClientPage({ data }: ClientPageProps) {
         <DataTable
             columns={columns}
             data={data}
-            onReorder={handleReorder}
+            onReorder={(tableName && handleReorder) || undefined}
             onBulkDelete={(selectedIds) => onBulkDelete(selectedIds)}
         />
     );

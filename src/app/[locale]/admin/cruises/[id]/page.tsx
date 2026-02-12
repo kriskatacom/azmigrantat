@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { getCruiseByColumn } from "@/lib/services/cruise-service";
 import NewCruiseForm from "@/app/[locale]/admin/cruises/[id]/new-cruise-form";
 import { getCountries } from "@/lib/services/country-service";
+import PageHeader from "@/components/admin/page-header";
 
 type Props = {
     params: Promise<{
@@ -48,51 +49,37 @@ export default async function cruisePage({ params }: Params) {
         cruise = await getCruiseByColumn("id", id);
     }
 
-    const countries = await getCountries();
-
     return (
-        <div className="flex">
-            <MainSidebarServer />
-            <main className="flex-1">
-                <div className="border-b flex items-center gap-5">
-                    <h1 className="text-2xl font-semibold p-5">
-                        {cruise
-                            ? "Редактиране на круизна компании"
-                            : "Добавяне на нова круизна компании"}
-                    </h1>
-                    <Link href="/admin/airlines/new">
-                        <Button variant={"outline"} size={"xl"}>
-                            <FiPlus />
-                            <span>Добавяне</span>
-                        </Button>
-                    </Link>
-                </div>
-                <Breadcrumbs
-                    items={[
-                        { name: "Табло", href: "/admin/dashboard" },
-                        { name: "Круизни компании", href: "/admin/cruises" },
-                        {
-                            name: `${id !== "new" ? "Редактиране" : "Добавяне"}`,
-                        },
-                    ]}
-                />
-                <NewCruiseForm cruise={cruise} />
-                {cruise?.id && (
-                    <>
-                        <h2 className="px-5 text-xl font-semibold">
-                            Изображение
-                        </h2>
-                        <ImageUpload
-                            image_url={cruise.image_url as string}
-                            url={
-                                cruise?.id
-                                    ? `/api/cruises/${cruise.id}/upload`
-                                    : ""
-                            }
-                        />
-                    </>
-                )}
-            </main>
-        </div>
+        <main className="flex-1">
+            <PageHeader
+                title={
+                    cruise
+                        ? "Редактиране на круизна компании"
+                        : "Добавяне на нова круизна компании"
+                }
+                link="/admin/airlines/new"
+            />
+            <Breadcrumbs
+                items={[
+                    { name: "Табло", href: "/admin/dashboard" },
+                    { name: "Круизни компании", href: "/admin/cruises" },
+                    {
+                        name: `${id !== "new" ? "Редактиране" : "Добавяне"}`,
+                    },
+                ]}
+            />
+            <NewCruiseForm cruise={cruise} />
+            {cruise?.id && (
+                <>
+                    <h2 className="px-5 text-xl font-semibold">Изображение</h2>
+                    <ImageUpload
+                        image_url={cruise.image_url as string}
+                        url={
+                            cruise?.id ? `/api/cruises/${cruise.id}/upload` : ""
+                        }
+                    />
+                </>
+            )}
+        </main>
     );
 }

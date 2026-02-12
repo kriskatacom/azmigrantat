@@ -2,18 +2,22 @@
 
 import { FiMenu } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
-import { useEntrepreneurSidebarStore } from "@/stores/entrepreneur-sidebar-store";
+import { useSidebar } from "../main-sidebar/sidebar-context";
 
-export default function PageHeader() {
-    const { toggle } = useEntrepreneurSidebarStore((state) => state);
+type PageHeaderProps = {
+    title: string;
+}
+
+export default function PageHeader({ title }: PageHeaderProps) {
+    const { toggleSidebar } = useSidebar();
 
     return (
         <div className="flex items-center bg-white w-full px-5 border-b">
-            <Button variant="outline" size="icon-lg" onClick={toggle}>
+            <Button variant="outline" size="icon-lg" onClick={toggleSidebar}>
                 <FiMenu />
             </Button>
             <h1 className="text-2xl font-semibold p-5 border-b">
-                Табло за предприемачи
+                {title}
             </h1>
         </div>
     );

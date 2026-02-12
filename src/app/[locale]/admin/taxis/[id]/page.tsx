@@ -1,14 +1,11 @@
 import { Metadata } from "next";
-import Link from "next/link";
-import { FiPlus } from "react-icons/fi";
 import { websiteName } from "@/lib/utils";
-import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import ImageUpload from "@/components/image-upload";
 import { Breadcrumbs } from "@/components/admin-breadcrumbs";
-import { Button } from "@/components/ui/button";
 import { getTaxiByColumn } from "@/lib/services/taxi-service";
 import NewTaxiForm from "./new-taxi-form";
 import { getCountries } from "@/lib/services/country-service";
+import PageHeader from "@/components/admin/page-header";
 
 type Props = {
     params: Promise<{
@@ -51,48 +48,34 @@ export default async function NewTaxiPage({ params }: Params) {
     const countries = await getCountries();
 
     return (
-        <div className="flex">
-            <MainSidebarServer />
-            <main className="flex-1">
-                <div className="border-b flex items-center gap-5">
-                    <h1 className="text-2xl font-semibold p-5">
-                        {taxi
-                            ? "Редактиране на железопътна гара"
-                            : "Добавяне на нова железопътна гара"}
-                    </h1>
-                    <Link href="/admin/airlines/new">
-                        <Button variant={"outline"} size={"xl"}>
-                            <FiPlus />
-                            <span>Добавяне</span>
-                        </Button>
-                    </Link>
-                </div>
-                <Breadcrumbs
-                    items={[
-                        { name: "Табло", href: "/admin/dashboard" },
-                        { name: "Таксиметрова компания", href: "/admin/taxis" },
-                        {
-                            name: `${id !== "new" ? "Редактиране" : "Добавяне"}`,
-                        },
-                    ]}
-                />
-                <NewTaxiForm taxi={taxi} countries={countries} />
-                {taxi?.id && (
-                    <>
-                        <h2 className="px-5 text-xl font-semibold">
-                            Изображение
-                        </h2>
-                        <ImageUpload
-                            image_url={taxi.image_url as string}
-                            url={
-                                taxi?.id
-                                    ? `/api/taxis/${taxi.id}/upload`
-                                    : ""
-                            }
-                        />
-                    </>
-                )}
-            </main>
-        </div>
+        <main className="flex-1">
+            <PageHeader
+                title={
+                    taxi
+                        ? "Редактиране на железопътна гара"
+                        : "Добавяне на нова железопътна гара"
+                }
+                link="/admin/airlines/new"
+            />
+            <Breadcrumbs
+                items={[
+                    { name: "Табло", href: "/admin/dashboard" },
+                    { name: "Таксиметрова компания", href: "/admin/taxis" },
+                    {
+                        name: `${id !== "new" ? "Редактиране" : "Добавяне"}`,
+                    },
+                ]}
+            />
+            <NewTaxiForm taxi={taxi} countries={countries} />
+            {taxi?.id && (
+                <>
+                    <h2 className="px-5 text-xl font-semibold">Изображение</h2>
+                    <ImageUpload
+                        image_url={taxi.image_url as string}
+                        url={taxi?.id ? `/api/taxis/${taxi.id}/upload` : ""}
+                    />
+                </>
+            )}
+        </main>
     );
 }

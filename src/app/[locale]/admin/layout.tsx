@@ -1,10 +1,18 @@
+import { ReactNode } from "react";
+import { cookies } from "next/headers";
 import { ThemeProvider } from "@/app/providers/theme-provider";
+import { SidebarProvider } from "@/components/main-sidebar/sidebar-context";
+import { SidebarData } from "@/components/admin/sidebar-data";
 
-export default function AdminLayout({
-    children,
-}: {
-    children: React.ReactNode;
-}) {
+type AdminLayoutProps = {
+    children: ReactNode;
+};
+
+export default async function AdminLayout({ children }: AdminLayoutProps) {
+    const cookieStore = await cookies();
+    const collapsedCookie = cookieStore.get("sidebar-collapsed");
+    const collapsed = collapsedCookie?.value === "true";
+
     return (
         <ThemeProvider
             attribute="class"
@@ -12,7 +20,12 @@ export default function AdminLayout({
             enableSystem
             disableTransitionOnChange
         >
-            <div className="bg-background">{children}</div>
+            <div className="flex min-h-screen">
+                <SidebarProvider initialCollapsed={collapsed}>
+                    <SidebarData />
+                    {children}
+                </SidebarProvider>
+            </div>
         </ThemeProvider>
     );
 }

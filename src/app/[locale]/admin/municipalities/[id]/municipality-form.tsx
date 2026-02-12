@@ -124,7 +124,7 @@ export default function NewMunicipaliyForm({
     return (
         <form
             onSubmit={handleSubmit}
-            className="m-5 p-5 border rounded-md space-y-10"
+            className="bg-background m-5 p-5 border rounded-md space-y-10"
         >
             <div>
                 <Label className="mb-1" htmlFor="name">

@@ -1,22 +1,33 @@
 import { ReactNode } from "react";
-import EntrepreneurLeftSidebar from "@/components/entrepreneurs/entrepreneur-sidebar";
-import PageHeader from "@/components/entrepreneurs/page-header";
+import { redirect } from "next/navigation";
+import { UserService } from "@/lib/services/user-service";
+import { cookies } from "next/headers";
+import { SidebarProvider } from "@/components/main-sidebar/sidebar-context";
+import { SidebarData } from "@/components/entrepreneurs/sidebar-data";
+
+const userService = new UserService();
 
 type EntrepreneurLayoutProps = {
     children: ReactNode;
 };
 
-export default function EntrepreneurLayout({
+export default async function EntrepreneurLayout({
     children,
 }: EntrepreneurLayoutProps) {
+    const cookieStore = await cookies();
+    const collapsedCookie = cookieStore.get("sidebar-collapsed");
+    const collapsed = collapsedCookie?.value === "true";
+
+    const user = await userService.getCurrentUser();
+
+    if (!user) return redirect("/");
+
     return (
         <div className="flex min-h-screen">
-            <EntrepreneurLeftSidebar />
-
-            <div className="flex flex-1 flex-col">
-                <PageHeader />
-                <main className="flex-1 p-5">{children}</main>
-            </div>
+            <SidebarProvider initialCollapsed={collapsed}>
+                <SidebarData />
+                {children}
+            </SidebarProvider>
         </div>
     );
 }

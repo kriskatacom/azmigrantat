@@ -6,9 +6,10 @@ import { FiHome, FiUser, FiSettings } from "react-icons/fi";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import { useEntrepreneurSidebarStore } from "@/stores/entrepreneur-sidebar-store";
 import { DialogTitle } from "@/components/ui/dialog";
 import { BsBuilding } from "react-icons/bs";
+import { useSidebar } from "../main-sidebar/sidebar-context";
+import { useEffect, useState } from "react";
 
 const links = [
     { name: "Табло", href: "/entrepreneurs", icon: FiHome },
@@ -51,28 +52,55 @@ function SidebarContent() {
 }
 
 export default function EntrepreneurLeftSidebar() {
-    const { isOpen, setOpen } = useEntrepreneurSidebarStore();
+    const { collapsed, toggleSidebar } = useSidebar();
     const isDesktop = useMediaQuery("(min-width: 768px)");
 
-    if (isDesktop) {
-        return (
-            <aside
-                className={cn(
-                    isOpen ? "w-80" : "w-0 overflow-hidden",
-                    "border-r bg-background duration-300",
-                )}
-            >
-                <SidebarContent />
-            </aside>
-        );
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) {
+        return <SidebarSkeleton />
     }
 
     return (
-        <Sheet open={isOpen} onOpenChange={setOpen}>
-            <SheetContent side="left" className="p-0 w-80">
-                <DialogTitle />
-                <SidebarContent />
-            </SheetContent>
-        </Sheet>
+        <>
+            {isDesktop && (
+                <aside
+                    className={cn(
+                        collapsed ? "w-80" : "w-0 overflow-hidden",
+                        "border-r bg-background transition-all duration-300",
+                    )}
+                >
+                    <SidebarContent />
+                </aside>
+            )}
+
+            {!isDesktop && (
+                <Sheet open={collapsed} onOpenChange={toggleSidebar}>
+                    <SheetContent side="left" className="p-0 w-80">
+                        <DialogTitle />
+                        <SidebarContent />
+                    </SheetContent>
+                </Sheet>
+            )}
+        </>
+    );
+}
+
+export function SidebarSkeleton() {
+    return (
+        <aside className="w-80 border-r bg-background p-5 space-y-6 animate-pulse">
+            <div className="h-6 w-32 bg-muted rounded" />
+
+            <div className="space-y-4">
+                <div className="h-10 bg-muted rounded" />
+                <div className="h-10 bg-muted rounded" />
+                <div className="h-10 bg-muted rounded" />
+                <div className="h-10 bg-muted rounded" />
+            </div>
+        </aside>
     );
 }

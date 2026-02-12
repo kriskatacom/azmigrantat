@@ -1,15 +1,16 @@
 import { Metadata } from "next";
-import Link from "next/link";
-import { FiPlus } from "react-icons/fi";
 import { websiteName } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
 import ClientPage from "@/app/[locale]/admin/embassies/client-page";
 import { Country } from "@/lib/types";
 import { getCountryByColumn } from "@/lib/services/country-service";
-import { EmbassyWithCountry } from "./columns";
 import { getEmbassies } from "@/lib/services/embassy-service";
+import PageHeader from "@/components/admin/page-header";
+import DataTableProvider from "@/components/admin/data-table-provider";
+import {
+    columns,
+    EmbassyWithCountry,
+} from "@/app/[locale]/admin/embassies/columns";
 
 export const metadata: Metadata = {
     title: websiteName("Посолства"),
@@ -41,30 +42,25 @@ export default async function Embassies({ searchParams }: EmbassyProps) {
             href: `/admin/embassies?country=${country.slug}`,
         });
 
-        embassies = await getEmbassies({ column: "country_id", value: country.id as number });
+        embassies = await getEmbassies({
+            column: "country_id",
+            value: country.id as number,
+        });
     } else {
         embassies = await getEmbassies();
     }
 
     return (
-        <div className="flex">
-            <MainSidebarServer />
-
-            <main className="flex-1">
-                <div className="flex items-center gap-5 border-b">
-                    <h1 className="text-2xl font-semibold p-5">Посолства</h1>
-                    <Link href="/admin/embassies/new">
-                        <Button variant={"default"} size={"xl"}>
-                            <FiPlus />
-                            <span>Добавяне</span>
-                        </Button>
-                    </Link>
-                </div>
-
-                <Breadcrumbs items={breadcrumbs} />
-
-                <ClientPage data={embassies} />
-            </main>
-        </div>
+        <main className="flex-1">
+            <PageHeader title="Посолства" link="/admin/embassies/new" />
+            <Breadcrumbs items={breadcrumbs} />
+            <DataTableProvider
+                data={embassies}
+                columns={columns}
+                tableName="embassies"
+                onBulkDeleteLink="/api/embassies/bulk-delete"
+            />
+            <ClientPage data={embassies} />
+        </main>
     );
 }

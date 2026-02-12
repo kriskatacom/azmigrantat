@@ -1,22 +1,20 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { FiMenu } from "react-icons/fi";
 import { useSidebar } from "./sidebar-context";
+import { Button } from "../ui/button";
 
 export function SidebarToggle() {
     const { collapsed, toggleSidebar, isPending } = useSidebar();
 
     return (
-        <button
+        <Button
+            variant="outline"
+            size="icon-lg"
             onClick={toggleSidebar}
             disabled={isPending}
-            className="p-2 rounded-md hover:bg-accent transition-colors disabled:opacity-50"
         >
-            {collapsed ? (
-                <ChevronRight className="h-5 w-5" />
-            ) : (
-                <ChevronLeft className="h-5 w-5" />
-            )}
-        </button>
+            <FiMenu />
+        </Button>
     );
 }

@@ -114,7 +114,7 @@ export default function NewTaxiForm({ taxi, countries }: Params) {
     return (
         <form
             onSubmit={handleSubmit}
-            className="m-5 p-5 border rounded-md space-y-10"
+            className="bg-background m-5 p-5 border rounded-md space-y-10"
         >
             <div className="space-y-2">
                 <Label>Име на гарата *</Label>

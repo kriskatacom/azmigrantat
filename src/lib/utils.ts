@@ -132,8 +132,8 @@ export function extractCoordinatesFromLocationLink(
     return { latitude, longitude };
 }
 
-export function isAdminPanel(pathname: string): boolean {
-  return pathname.startsWith("/admin");
+export function urlStartsWith(pathname: string, wantedString: string = "/admin"): boolean {
+  return pathname.includes(wantedString);
 }
 
 // navigator.geolocation.getCurrentPosition((pos) => {

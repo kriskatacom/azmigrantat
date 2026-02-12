@@ -10,6 +10,7 @@ import { FiPlus } from "react-icons/fi";
 import { getCountries } from "@/lib/services/country-service";
 import { getMunicipalityByColumn } from "@/lib/services/municipality-service";
 import { getCities } from "@/lib/services/city-service";
+import PageHeader from "@/components/admin/page-header";
 
 type Props = {
     params: Promise<{
@@ -61,44 +62,35 @@ export default async function NewCity({ params }: Params) {
     ];
 
     return (
-        <div className="flex">
-            <MainSidebarServer />
-            <main className="flex-1">
-                <div className="border-b flex items-center gap-5">
-                    <h1 className="text-2xl font-semibold p-5">
-                        {municipality
-                            ? "Редактиране на община"
-                            : "Добавяне на нова община"}
-                    </h1>
-                    <Link href="/admin/municipalities/new">
-                        <Button variant={"default"} size={"xl"}>
-                            <FiPlus />
-                            <span>Добавяне</span>
-                        </Button>
-                    </Link>
-                </div>
-                <Breadcrumbs items={breadcrumbs} />
-                <NewMunicipaliyForm
-                    municipality={municipality}
-                    countries={countries}
-                    cities={cities}
-                />
-                {municipality?.id && (
-                    <>
-                        <h2 className="px-5 text-xl font-semibold">
-                            Изображение
-                        </h2>
-                        <ImageUpload
-                            image_url={municipality.image_url as string}
-                            url={
-                                municipality?.id
-                                    ? `/api/municipalities/${municipality.id}/upload`
-                                    : ""
-                            }
-                        />
-                    </>
-                )}
-            </main>
-        </div>
+        <main className="flex-1">
+            <PageHeader
+                title={
+                    municipality
+                        ? "Редактиране на община"
+                        : "Добавяне на нова община"
+                }
+                link="/admin/municipalities/new"
+            ></PageHeader>
+
+            <Breadcrumbs items={breadcrumbs} />
+            <NewMunicipaliyForm
+                municipality={municipality}
+                countries={countries}
+                cities={cities}
+            />
+            {municipality?.id && (
+                <>
+                    <h2 className="px-5 text-xl font-semibold">Изображение</h2>
+                    <ImageUpload
+                        image_url={municipality.image_url as string}
+                        url={
+                            municipality?.id
+                                ? `/api/municipalities/${municipality.id}/upload`
+                                : ""
+                        }
+                    />
+                </>
+            )}
+        </main>
     );
 }

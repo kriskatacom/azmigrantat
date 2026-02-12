@@ -1,14 +1,11 @@
 import { Metadata } from "next";
-import Link from "next/link";
-import { FiPlus } from "react-icons/fi";
 import { websiteName } from "@/lib/utils";
-import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import ImageUpload from "@/components/image-upload";
 import { Breadcrumbs } from "@/components/admin-breadcrumbs";
-import { Button } from "@/components/ui/button";
 import { getAutobusByColumn } from "@/lib/services/autobus-service";
 import NewAutobusForm from "./new-autobus-form";
 import { getCountries } from "@/lib/services/country-service";
+import PageHeader from "@/components/admin/page-header";
 
 type Props = {
     params: Promise<{
@@ -51,48 +48,38 @@ export default async function NewAutobusPage({ params }: Params) {
     const countries = await getCountries();
 
     return (
-        <div className="flex">
-            <MainSidebarServer />
-            <main className="flex-1">
-                <div className="border-b flex items-center gap-5">
-                    <h1 className="text-2xl font-semibold p-5">
-                        {autobus
-                            ? "Редактиране на автобусна гара"
-                            : "Добавяне на нова автобусна гара"}
-                    </h1>
-                    <Link href="/admin/airlines/new">
-                        <Button variant={"outline"} size={"xl"}>
-                            <FiPlus />
-                            <span>Добавяне</span>
-                        </Button>
-                    </Link>
-                </div>
-                <Breadcrumbs
-                    items={[
-                        { name: "Табло", href: "/admin/dashboard" },
-                        { name: "Автобусни гари", href: "/admin/autobuses" },
-                        {
-                            name: `${id !== "new" ? "Редактиране" : "Добавяне"}`,
-                        },
-                    ]}
-                />
-                <NewAutobusForm autobus={autobus} countries={countries} />
-                {autobus?.id && (
-                    <>
-                        <h2 className="px-5 text-xl font-semibold">
-                            Изображение
-                        </h2>
-                        <ImageUpload
-                            image_url={autobus.image_url as string}
-                            url={
-                                autobus?.id
-                                    ? `/api/autobuses/${autobus.id}/upload`
-                                    : ""
-                            }
-                        />
-                    </>
-                )}
-            </main>
-        </div>
+        <main className="flex-1">
+            <PageHeader
+                title={
+                    autobus
+                        ? "Редактиране на автобусна гара"
+                        : "Добавяне на нова автобусна гара"
+                }
+                link="/admin/airlines/new"
+            />
+            <Breadcrumbs
+                items={[
+                    { name: "Табло", href: "/admin/dashboard" },
+                    { name: "Автобусни гари", href: "/admin/autobuses" },
+                    {
+                        name: `${id !== "new" ? "Редактиране" : "Добавяне"}`,
+                    },
+                ]}
+            />
+            <NewAutobusForm autobus={autobus} countries={countries} />
+            {autobus?.id && (
+                <>
+                    <h2 className="px-5 text-xl font-semibold">Изображение</h2>
+                    <ImageUpload
+                        image_url={autobus.image_url as string}
+                        url={
+                            autobus?.id
+                                ? `/api/autobuses/${autobus.id}/upload`
+                                : ""
+                        }
+                    />
+                </>
+            )}
+        </main>
     );
 }

@@ -1,14 +1,11 @@
 import { Metadata } from "next";
 import { websiteName } from "@/lib/utils";
-import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import CityForm from "@/app/[locale]/admin/cities/[id]/city-form";
 import ImageUpload from "@/components/image-upload";
 import { Breadcrumbs } from "@/components/admin-breadcrumbs";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { FiPlus } from "react-icons/fi";
 import { getCityByColumn } from "@/lib/services/city-service";
 import { getCountries } from "@/lib/services/country-service";
+import PageHeader from "@/components/admin/page-header";
 
 type Props = {
     params: Promise<{
@@ -59,36 +56,22 @@ export default async function NewCity({ params }: Params) {
     ];
 
     return (
-        <div className="flex">
-            <MainSidebarServer />
-            <main className="flex-1">
-                <div className="border-b flex items-center gap-5">
-                    <h1 className="text-2xl font-semibold p-5">
-                        {city ? "Редактиране на града" : "Добавяне на нов град"}
-                    </h1>
-                    <Link href="/admin/cities/new">
-                        <Button variant={"default"} size={"xl"}>
-                            <FiPlus />
-                            <span>Добавяне</span>
-                        </Button>
-                    </Link>
-                </div>
-                <Breadcrumbs items={breadcrumbs} />
-                <CityForm city={city} countries={countries} />
-                {city?.id && (
-                    <>
-                        <h2 className="px-5 text-xl font-semibold">
-                            Изображение
-                        </h2>
-                        <ImageUpload
-                            image_url={city.image_url as string}
-                            url={
-                                city?.id ? `/api/cities/${city.id}/upload` : ""
-                            }
-                        />
-                    </>
-                )}
-            </main>
-        </div>
+        <main className="flex-1">
+            <PageHeader
+                title={city ? "Редактиране на града" : "Добавяне на нов град"}
+                link="/admin/cities/new"
+            />
+            <Breadcrumbs items={breadcrumbs} />
+            <CityForm city={city} countries={countries} />
+            {city?.id && (
+                <>
+                    <h2 className="px-5 text-xl font-semibold">Изображение</h2>
+                    <ImageUpload
+                        image_url={city.image_url as string}
+                        url={city?.id ? `/api/cities/${city.id}/upload` : ""}
+                    />
+                </>
+            )}
+        </main>
     );
 }
