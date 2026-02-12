@@ -1,43 +1,37 @@
+ALTER TABLE `companies`
+ADD COLUMN `user_id` CHAR(36) CHARACTER
+SET
+    utf8mb4 COLLATE utf8mb4_unicode_ci NULL AFTER `bottom_image_url`;
+
+ALTER TABLE `companies` ADD CONSTRAINT `fk_companies_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
 CREATE TABLE
-    `users` (
-        `id` CHAR(36) NOT NULL PRIMARY KEY, -- UUID
-        `email` VARCHAR(255) NOT NULL UNIQUE, -- Имейл
-        `email_verified` BOOLEAN NOT NULL DEFAULT FALSE, -- Потвърден имейл
-        `password_hash` VARCHAR(255) NOT NULL, -- Хеш на паролата
-        `name` VARCHAR(255) NOT NULL, -- Пълно име
-        `username` VARCHAR(50) UNIQUE, -- Опционален уникален username
-        `role` ENUM ('user', 'moderator', 'admin') NOT NULL DEFAULT 'user', -- Роля
-        `profile_image` TEXT, -- URL към снимка
-        `bio` TEXT, -- Кратка биография
-        `last_login` DATETIME (3) DEFAULT NULL, -- Последно влизане
-        `is_active` BOOLEAN NOT NULL DEFAULT TRUE, -- Активен потребител
-        `deleted_at` DATETIME (3) DEFAULT NULL, -- Soft delete
-        `created_at` DATETIME (3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-        `updated_at` DATETIME (3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
-        -- Индекси
-        INDEX `users_email_idx` (`email`),
-        INDEX `users_username_idx` (`username`),
-        INDEX `users_role_idx` (`role`)
-    ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+`ads` (
+    `id` INT (11) NOT NULL AUTO_INCREMENT,
+    `name` VARCHAR(255) NOT NULL,
+    `description` TEXT NULL,
+    `heading` VARCHAR(255) NULL,
+    `content` TEXT NULL,
+    `image` VARCHAR(255) NULL,
+    `company_id` INT (11) NULL,
+    `status` ENUM ('active', 'draft', 'pending', 'canceled') NOT NULL DEFAULT 'pending',
+    `sort_order` INT NOT NULL,
+    `target_url` VARCHAR(500) NULL,
+    `location` VARCHAR(255) NULL,
+    `device_type` ENUM('desktop','mobile','all') DEFAULT 'all',
+    `is_featured` TINYINT(1) DEFAULT 0,
+    `clicks` INT NOT NULL DEFAULT 0,
+    `start_at` DATETIME NULL,
+    `end_at` DATETIME NULL,
+    `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP on update CURRENT_TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`)
+) ENGINE = InnoDB;
 
-ALTER TABLE `banners` ADD `show_name` TINYINT (1) NOT NULL DEFAULT 1 AFTER `sort_order`,
-ADD `show_description` TINYINT (1) NOT NULL DEFAULT 1 AFTER `show_name`,
-ADD `show_overlay` TINYINT (1) NOT NULL DEFAULT 1 AFTER `show_description`,
-ADD `content_place` ENUM (
-    'top_left',
-    'top_right',
-    'top_center',
-    'center_right',
-    'bottom_right',
-    'bottom_center',
-    'bottom_left',
-    'center_left',
-    'center_center'
-) NOT NULL DEFAULT 'center_center' AFTER `show_overlay`;
-
-ALTER TABLE `banners` ADD `show_button` TINYINT (1) NOT NULL DEFAULT '1' AFTER `content_place`,
-ADD `href` VARCHAR(512) NULL AFTER `show_button`,
-ADD `button_text` VARCHAR(20) NOT NULL AFTER `href`;
-
-ALTER TABLE `banners` ADD `group_key` VARCHAR(20) NULL AFTER `button_text`,
-ADD `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `group_key`;
+ALTER TABLE `ads`
+ADD INDEX `idx_ads_company_id` (`company_id`),
+ADD CONSTRAINT `fk_ads_company`
+    FOREIGN KEY (`company_id`)
+    REFERENCES `companies`(`id`)
+    ON DELETE SET NULL
+    ON UPDATE CASCADE;

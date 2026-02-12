@@ -4,55 +4,56 @@ import axios from "axios";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { DataTable } from "@/components/data-table";
-import { Municipaliy } from "@/lib/types";
 
-type DataTableProviderProps = {
-    data: any[];
+type Identifiable = {
+    id: string | number;
+};
+
+type DataTableProviderProps<T> = {
+    data: T[];
     columns: any[];
     tableName?: string;
     onBulkDeleteLink?: string;
 };
 
-export default function DataTableProvider({
+export default function DataTableProvider<TData extends Identifiable>({
     data,
     columns,
     tableName,
     onBulkDeleteLink,
-}: DataTableProviderProps) {
+}: DataTableProviderProps<TData>) {
     const router = useRouter();
 
-    async function onBulkDelete(selectedIds: (string | number)[]) {
+    async function onBulkDelete(ids: Array<string | number>) {
         if (!onBulkDeleteLink) return;
 
         try {
-            const res = await axios.post(onBulkDeleteLink, {
-                ids: selectedIds,
-            });
+            const res = await axios.post(onBulkDeleteLink, { ids });
 
-            if (res.status === 200) {
-                const message =
-                    res.data.deletedCount == 1
-                        ? `Беше премахнат ${res.data.deletedCount} елемент`
-                        : `Бяха премахнати ${res.data.deletedCount} елемента.`;
-                toast.success(message);
-                router.refresh();
-            }
+            const { deletedCount } = res.data;
+
+            toast.success(
+                deletedCount === 1
+                    ? `Беше премахнат ${deletedCount} елемент`
+                    : `Бяха премахнати ${deletedCount} елемента.`,
+            );
+
+            router.refresh();
         } catch (error) {
             console.error(error);
+            toast.error("Възникна грешка при изтриване.");
         }
     }
 
-    const handleReorder = async (reorderedData: Municipaliy[]) => {
+    const handleReorder = async (reorderedData: TData[]) => {
         if (!tableName) return;
 
         try {
             const response = await fetch("/api/reorder", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    tableName: tableName,
+                    tableName,
                     items: reorderedData.map((item, index) => ({
                         id: item.id,
                         order: index + 1,
@@ -61,21 +62,22 @@ export default function DataTableProvider({
             });
 
             if (!response.ok) {
-                throw new Error("Пренареждането на записите беше провалено.");
+                throw new Error();
             }
 
-            console.log("Редът е запазен успешно");
+            toast.success("Редът е запазен успешно.");
         } catch (error) {
-            console.error("Грешка при запазване на реда:", error);
+            console.error(error);
+            toast.error("Грешка при запазване на реда.");
         }
     };
 
     return (
-        <DataTable
+        <DataTable<TData>
             columns={columns}
             data={data}
-            onReorder={(tableName && handleReorder) || undefined}
-            onBulkDelete={(selectedIds) => onBulkDelete(selectedIds)}
+            onBulkDelete={onBulkDeleteLink ? onBulkDelete : undefined}
+            onReorder={tableName ? handleReorder : undefined}
         />
     );
 }

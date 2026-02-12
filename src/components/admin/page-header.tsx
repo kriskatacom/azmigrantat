@@ -9,6 +9,7 @@ type PageHeaderProps = {
     buttonText?: string;
     link?: string;
     children?: ReactNode;
+    buttonHide?: boolean;
 };
 
 export default function PageHeader({
@@ -16,17 +17,20 @@ export default function PageHeader({
     buttonText = "Добавяне",
     link = "/",
     children,
+    buttonHide = false,
 }: PageHeaderProps) {
     return (
         <div className="bg-white flex items-center gap-5 border-b p-2 sticky top-0 z-50">
             <SidebarToggle />
             <h1 className="text-2xl font-semibold">{title}</h1>
-            <Link href={link}>
-                <Button variant={"default"} size={"xl"}>
-                    <FiPlus />
-                    <span>{buttonText}</span>
-                </Button>
-            </Link>
+            {!buttonHide && (
+                <Link href={link}>
+                    <Button variant={"default"} size={"xl"}>
+                        <FiPlus />
+                        <span>{buttonText}</span>
+                    </Button>
+                </Link>
+            )}
             {children}
         </div>
     );

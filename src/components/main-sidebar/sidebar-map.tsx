@@ -1,7 +1,7 @@
 "use client";
 
 import { AdminSidebarItem } from "@/lib/types";
-import { SidebarItem } from "./sidebar-item";
+import { SidebarItem } from "@/components/main-sidebar/sidebar-item";
 import { usePathname } from "next/navigation";
 
 type SidebarMapProps = {
@@ -17,7 +17,7 @@ export function SidebarMap({ items }: SidebarMapProps) {
                 <SidebarItem
                     key={index}
                     item={item}
-                    active={pathname?.includes(item.link || "")}
+                    active={pathname === item.link}
                 />
             ))}
         </ul>

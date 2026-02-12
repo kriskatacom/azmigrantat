@@ -7,7 +7,7 @@ import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Company } from "@/lib/types";
 import { createDragHandleColumn } from "@/components/data-table";
-import { AssignUserDialog } from "@/app/[locale]/admin/companies/assign-user-dialog";
 
 export const columns: ColumnDef<Company>[] = [
     createDragHandleColumn<Company>(),
@@ -108,51 +107,6 @@ export const columns: ColumnDef<Company>[] = [
                 {row.getValue("name")}
             </Link>
         ),
-    },
-
-    {
-        accessorKey: "user_id",
-        meta: { label: "Собственик" },
-        header: ({ column }) => (
-            <button
-                className="flex items-center hover:bg-background duration-300 cursor-pointer w-full px-2 py-1"
-                onClick={() =>
-                    column.toggleSorting(column.getIsSorted() === "asc")
-                }
-            >
-                <span>Собственик</span>
-                <ArrowUpDown className="ml-2 h-4 w-4" />
-            </button>
-        ),
-        cell: ({ row }) => {
-            const [open, setOpen] = useState(false);
-            const [ownerName, setOwnerName] = useState<string>("Не е назначен");
-
-            useEffect(() => {
-                setOwnerName(row.original.user_name || "Не е назначен");
-            }, [row.original.user_name]);
-
-            return (
-                <>
-                    <div className="space-y-2">
-                        <div>{ownerName}</div>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setOpen(true)}
-                        >
-                            Промяна
-                        </Button>
-                    </div>
-
-                    <AssignUserDialog
-                        open={open}
-                        onOpenChange={setOpen}
-                        company={row.original}
-                    />
-                </>
-            );
-        },
     },
 
     {

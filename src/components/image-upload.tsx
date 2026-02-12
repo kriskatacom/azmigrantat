@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FaSave, FaTimes } from "react-icons/fa";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 export type AdditionalFormData = {
     name: string;
@@ -20,28 +21,37 @@ type Props = {
     onUploadSuccess?: Function;
     onDeleteSuccess?: Function;
     additionalFormData?: AdditionalFormData[];
+    className?: string;
 };
 
-export default function ImageUpload(props: Props) {
+export default function ImageUpload({
+    image_url,
+    url,
+    deleteimage_url,
+    onUploadSuccess,
+    onDeleteSuccess,
+    additionalFormData,
+    className = "mx-5"
+}: Props) {
     const router = useRouter();
     const [progress, setProgress] = useState(0);
     const [file, setFile] = useState<File | null>(null);
-    const [image_url, setImageUrl] = useState<string | null>(
-        props.image_url || null,
+    const [image, setImage] = useState<string | null>(
+        image_url || null,
     );
     const [loading, setLoading] = useState(false);
     const [imageLoading, setImageLoading] = useState(true);
-    const [isShow, setIsShow] = useState(!props.image_url);
+    const [isShow, setIsShow] = useState(!image_url);
 
     useEffect(() => {
-        if (image_url) setImageLoading(true);
-    }, [image_url]);
+        if (image) setImageLoading(true);
+    }, [image]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0] || null;
         setFile(selectedFile);
         setProgress(0);
-        setImageUrl(null);
+        setImage(null);
         setImageLoading(true);
     };
 
@@ -51,8 +61,8 @@ export default function ImageUpload(props: Props) {
         const formData = new FormData();
         formData.append("image", file);
 
-        if (props.additionalFormData && props.additionalFormData.length > 0) {
-            props.additionalFormData.forEach((item) => {
+        if (additionalFormData && additionalFormData.length > 0) {
+            additionalFormData.forEach((item) => {
                 formData.append(item.name, item.value);
             });
         }
@@ -61,7 +71,7 @@ export default function ImageUpload(props: Props) {
             setLoading(true);
             setProgress(0);
 
-            const res = await axios.post(props.url, formData, {
+            const res = await axios.post(url, formData, {
                 headers: { "Content-Type": "multipart/form-data" },
                 onUploadProgress: (progressEvent) => {
                     if (!progressEvent.total) return;
@@ -72,9 +82,9 @@ export default function ImageUpload(props: Props) {
                 },
             });
 
-            setImageUrl(res.data.url);
+            setImage(res.data.url);
             setIsShow(false);
-            props.onUploadSuccess && props.onUploadSuccess();
+            onUploadSuccess && onUploadSuccess();
             router.refresh();
         } catch (error) {
             console.error("Upload error:", error);
@@ -87,25 +97,25 @@ export default function ImageUpload(props: Props) {
         setLoading(true);
 
         try {
-            const dataToSend = props.additionalFormData?.reduce(
+            const dataToSend = additionalFormData?.reduce(
                 (acc, field) => {
                     acc[field.name] = field.value;
                     return acc;
                 },
                 {} as Record<string, any>,
             );
-            const res = await axios.delete(props.deleteimage_url ?? props.url, {
-                data: dataToSend
+            const res = await axios.delete(deleteimage_url ?? url, {
+                data: dataToSend,
             });
             if (res.data.success) {
                 console.log("Снимката е изтрита успешно!");
-                props.onDeleteSuccess && props.onDeleteSuccess();
+                onDeleteSuccess && onDeleteSuccess();
             }
         } catch (err) {
             console.error("Грешка при изтриване на снимката", err);
         }
 
-        setImageUrl(null);
+        setImage(null);
         setFile(null);
         setProgress(0);
         setIsShow(true);
@@ -113,9 +123,14 @@ export default function ImageUpload(props: Props) {
     };
 
     return (
-        <div className="relative max-w-sm m-5 rounded-md space-y-5 duration-300">
+        <div
+            className={cn(
+                "relative max-w-sm rounded-md space-y-5 duration-300",
+                className,
+            )}
+        >
             {/* Progress Bar */}
-            {progress > 0 && isShow && !image_url && (
+            {progress > 0 && isShow && !image && (
                 <div className="w-full h-3 rounded overflow-hidden">
                     <div
                         className="bg-primary h-full transition-all duration-300"
@@ -125,7 +140,7 @@ export default function ImageUpload(props: Props) {
             )}
 
             {/* Uploaded Image */}
-            {image_url && (
+            {image && (
                 <div className="relative w-full h-80 rounded-lg overflow-hidden border">
                     {imageLoading && (
                         <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -134,7 +149,7 @@ export default function ImageUpload(props: Props) {
                     )}
 
                     <Image
-                        src={image_url}
+                        src={image}
                         alt="Uploaded"
                         fill
                         className={`w-full h-full object-cover transition-opacity duration-500 ${

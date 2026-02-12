@@ -62,7 +62,7 @@ export async function createCompany(
 }
 
 type CompanyCondition = {
-    column: "id" | "slug" | "name" | "country_id" | "city_id" | "category_id";
+    column: "id" | "slug" | "name" | "country_id" | "city_id" | "category_id" | "user_id";
     value: string | number;
 };
 
@@ -72,14 +72,18 @@ type GetCompaniesOptions = {
 
 export async function getCompanies(
     options?: GetCompaniesOptions,
-): Promise<Company[]> {
-    let sql = `SELECT * FROM companies`;
+): Promise<(Company & { user_name?: string })[]> {
+    let sql = `
+        SELECT c.*, u.name AS user_name
+        FROM companies c
+        LEFT JOIN users u ON c.user_id = u.id
+    `;
     const params: (string | number)[] = [];
 
     if (options?.where?.length) {
         const conditions = options.where.map((cond) => {
             params.push(cond.value);
-            return `${cond.column} = ?`;
+            return `c.${cond.column} = ?`;
         });
 
         sql += ` WHERE ` + conditions.join(" AND ");
@@ -87,22 +91,32 @@ export async function getCompanies(
 
     const [rows] = await getDb().query<any[]>(sql, params);
 
-    return rows;
+    return (rows as any[]).map((row) => ({
+        ...row,
+        user_name: row.user_name ?? undefined,
+    })) as (Company & { user_name?: string })[];
 }
 
 export async function getCompanyByColumn(
     column: "id" | "slug",
     value: string | number,
-): Promise<Company | null> {
+): Promise<(Company & { user_name?: string }) | null> {
     const [rows] = await getDb().execute(
-        `SELECT * FROM companies WHERE ${column} = ? LIMIT 1`,
+        `SELECT c.*, u.name AS user_name
+         FROM companies c
+         LEFT JOIN users u ON c.user_id = u.id
+         WHERE c.${column} = ?
+         LIMIT 1`,
         [value],
     );
 
     const row = (rows as any[])[0];
     if (!row) return null;
 
-    return row;
+    return {
+        ...row,
+        user_name: row.user_name ?? undefined,
+    } as Company & { user_name?: string };
 }
 
 export async function updateCompany(

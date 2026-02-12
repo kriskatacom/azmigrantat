@@ -7,7 +7,7 @@ import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -18,12 +18,14 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Company } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
 import { createDragHandleColumn } from "@/components/data-table";
-import { AssignUserDialog } from "@/app/[locale]/admin/companies/assign-user-dialog";
+import { Ad } from "@/lib/types";
+import { deleteAdAction } from "./actions";
 
-export const columns: ColumnDef<Company>[] = [
-    createDragHandleColumn<Company>(),
+export const columns: ColumnDef<Ad>[] = [
+    createDragHandleColumn<Ad>(),
+
     {
         id: "select",
         header: ({ table }) => (
@@ -44,15 +46,16 @@ export const columns: ColumnDef<Company>[] = [
         enableHiding: false,
     },
 
+    // 🖼 Изображение
     {
-        accessorKey: "image_url",
-        meta: { label: "Изображение" },
+        accessorKey: "image",
         header: "Изображение",
+        meta: { label: "Изображение" },
         cell: ({ row }) => {
-            const company = row.original;
-            const [imageLoading, setImageLoading] = useState(true);
+            const ad = row.original;
+            const [loading, setLoading] = useState(true);
 
-            if (!company.image_url) {
+            if (!ad.image) {
                 return (
                     <div className="w-24 h-16 flex items-center justify-center text-sm rounded">
                         N/A
@@ -62,22 +65,22 @@ export const columns: ColumnDef<Company>[] = [
 
             return (
                 <div className="relative w-30 h-20 rounded-lg overflow-hidden border">
-                    {imageLoading && (
+                    {loading && (
                         <div className="absolute inset-0 flex items-center justify-center z-10">
                             <span className="h-6 w-6 animate-spin rounded-full border-2 border-t-blue-500" />
                         </div>
                     )}
 
-                    <Link href={`/admin/companies/${company.id}`}>
+                    <Link href={`/admin/ads/${ad.id}`}>
                         <Image
-                            src={company.image_url}
-                            alt={company.name as string}
+                            src={ad.image}
+                            alt={ad.name}
                             fill
-                            className={`w-full h-full object-cover transition-opacity duration-500 ${
-                                imageLoading ? "opacity-0" : "opacity-100"
+                            className={`object-cover transition-opacity duration-500 ${
+                                loading ? "opacity-0" : "opacity-100"
                             }`}
-                            onLoad={() => setImageLoading(false)}
-                            onError={() => setImageLoading(false)}
+                            onLoad={() => setLoading(false)}
+                            onError={() => setLoading(false)}
                             unoptimized
                         />
                     </Link>
@@ -86,6 +89,7 @@ export const columns: ColumnDef<Company>[] = [
         },
     },
 
+    // 📝 Име
     {
         accessorKey: "name",
         meta: { label: "Име" },
@@ -102,7 +106,7 @@ export const columns: ColumnDef<Company>[] = [
         ),
         cell: ({ row }) => (
             <Link
-                href={`/admin/companies/${row.original.id}`}
+                href={`/users/entrepreneurs/ads/${row.original.id}`}
                 className="hover:underline"
             >
                 {row.getValue("name")}
@@ -110,56 +114,64 @@ export const columns: ColumnDef<Company>[] = [
         ),
     },
 
+    // 🏢 Компания (ако правиш JOIN)
     {
-        accessorKey: "user_id",
-        meta: { label: "Собственик" },
-        header: ({ column }) => (
-            <button
-                className="flex items-center hover:bg-background duration-300 cursor-pointer w-full px-2 py-1"
-                onClick={() =>
-                    column.toggleSorting(column.getIsSorted() === "asc")
-                }
-            >
-                <span>Собственик</span>
-                <ArrowUpDown className="ml-2 h-4 w-4" />
-            </button>
-        ),
+        accessorKey: "company_name",
+        header: "Компания",
+        meta: { label: "Компания" },
         cell: ({ row }) => {
-            const [open, setOpen] = useState(false);
-            const [ownerName, setOwnerName] = useState<string>("Не е назначен");
+            const ad = row.original;
 
-            useEffect(() => {
-                setOwnerName(row.original.user_name || "Не е назначен");
-            }, [row.original.user_name]);
+            if (!ad.company_id) return "—";
 
             return (
-                <>
-                    <div className="space-y-2">
-                        <div>{ownerName}</div>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setOpen(true)}
-                        >
-                            Промяна
-                        </Button>
-                    </div>
-
-                    <AssignUserDialog
-                        open={open}
-                        onOpenChange={setOpen}
-                        company={row.original}
-                    />
-                </>
+                <Link
+                    href={`/users/entrepreneurs/companies`}
+                    className="hover:underline"
+                >
+                    {ad.company_name || `#${ad.company_id}`}
+                </Link>
             );
         },
     },
 
+    // 📌 Статус
+    {
+        accessorKey: "status",
+        header: "Статус",
+        meta: { label: "Статус" },
+        cell: ({ row }) => {
+            const status = row.getValue("status") as string;
+
+            // Превод на български
+            const statusBg = {
+                active: "Активна",
+                pending: "Очаква",
+                draft: "Чернова",
+                canceled: "Отменена",
+            };
+
+            const variant =
+                status === "active"
+                    ? "default"
+                    : status === "pending"
+                      ? "secondary"
+                      : status === "draft"
+                        ? "outline"
+                        : "destructive";
+
+            return (
+                <Badge variant={variant}>
+                    {statusBg[status as keyof typeof statusBg]}
+                </Badge>
+            );
+        },
+    },
+
+    // 📅 Създадено
     {
         accessorKey: "created_at",
-        meta: {
-            label: "Създадено",
-        },
+        meta: { label: "Дата на създаване" },
         header: ({ column }) => (
             <button
                 className="flex items-center hover:bg-background duration-300 cursor-pointer w-full px-2 py-1"
@@ -172,10 +184,9 @@ export const columns: ColumnDef<Company>[] = [
             </button>
         ),
         cell: ({ row }) => {
-            const value = row.getValue("created_at") as string | null;
-            if (!value) return "—";
-
+            const value = row.getValue("created_at") as string;
             const date = new Date(value);
+
             return date.toLocaleDateString("bg-BG", {
                 year: "numeric",
                 month: "long",
@@ -184,40 +195,33 @@ export const columns: ColumnDef<Company>[] = [
         },
     },
 
+    // ⚙️ Actions
     {
         id: "actions",
-        meta: {
-            label: "Опции",
-        },
         header: "Опции",
+        meta: { label: "Опции" },
         cell: ({ row }) => {
-            const company = row.original;
+            const ad = row.original;
             const router = useRouter();
 
             const handleDelete = async () => {
                 try {
-                    const res = await axios.delete(
-                        `/api/companies/${company.id}`,
-                    );
-
-                    if (res.data.success) {
-                        router.refresh();
-                        toast.success("Тази държава беше успешно премахната!");
-                    } else {
-                        if (res.status === 403 && res.data.code === "slug") {
-                            toast.error(res.data.error);
-                        }
-                    }
+                    deleteAdAction(ad.id);
+                    toast.success("Рекламата беше изтрита успешно!");
+                    router.refresh();
                 } catch (err: any) {
-                    if (err.response) {
-                        toast.error(
-                            err.response.data.error || "Грешка при изпращане",
-                        );
-                    } else {
-                        console.error(err);
-                        toast.error("Грешка при изпращане");
-                    }
+                    toast.error(
+                        err.response?.data?.error || "Грешка при изтриване",
+                    );
                 }
+            };
+
+            const handleActivate = async () => {
+                await axios.patch(`/api/ads/${ad.id}`, {
+                    status: "active",
+                });
+                toast.success("Рекламата е активирана!");
+                router.refresh();
             };
 
             return (
@@ -228,31 +232,23 @@ export const columns: ColumnDef<Company>[] = [
                         </Button>
                     </DropdownMenuTrigger>
 
-                    <DropdownMenuContent align="end" className="w-40">
+                    <DropdownMenuContent align="end" className="w-44">
                         <DropdownMenuLabel>Опции</DropdownMenuLabel>
-                        {company?.slug && (
-                            <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    onClick={() =>
-                                        router.push(
-                                            `/${company.slug as string}`,
-                                        )
-                                    }
-                                >
-                                    Преглед
-                                </DropdownMenuItem>
-                            </>
-                        )}
-                        <DropdownMenuSeparator />
+
                         <DropdownMenuItem
-                            onClick={() =>
-                                router.push(`/admin/companies/${company.id}`)
-                            }
+                            onClick={() => router.push(`/users/entrepreneurs/ads/${ad.id}`)}
                         >
                             Редактиране
                         </DropdownMenuItem>
+
+                        {ad.status !== "active" && (
+                            <DropdownMenuItem onClick={handleActivate}>
+                                Активирай
+                            </DropdownMenuItem>
+                        )}
+
                         <DropdownMenuSeparator />
+
                         <DropdownMenuItem
                             className="text-red-600"
                             onClick={handleDelete}

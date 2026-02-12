@@ -86,6 +86,10 @@ import {
     PhoneCall,
     ShieldCheck,
 } from "lucide-react";
+import { RiAdvertisementLine } from "react-icons/ri";
+import { MdOutlineWorkOutline } from "react-icons/md";
+import { FcAdvertising } from "react-icons/fc";
+import { StatItemCardProps } from "@/components/stat-item-card";
 
 export const mainSidebarItems: AdminSidebarItem[] = [
     {
@@ -176,10 +180,14 @@ export const mainSidebarItems: AdminSidebarItem[] = [
 ];
 
 export const entrepreneurSidebarItems: AdminSidebarItem[] = [
-    { name: "Табло", link: "/entrepreneurs", icon: FiHome },
-    { name: "Реклами", link: "/entrepreneurs/ads", icon: FiUser },
-    { name: "Обяви", link: "/entrepreneurs/offers", icon: FiSettings },
-    { name: "Компании", link: "/entrepreneurs/companies", icon: BsBuilding },
+    { name: "Табло", link: "/users/entrepreneurs", icon: FiHome },
+    { name: "Реклами", link: "/users/entrepreneurs/ads", icon: FiUser },
+    { name: "Обяви", link: "/users/entrepreneurs/offers", icon: FiSettings },
+    {
+        name: "Компании",
+        link: "/users/entrepreneurs/companies",
+        icon: BsBuilding,
+    },
 ];
 
 export const ALLOWED_IMAGE_TYPES = [
@@ -379,5 +387,32 @@ export const MAIN_LEFT_SIDEBAR_ITEMS = [
         label: "За нас",
         href: "/about-us",
         icon: Building2,
+    },
+];
+
+export const ENTREPRENEUR__DASHBOARD_STATS: StatItemCardProps[] = [
+    {
+        title: "Активни реклами",
+        value: "1",
+        icon: FcAdvertising,
+        href: "/entrepreneurs/ads?status=active",
+    },
+    {
+        title: "Реклами",
+        value: "3",
+        icon: RiAdvertisementLine,
+        href: "/entrepreneurs/ads",
+    },
+    {
+        title: "Обяви",
+        value: "1",
+        icon: MdOutlineWorkOutline,
+        href: "/entrepreneurs/offers",
+    },
+    {
+        title: "Компании",
+        value: "1",
+        icon: BsBuilding,
+        href: "/entrepreneurs/companies",
     },
 ];

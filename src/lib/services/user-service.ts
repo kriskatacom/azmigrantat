@@ -28,6 +28,13 @@ export interface SignInData {
     password: string;
 }
 
+export type UpdateUserColumn =
+    | "email"
+    | "name"
+    | "username"
+    | "role"
+    | "is_active";
+
 export class UserService {
     db = getDb();
 
@@ -190,5 +197,14 @@ export class UserService {
             username: row.username,
             role: row.role,
         }));
+    }
+
+    async updateColumn(
+        userId: string,
+        column: UpdateUserColumn,
+        value: string | boolean,
+    ): Promise<void> {
+        const query = `UPDATE users SET ${column} = ? WHERE id = ? AND deleted_at IS NULL`;
+        await this.db.query(query, [value, userId]);
     }
 }

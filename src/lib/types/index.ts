@@ -248,6 +248,36 @@ export type Company = {
     country_id?: number | null;
     city_id?: number | null;
     category_id?: number | null;
+    user_id?: string | null;
+    user_name?: string | null;
     created_at?: Date;
     updated_at?: Date;
 };
+
+export type AdStatus = "active" | "draft" | "pending" | "canceled";
+
+export interface Ad {
+    id: number;
+    name: string;
+    description: string | null;
+    heading: string | null;
+    content: string | null;
+    image: string | null;
+    company_id: number | null;
+    company_name?: string | null;
+    company?: {
+        id: number;
+        name: string;
+        slug?: string;
+        image_url?: string;
+    } | null;
+    status: AdStatus;
+    sort_order: number;
+    views?: number;
+    clicks?: number;
+    start_at?: string | null;
+    end_at?: string | null;
+    created_at: string;
+    updated_at: string;
+    deleted_at?: string | null;
+}
