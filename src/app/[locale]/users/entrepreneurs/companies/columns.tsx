@@ -174,21 +174,6 @@ export const columns: ColumnDef<Company>[] = [
 
                     <DropdownMenuContent align="end" className="w-40">
                         <DropdownMenuLabel>Опции</DropdownMenuLabel>
-                        {company?.slug && (
-                            <>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                    onClick={() =>
-                                        router.push(
-                                            `/${company.slug as string}`,
-                                        )
-                                    }
-                                >
-                                    Преглед
-                                </DropdownMenuItem>
-                            </>
-                        )}
-                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                             onClick={() =>
                                 router.push(`/admin/companies/${company.id}`)

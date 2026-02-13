@@ -4,30 +4,32 @@ import { routing } from "@/i18n/routing";
 import { UserService } from "@/lib/services/user-service";
 
 const intlMiddleware = createMiddleware(routing);
-
 const userService = new UserService();
 
 export default async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
-    const isAdminPath = pathname.startsWith("/admin");
+    if (pathname.startsWith("/users/login")) {
+        return intlMiddleware(request);
+    }
 
-    if (isAdminPath) {
+    const isAdminPath = pathname.startsWith("/admin");
+    const isUserPath = pathname.startsWith("/users");
+
+    if (isAdminPath || isUserPath) {
         const user = await userService.getCurrentUser();
 
         if (!user) {
             const loginUrl = new URL("/users/login", request.url);
-
-            const originalUrl =
-                request.nextUrl.pathname + request.nextUrl.search;
-            loginUrl.searchParams.set("redirect", originalUrl);
-
+            loginUrl.searchParams.set(
+                "redirect",
+                pathname + request.nextUrl.search,
+            );
             return NextResponse.redirect(loginUrl);
         }
 
-        if (user.role !== "admin") {
-            const homeUrl = new URL("/", request.url);
-            return NextResponse.redirect(homeUrl);
+        if (isAdminPath && user.role !== "admin") {
+            return NextResponse.redirect(new URL("/", request.url));
         }
     }
 

@@ -714,3 +714,12 @@
         opacity: 0;
     }
 }
+
+.swiper-slide {
+  user-select: none; /* Предотвратява маркирането на текст/картинки при влачене */
+  -webkit-user-drag: none; /* Спира вградения drag на браузъра за картинки */
+}
+
+.swiper-slide img {
+  pointer-events: none; /* Картинката няма да „яде“ кликовете, които Swiper трябва да улови */
+}

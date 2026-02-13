@@ -2,6 +2,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import AppImage from "@/components/AppImage";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface SectionCardProps {
     title: string;
@@ -10,6 +11,7 @@ interface SectionCardProps {
     imageSrc?: string;
     companyName?: string;
     className?: string;
+    href: string;
 }
 
 const SectionCard: React.FC<SectionCardProps> = ({
@@ -19,6 +21,7 @@ const SectionCard: React.FC<SectionCardProps> = ({
     imageSrc,
     companyName,
     className,
+    href,
 }) => {
     return (
         <div
@@ -52,13 +55,11 @@ const SectionCard: React.FC<SectionCardProps> = ({
                         ></div>
                     )}
                     {buttonText && (
-                        <Button
-                            className="z-40"
-                            variant={"default"}
-                            size={"xl"}
-                        >
-                            {buttonText}
-                        </Button>
+                        <Link href={href} className="z-40">
+                            <Button variant={"default"} size={"xl"}>
+                                {buttonText}
+                            </Button>
+                        </Link>
                     )}
                 </div>
                 <div className="absolute top-0 left-0 w-full h-full bg-black/40 z-10"></div>
