@@ -15,14 +15,13 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     createAdSchema,
     CreateAdFormValues,
 } from "@/app/[locale]/users/entrepreneurs/ads/[id]/schema";
-import { Ad, Company } from "@/lib/types";
+import { Ad, Company, Offer } from "@/lib/types";
 import {
     Select,
     SelectContent,
@@ -31,18 +30,18 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {
-    createAdAction,
-    updateAdAction,
-} from "@/app/[locale]/users/entrepreneurs/ads/actions";
+    createOfferAction,
+    updateOfferAction,
+} from "@/app/[locale]/users/entrepreneurs/offers/actions";
 import { SaveIcon } from "lucide-react";
 import { FaSpinner } from "react-icons/fa";
 
 type Props = {
-    ad: Ad | null;
+    offer: Offer | null;
     companies: Company[];
 };
 
-export function CreateAndUpdateAdForm({ ad, companies }: Props) {
+export function CreateAndUpdateOfferForm({ offer, companies }: Props) {
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
@@ -50,25 +49,25 @@ export function CreateAndUpdateAdForm({ ad, companies }: Props) {
     const form = useForm<CreateAdFormValues>({
         resolver: zodResolver(createAdSchema),
         defaultValues: {
-            name: ad?.name || "",
-            heading: ad?.heading || "",
-            description: ad?.description || "",
-            content: ad?.content || "",
-            status: ad?.status || "pending",
-            company_id: ad?.company_id || null,
+            name: offer?.name || "",
+            heading: offer?.heading || "",
+            description: offer?.description || "",
+            content: offer?.content || "",
+            status: offer?.status || "pending",
+            company_id: offer?.company_id || null,
         },
     });
 
     const onSubmit = async (values: CreateAdFormValues) => {
         setIsLoading(true);
-        const result = ad
-            ? await updateAdAction(ad.id, values)
-            : await createAdAction(values);
+        const result = offer
+            ? await updateOfferAction(offer.id, values)
+            : await createOfferAction(values);
 
         if (result.success) {
             toast.success(result.message);
-            if (!ad?.id && result.ad) {
-                router.push(`/users/entrepreneurs/ads/${result.ad.id}`);
+            if (!offer?.id && result.offer) {
+                router.push(`/users/entrepreneurs/offers/${result.offer.id}`);
             }
         } else {
             toast.error(result.message);
@@ -77,13 +76,13 @@ export function CreateAndUpdateAdForm({ ad, companies }: Props) {
     };
 
     return (
-        <div className="px-5 mb-5">
+        <div className={`${!offer?.id ? "p-5" : "px-5 pb-5"}`}>
             <Card className="w-full">
                 <CardHeader>
                     <CardTitle className="text-2xl">
-                        {ad?.id
-                            ? "Редактиране на реклама"
-                            : "Създаване на реклама"}
+                        {offer?.id
+                            ? "Редактиране на обява"
+                            : "Създаване на обява"}
                     </CardTitle>
                 </CardHeader>
 
@@ -134,7 +133,7 @@ export function CreateAndUpdateAdForm({ ad, companies }: Props) {
                                                 }
                                             >
                                                 <SelectTrigger className="w-full">
-                                                    <SelectValue placeholder="Избери статус" />
+                                                    <SelectValue placeholder="Избиране на компания" />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     {companies.map(
@@ -257,9 +256,9 @@ export function CreateAndUpdateAdForm({ ad, companies }: Props) {
                                 <span>
                                     {isLoading
                                         ? "Създаване..."
-                                        : ad?.id
-                                          ? "Запазване на рекламата"
-                                          : "Създаване на рекламата"}
+                                        : offer?.id
+                                          ? "Запазване на обявата"
+                                          : "Създаване на обявата"}
                                 </span>
                             </Button>
                         </form>

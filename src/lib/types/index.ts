@@ -281,3 +281,27 @@ export interface Ad {
     updated_at: string;
     deleted_at?: string | null;
 }
+
+export type OfferStatus = "active" | "draft" | "pending";
+
+export interface Offer {
+    id: number;
+    name: string;
+    description?: string;
+    heading?: string;
+    content?: string;
+    image?: string;
+    company_id?: number | null;
+    company_name?: number | null;
+    status: OfferStatus;
+    sort_order?: number;
+    target_url?: string;
+    location?: string;
+    device_type?: "desktop" | "mobile" | "all";
+    is_featured?: boolean;
+    clicks?: number;
+    start_at?: Date | null;
+    end_at?: Date | null;
+    created_at: Date;
+    updated_at: Date;
+}

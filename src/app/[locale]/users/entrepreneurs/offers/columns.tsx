@@ -20,12 +20,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { createDragHandleColumn } from "@/components/data-table";
-import { Ad } from "@/lib/types";
-import { deleteAdAction, updateAdAction } from "./actions";
-import { CreateAdFormValues } from "./[id]/schema";
+import { Offer } from "@/lib/types";
+import { deleteOfferAction } from "./actions";
 
-export const columns: ColumnDef<Ad>[] = [
-    createDragHandleColumn<Ad>(),
+export const columns: ColumnDef<Offer>[] = [
+    createDragHandleColumn<Offer>(),
 
     {
         id: "select",
@@ -72,7 +71,7 @@ export const columns: ColumnDef<Ad>[] = [
                         </div>
                     )}
 
-                    <Link href={`/admin/ads/${ad.id}`}>
+                    <Link href={`/users/entrepreneurs/offers/${ad.id}`}>
                         <Image
                             src={ad.image}
                             alt={ad.name}
@@ -107,7 +106,7 @@ export const columns: ColumnDef<Ad>[] = [
         ),
         cell: ({ row }) => (
             <Link
-                href={`/users/entrepreneurs/ads/${row.original.id}`}
+                href={`/users/entrepreneurs/offers/${row.original.id}`}
                 className="hover:underline"
             >
                 {row.getValue("name")}
@@ -154,7 +153,7 @@ export const columns: ColumnDef<Ad>[] = [
 
             const variant =
                 status === "active"
-                    ? "success"
+                    ? "default"
                     : status === "pending"
                       ? "secondary"
                       : status === "draft"
@@ -207,30 +206,14 @@ export const columns: ColumnDef<Ad>[] = [
 
             const handleDelete = async () => {
                 try {
-                    deleteAdAction(ad.id);
-                    toast.success("Рекламата беше изтрита успешно!");
+                    deleteOfferAction(ad.id);
+                    toast.success("Обявата беше изтрита успешно!");
                     router.refresh();
                 } catch (err: any) {
                     toast.error(
                         err.response?.data?.error || "Грешка при изтриване",
                     );
                 }
-            };
-
-            const handleActivate = async () => {
-                await updateAdAction(ad.id, {
-                    status: "active",
-                } as CreateAdFormValues);
-                toast.success("Рекламата е активирана!");
-                router.refresh();
-            };
-
-            const handleDeactivate = async () => {
-                await updateAdAction(ad.id, {
-                    status: "pending",
-                } as CreateAdFormValues);
-                toast.success("Рекламата е деактивирана!");
-                router.refresh();
             };
 
             return (
@@ -245,24 +228,10 @@ export const columns: ColumnDef<Ad>[] = [
                         <DropdownMenuLabel>Опции</DropdownMenuLabel>
 
                         <DropdownMenuItem
-                            onClick={() =>
-                                router.push(`/users/entrepreneurs/ads/${ad.id}`)
-                            }
+                            onClick={() => router.push(`/users/entrepreneurs/offers/${ad.id}`)}
                         >
                             Редактиране
                         </DropdownMenuItem>
-
-                        {ad.status !== "active" && (
-                            <DropdownMenuItem onClick={handleActivate}>
-                                Активиране
-                            </DropdownMenuItem>
-                        )}
-
-                        {ad.status === "active" && (
-                            <DropdownMenuItem onClick={handleDeactivate}>
-                                Деактивиране
-                            </DropdownMenuItem>
-                        )}
 
                         <DropdownMenuSeparator />
 
