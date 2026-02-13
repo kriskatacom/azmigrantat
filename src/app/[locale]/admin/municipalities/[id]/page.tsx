@@ -1,12 +1,8 @@
 import { Metadata } from "next";
 import { websiteName } from "@/lib/utils";
-import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import NewMunicipaliyForm from "@/app/[locale]/admin/municipalities/[id]/municipality-form";
 import ImageUpload from "@/components/image-upload";
 import { Breadcrumbs } from "@/components/admin-breadcrumbs";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { FiPlus } from "react-icons/fi";
 import { getCountries } from "@/lib/services/country-service";
 import { getMunicipalityByColumn } from "@/lib/services/municipality-service";
 import { getCities } from "@/lib/services/city-service";

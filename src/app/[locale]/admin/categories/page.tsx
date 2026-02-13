@@ -1,9 +1,7 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { FiPlus } from "react-icons/fi";
 import { websiteName } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
 import ClientPage from "@/app/[locale]/admin/categories/client-page";
 import { CategoryWithCategory } from "@/app/[locale]/admin/categories/columns";

@@ -61,7 +61,10 @@ export interface OfferFilterClause {
 export class OfferService {
     db = getDb();
 
-    async create(user_id: string, data: CreateOfferFormValues): Promise<Offer | null> {
+    async create(
+        user_id: string,
+        data: CreateOfferFormValues,
+    ): Promise<Offer | null> {
         const [result]: any = await this.db.query(
             `INSERT INTO offers
       (name, description, heading, content, company_id, status, user_id)
@@ -223,5 +226,9 @@ export class OfferService {
 
         const [rows] = await this.db.query(query, params);
         return (rows as any[])[0]?.total ?? 0;
+    }
+
+    async updateImage(offerId: number, imageUrl: string | null): Promise<void> {
+        await this.updateColumn(offerId, "image", imageUrl);
     }
 }

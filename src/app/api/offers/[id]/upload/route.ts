@@ -23,9 +23,7 @@ export async function POST(req: Request, { params }: Params) {
     try {
         const url = await saveUploadedFile(file);
 
-        const offer = await offerService.update(Number(id), {
-            image: url,
-        });
+        const offer = await offerService.updateImage(Number(id), url);
 
         return NextResponse.json({
             success: true,
@@ -45,7 +43,6 @@ export async function DELETE(req: Request, { params }: Params) {
     const { id } = await params;
 
     try {
-        // 1️⃣ Взимаме държавата с текущото image_url
         const offer = await offerService.getOfferByColumn("id", id);
 
         if (!offer) {
@@ -55,15 +52,11 @@ export async function DELETE(req: Request, { params }: Params) {
             );
         }
 
-        // 2️⃣ Изтриваме файла от public/uploads
         if (offer.image) {
             deleteUploadedFile(offer.image);
         }
 
-        // 3️⃣ Нулираме image_url в базата
-        const offerUpdated = await offerService.update(Number(id), {
-            image: null,
-        });
+        const offerUpdated = await offerService.updateImage(Number(id), null);
 
         return NextResponse.json({ success: true, offer: offerUpdated });
     } catch (err: any) {

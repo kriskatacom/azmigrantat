@@ -1,14 +1,9 @@
 import { Metadata } from "next";
-import Link from "next/link";
-import { FiPlus } from "react-icons/fi";
 import { websiteName } from "@/lib/utils";
-import MainSidebarServer from "@/components/main-sidebar/main-sidebar-server";
 import ImageUpload from "@/components/image-upload";
 import { Breadcrumbs } from "@/components/admin-breadcrumbs";
-import { Button } from "@/components/ui/button";
 import { getCruiseByColumn } from "@/lib/services/cruise-service";
 import NewCruiseForm from "@/app/[locale]/admin/cruises/[id]/new-cruise-form";
-import { getCountries } from "@/lib/services/country-service";
 import PageHeader from "@/components/admin/page-header";
 
 type Props = {
