@@ -180,7 +180,7 @@ export const mainSidebarItems: AdminSidebarItem[] = [
 ];
 
 export const entrepreneurSidebarItems: AdminSidebarItem[] = [
-    { name: "Табло", link: "/users/entrepreneurs", icon: FiHome },
+    { name: "Табло", link: "/users/entrepreneurs/dashboard", icon: FiHome },
     { name: "Реклами", link: "/users/entrepreneurs/ads", icon: FiUser },
     { name: "Обяви", link: "/users/entrepreneurs/offers", icon: FiSettings },
     {

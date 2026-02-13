@@ -3,6 +3,7 @@
 import { AdminSidebarItem } from "@/lib/types";
 import { SidebarItem } from "@/components/main-sidebar/sidebar-item";
 import { usePathname } from "next/navigation";
+import { urlStartsWith } from "@/lib/utils";
 
 type SidebarMapProps = {
     items: AdminSidebarItem[];
@@ -17,7 +18,7 @@ export function SidebarMap({ items }: SidebarMapProps) {
                 <SidebarItem
                     key={index}
                     item={item}
-                    active={pathname === item.link}
+                    active={urlStartsWith(pathname, item.link)}
                 />
             ))}
         </ul>

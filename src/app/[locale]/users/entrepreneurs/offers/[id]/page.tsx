@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import { websiteName } from "@/lib/utils";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { UserService } from "@/lib/services/user-service";
-import { AdService } from "@/lib/services/ad-service";
 import PageHeader from "@/components/admin/page-header";
 import { CreateAndUpdateOfferForm } from "@/app/[locale]/users/entrepreneurs/offers/[id]/create-and-update-offer-form";
 import Upload from "@/app/[locale]/users/entrepreneurs/offers/[id]/upload";
@@ -33,7 +32,7 @@ export default async function EntrepreneurAdsSave({ params }: Props) {
     const { id } = await params;
 
     let breadcrumbs: BreadcrumbItem[] = [
-        { name: "Табло", href: "/users/entrepreneurs" },
+        { name: "Табло", href: "/users/entrepreneurs/dashboard" },
         { name: "Компании", href: "/users/entrepreneurs/companies" },
         { name: "Обяви", href: "/users/entrepreneurs/offers" },
     ];

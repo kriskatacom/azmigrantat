@@ -62,7 +62,14 @@ export async function createCompany(
 }
 
 type CompanyCondition = {
-    column: "id" | "slug" | "name" | "country_id" | "city_id" | "category_id" | "user_id";
+    column:
+        | "id"
+        | "slug"
+        | "name"
+        | "country_id"
+        | "city_id"
+        | "category_id"
+        | "user_id";
     value: string | number;
 };
 
@@ -183,4 +190,42 @@ export async function deleteCompaniesBulk(ids: number[]): Promise<number> {
         console.error("Error bulk deleting companies:", err);
         throw err;
     }
+}
+
+export type CompanyFilterColumn =
+    | "id"
+    | "name"
+    | "slug"
+    | "country_id"
+    | "city_id"
+    | "category_id"
+    | "user_id"
+
+export type CompanyFilterOperator = "=" | "!=" | ">" | ">=" | "<" | "<=" | "IN";
+
+export interface CompanyFilterClause {
+    column: CompanyFilterColumn;
+    operator: CompanyFilterOperator;
+    value: any;
+}
+
+export async function getCompanyCount(
+    filters: CompanyFilterClause[] = [],
+): Promise<number> {
+    let query = `SELECT COUNT(*) as total FROM companies WHERE 1=1`;
+    const params: any[] = [];
+
+    for (const filter of filters) {
+        if (filter.operator === "IN" && Array.isArray(filter.value)) {
+            const placeholders = filter.value.map(() => "?").join(",");
+            query += ` AND ${filter.column} IN (${placeholders})`;
+            params.push(...filter.value);
+        } else {
+            query += ` AND ${filter.column} ${filter.operator} ?`;
+            params.push(filter.value);
+        }
+    }
+
+    const [rows] = await getDb().query(query, params);
+    return (rows as any[])[0]?.total ?? 0;
 }

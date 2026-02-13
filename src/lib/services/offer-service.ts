@@ -41,14 +41,31 @@ export interface UpdateOfferData {
     sort_order?: number;
 }
 
+export type OfferFilterColumn =
+    | "status"
+    | "id"
+    | "user_id"
+    | "is_featured"
+    | "device_type"
+    | "start_at"
+    | "end_at";
+
+export type OfferFilterOperator = "=" | "!=" | ">" | ">=" | "<" | "<=" | "IN";
+
+export interface OfferFilterClause {
+    column: OfferFilterColumn;
+    operator: OfferFilterOperator;
+    value: any;
+}
+
 export class OfferService {
     db = getDb();
 
-    async create(data: CreateOfferFormValues): Promise<Offer | null> {
+    async create(user_id: string, data: CreateOfferFormValues): Promise<Offer | null> {
         const [result]: any = await this.db.query(
             `INSERT INTO offers
-      (name, description, heading, content, company_id, status)
-      VALUES (?, ?, ?, ?, ?, ?)`,
+      (name, description, heading, content, company_id, status, user_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
             [
                 data.name,
                 data.description || null,
@@ -56,6 +73,7 @@ export class OfferService {
                 data.content || null,
                 data.company_id || null,
                 data.status || "pending",
+                user_id,
             ],
         );
 
@@ -119,7 +137,10 @@ export class OfferService {
         return rows as (Offer & { company_name: string })[];
     }
 
-    async update(id: number, data: CreateOfferFormValues): Promise<Offer | null> {
+    async update(
+        id: number,
+        data: CreateOfferFormValues,
+    ): Promise<Offer | null> {
         const fields = Object.keys(data);
         if (fields.length === 0) return null;
 
@@ -183,5 +204,24 @@ export class OfferService {
             `UPDATE offers SET status = 'canceled' WHERE id = ?`,
             [id],
         );
+    }
+
+    async countWithFilters(filters: OfferFilterClause[] = []): Promise<number> {
+        let query = `SELECT COUNT(*) as total FROM offers WHERE 1=1`;
+        const params: any[] = [];
+
+        for (const filter of filters) {
+            if (filter.operator === "IN" && Array.isArray(filter.value)) {
+                const placeholders = filter.value.map(() => "?").join(",");
+                query += ` AND ${filter.column} IN (${placeholders})`;
+                params.push(...filter.value);
+            } else {
+                query += ` AND ${filter.column} ${filter.operator} ?`;
+                params.push(filter.value);
+            }
+        }
+
+        const [rows] = await this.db.query(query, params);
+        return (rows as any[])[0]?.total ?? 0;
     }
 }

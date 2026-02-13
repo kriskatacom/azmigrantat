@@ -264,13 +264,8 @@ export interface Ad {
     content: string | null;
     image: string | null;
     company_id: number | null;
+    user_id?: string;
     company_name?: string | null;
-    company?: {
-        id: number;
-        name: string;
-        slug?: string;
-        image_url?: string;
-    } | null;
     status: AdStatus;
     sort_order: number;
     views?: number;
@@ -292,6 +287,7 @@ export interface Offer {
     content?: string;
     image?: string;
     company_id?: number | null;
+    user_id?: string;
     company_name?: number | null;
     status: OfferStatus;
     sort_order?: number;

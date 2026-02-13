@@ -133,7 +133,7 @@ export function extractCoordinatesFromLocationLink(
 }
 
 export function urlStartsWith(pathname: string, wantedString: string = "/admin"): boolean {
-  return pathname.includes(wantedString);
+  return pathname.startsWith(wantedString);
 }
 
 // navigator.geolocation.getCurrentPosition((pos) => {

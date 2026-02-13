@@ -20,7 +20,7 @@ export function Breadcrumbs({ items, classes }: BreadcrumbsProps) {
 
     const condition =
         urlStartsWith(pathname, "/admin") ||
-        urlStartsWith(pathname, "/entrepreneurs");
+        urlStartsWith(pathname, "/users/entrepreneurs");
 
     return (
         <nav

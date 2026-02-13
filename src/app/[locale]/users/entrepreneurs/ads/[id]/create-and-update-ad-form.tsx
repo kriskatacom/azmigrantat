@@ -15,7 +15,6 @@ import {
     FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -77,7 +76,7 @@ export function CreateAndUpdateAdForm({ ad, companies }: Props) {
     };
 
     return (
-        <div className="px-5 mb-5">
+        <div className={`${!ad?.id ? "p-5" : "px-5 pb-5"}`}>
             <Card className="w-full">
                 <CardHeader>
                     <CardTitle className="text-2xl">

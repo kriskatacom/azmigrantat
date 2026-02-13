@@ -72,7 +72,7 @@ export const columns: ColumnDef<Ad>[] = [
                         </div>
                     )}
 
-                    <Link href={`/admin/ads/${ad.id}`}>
+                    <Link href={`/users/entrepreneurs/ads/${ad.id}`}>
                         <Image
                             src={ad.image}
                             alt={ad.name}

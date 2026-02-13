@@ -4,13 +4,23 @@ import { revalidatePath } from "next/cache";
 import { AdService } from "@/lib/services/ad-service";
 import { CreateAdFormValues } from "@/app/[locale]/users/entrepreneurs/ads/[id]/schema";
 import { deleteUploadedFile } from "@/app/api/lib";
+import { UserService } from "@/lib/services/user-service";
 
 const adService = new AdService();
+const userService = new UserService();
 
 export async function createAdAction(values: CreateAdFormValues) {
     try {
-        const ad = await adService.create(values);
+        const user = await userService.getCurrentUser();
+
+        if (!user) {
+            throw new Error("Няма потребител");
+        }
+
+        const ad = await adService.create(user.id, values);
+
         revalidatePath("/users/entrepreneurs/companies/ads");
+
         return {
             success: true,
             message: "Рекламата беше създадена успешно!",

@@ -35,10 +35,27 @@ export type UpdateAdColumn =
     | "status"
     | "sort_order";
 
+export type AdFilterColumn =
+    | "id"
+    | "name"
+    | "heading"
+    | "company_id"
+    | "user_id"
+    | "status"
+    | "sort_order";
+
+export type AdFilterOperator = "=" | "!=" | ">" | ">=" | "<" | "<=" | "IN";
+
+export interface AdFilterClause {
+    column: AdFilterColumn;
+    operator: AdFilterOperator;
+    value: any;
+}
+
 export class AdService {
     db = getDb();
 
-    async create(data: CreateAdData): Promise<Ad | null> {
+    async create(user_id: string, data: CreateAdData): Promise<Ad | null> {
         const {
             name,
             description,
@@ -51,8 +68,8 @@ export class AdService {
 
         const [result]: any = await this.db.query(
             `INSERT INTO ads
-            (name, description, heading, content, image, company_id, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            (name, description, heading, content, image, company_id, status, user_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 name,
                 description || null,
@@ -61,6 +78,7 @@ export class AdService {
                 image || null,
                 company_id || null,
                 status || "pending",
+                user_id,
             ],
         );
 
@@ -175,5 +193,24 @@ export class AdService {
         await this.db.query(`UPDATE ads SET status = 'canceled' WHERE id = ?`, [
             id,
         ]);
+    }
+
+    async countWithFilters(filters: AdFilterClause[] = []): Promise<number> {
+        let query = `SELECT COUNT(*) as total FROM ads WHERE 1=1`;
+        const params: any[] = [];
+
+        for (const filter of filters) {
+            if (filter.operator === "IN" && Array.isArray(filter.value)) {
+                const placeholders = filter.value.map(() => "?").join(",");
+                query += ` AND ${filter.column} IN (${placeholders})`;
+                params.push(...filter.value);
+            } else {
+                query += ` AND ${filter.column} ${filter.operator} ?`;
+                params.push(filter.value);
+            }
+        }
+
+        const [rows] = await this.db.query(query, params);
+        return (rows as any[])[0]?.total ?? 0;
     }
 }

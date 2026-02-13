@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
-import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -67,19 +66,17 @@ export const columns: ColumnDef<Company>[] = [
                         </div>
                     )}
 
-                    <Link href={`/admin/companies/${company.id}`}>
-                        <Image
-                            src={company.image_url}
-                            alt={company.name as string}
-                            fill
-                            className={`w-full h-full object-cover transition-opacity duration-500 ${
-                                imageLoading ? "opacity-0" : "opacity-100"
-                            }`}
-                            onLoad={() => setImageLoading(false)}
-                            onError={() => setImageLoading(false)}
-                            unoptimized
-                        />
-                    </Link>
+                    <Image
+                        src={company.image_url}
+                        alt={company.name as string}
+                        fill
+                        className={`w-full h-full object-cover transition-opacity duration-500 ${
+                            imageLoading ? "opacity-0" : "opacity-100"
+                        }`}
+                        onLoad={() => setImageLoading(false)}
+                        onError={() => setImageLoading(false)}
+                        unoptimized
+                    />
                 </div>
             );
         },
@@ -99,14 +96,7 @@ export const columns: ColumnDef<Company>[] = [
                 <ArrowUpDown className="ml-2 h-4 w-4" />
             </button>
         ),
-        cell: ({ row }) => (
-            <Link
-                href={`/admin/companies/${row.original.id}`}
-                className="hover:underline"
-            >
-                {row.getValue("name")}
-            </Link>
-        ),
+        cell: ({ row }) => <span>{row.getValue("name")}</span>,
     },
 
     {

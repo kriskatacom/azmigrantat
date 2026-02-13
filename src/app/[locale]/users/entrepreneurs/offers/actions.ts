@@ -4,13 +4,23 @@ import { revalidatePath } from "next/cache";
 import { OfferService } from "@/lib/services/offer-service";
 import { CreateOfferFormValues } from "@/app/[locale]/users/entrepreneurs/offers/[id]/schema";
 import { deleteUploadedFile } from "@/app/api/lib";
+import { UserService } from "@/lib/services/user-service";
 
 const offerService = new OfferService();
+const userService = new UserService();
 
 export async function createOfferAction(values: CreateOfferFormValues) {
     try {
-        const offer = await offerService.create(values);
+        const user = await userService.getCurrentUser();
+
+        if (!user) {
+            throw new Error("Няма потребител");
+        }
+
+        const offer = await offerService.create(user.id, values);
+
         revalidatePath("/users/entrepreneurs/companies/ads");
+        
         return {
             success: true,
             message: "Обявата беше създадена успешно!",

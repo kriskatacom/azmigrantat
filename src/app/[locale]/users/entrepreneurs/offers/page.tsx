@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { name: "Табло", href: "/users/entrepreneurs" },
+    { name: "Табло", href: "/users/entrepreneurs/dashboard" },
     { name: "Компании", href: "/users/entrepreneurs/companies" },
     { name: "Обяви" },
 ];

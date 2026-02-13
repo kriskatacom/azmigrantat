@@ -32,7 +32,7 @@ export default async function EntrepreneurAdsSave({ params }: Props) {
     const { id } = await params;
 
     let breadcrumbs: BreadcrumbItem[] = [
-        { name: "Табло", href: "/users/entrepreneurs" },
+        { name: "Табло", href: "/users/entrepreneurs/dashboard" },
         { name: "Компании", href: "/users/entrepreneurs/companies" },
         { name: "Реклами", href: "/users/entrepreneurs/ads" },
     ];
