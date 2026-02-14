@@ -14,7 +14,7 @@ export default async function middleware(request: NextRequest) {
     }
 
     const isAdminPath = pathname.startsWith("/admin");
-    const isUserPath = pathname.startsWith("/users");
+    const isUserPath = pathname.startsWith("/users/entrepreneurs");
 
     if (isAdminPath || isUserPath) {
         const user = await userService.getCurrentUser();

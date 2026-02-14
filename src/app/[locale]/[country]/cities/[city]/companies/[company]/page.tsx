@@ -191,7 +191,7 @@ export default async function CompanyPage({ params }: PageProps) {
     }));
 
     return (
-        <main className="bg-gray-300">
+        <main className="">
             <MainNavbar user={user} />
             <PageHeader title={company.name} breadcrumbs={breadcrumbs} />
             <CustomHeader
@@ -199,22 +199,14 @@ export default async function CompanyPage({ params }: PageProps) {
                 banner={activeBanner}
                 description={company.description}
             />
-            <div className="w-full sm:h-80 md:h-112 md:container md:mx-auto relative md:grid md:grid-cols-2 md:gap-5 md:max-md:p-5 md:my-5">
-                {offersSlides.length > 0 ? (
-                    <SectionCardSwiper items={offersSlides} />
-                ) : (
-                    <SectionCard
-                        title="Качване на обява"
-                        buttonText="Публикуване на обява"
-                        href="/users/entrepreneurs/offers/new"
-                        content="Публикувай безплатно обява за продажба на метали. Свържи се с много купувачи!"
-                        imageSrc={company.offer_image_url}
-                        companyName={company.name}
-                        className="rounded-lg overflow-hidden"
-                    />
-                )}
+            <div className="w-full md:container md:mx-auto relative md:grid md:grid-cols-2 md:gap-5 md:max-md:p-5">
                 {adsSlides.length > 0 ? (
-                    <SectionCardSwiper items={adsSlides} />
+                    <div>
+                        <h2 className="text-2xl font-semibold text-center py-5">
+                            Реклами
+                        </h2>
+                        <SectionCardSwiper items={adsSlides} />
+                    </div>
                 ) : (
                     <SectionCard
                         title="Рекламиране"
@@ -226,8 +218,40 @@ export default async function CompanyPage({ params }: PageProps) {
                         className="rounded-lg overflow-hidden"
                     />
                 )}
+                {/* {offersSlides.length > 0 ? (
+                    <div>
+                        <h2 className="text-2xl font-semibold text-center py-5">
+                            Обяви
+                        </h2>
+                        <SectionCardSwiper items={offersSlides} />
+                    </div>
+                ) : (
+                    <SectionCard
+                        title="Качване на обява"
+                        buttonText="Публикуване на обява"
+                        href="/users/entrepreneurs/offers/new"
+                        content="Публикувай безплатно обява за продажба на метали. Свържи се с много купувачи!"
+                        imageSrc={company.offer_image_url}
+                        companyName={company.name}
+                        className="rounded-lg overflow-hidden"
+                    />
+                )} */}
+                {/* <div className="text-white bg-website-dark py-30 pt-3 my-5">
+                    <h2 className="text-3xl font-semibold text-center my-5">
+                        Обяви
+                    </h2>
+                    <p className="text-lg text-center">
+                        Имам подцинкована ламарина
+                    </p>
+                </div> */}
+                <div>
+                    <h2 className="text-2xl font-semibold text-center py-5">
+                        Обяви
+                    </h2>
+                    <SectionCardSwiper items={offersSlides} showContent />
+                </div>
             </div>
-            <div className="relative w-full overflow-hidden rounded">
+            <div className="relative w-full overflow-hidden rounded mt-5">
                 <img
                     src={company.bottom_image_url}
                     alt={company.name ?? "section image"}

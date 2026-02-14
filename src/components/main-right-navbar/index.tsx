@@ -71,7 +71,7 @@ export const MainNavbar = ({ user }: MainNavbarProps) => {
                             >
                                 {item.slug.startsWith("http") ? (
                                     <a
-                                        className="block py-3 px-5 text-lg"
+                                        className="notranslate block py-3 px-5 text-lg"
                                         href={item.slug}
                                         title={item.title}
                                         target="_blank"
@@ -81,7 +81,7 @@ export const MainNavbar = ({ user }: MainNavbarProps) => {
                                     </a>
                                 ) : (
                                     <Link
-                                        className="block py-3 px-5 text-lg"
+                                        className="notranslate block py-3 px-5 text-lg"
                                         href={item.slug}
                                     >
                                         {item.title}

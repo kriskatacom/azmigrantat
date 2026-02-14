@@ -5,7 +5,6 @@ import { getCountries } from "@/lib/services/country-service";
 import { CardGrid } from "@/components/card-grid";
 import { CardEntity } from "@/components/card-item";
 import TypewriterTexts from "@/app/[locale]/animated-typewriter-texts";
-import { HOME_ELEMENTS } from "@/lib/constants";
 import Advertisement from "@/app/[locale]/advertisement";
 import ContactsHeader from "@/app/[locale]/contacts-header";
 import Map from "@/app/[locale]/map";

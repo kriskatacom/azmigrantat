@@ -11,6 +11,7 @@ import { absoluteUrl, websiteName } from "@/lib/utils";
 import PageHeader from "@/components/page-header";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 import { UserService } from "@/lib/services/user-service";
+import { getTranslations } from "next-intl/server";
 
 type PageProps = {
     params: Promise<{
@@ -83,6 +84,8 @@ export default async function CitiesPage({ params }: PageProps) {
     const userService = new UserService();
     const user = await userService.getCurrentUser();
 
+    const t = await getTranslations("country");
+
     const countrySlug = (await params).country;
 
     const country = await getCountryByColumn("slug", countrySlug);
@@ -115,7 +118,7 @@ export default async function CitiesPage({ params }: PageProps) {
             <MainNavbar user={user} />
 
             <PageHeader
-                title={`Градове в ${country.name}`}
+                title={`${t("cities.citiesIn")} ${country.name}`}
                 breadcrumbs={breadcrumbs}
                 banner={banner}
             />
@@ -123,7 +126,7 @@ export default async function CitiesPage({ params }: PageProps) {
             {!isBulgaria && cities.length > 0 && (
                 <CardGrid
                     items={mappedCities}
-                    searchPlaceholder="Търсене на градове..."
+                    searchPlaceholder={t("cities.search")}
                     id="cities"
                     isWithSearch={true}
                     loadMoreStep={6}
@@ -136,14 +139,14 @@ export default async function CitiesPage({ params }: PageProps) {
 
             {!isBulgaria && cities.length === 0 && (
                 <div className="py-5 xl:py-10 text-center text-xl font-semibold">
-                    Няма намерени градове в {country.name}.
+                    {t("cities.notFound")} {country.name}.
                 </div>
             )}
 
             {isBulgaria && (
                 <>
                     <h2 className="text-2xl lg:text-3xl xl:text-4xl font-semibold text-center my-5 xl:py-10">
-                        Кликнете върху желания град
+                        {t("cities.cityClick")}
                     </h2>
                     <BulgariaCitiesMap />
                 </>

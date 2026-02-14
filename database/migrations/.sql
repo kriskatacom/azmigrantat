@@ -1,7 +1,4 @@
-ALTER TABLE `companies`
-ADD COLUMN `user_id` CHAR(36) CHARACTER
-SET
-utf8mb4 COLLATE utf8mb4_unicode_ci NULL AFTER `bottom_image_url`;
+ALTER TABLE `companies` ADD COLUMN `user_id` CHAR(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL AFTER `bottom_image_url`;
 
 ALTER TABLE `companies` ADD CONSTRAINT `fk_companies_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 

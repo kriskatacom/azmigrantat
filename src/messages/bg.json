@@ -10,58 +10,28 @@
     "common": {
         "search": "Търсене",
         "searchPlaceholder": "Търсене...",
-        "loadMore": "Зареди още",
+        "loadMore": "Зареждане на още",
         "learnMore": "Научете повече",
         "browse": "РАЗГЛЕЖДАНЕ",
         "home": "Начало",
         "information": "Информация",
-        "countries": "Държави"
-    },
-    "countries": {
-        "bulgaria": "България",
-        "turkey": "Турция",
-        "united-kingdom": "Обединеното кралство",
-        "greece": "Гърция",
-        "germany": "Германия",
-        "denmark": "Дания",
-        "bosna-i-hercegovina": "Босна и Херцеховина",
-        "belarus": "Беларус",
-        "switzerland": "Швейцария",
-        "north-macedonia": "Северна Македония",
-        "finland": "Финландия",
-        "poland": "Полша",
-        "slovakia": "Словакия",
-        "czechya": "Чехия",
-        "austria": "Австрия",
-        "monaco": "Монако",
-        "albania": "Албания",
-        "russia": "Русия",
-        "belgium": "Белгия",
-        "sweden": "Швеция",
-        "portugal": "Португалия",
-        "france": "Франция",
-        "hungary": "Унгария",
-        "norway": "Норвегия",
-        "croatia": "Хърватия",
-        "estonia": "Естония",
-        "serbia": "Сърбия",
-        "netherlands": "Нидерландия",
-        "latvia": "Латвия",
-        "iceland": "Исландия",
-        "ukraine": "Украйна",
-        "kosovo": "Косово",
-        "montenegro": "Черна гора",
-        "romania": "Румъния",
-        "italya": "Италия",
-        "ispania": "Испания",
-        "ireland": "Ирландия",
-        "malta": "Малта"
-    },
-    "countryElements": {
-        "cities": "Градове",
-        "embassies": "Посолства",
-        "residence": "Пребиваване",
-        "landmarks": "Забележителности"
+        "countries": "Държави",
+        "aboutEmbassy": "За посолството",
+        "contactInformation": "Информация за контакти",
+        "emergencyCases": "Спешни случаи",
+        "phoneNotSpecified": "Не е посочен телефонен номер",
+        "workingHoursNotSpecified": "Не е посочено работно време",
+        "locationPermissionDenied": "Не сте дали разрешение за достъп до местонахождението Ви.",
+        "mapNotAvailable": "Картата не е налична",
+        "noDescriptionAdded": "Няма добавено описание",
+        "gallery": "Галерия",
+        "workingHours": "Работно време",
+        "aboutLandmark": "За забележителността",
+        "moreInformation": "Повече информация",
+        "clickOnDesiredCity": "Кликнете върху желания град",
+        "noImageProvided": "Няма поставено изображение",
+        "municipalCities": "Общински градове",
+        "searchCategories": "Търсене на категории"
     },
     "admin": {
         "sidebar": {
@@ -96,6 +66,7 @@
         "cta": "РАЗГЛЕЖДАНЕ",
         "countriesSection": "Държави",
         "typewriterTexts": {
+            "title": "Аз мигрантът",
             "credits": "Кредити",
             "travel": "Пътиване",
             "jobs": "Търся/пр. работа",
@@ -104,12 +75,16 @@
             "insurance": "Застраховка",
             "translation": "Преводи"
         },
-        "elements": {
-            "travel": "Пътуване",
-            "services": "Услуги",
-            "lookingJob": "Търся/пр. работа",
-            "ads": "Обяви",
-            "music": "Мусика"
+        "howToTravel": "Как да стигнете до",
+        "howToTravelButton": "Как да стигнете",
+        "contact": {
+            "centralOffice": "Централен офис",
+            "servicesAndInquiries": "Услуги и запитвания",
+            "flightTicketsAndFinancing": "Самолетни билети и кредитиране",
+            "insuranceAndLegalization": "Застраховка и легализация",
+            "jobsInNetherlands": "Работа в Нидерландия",
+            "montanaOfficeAddress": "България, гр. Монтана, бул. Христо Ботев 69",
+            "findUsInSocial": "Намерете ни в социалните мрежи"
         }
     },
     "travel": {
@@ -141,6 +116,26 @@
         "cruises": {
             "cruiseCompanies": "Круизни компании",
             "searchPorts": "Търсене на пристанища"
+        }
+    },
+    "country": {
+        "landmarks": {
+            "search": "Търсене на забележителности",
+            "landmarksIn": "Забележителности в"
+        },
+        "embassies": {
+            "search": "Търсене на посолства",
+            "embassiesIn": "Посолства в"
+        },
+        "cities": {
+            "search": "Търсене на градове",
+            "citiesIn": "Градове в",
+            "notFound": "Няма намерени градове в",
+            "cityClick": "Кликнете върху желания град"
+        },
+        "categories": {
+            "searchCategories": "Търсене на категории",
+            "searchCategoriesIn": "Търсене на категории в"
         }
     },
     "metadata": {

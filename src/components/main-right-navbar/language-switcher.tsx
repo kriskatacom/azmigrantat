@@ -15,6 +15,7 @@ import {
 const languages = [
     { code: "bg", name: "Български", flag: "🇧🇬" },
     { code: "en", name: "English", flag: "🇬🇧" },
+    { code: "nl", name: "Nederlands", flag: "🇳🇱" }
 ];
 
 export default function LanguageSwitcher() {
@@ -26,7 +27,13 @@ export default function LanguageSwitcher() {
     const switchLocale = (newLocale: string) => {
         startTransition(() => {
             router.push(pathname, { locale: newLocale });
+            setTimeout(() => changeLanguage(newLocale), 500);
         });
+    };
+
+    const changeLanguage = (lang: string) => {
+        document.cookie = `googtrans=/bg/${lang};path=/`;
+        window.location.reload();
     };
 
     return (

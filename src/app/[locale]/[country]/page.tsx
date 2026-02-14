@@ -9,6 +9,7 @@ import { CardEntity } from "@/components/card-item";
 import { Hero } from "@/app/[locale]/[country]/hero";
 import { absoluteUrl, websiteName } from "@/lib/utils";
 import { UserService } from "@/lib/services/user-service";
+import { getTranslations } from "next-intl/server";
 
 type PageProps = {
     params: Promise<{
@@ -80,6 +81,8 @@ export default async function CountryPage({ params }: PageProps) {
     const userService = new UserService();
     const user = await userService.getCurrentUser();
 
+    const t = await getTranslations("common");
+
     const { country } = await params;
 
     const countryData = await getCountryByColumn("slug", country);
@@ -109,7 +112,7 @@ export default async function CountryPage({ params }: PageProps) {
                 title={countryData.name}
                 excerpt={countryData.excerpt}
                 image_url={countryData.image_url as string}
-                ctaText="Научете повече"
+                ctaText={t("learnMore")}
                 ctaLink="#learn-more"
             />
             <CardGrid

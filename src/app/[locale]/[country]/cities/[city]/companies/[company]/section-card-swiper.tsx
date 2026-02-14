@@ -26,12 +26,14 @@ interface SectionCardSwiperProps {
     items: SectionCardProps[];
     className?: string;
     autoplayDelay?: number;
+    showContent?: boolean;
 }
 
 const SectionCardSwiper: React.FC<SectionCardSwiperProps> = ({
     items,
     className,
     autoplayDelay = 5000,
+    showContent = false,
 }) => {
     return (
         <Swiper
@@ -68,27 +70,29 @@ const SectionCardSwiper: React.FC<SectionCardSwiperProps> = ({
                             </div>
                         )}
                     </div>
-                    {/* <div className="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center gap-5">
-                        <h2 className="z-40 max-lg:text-center text-light text-2xl xl:text-3xl font-bold uppercase px-5">
-                            {item.title}
-                        </h2>
-                        {item.content && (
-                            <div
-                                className="z-40 max-w-md mx-auto text-center text-white text-lg px-5"
-                                dangerouslySetInnerHTML={{
-                                    __html: item.content,
-                                }}
-                            ></div>
-                        )}
-                        {item.buttonText && (
-                            <Link href={item.href} className="z-40">
-                                <Button variant="default" size="xl">
-                                    {item.buttonText}
-                                </Button>
-                            </Link>
-                        )}
-                    </div>
-                    <div className="absolute top-0 left-0 w-full h-full bg-black/40 z-10"></div> */}
+                    {showContent && (
+                        <div className="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center gap-5">
+                            <h2 className="z-40 max-lg:text-center text-light text-2xl xl:text-3xl font-bold uppercase px-5">
+                                {item.title}
+                            </h2>
+                            {item.content && (
+                                <div
+                                    className="z-40 max-w-md mx-auto text-center text-white text-lg px-5"
+                                    dangerouslySetInnerHTML={{
+                                        __html: item.content,
+                                    }}
+                                ></div>
+                            )}
+                            {item.buttonText && (
+                                <Link href={item.href} className="z-40">
+                                    <Button variant="default" size="xl">
+                                        {item.buttonText}
+                                    </Button>
+                                </Link>
+                            )}
+                        </div>
+                    )}
+                    <div className="absolute top-0 left-0 w-full h-full bg-black/40 z-10"></div>
                 </SwiperSlide>
             ))}
         </Swiper>

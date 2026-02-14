@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-    --color-website-blue: #8CD1E6;
+    --color-website-blue: #8cd1e6;
     --color-primary: #1d293d;
     --color-secondary: #e3e295;
     --color-light: #efefef;
@@ -716,10 +716,30 @@
 }
 
 .swiper-slide {
-  user-select: none; /* Предотвратява маркирането на текст/картинки при влачене */
-  -webkit-user-drag: none; /* Спира вградения drag на браузъра за картинки */
+    user-select: none; /* Предотвратява маркирането на текст/картинки при влачене */
+    -webkit-user-drag: none; /* Спира вградения drag на браузъра за картинки */
 }
 
 .swiper-slide img {
-  pointer-events: none; /* Картинката няма да „яде“ кликовете, които Swiper трябва да улови */
+    pointer-events: none; /* Картинката няма да „яде“ кликовете, които Swiper трябва да улови */
+}
+
+/* Скрива лентата на Google Translate */
+.goog-te-banner-frame.skiptranslate, 
+.goog-te-gadget-icon {
+    display: none !important;
+}
+
+body {
+    top: 0px !important;
+}
+
+/* Скрива подсказките при задържане на мишката върху преведен текст */
+.goog-te-balloon-frame {
+    display: none !important;
+}
+
+/* Оправя отместването на body, което Google инжектира */
+.skiptranslate {
+    display: none !important;
 }

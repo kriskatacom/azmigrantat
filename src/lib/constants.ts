@@ -1,3 +1,14 @@
+export type LanguageItem = {
+    code: string;
+    name: string;
+    flag: string;
+};
+
+export const languages: LanguageItem[] = [
+    { code: "bg", name: "Български", flag: "🇧🇬" },
+    { code: "en", name: "English", flag: "🇬🇧" },
+];
+
 export const mainMenuItems = [
     { title: "Аз мигрантът", slug: "/" },
     { title: "Пътуване", slug: "/travel" },
@@ -90,6 +101,7 @@ import { RiAdvertisementLine } from "react-icons/ri";
 import { MdOutlineWorkOutline } from "react-icons/md";
 import { FcAdvertising } from "react-icons/fc";
 import { StatItemCardProps } from "@/components/stat-item-card";
+import { getTranslations } from "next-intl/server";
 
 export const mainSidebarItems: AdminSidebarItem[] = [
     {
@@ -322,16 +334,6 @@ export const CRUISES_PAGE_ITEMS: CardEntity[] = [
         image_url: "/images/portguide.png",
         linkType: "external",
     },
-];
-
-export const HOME_TYPEWRITER_TEXTS: string[] = [
-    "Кредити",
-    "Пътуване",
-    "Търся/пр. работа",
-    "Обяви",
-    "Музика",
-    "Застраховки",
-    "Преводи",
 ];
 
 export const HOME_ELEMENTS: CardEntity[] = [

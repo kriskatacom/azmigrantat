@@ -10,6 +10,7 @@ import { websiteName } from "@/lib/utils";
 import PageHeader from "@/components/page-header";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 import { UserService } from "@/lib/services/user-service";
+import { getTranslations } from "next-intl/server";
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const countrySlug = (await params).country;
@@ -68,6 +69,8 @@ export default async function LandmarksPage({ params }: Props) {
     const userService = new UserService();
     const user = await userService.getCurrentUser();
 
+    const t = await getTranslations("country");
+
     const countrySlug = (await params).country;
 
     const country = await getCountryByColumn("slug", countrySlug);
@@ -104,7 +107,7 @@ export default async function LandmarksPage({ params }: Props) {
             <MainNavbar user={user} />
 
             <PageHeader
-                title={`Забележителности в ${country.name}`}
+                title={`${t("landmarks.landmarksIn")} ${country.name}`}
                 breadcrumbs={breadcrumbs}
                 banner={banner}
             />
@@ -112,7 +115,7 @@ export default async function LandmarksPage({ params }: Props) {
             <CardGrid
                 items={mappedLandmarks}
                 id="landmarks"
-                searchPlaceholder="Търсене на забележителности..."
+                searchPlaceholder={t("landmarks.search")}
                 isWithSearch={true}
                 loadMoreStep={8}
                 initialVisible={8}

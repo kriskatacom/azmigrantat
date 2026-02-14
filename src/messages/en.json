@@ -1,10 +1,10 @@
 {
     "navigation": {
-        "home": "I The Migrant",
+        "home": "Az Migrantat",
         "travel": "Travel",
         "services": "Services",
-        "jobs": "Looking for/Offering Work",
-        "ads": "Ads",
+        "jobs": "Find/Offer Jobs",
+        "ads": "Advertisements",
         "music": "Music"
     },
     "common": {
@@ -15,53 +15,23 @@
         "browse": "BROWSE",
         "home": "Home",
         "information": "Information",
-        "countries": "Countries"
-    },
-    "countries": {
-        "bulgaria": "Bulgaria",
-        "turkey": "Turkey",
-        "united-kingdom": "United Kingdom",
-        "greece": "Greece",
-        "germany": "Germany",
-        "denmark": "Denmark",
-        "bosna-i-hercegovina": "Bosnia and Herzegovina",
-        "belarus": "Belarus",
-        "switzerland": "Switzerland",
-        "north-macedonia": "North Macedonia",
-        "finland": "Finland",
-        "poland": "Poland",
-        "slovakia": "Slovakia",
-        "czechya": "Czech Republic",
-        "austria": "Austria",
-        "monaco": "Monaco",
-        "albania": "Albania",
-        "russia": "Russia",
-        "belgium": "Belgium",
-        "sweden": "Sweden",
-        "portugal": "Portugal",
-        "france": "France",
-        "hungary": "Hungary",
-        "norway": "Norway",
-        "croatia": "Croatia",
-        "estonia": "Estonia",
-        "serbia": "Serbia",
-        "netherlands": "Netherlands",
-        "latvia": "Latvia",
-        "iceland": "Iceland",
-        "ukraine": "Ukraine",
-        "kosovo": "Kosovo",
-        "montenegro": "Montenegro",
-        "romania": "Romania",
-        "italya": "Italy",
-        "ispania": "Spain",
-        "ireland": "Ireland",
-        "malta": "Malta"
-    },
-    "countryElements": {
-        "cities": "Cities",
-        "embassies": "Embassies",
-        "residence": "Residence",
-        "landmarks": "Landmarks"
+        "countries": "Countries",
+        "aboutEmbassy": "About the Embassy",
+        "contactInformation": "Contact Information",
+        "emergencyCases": "Emergency Cases",
+        "phoneNotSpecified": "No phone number specified",
+        "workingHoursNotSpecified": "No working hours specified",
+        "locationPermissionDenied": "You have not granted permission to access your location.",
+        "mapNotAvailable": "Map is not available",
+        "noDescriptionAdded": "No description added",
+        "gallery": "Gallery",
+        "workingHours": "Working Hours",
+        "aboutLandmark": "About the Landmark",
+        "moreInformation": "More Information",
+        "clickOnDesiredCity": "Click on the desired city",
+        "noImageProvided": "No image provided",
+        "municipalCities": "Municipal Cities",
+        "searchCategories": "Search Categories"
     },
     "admin": {
         "sidebar": {
@@ -92,33 +62,38 @@
     },
     "homepage": {
         "title": "TRAVEL, WORK, LIVE",
-        "subtitle": "WITH \"I THE MIGRANT\"!",
+        "subtitle": "WITH \"AZ MIGRANTAT\"!",
         "cta": "BROWSE",
         "countriesSection": "Countries",
         "typewriterTexts": {
-            "credits": "Credits",
+            "title": "Az Migrantat",
+            "credits": "Loans",
             "travel": "Travel",
-            "jobs": "Looking for/offering work",
-            "ads": "Ads",
+            "jobs": "Find/Offer Jobs",
+            "ads": "Advertisements",
             "music": "Music",
             "insurance": "Insurance",
-            "translation": "Translation"
+            "translation": "Translations"
         },
-        "elements": {
-            "travel": "Travel",
-            "services": "Services",
-            "lookingJob": "Looking for/offering work",
-            "ads": "Ads",
-            "music": "Music"
+        "howToTravel": "How to get to",
+        "howToTravelButton": "How to get there",
+        "contact": {
+            "centralOffice": "Central Office",
+            "servicesAndInquiries": "Services and Inquiries",
+            "flightTicketsAndFinancing": "Flight Tickets and Financing",
+            "insuranceAndLegalization": "Insurance and Legalization",
+            "jobsInNetherlands": "Jobs in the Netherlands",
+            "montanaOfficeAddress": "Bulgaria, Montana, 69 Hristo Botev Blvd.",
+            "findUsInSocial": "Find us on social media"
         }
     },
     "travel": {
         "title": "Travel",
-        "heading": "Travel with \"I Migrant\"!",
+        "heading": "Travel with \"Az Migrantat\"!",
         "categories": {
             "airTickets": "Air Tickets",
             "autobuses": "Buses",
-            "trains": "Train Transport",
+            "trains": "Rail Transport",
             "cruises": "Cruises",
             "taxis": "Taxis",
             "sharedTravel": "Shared Travel"
@@ -129,32 +104,52 @@
             "flightRadar": "Flight Radar"
         },
         "autobuses": {
-            "searchStations": "Search for bus stops"
+            "searchStations": "Search Bus Stations"
         },
         "trains": {
-            "searchStations": "Search for train stations"
+            "searchStations": "Search Train Stations"
         },
         "taxis": {
-            "orderTaxi": "Order taxi",
-            "privateTaxis": "Private taxis"
+            "orderTaxi": "Order a Taxi",
+            "privateTaxis": "Private Taxis"
         },
         "cruises": {
-            "cruiseCompanies": "Cruise companies",
-            "searchPorts": "Search for ports"
+            "cruiseCompanies": "Cruise Companies",
+            "searchPorts": "Search Ports"
+        }
+    },
+    "country": {
+        "landmarks": {
+            "search": "Search Landmarks",
+            "landmarksIn": "Landmarks in"
+        },
+        "embassies": {
+            "search": "Search Embassies",
+            "embassiesIn": "Embassies in"
+        },
+        "cities": {
+            "search": "Search Cities",
+            "citiesIn": "Cities in",
+            "notFound": "No cities found in",
+            "cityClick": "Click on the desired city"
+        },
+        "categories": {
+            "searchCategories": "Search Categories",
+            "searchCategoriesIn": "Search Categories in"
         }
     },
     "metadata": {
         "default": {
-            "title": "I Migrant",
-            "description": "Information for migrants - travel, work, life abroad"
+            "title": "Az Migrantat",
+            "description": "Information for migrants – travel, work, and living abroad"
         },
         "countryPage": {
             "titleTemplate": "{country} – information, landmarks and embassies",
-            "descriptionTemplate": "Learn more about {country} – landmarks, embassies, culture and useful information for travelers and citizens."
+            "descriptionTemplate": "Learn more about {country} – landmarks, embassies, culture and useful information for travelers and residents."
         },
         "citiesPage": {
-            "titleTemplate": "Cities in {country} | Information and map",
-            "descriptionTemplate": "Browse cities in {country} – major settlements, map, useful information and interesting facts."
+            "titleTemplate": "Cities in {country} | Information and Map",
+            "descriptionTemplate": "Explore cities in {country} – major settlements, map, useful information and interesting facts."
         },
         "travelPage": {
             "title": "Travel – transport and services information",

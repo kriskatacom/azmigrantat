@@ -1,0 +1,159 @@
+{
+    "navigation": {
+        "home": "Az Migrantat",
+        "travel": "Reizen",
+        "services": "Diensten",
+        "jobs": "Werk Zoeken/Aanbieden",
+        "ads": "Advertenties",
+        "music": "Muziek"
+    },
+    "common": {
+        "search": "Zoeken",
+        "searchPlaceholder": "Zoeken...",
+        "loadMore": "Meer laden",
+        "learnMore": "Meer informatie",
+        "browse": "BEKIJKEN",
+        "home": "Home",
+        "information": "Informatie",
+        "countries": "Landen",
+        "aboutEmbassy": "Over de Ambassade",
+        "contactInformation": "Contactinformatie",
+        "emergencyCases": "Noodgevallen",
+        "phoneNotSpecified": "Geen telefoonnummer opgegeven",
+        "workingHoursNotSpecified": "Geen openingstijden opgegeven",
+        "locationPermissionDenied": "U heeft geen toestemming gegeven voor toegang tot uw locatie.",
+        "mapNotAvailable": "Kaart is niet beschikbaar",
+        "noDescriptionAdded": "Geen beschrijving toegevoegd",
+        "gallery": "Galerij",
+        "workingHours": "Openingstijden",
+        "aboutLandmark": "Over de Bezienswaardigheid",
+        "moreInformation": "Meer informatie",
+        "clickOnDesiredCity": "Klik op de gewenste stad",
+        "noImageProvided": "Geen afbeelding beschikbaar",
+        "municipalCities": "Gemeentelijke Steden",
+        "searchCategories": "Categorieën zoeken"
+    },
+    "admin": {
+        "sidebar": {
+            "dashboard": "Dashboard",
+            "users": "Gebruikers",
+            "countries": "Landen",
+            "cities": "Steden",
+            "categories": "Categorieën",
+            "companies": "Bedrijven",
+            "embassies": "Ambassades",
+            "landmarks": "Bezienswaardigheden",
+            "airports": "Luchthavens",
+            "airlines": "Luchtvaartmaatschappijen",
+            "autobuses": "Busstations",
+            "trains": "Treinstations",
+            "taxis": "Taxi's",
+            "cruises": "Cruisemaatschappijen",
+            "banners": "Banners",
+            "settings": "Instellingen"
+        },
+        "actions": {
+            "add": "Toevoegen",
+            "edit": "Bewerken",
+            "delete": "Verwijderen",
+            "save": "Opslaan",
+            "cancel": "Annuleren"
+        }
+    },
+    "homepage": {
+        "title": "REIS, WERK, LEEF",
+        "subtitle": "MET \"AZ MIGRANTAT\"!",
+        "cta": "BEKIJKEN",
+        "countriesSection": "Landen",
+        "typewriterTexts": {
+            "title": "Az Migrantat",
+            "credits": "Leningen",
+            "travel": "Reizen",
+            "jobs": "Werk Zoeken/Aanbieden",
+            "ads": "Advertenties",
+            "music": "Muziek",
+            "insurance": "Verzekering",
+            "translation": "Vertalingen"
+        },
+        "howToTravel": "Hoe kom je in",
+        "howToTravelButton": "Routebeschrijving",
+        "contact": {
+            "centralOffice": "Hoofdkantoor",
+            "servicesAndInquiries": "Diensten en Aanvragen",
+            "flightTicketsAndFinancing": "Vliegtickets en Financiering",
+            "insuranceAndLegalization": "Verzekering en Legalisatie",
+            "jobsInNetherlands": "Werk in Nederland",
+            "montanaOfficeAddress": "Bulgarije, Montana, Hristo Botev Blvd. 69",
+            "findUsInSocial": "Vind ons op sociale media"
+        }
+    },
+    "travel": {
+        "title": "Reizen",
+        "heading": "Reis met \"Az Migrantat\"!",
+        "categories": {
+            "airTickets": "Vliegtickets",
+            "autobuses": "Bussen",
+            "trains": "Spoorvervoer",
+            "cruises": "Cruises",
+            "taxis": "Taxi's",
+            "sharedTravel": "Gedeeld Reizen"
+        },
+        "airTickets": {
+            "airports": "Luchthavens",
+            "airlines": "Luchtvaartmaatschappijen",
+            "flightRadar": "Vluchtradar"
+        },
+        "autobuses": {
+            "searchStations": "Busstations zoeken"
+        },
+        "trains": {
+            "searchStations": "Treinstations zoeken"
+        },
+        "taxis": {
+            "orderTaxi": "Taxi bestellen",
+            "privateTaxis": "Privé Taxi's"
+        },
+        "cruises": {
+            "cruiseCompanies": "Cruisemaatschappijen",
+            "searchPorts": "Havens zoeken"
+        }
+    },
+    "country": {
+        "landmarks": {
+            "search": "Bezienswaardigheden zoeken",
+            "landmarksIn": "Bezienswaardigheden in"
+        },
+        "embassies": {
+            "search": "Ambassades zoeken",
+            "embassiesIn": "Ambassades in"
+        },
+        "cities": {
+            "search": "Steden zoeken",
+            "citiesIn": "Steden in",
+            "notFound": "Geen steden gevonden in",
+            "cityClick": "Klik op de gewenste stad"
+        },
+        "categories": {
+            "searchCategories": "Categorieën zoeken",
+            "searchCategoriesIn": "Categorieën zoeken in"
+        }
+    },
+    "metadata": {
+        "default": {
+            "title": "Az Migrantat",
+            "description": "Informatie voor migranten – reizen, werken en wonen in het buitenland"
+        },
+        "countryPage": {
+            "titleTemplate": "{country} – informatie, bezienswaardigheden en ambassades",
+            "descriptionTemplate": "Lees meer over {country} – bezienswaardigheden, ambassades, cultuur en nuttige informatie voor reizigers en inwoners."
+        },
+        "citiesPage": {
+            "titleTemplate": "Steden in {country} | Informatie en Kaart",
+            "descriptionTemplate": "Ontdek steden in {country} – belangrijke plaatsen, kaart, nuttige informatie en interessante feiten."
+        },
+        "travelPage": {
+            "title": "Reizen – informatie over vervoer en diensten",
+            "description": "Lees alles over verschillende vormen van vervoer: vliegtickets, bussen, treinen, cruises, taxi's en gedeeld reizen."
+        }
+    }
+}
