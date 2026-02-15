@@ -12,10 +12,11 @@ import {
 } from "@/lib/services/category-service";
 import { getCityByColumn } from "@/lib/services/city-service";
 import { getCountryByColumn } from "@/lib/services/country-service";
-import { Banner, Company } from "@/lib/types";
+import { Banner, Company, Offer } from "@/lib/types";
 import { getCompanies } from "@/lib/services/companies-service";
 import { UserService } from "@/lib/services/user-service";
 import ImageSlider, { Slide } from "./image-slider";
+import { OfferService } from "@/lib/services/offer-service";
 
 type PageProps = {
     params: Promise<{
@@ -121,31 +122,30 @@ export default async function Categories({ params }: PageProps) {
         }
     }
 
-    const slides: Slide[] = [
-        {
-            id: 1,
-            image: "/images/air-tickets.png",
-            title: "Заглавие 1",
-            description: "Описание на първия слайд",
-        },
-        {
-            id: 2,
-            image: "/images/advertisement.png",
-            title: "Заглавие 2",
-            description: "Описание на втория слайд",
-        },
-        {
-            id: 3,
-            image: "/images/avtobuses.png",
-            title: "Заглавие 3",
-            description: "Описание на третия слайд",
-        },
-    ];
+    const offerService = new OfferService();
+
+    const offers = await offerService.getAll({
+        countryId: country.id,
+        cityId: city.id,
+        categoryId: category.id,
+        status: "active",
+    });
+
+    const offersSlides: Slide[] = offers.map((offer: Offer) => ({
+        id: offer.id,
+        title: offer.name,
+        description: offer.content ?? offer.description ?? "",
+        image: offer.image ?? "",
+        url: `${baseCityHref}/companies/${offer.company_slug}/offers/${offer.id}`,
+    }));
 
     return (
         <main>
             <MainNavbar user={user} />
-            <ImageSlider title={`Обяви (${category.name})`} slides={slides} />
+            <ImageSlider
+                title={`Обяви (${category.name})`}
+                slides={offersSlides}
+            />
             <PageHeader
                 title={`Информационен справочник на ${city.name}`}
                 breadcrumbs={breadcrumbs}

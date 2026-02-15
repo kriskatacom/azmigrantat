@@ -187,7 +187,7 @@ export default async function CompanyPage({ params }: PageProps) {
         imageSrc: offer.image ?? undefined,
         companyName: String(offer.company_name) ?? undefined,
         buttonText: "Виж повече",
-        href: `/offers/${offer.id}`,
+        href: `${baseCityHref}/companies/${company.slug}/offers/${offer.id}`,
     }));
 
     return (
@@ -248,7 +248,11 @@ export default async function CompanyPage({ params }: PageProps) {
                     <h2 className="text-2xl font-semibold text-center py-5">
                         Обяви
                     </h2>
-                    <SectionCardSwiper items={offersSlides} showContent />
+                    <SectionCardSwiper
+                        items={offersSlides}
+                        baseHref={`${baseCityHref}/companies/${company.slug}`}
+                        showContent
+                    />
                 </div>
             </div>
             <div className="relative w-full overflow-hidden rounded mt-5">

@@ -101,13 +101,16 @@ export class OfferService {
     async getAll(options?: {
         status?: OfferStatus;
         companyId?: number;
+        categoryId?: number;
+        countryId?: number;
+        cityId?: number;
         limit?: number;
         offset?: number;
     }): Promise<(Offer & { company_name: string })[]> {
-        const { status, companyId, limit, offset } = options || {};
+        const { status, companyId, categoryId, countryId, cityId, limit, offset } = options || {};
 
         let query = `
-      SELECT offers.*, companies.name AS company_name
+      SELECT offers.*, companies.name AS company_name, companies.slug AS company_slug
       FROM offers
       LEFT JOIN companies ON offers.company_id = companies.id
       WHERE 1=1
@@ -122,6 +125,21 @@ export class OfferService {
         if (companyId) {
             query += ` AND offers.company_id = ?`;
             params.push(companyId);
+        }
+
+        if (categoryId) {
+            query += ` AND offers.category_id = ?`;
+            params.push(categoryId);
+        }
+
+        if (countryId) {
+            query += ` AND offers.country_id = ?`;
+            params.push(countryId);
+        }
+
+        if (cityId) {
+            query += ` AND offers.city_id = ?`;
+            params.push(cityId);
         }
 
         query += ` ORDER BY offers.sort_order ASC, offers.created_at DESC`;

@@ -8,6 +8,8 @@ import { CreateAndUpdateOfferForm } from "@/app/[locale]/users/entrepreneurs/off
 import Upload from "@/app/[locale]/users/entrepreneurs/offers/[id]/upload";
 import { getCompanies } from "@/lib/services/companies-service";
 import { OfferService } from "@/lib/services/offer-service";
+import { getCategories } from "@/lib/services/category-service";
+import { getCountries } from "@/lib/services/country-service";
 
 export const metadata: Metadata = {
     title: websiteName("Реклами - Табло за предприемачи"),
@@ -46,6 +48,9 @@ export default async function EntrepreneurAdsSave({ params }: Props) {
         where: [{ column: "user_id", value: user.id }],
     });
 
+    const countries = await getCountries();
+    const categories = await getCategories();
+
     return (
         <main className="flex-1">
             <PageHeader
@@ -55,7 +60,12 @@ export default async function EntrepreneurAdsSave({ params }: Props) {
             />
             <Breadcrumbs items={breadcrumbs} classes="mb-0" />
             {offer && <Upload offer={offer} />}
-            <CreateAndUpdateOfferForm offer={offer} companies={companies} />
+            <CreateAndUpdateOfferForm
+                offer={offer}
+                companies={companies}
+                countries={countries}
+                categories={categories}
+            />
         </main>
     );
 }

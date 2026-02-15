@@ -743,3 +743,7 @@ body {
 .skiptranslate {
     display: none !important;
 }
+
+.continuous-swiper .swiper-wrapper {
+    transition-timing-function: linear !important;
+}

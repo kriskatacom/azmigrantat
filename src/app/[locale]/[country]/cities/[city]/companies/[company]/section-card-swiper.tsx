@@ -27,6 +27,7 @@ interface SectionCardSwiperProps {
     className?: string;
     autoplayDelay?: number;
     showContent?: boolean;
+    baseHref?: string;
 }
 
 const SectionCardSwiper: React.FC<SectionCardSwiperProps> = ({
@@ -34,6 +35,7 @@ const SectionCardSwiper: React.FC<SectionCardSwiperProps> = ({
     className,
     autoplayDelay = 5000,
     showContent = false,
+    baseHref
 }) => {
     return (
         <Swiper
@@ -56,43 +58,35 @@ const SectionCardSwiper: React.FC<SectionCardSwiperProps> = ({
         >
             {items.map((item, idx) => (
                 <SwiperSlide key={idx} className="overflow-hidden rounded-md">
-                    <div className="relative w-full h-full">
-                        {item.imageSrc ? (
-                            <AppImage
-                                src={item.imageSrc}
-                                alt={item.companyName ?? "section image"}
-                                fill
-                                className="object-cover rounded"
-                            />
-                        ) : (
-                            <div className="bg-gray-600 w-full h-full flex justify-center items-center text-light text-2xl">
-                                Няма поставено изображение
-                            </div>
-                        )}
-                    </div>
-                    {showContent && (
-                        <div className="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center gap-5">
-                            <h2 className="z-40 max-lg:text-center text-light text-2xl xl:text-3xl font-bold uppercase px-5">
-                                {item.title}
-                            </h2>
-                            {item.content && (
-                                <div
-                                    className="z-40 max-w-md mx-auto text-center text-white text-lg px-5"
-                                    dangerouslySetInnerHTML={{
-                                        __html: item.content,
-                                    }}
-                                ></div>
-                            )}
-                            {item.buttonText && (
-                                <Link href={item.href} className="z-40">
-                                    <Button variant="default" size="xl">
-                                        {item.buttonText}
-                                    </Button>
-                                </Link>
+                    <Link href={item.href} className="z-40">
+                        <div className="relative w-full h-full">
+                            {item.imageSrc ? (
+                                <AppImage
+                                    src={item.imageSrc}
+                                    alt={item.companyName ?? "section image"}
+                                    fill
+                                    className="object-cover rounded"
+                                />
+                            ) : (
+                                <div className="bg-gray-600 w-full h-full flex justify-center items-center text-light text-2xl">
+                                    Няма поставено изображение
+                                </div>
                             )}
                         </div>
-                    )}
-                    <div className="absolute top-0 left-0 w-full h-full bg-black/40 z-10"></div>
+                        {showContent && (
+                            <div className="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center gap-5">
+                                <h2 className="z-40 text-center text-light text-2xl xl:text-3xl font-bold uppercase px-5 max-w-xl mx-auto leading-12">
+                                    {item.title}
+                                </h2>
+                                {item.buttonText && (
+                                    <Button variant="default" size="xl" className="z-40">
+                                        {item.buttonText}
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+                        <div className="absolute top-0 left-0 w-full h-full bg-black/40 z-10"></div>
+                    </Link>
                 </SwiperSlide>
             ))}
         </Swiper>

@@ -287,8 +287,12 @@ export interface Offer {
     content?: string;
     image?: string;
     company_id?: number | null;
+    country_id?: number | null;
+    city_id?: number | null;
+    category_id?: number | null;
     user_id?: string;
     company_name?: number | null;
+    company_slug?: number | null;
     status: OfferStatus;
     sort_order?: number;
     target_url?: string;
@@ -300,4 +304,9 @@ export interface Offer {
     end_at?: Date | null;
     created_at: Date;
     updated_at: Date;
+    show_name: boolean;
+    show_overlay: boolean;
+    show_button: boolean;
+    show_description: boolean;
+    href: string;
 }
