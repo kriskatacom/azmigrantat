@@ -75,7 +75,7 @@ export default async function Airports({ params }: Props) {
     const countrySlug = (await params).country;
     const banner = await getBannerByColumn(
         "link",
-        `/travel/air-tickets/countries/${countrySlug}`,
+        `/travel/air-tickets/countries/airports/${countrySlug}`,
     );
 
     const country = await getCountryByColumn("slug", countrySlug);
@@ -88,7 +88,7 @@ export default async function Airports({ params }: Props) {
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
         { name: "Самолетни билети", href: "/travel/air-tickets" },
-        { name: "Летища по държави", href: "/travel/air-tickets/countries" },
+        { name: "Летища по държави", href: "/travel/air-tickets/airports" },
         { name: country.name },
     ];
 

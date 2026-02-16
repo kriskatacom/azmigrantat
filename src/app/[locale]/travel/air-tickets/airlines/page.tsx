@@ -1,18 +1,20 @@
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { MainNavbar } from "@/components/main-right-navbar";
 import PageHeader from "@/components/page-header";
 import { absoluteUrl, websiteName } from "@/lib/utils";
 import { CardEntity } from "@/components/card-item";
-import { getCountries } from "@/lib/services/country-service";
+import { getCountryByColumn } from "@/lib/services/country-service";
 import { CardGrid } from "@/components/card-grid";
-import { Country } from "@/lib/types";
+import { Airline, Airport } from "@/lib/types";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 import { UserService } from "@/lib/services/user-service";
+import { getAirlines } from "@/lib/services/airline-service";
 
 export async function generateMetadata(): Promise<Metadata> {
-    const title = `Европейски летища – информация и връзки към официални сайтове`;
-    const description = `Разгледайте всички големи европейски летища с персонализирани пинчета на карта. На всяко летище ще намерите снимка, описание и линк към официалния сайт.`;
+    const title = `Европейски авиокомпании – информация и връзки към официални сайтове`;
+    const description = `Разгледайте всички големи европейски авиокомпании с персонализирани пинчета на карта. На всяко летище ще намерите снимка, описание и линк към официалния сайт.`;
     const url = "/europe/airports";
 
     const image = absoluteUrl("/images/air-tickets.png") as string;
@@ -37,7 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
                     url: image,
                     width: 1200,
                     height: 630,
-                    alt: "Европейски летища",
+                    alt: "Европейски авиокомпании",
                 },
             ],
         },
@@ -50,63 +52,68 @@ export async function generateMetadata(): Promise<Metadata> {
         },
 
         keywords: [
-            "летища в Европа",
-            "европейски летища",
-            "международни летища",
-            "карта на летища в Европа",
-            "информация за летища",
-            "официални сайтове летища",
+            "авиокомпании в Европа",
+            "европейски авиокомпании",
+            "международни авиокомпании",
+            "карта на авиокомпании в Европа",
+            "информация за авиокомпании",
+            "официални сайтове авиокомпании",
         ],
     };
 }
 
-export default async function Airports() {
+export default async function Airlines() {
     const userService = new UserService();
     const user = await userService.getCurrentUser();
 
-    const banner = await getBannerByColumn("link", "/travel/air-tickets/countries");
+    const banner = await getBannerByColumn(
+        "link",
+        `/travel/air-tickets/airlines`,
+    );
 
     const breadcrumbs: BreadcrumbItem[] = [
         { name: "Начало", href: "/" },
         { name: "Пътуване", href: "/travel" },
         { name: "Самолетни билети", href: "/travel/air-tickets" },
-        { name: "Летища по държави" },
+        { name: "Авиокомпании" },
     ];
 
-    const countries = await getCountries();
-    const mappedCountries: CardEntity[] = countries
+    const airlines = await getAirlines();
+    const mappedAirlines: CardEntity[] = airlines
         .filter(
             (
-                country,
-            ): country is Country & {
+                airline,
+            ): airline is Airline & {
                 name: string;
-                slug: string;
+                website_url: string;
                 image_url: string;
-            } => Boolean(country.name && country.slug && country.image_url),
+            } => Boolean(airline.name && airline.slug && airline.image_url),
         )
-        .map((country) => ({
-            name: country.name!,
-            slug: country.slug!,
-            image_url: country.image_url,
+        .map((line) => ({
+            name: line.name,
+            slug: line.website_url,
+            image_url: line.image_url,
+            linkType: "external",
         }));
 
     return (
         <>
             <MainNavbar user={user} />
             <PageHeader
-                title="Летища по държави"
+                title="Авиокомпании"
                 breadcrumbs={breadcrumbs}
                 banner={banner}
             />
             <CardGrid
-                items={mappedCountries}
-                id="countries"
+                items={mappedAirlines}
+                id="airlines"
                 isWithSearch
-                searchPlaceholder="Търсене на държави"
+                searchPlaceholder={`Търсене на авиокомпании...`}
+                noItemsMessage={`Няма намерени авиокомпании.`}
                 loadMoreStep={8}
                 initialVisible={8}
                 variant="standart"
-                hrefPrefix="/travel/air-tickets/countries"
+                hrefPrefix=""
                 columns={{ base: 1, md: 2, lg: 3, xl: 4 }}
             />
         </>

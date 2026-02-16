@@ -9,6 +9,8 @@ import "swiper/css/pagination";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import AppImage from "@/components/AppImage";
+import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 
 export type Slide = {
     id: number;
@@ -21,13 +23,37 @@ export type Slide = {
 type ImageSliderProps = {
     title: string;
     slides: Slide[];
+    cityName: string;
+    countryName: string;
 };
 
-export default function ImageSlider({ title, slides }: ImageSliderProps) {
+export default function ImageSlider({
+    title,
+    slides,
+    cityName,
+    countryName,
+}: ImageSliderProps) {
+    const router = useRouter();
+
+    const navigate = (to: string) => {
+        router.push(`?by=${to}`);
+        router.refresh();
+    };
+
+    const breakpoints = useMemo(
+        () => ({
+            0: { slidesPerView: 1 },
+            640: { slidesPerView: slides.length === 1 ? 1 : 2 },
+            1024: { slidesPerView: slides.length === 1 ? 1 : 2 },
+        }),
+        [slides.length],
+    );
+
     return (
         <div className="w-full min-h-80 overflow-hidden py-5 space-y-5">
             <h2 className="text-2xl font-semibold text-center">{title}</h2>
             <Swiper
+                key={slides.map((s) => s.id).join("-")}
                 modules={[Autoplay]}
                 slidesPerView={3}
                 spaceBetween={20}
@@ -37,11 +63,7 @@ export default function ImageSlider({ title, slides }: ImageSliderProps) {
                     delay: 1, // ⚠️ НЕ 0
                     pauseOnMouseEnter: true,
                 }}
-                breakpoints={{
-                    0: { slidesPerView: 1 },
-                    640: { slidesPerView: slides.length === 1 ? 1 : 2 },
-                    1024: { slidesPerView: slides.length === 1 ? 1 : 2 },
-                }}
+                breakpoints={breakpoints}
                 className="continuous-swiper"
             >
                 {slides.map((slide, index) => (
@@ -71,11 +93,19 @@ export default function ImageSlider({ title, slides }: ImageSliderProps) {
             </Swiper>
 
             <div className="text-center space-x-5">
-                <Button variant={"outline"} size={"xl"}>
-                    Обяви от Монтана
+                <Button
+                    variant={"outline"}
+                    size={"xl"}
+                    onClick={() => navigate("city")}
+                >
+                    Обяви от {cityName}
                 </Button>
-                <Button variant={"outline"} size={"xl"}>
-                    Обяви от България
+                <Button
+                    variant={"outline"}
+                    size={"xl"}
+                    onClick={() => navigate("country")}
+                >
+                    Обяви от {countryName}
                 </Button>
             </div>
 

@@ -13,17 +13,18 @@ type GetAirlinesOptions = {
 
 // ------------------ CREATE ------------------
 export async function createAirline(airline: Airline): Promise<Airline> {
-    const { name, slug, image_url, website_url } = airline;
+    const { name, slug, website_url } = airline;
 
     const sql = `
-        INSERT INTO airlines (name, slug)
-        VALUES (?, ?)
+        INSERT INTO airlines (name, slug, website_url)
+        VALUES (?, ?, ?)
     `;
 
     try {
         const [result] = await getDb().execute<ResultSetHeader>(sql, [
             name,
             slug,
+            website_url,
         ]);
 
         // Връща единичния airline чрез getAirlineByColumn
@@ -37,7 +38,9 @@ export async function createAirline(airline: Airline): Promise<Airline> {
 }
 
 // ------------------ GET ------------------
-export async function getAirlines(options?: GetAirlinesOptions): Promise<Airline[]> {
+export async function getAirlines(
+    options?: GetAirlinesOptions,
+): Promise<Airline[]> {
     let sql = `SELECT * FROM airlines`;
     const params: (string | number)[] = [];
 

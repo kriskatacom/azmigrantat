@@ -77,7 +77,7 @@ export default function NewAirlineForm({ airline }: Params) {
     return (
         <form
             onSubmit={handleSubmit}
-            className="m-5 p-5 border rounded-md space-y-10"
+            className="bg-white m-5 p-5 border rounded-md space-y-10"
         >
             <div className="space-y-2">
                 <Label>Име на авиокомпанията *</Label>
@@ -110,19 +110,15 @@ export default function NewAirlineForm({ airline }: Params) {
                 </Button>
             </div>
 
-            {formData.id && (
-                <>
-                    <div className="space-y-2">
-                        <Label>Официален сайт</Label>
-                        <Input
-                            value={formData.website_url}
-                            onChange={(e) =>
-                                handleChange("website_url", e.target.value)
-                            }
-                        />
-                    </div>
-                </>
-            )}
+            <div className="space-y-2">
+                <Label>Официален сайт</Label>
+                <Input
+                    value={formData.website_url}
+                    onChange={(e) =>
+                        handleChange("website_url", e.target.value)
+                    }
+                />
+            </div>
 
             <Button
                 type="submit"

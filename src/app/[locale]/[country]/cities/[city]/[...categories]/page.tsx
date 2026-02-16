@@ -24,9 +24,12 @@ type PageProps = {
         city: string;
         categories: string[];
     }>;
+    searchParams: Promise<{
+        by: string;
+    }>;
 };
 
-export default async function Categories({ params }: PageProps) {
+export default async function Categories({ params, searchParams }: PageProps) {
     const userService = new UserService();
     const user = await userService.getCurrentUser();
 
@@ -35,6 +38,7 @@ export default async function Categories({ params }: PageProps) {
         city: citySlug,
         categories: categorySlugs,
     } = await params;
+    const { by } = await searchParams;
     const lastCategorySlug = categorySlugs[categorySlugs.length - 1];
 
     const category = await getCategoryByColumn("slug", lastCategorySlug);
@@ -124,12 +128,19 @@ export default async function Categories({ params }: PageProps) {
 
     const offerService = new OfferService();
 
-    const offers = await offerService.getAll({
-        countryId: country.id,
-        cityId: city.id,
-        categoryId: category.id,
-        status: "active",
-    });
+    const offers =
+        by === "city"
+            ? await offerService.getAll({
+                  countryId: country.id,
+                  cityId: city.id,
+                  categoryId: category.id,
+                  status: "active",
+              })
+            : await offerService.getAll({
+                  countryId: country.id,
+                  categoryId: category.id,
+                  status: "active",
+              });
 
     const offersSlides: Slide[] = offers.map((offer: Offer) => ({
         id: offer.id,
@@ -142,10 +153,14 @@ export default async function Categories({ params }: PageProps) {
     return (
         <main>
             <MainNavbar user={user} />
-            <ImageSlider
-                title={`Обяви (${category.name})`}
-                slides={offersSlides}
-            />
+            {offersSlides.length > 0 && (
+                <ImageSlider
+                    title={`Обяви (${category.name})`}
+                    slides={offersSlides}
+                    cityName={city.name}
+                    countryName={country.name}
+                />
+            )}
             <PageHeader
                 title={`Информационен справочник на ${city.name}`}
                 breadcrumbs={breadcrumbs}

@@ -111,6 +111,7 @@ export async function POST(req: Request) {
         const airline = await createAirline({
             name: data.name,
             slug: data.slug,
+            website_url: data.website_url,
             id: 0,
         });
 

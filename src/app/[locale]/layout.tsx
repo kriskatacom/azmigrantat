@@ -5,7 +5,6 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "@/app/providers/theme-provider";
 import { ClientOnly } from "@/components/client-only";
 import "../globals.css";
-import TranslateWrapper from "@/components/translate-wrapper";
 
 export function generateStaticParams() {
     return routing.locales.map((locale) => ({ locale }));
@@ -37,7 +36,6 @@ export default async function LocaleLayout({
                         {children}
                         <ClientOnly>
                             <Toaster position="top-center" />
-                            <TranslateWrapper />
                         </ClientOnly>
                     </ThemeProvider>
                 </NextIntlClientProvider>

@@ -259,7 +259,7 @@ export const TRAVEL_CATEGORIES = [
 export const AIR_TICKETS_PAGE_ITEMS: CardEntity[] = [
     {
         name: "Летища",
-        slug: "countries",
+        slug: "airports",
         image_url: "/images/airports.png",
     },
     {
