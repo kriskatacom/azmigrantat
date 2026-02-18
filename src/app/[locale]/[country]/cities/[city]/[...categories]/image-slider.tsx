@@ -50,7 +50,7 @@ export default function ImageSlider({
     );
 
     return (
-        <div className="w-full min-h-80 overflow-hidden py-5 space-y-5">
+        <div className="w-full overflow-hidden">
             <h2 className="text-2xl font-semibold text-center">{title}</h2>
             <Swiper
                 key={slides.map((s) => s.id).join("-")}
@@ -70,9 +70,9 @@ export default function ImageSlider({
                     <SwiperSlide key={index}>
                         <Link
                             href={slide.url}
-                            className="block relative h-80 group"
+                            className="block relative h-50 group"
                         >
-                            <div className="relative h-80 overflow-hidden rounded-xl">
+                            <div className="relative h-50 overflow-hidden rounded-xl">
                                 <AppImage
                                     fill
                                     src={slide.image}
@@ -92,17 +92,19 @@ export default function ImageSlider({
                 ))}
             </Swiper>
 
-            <div className="text-center space-x-5">
+            <div className="flex justify-center text-center gap-2 mt-2">
                 <Button
-                    variant={"outline"}
-                    size={"xl"}
+                    variant={"link"}
+                    size={"lg"}
+                    className="text-white bg-website-dark"
                     onClick={() => navigate("city")}
                 >
                     Обяви от {cityName}
                 </Button>
                 <Button
-                    variant={"outline"}
-                    size={"xl"}
+                    variant={"link"}
+                    className="text-white bg-website-dark"
+                    size={"lg"}
                     onClick={() => navigate("country")}
                 >
                     Обяви от {countryName}

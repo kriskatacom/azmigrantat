@@ -97,7 +97,7 @@ export const CardGrid: React.FC<CardGridProps> = ({
     }, []);
 
     return (
-        <section id={id} className="p-5">
+        <section id={id} className="mt-2">
             {isWithSearch && (
                 <SearchForm
                     onSearch={handleSearch}
@@ -112,7 +112,7 @@ export const CardGrid: React.FC<CardGridProps> = ({
                 </div>
             ) : (
                 <ul
-                    className={cn(isWithSearch && "mt-5", "card-grid")}
+                    className={cn(isWithSearch && "mt-2", "card-grid")}
                     style={{
                         gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
                     }}

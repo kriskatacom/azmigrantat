@@ -6,6 +6,11 @@ import { getAirportByColumn } from "@/lib/services/airports-service";
 import { getCountries } from "@/lib/services/country-service";
 import NewAirportForm from "@/app/[locale]/admin/airports/[id]/airport-form";
 import PageHeader from "@/components/admin/page-header";
+import {
+    TranslationInfo,
+    TranslationService,
+} from "@/lib/services/translations-service";
+import MakeTranslations from "@/components/make-translations";
 
 type Props = {
     params: Promise<{
@@ -39,13 +44,29 @@ type Params = {
 
 export default async function NewCompany({ params }: Params) {
     const { id } = await params;
-    let airport = null;
+    const isNew = id === "new";
 
-    if (id !== "new") {
-        airport = await getAirportByColumn("id", id);
+    const countriesPromise = getCountries();
+    const airportPromise = !isNew
+        ? getAirportByColumn("id", id)
+        : Promise.resolve(null);
+
+    const [airport, countries] = await Promise.all([
+        airportPromise,
+        countriesPromise,
+    ]);
+
+    let translationInfo: TranslationInfo = { count: 0, languages: [] };
+
+    if (airport) {
+        const translationService = new TranslationService();
+
+        const [tInfo] = await Promise.all([
+            translationService.getAvailableLanguagesForEntity("airport", id),
+        ]);
+
+        translationInfo = tInfo;
     }
-
-    const countries = await getCountries();
 
     return (
         <main className="flex-1">
@@ -66,6 +87,21 @@ export default async function NewCompany({ params }: Params) {
                     },
                 ]}
             />
+            {airport?.id && (
+                <MakeTranslations
+                    entityType="airport"
+                    entityId={airport.id}
+                    translationInfo={translationInfo}
+                    fields={[
+                        { value: "name", label: "Име", type: "text" },
+                        { value: "description", label: "Описание", type: "wysiwyg" },
+                    ]}
+                    textsToTranslate={[
+                        airport.name || "",
+                        airport.description || "",
+                    ]}
+                />
+            )}
             <NewAirportForm airport={airport} countries={countries} />
             {airport?.id && (
                 <>

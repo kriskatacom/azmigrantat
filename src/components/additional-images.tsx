@@ -113,7 +113,7 @@ export default function ModernImageUpload({
     };
 
     return (
-        <div className="space-y-5 p-5">
+        <div className="space-y-5 px-5">
             {/* Image gallery */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {images.map((imgUrl, idx) => (

@@ -4,9 +4,42 @@ export type LanguageItem = {
     flag: string;
 };
 
-export const languages: LanguageItem[] = [
-    { code: "bg", name: "Български", flag: "🇧🇬" },
-    { code: "en", name: "English", flag: "🇬🇧" },
+export const defaultLanguage: LanguageItem = {
+    code: "bg",
+    name: "Български",
+    flag: "🇧🇬",
+};
+
+export const languages = [
+    { code: "bg", name: "Български", flag: "BG" },
+    { code: "en", name: "English", flag: "GB" },
+    { code: "nl", name: "Nederlands", flag: "NL" },
+    { code: "de", name: "Deutsch", flag: "DE" },
+    { code: "fr", name: "Français", flag: "FR" },
+    { code: "es", name: "Español", flag: "ES" },
+    { code: "it", name: "Italiano", flag: "IT" },
+    { code: "pt", name: "Português", flag: "PT" },
+    { code: "pl", name: "Polski", flag: "PL" },
+    { code: "ro", name: "Română", flag: "RO" },
+    { code: "hu", name: "Magyar", flag: "HU" },
+    { code: "cs", name: "Čeština", flag: "CZ" },
+    { code: "sk", name: "Slovenčina", flag: "SK" },
+    { code: "sl", name: "Slovenščina", flag: "SI" },
+    { code: "hr", name: "Hrvatski", flag: "HR" },
+    { code: "sr", name: "Srpski", flag: "RS" },
+    { code: "da", name: "Dansk", flag: "DK" },
+    { code: "sv", name: "Svenska", flag: "SE" },
+    { code: "fi", name: "Suomi", flag: "FI" },
+    { code: "no", name: "Norsk", flag: "NO" },
+    { code: "is", name: "Íslenska", flag: "IS" },
+    { code: "ee", name: "Eesti", flag: "EE" },
+    { code: "lv", name: "Latviešu", flag: "LV" },
+    { code: "lt", name: "Lietuvių", flag: "LT" },
+    { code: "mt", name: "Malti", flag: "MT" },
+    { code: "el", name: "Ελληνικά", flag: "GR" },
+    { code: "cy", name: "Cymraeg", flag: "GB-WLS" },
+    { code: "ga", name: "Gaeilge", flag: "IE" },
+    { code: "tr", name: "Türkçe", flag: "TR" },
 ];
 
 export const mainMenuItems = [
@@ -18,7 +51,7 @@ export const mainMenuItems = [
     { title: "Музика", slug: "https://lyricskeeper.eu" },
 ];
 
-export const iconLargeSize = 40;
+export const iconLargeSize = 30;
 export const iconMediumSize = 30;
 
 export const COUNTRIES: Record<string, string> = {

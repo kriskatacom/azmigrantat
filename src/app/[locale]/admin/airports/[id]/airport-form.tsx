@@ -13,6 +13,7 @@ import { Airport, Coordinates, Country } from "@/lib/types";
 import RichTextEditor from "@/components/rich-text-editor";
 import { RelationForm } from "@/components/relation-form";
 import { extractCoordinatesFromLocationLink, slugify } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
 
 const LeafletMap = dynamic(() => import("@/components/leaflet-map"), {
     ssr: false,
@@ -139,157 +140,176 @@ export default function CreateAirportInputForm({ airport, countries }: Params) {
     };
 
     return (
-        <form
-            onSubmit={handleSubmit}
-            className="m-5 p-5 border rounded-md space-y-10"
-        >
-            <div className="space-y-2">
-                <Label>Име на летището *</Label>
-                <Input
-                    value={formData.name}
-                    onChange={(e) => handleChange("name", e.target.value)}
-                />
-            </div>
-
-            <div className="space-y-2">
-                <Label>Slug *</Label>
-                <Input
-                    value={formData.slug}
-                    onChange={(e) => handleChange("slug", e.target.value)}
-                />
-                {errors.slug && (
-                    <div className="text-destructive">
-                        Това поле е задължително!
-                    </div>
-                )}
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() =>
-                        setFormData((prev) => ({
-                            ...prev,
-                            slug: slugify(prev.name),
-                        }))
-                    }
+        <div className="p-5">
+            <Card>
+                <form
+                    onSubmit={handleSubmit}
+                    className="px-5 space-y-10"
                 >
-                    Генериране
-                </Button>
-            </div>
-
-            {formData.id && (
-                <>
                     <div className="space-y-2">
-                        <Label>Описание</Label>
-                        <RichTextEditor
-                            content={formData.description}
-                            onChange={(v) => handleChange("description", v)}
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label>Официален сайт</Label>
+                        <Label>Име на летището *</Label>
                         <Input
-                            value={formData.website_url}
+                            value={formData.name}
                             onChange={(e) =>
-                                handleChange("website_url", e.target.value)
+                                handleChange("name", e.target.value)
                             }
                         />
                     </div>
 
                     <div className="space-y-2">
-                        <Label>Линк към локацията</Label>
-
+                        <Label>Slug *</Label>
                         <Input
-                            value={formData.location_link ?? ""}
-                            placeholder="https://maps.google.com/..."
+                            value={formData.slug}
                             onChange={(e) =>
-                                handleChange("location_link", e.target.value)
+                                handleChange("slug", e.target.value)
                             }
                         />
-
-                        {errors.coordinates && (
+                        {errors.slug && (
                             <div className="text-destructive">
-                                {errors.coordinates}
+                                Това поле е задължително!
                             </div>
                         )}
-
                         <Button
                             type="button"
                             variant="outline"
-                            disabled={
-                                !canLoadCoordinates(formData.location_link) &&
-                                !hasCoordinates
+                            onClick={() =>
+                                setFormData((prev) => ({
+                                    ...prev,
+                                    slug: slugify(prev.name),
+                                }))
                             }
-                            onClick={onToggleCoordinates}
                         >
-                            {!hasCoordinates
-                                ? "Зареждане на координатите"
-                                : "Премахване на координатите"}
+                            Генериране
                         </Button>
                     </div>
 
-                    {hasCoordinates && formData.coordinates && (
-                        <LeafletMap
-                            center={formData.coordinates}
-                            zoom={14}
-                            markers={[
-                                {
-                                    id: "preview",
-                                    coordinates: formData.coordinates,
-                                    label: formData.name || "Локация",
-                                    description: formData.description ?? "",
-                                    image: airport?.image_url,
-                                    websiteUrl: formData.website_url,
-                                },
-                            ]}
-                        />
+                    {formData.id && (
+                        <>
+                            <div className="space-y-2">
+                                <Label>Описание</Label>
+                                <RichTextEditor
+                                    content={formData.description}
+                                    onChange={(v) =>
+                                        handleChange("description", v)
+                                    }
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Официален сайт</Label>
+                                <Input
+                                    value={formData.website_url}
+                                    onChange={(e) =>
+                                        handleChange(
+                                            "website_url",
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Линк към локацията</Label>
+
+                                <Input
+                                    value={formData.location_link ?? ""}
+                                    placeholder="https://maps.google.com/..."
+                                    onChange={(e) =>
+                                        handleChange(
+                                            "location_link",
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+
+                                {errors.coordinates && (
+                                    <div className="text-destructive">
+                                        {errors.coordinates}
+                                    </div>
+                                )}
+
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    disabled={
+                                        !canLoadCoordinates(
+                                            formData.location_link,
+                                        ) && !hasCoordinates
+                                    }
+                                    onClick={onToggleCoordinates}
+                                >
+                                    {!hasCoordinates
+                                        ? "Зареждане на координатите"
+                                        : "Премахване на координатите"}
+                                </Button>
+                            </div>
+
+                            {hasCoordinates && formData.coordinates && (
+                                <LeafletMap
+                                    center={formData.coordinates}
+                                    zoom={14}
+                                    markers={[
+                                        {
+                                            id: "preview",
+                                            coordinates: formData.coordinates,
+                                            label: formData.name || "Локация",
+                                            description:
+                                                formData.description ?? "",
+                                            image: airport?.image_url,
+                                            websiteUrl: formData.website_url,
+                                        },
+                                    ]}
+                                />
+                            )}
+
+                            {!hasCoordinates && !formData.location_link && (
+                                <p className="text-sm text-gray-500">
+                                    Поставете Google Maps линк и натисни
+                                    „Зареждане“
+                                </p>
+                            )}
+                        </>
                     )}
 
-                    {!hasCoordinates && !formData.location_link && (
-                        <p className="text-sm text-gray-500">
-                            Поставете Google Maps линк и натисни „Зареждане“
-                        </p>
-                    )}
-                </>
-            )}
-
-            <div className="flex gap-5">
-                <div className="space-y-2">
-                    <RelationForm
-                        items={countries.map((c) => ({
-                            id: c.id!,
-                            label: c.name!,
-                        }))}
-                        value={formData.country_id as number}
-                        onChange={(id) =>
-                            setFormData((p) => ({
-                                ...p,
-                                country_id: id as number,
-                            }))
-                        }
-                        placeholder="Изберете държава"
-                    />
-                    {errors.country_id && (
-                        <div className="text-destructive">
-                            Моля, изберете държава на летището!
+                    <div className="flex gap-5">
+                        <div className="space-y-2">
+                            <RelationForm
+                                items={countries.map((c) => ({
+                                    id: c.id!,
+                                    label: c.name!,
+                                }))}
+                                value={formData.country_id as number}
+                                onChange={(id) =>
+                                    setFormData((p) => ({
+                                        ...p,
+                                        country_id: id as number,
+                                    }))
+                                }
+                                placeholder="Изберете държава"
+                            />
+                            {errors.country_id && (
+                                <div className="text-destructive">
+                                    Моля, изберете държава на летището!
+                                </div>
+                            )}
                         </div>
-                    )}
-                </div>
-            </div>
+                    </div>
 
-            <Button
-                type="submit"
-                variant={"outline"}
-                size="lg"
-                disabled={isSubmitting}
-            >
-                {isSubmitting ? (
-                    <FiLoader className="animate-spin" />
-                ) : (
-                    <FiSave />
-                )}
-                {airport?.id ? "Записване" : "Създаване"}
-            </Button>
-        </form>
+                    <Button
+                        type="submit"
+                        variant={"outline"}
+                        size="lg"
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? (
+                            <FiLoader className="animate-spin" />
+                        ) : (
+                            <FiSave />
+                        )}
+                        {airport?.id ? "Записване" : "Създаване"}
+                    </Button>
+                </form>
+            </Card>
+        </div>
     );
 }

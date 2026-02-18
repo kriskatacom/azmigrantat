@@ -33,32 +33,24 @@ export const MainNavbar = ({ user }: MainNavbarProps) => {
 
     if (isHomePage)
         return (
-            <div className="absolute top-0 left-0 w-full z-40">
-                <nav className="container mx-auto flex justify-between items-center py-5">
+            <div className="absolute top-0 left-0 w-full">
+                <nav className="container mx-auto flex justify-between items-center p-2">
                     <Link href="/">
                         <img
                             src="/images/azmigrantat-website-logo.webp"
                             alt="Аз мигрантът"
-                            className="object-cover w-20"
+                            className="object-cover w-15"
                         />
                     </Link>
                     <ul className="flex items-center gap-2">
                         <li>
-                            <UserButton user={user} />
+                            <UserButton user={user!} />
                         </li>
                         <li>
                             <MainRightSidebar />
                         </li>
                         <li>
                             <LanguageSwitcher />
-                        </li>
-                        <li>
-                            <button className="p-3 rounded-md hover:bg-primary cursor-pointer duration-300">
-                                <IoIosSearch
-                                    size={iconLargeSize}
-                                    className="text-light"
-                                />
-                            </button>
                         </li>
                     </ul>
                 </nav>
@@ -71,7 +63,7 @@ export const MainNavbar = ({ user }: MainNavbarProps) => {
                             >
                                 {item.slug.startsWith("http") ? (
                                     <a
-                                        className="notranslate block py-3 px-5 text-lg"
+                                        className="notranslate block px-5 text-lg"
                                         href={item.slug}
                                         title={item.title}
                                         target="_blank"
@@ -96,17 +88,17 @@ export const MainNavbar = ({ user }: MainNavbarProps) => {
 
     return (
         <div className="bg-website-dark">
-            <div className="container mx-auto flex justify-between items-center py-5">
+            <div className="container mx-auto flex justify-between items-center">
                 <Link href="/">
                     <img
                         src="/images/azmigrantat-website-logo.webp"
                         alt="Аз мигрантът"
-                        className="object-cover w-20"
+                        className="object-cover w-15"
                     />
                 </Link>
-                <ul className="flex items-center gap-2">
+                <ul className="flex items-center">
                     <li>
-                        <UserButton user={user} />
+                        <UserButton user={user!} />
                     </li>
                     <li>
                         <MainRightSidebar />
@@ -114,18 +106,10 @@ export const MainNavbar = ({ user }: MainNavbarProps) => {
                     <li>
                         <LanguageSwitcher />
                     </li>
-                    <li>
-                        <button className="p-3 rounded-md hover:bg-primary cursor-pointer duration-300">
-                            <IoIosSearch
-                                size={iconLargeSize}
-                                className="text-light"
-                            />
-                        </button>
-                    </li>
                 </ul>
             </div>
             <div className="container mx-auto">
-                <ul className="flex items-center gap-2 whitespace-nowrap overflow-x-auto pb-5">
+                <ul className="flex items-center gap-2 whitespace-nowrap overflow-x-auto">
                     {mainMenuItems.map((item) => {
                         // next-intl's usePathname returns pathname without locale
                         const isActive =
@@ -142,7 +126,7 @@ export const MainNavbar = ({ user }: MainNavbarProps) => {
                             >
                                 {item.slug.startsWith("http") ? (
                                     <a
-                                        className="block py-3 px-5 text-lg"
+                                        className="block mb-5 px-5 text-lg"
                                         href={item.slug}
                                         title={item.title}
                                         target="_blank"
@@ -152,7 +136,7 @@ export const MainNavbar = ({ user }: MainNavbarProps) => {
                                     </a>
                                 ) : (
                                     <Link
-                                        className="block py-3 px-5 text-lg"
+                                        className="block px-5 text-lg"
                                         href={item.slug}
                                     >
                                         {item.title}

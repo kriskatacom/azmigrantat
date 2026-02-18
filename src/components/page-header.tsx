@@ -17,7 +17,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
     return (
         <>
             {banner && <BannerDisplay banner={banner} />}
-            <div className="text-center bg-website-menu-item py-5 xl:py-10">
+            <div className="text-center bg-website-menu-item py-2">
                 {title && (
                     <h1 className="text-light text-2xl xl:text-3xl 2xl:text-4xl font-bold uppercase">
                         {title}
@@ -25,7 +25,7 @@ const PageHeader: React.FC<PageHeaderProps> = ({
                 )}
 
                 <div className="text-white text-lg flex justify-center">
-                    <Breadcrumbs items={breadcrumbs} classes="justify-center" />
+                    <Breadcrumbs items={breadcrumbs} classes="justify-center pt-0" />
                 </div>
             </div>
         </>

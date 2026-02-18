@@ -7,6 +7,9 @@ import { getCountries } from "@/lib/services/country-service";
 import { getLandmarkByColumn } from "@/lib/services/landmark-service";
 import LandmarkForm from "@/app/[locale]/admin/landmarks/[id]/landmark-form";
 import PageHeader from "@/components/admin/page-header";
+import { Card } from "@/components/ui/card";
+import MakeTranslations from "@/components/make-translations";
+import { TranslationInfo, TranslationService } from "@/lib/services/translations-service";
 
 type Props = {
     params: Promise<{
@@ -40,17 +43,39 @@ type Params = {
 
 export default async function NewCountry({ params }: Params) {
     const { id } = await params;
-    let landmark = null;
+    const isNew = id === "new";
 
-    if (id !== "new") {
-        landmark = await getLandmarkByColumn("id", id);
+    const countriesPromise = getCountries();
+    const landmarkPromise = !isNew
+        ? getLandmarkByColumn("id", id)
+        : Promise.resolve(null);
+
+    const [landmark, countries] = await Promise.all([
+        landmarkPromise,
+        countriesPromise,
+    ]);
+
+    let translationInfo: TranslationInfo = { count: 0, languages: [] };
+    let additionalImages = null;
+
+    if (landmark) {
+        const translationService = new TranslationService();
+
+        const [tInfo] = await Promise.all([
+            translationService.getAvailableLanguagesForEntity("landmark", id),
+        ]);
+
+        translationInfo = tInfo;
+
+        try {
+            additionalImages = landmark.additional_images
+                ? JSON.parse(landmark.additional_images)
+                : [];
+        } catch (e) {
+            console.error("Failed to parse images:", e);
+            additionalImages = [];
+        }
     }
-
-    const countries = await getCountries();
-
-    const additionalImages = landmark?.additional_images
-        ? JSON.parse(landmark.additional_images)
-        : null;
 
     return (
         <main className="flex-1">
@@ -69,31 +94,60 @@ export default async function NewCountry({ params }: Params) {
                     { name: `${id !== "new" ? "Редактиране" : "Добавяне"}` },
                 ]}
             />
+            {landmark?.id && (
+                <MakeTranslations
+                    entityType="landmark"
+                    entityId={landmark.id}
+                    translationInfo={translationInfo}
+                    fields={[
+                        { value: "name", label: "Име", type: "text" },
+                        { value: "heading", label: "Заглавие", type: "text" },
+                        {
+                            value: "content",
+                            label: "Описание",
+                            type: "wysiwyg",
+                        },
+                        { value: "address", label: "Адрес", type: "text" },
+                    ]}
+                    textsToTranslate={[
+                        landmark.name || "",
+                        landmark.heading || "",
+                        landmark.content || "",
+                        landmark.address || "",
+                    ]}
+                />
+            )}
             <LandmarkForm landmark={landmark} countries={countries} />
-            {landmark?.id && (
-                <>
-                    <h2 className="px-5 text-xl font-semibold">Изображение</h2>
-                    <ImageUpload
-                        image_url={landmark.image_url as string}
-                        url={
-                            landmark?.id
-                                ? `/api/landmarks/${landmark.id}/upload`
-                                : ""
-                        }
-                    />
-                </>
-            )}
-            {landmark?.id && (
-                <>
-                    <h2 className="px-5 text-xl font-semibold">
-                        Допълнителни изображения
-                    </h2>
-                    <AdditionalImages
-                        image_urls={additionalImages ?? []}
-                        url={`/api/landmarks/${landmark.id}/multiple-upload`}
-                    />
-                </>
-            )}
+            <Card className="mt-5 mx-5">
+                {landmark?.id && (
+                    <>
+                        <h2 className="px-5 text-xl font-semibold">
+                            Изображение
+                        </h2>
+                        <ImageUpload
+                            image_url={landmark.image_url as string}
+                            url={
+                                landmark?.id
+                                    ? `/api/landmarks/${landmark.id}/upload`
+                                    : ""
+                            }
+                        />
+                    </>
+                )}
+            </Card>
+            <Card className="mt-5 mx-5">
+                {landmark?.id && (
+                    <>
+                        <h2 className="px-5 text-xl font-semibold">
+                            Допълнителни изображения
+                        </h2>
+                        <AdditionalImages
+                            image_urls={additionalImages ?? []}
+                            url={`/api/landmarks/${landmark.id}/multiple-upload`}
+                        />
+                    </>
+                )}
+            </Card>
         </main>
     );
 }

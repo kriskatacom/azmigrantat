@@ -28,6 +28,7 @@ interface SectionCardSwiperProps {
     autoplayDelay?: number;
     showContent?: boolean;
     baseHref?: string;
+    effect?: string;
 }
 
 const SectionCardSwiper: React.FC<SectionCardSwiperProps> = ({
@@ -35,12 +36,12 @@ const SectionCardSwiper: React.FC<SectionCardSwiperProps> = ({
     className,
     autoplayDelay = 5000,
     showContent = false,
-    baseHref
+    effect = "cube",
 }) => {
     return (
         <Swiper
             modules={[EffectCube, Autoplay]}
-            effect="cube"
+            effect={effect}
             grabCursor={true}
             touchEventsTarget="container"
             resistance={false}
@@ -54,7 +55,7 @@ const SectionCardSwiper: React.FC<SectionCardSwiperProps> = ({
                 disableOnInteraction: false,
             }}
             loop={true}
-            className={cn(className, "w-full h-96 md:h-100 overflow-visible")}
+            className={cn(className, "w-full h-60 md:h-100 overflow-visible")}
         >
             {items.map((item, idx) => (
                 <SwiperSlide key={idx} className="overflow-hidden rounded-md">
@@ -79,7 +80,11 @@ const SectionCardSwiper: React.FC<SectionCardSwiperProps> = ({
                                     {item.title}
                                 </h2>
                                 {item.buttonText && (
-                                    <Button variant="default" size="xl" className="z-40">
+                                    <Button
+                                        variant="default"
+                                        size="xl"
+                                        className="z-40"
+                                    >
                                         {item.buttonText}
                                     </Button>
                                 )}

@@ -18,7 +18,7 @@ export default function CustomHeader({
     return (
         <>
             {banner && (
-                <div className="relative w-full h-80 lg:h-100 shrink-0">
+                <div className="relative w-full h-100 lg:h-100 shrink-0">
                     <div className="absolute top-0 left-0 w-full h-full bg-black/40 z-10"></div>
                     {banner.image ? (
                         <AppImage

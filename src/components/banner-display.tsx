@@ -82,12 +82,5 @@ export default function BannerDisplay({ banner }: BannerDisplayProps) {
         );
     }
 
-    return (
-        <div
-            className="relative w-full"
-            style={{ height: `${banner.height}px` }}
-        >
-            {content}
-        </div>
-    );
+    return <div className="relative w-full h-50 pt-2">{content}</div>;
 }

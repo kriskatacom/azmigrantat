@@ -20,7 +20,6 @@ export function SidebarClient({ items }: SidebarClientProps) {
                     collapsed ? "w-0" : "w-80 overflow-hidden sticky top-0",
                     "border-r bg-background transition-all duration-300 overflow-auto min-h-screen max-h-screen",
                 )}
-                style={{ zIndex: 100 }}
             >
                 <div className="flex items-center justify-between p-4 border-b">
                     <span

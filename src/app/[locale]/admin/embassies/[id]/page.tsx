@@ -6,6 +6,11 @@ import { Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { getEmbassyByColumn } from "@/lib/services/embassy-service";
 import { getCountries } from "@/lib/services/country-service";
 import PageHeader from "@/components/admin/page-header";
+import MakeTranslations from "@/components/make-translations";
+import {
+    TranslationInfo,
+    TranslationService,
+} from "@/lib/services/translations-service";
 
 type Props = {
     params: Promise<{
@@ -39,13 +44,29 @@ type Params = {
 
 export default async function NewCountry({ params }: Params) {
     const { id } = await params;
-    let embassy = null;
+    const isNew = id === "new";
 
-    if (id !== "new") {
-        embassy = await getEmbassyByColumn("id", id);
+    const countriesPromise = getCountries();
+    const embassyPromise = !isNew
+        ? getEmbassyByColumn("id", id)
+        : Promise.resolve(null);
+
+    const [embassy, countries] = await Promise.all([
+        embassyPromise,
+        countriesPromise,
+    ]);
+
+    let translationInfo: TranslationInfo = { count: 0, languages: [] };
+
+    if (embassy) {
+        const translationService = new TranslationService();
+
+        const [tInfo] = await Promise.all([
+            translationService.getAvailableLanguagesForEntity("embassy", id),
+        ]);
+
+        translationInfo = tInfo;
     }
-
-    const countries = await getCountries();
 
     return (
         <main className="flex-1">
@@ -66,6 +87,35 @@ export default async function NewCountry({ params }: Params) {
                     },
                 ]}
             />
+            {embassy?.id && (
+                <MakeTranslations
+                    entityType="embassy"
+                    entityId={embassy.id}
+                    translationInfo={translationInfo}
+                    fields={[
+                        { value: "name", label: "Име", type: "text" },
+                        { value: "heading", label: "Заглавие", type: "text" },
+                        {
+                            value: "working_time",
+                            label: "Работно време",
+                            type: "wysiwyg",
+                        },
+                        {
+                            value: "content",
+                            label: "Описание",
+                            type: "wysiwyg",
+                        },
+                        { value: "address", label: "Адрес", type: "text" },
+                    ]}
+                    textsToTranslate={[
+                        embassy.name || "",
+                        embassy.heading || "",
+                        embassy.working_time || "",
+                        embassy.content || "",
+                        embassy.address || "",
+                    ]}
+                />
+            )}
             <EmbassyForm embassy={embassy} countries={countries} />
             <div className="grid md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-5">
                 {embassy?.id && (

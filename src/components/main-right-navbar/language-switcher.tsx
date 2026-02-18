@@ -4,19 +4,13 @@ import { useLocale } from "next-intl";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { useTransition } from "react";
 import { CiGlobe } from "react-icons/ci";
-import { iconLargeSize } from "@/lib/constants";
+import { iconLargeSize, languages } from "@/lib/constants";
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-
-const languages = [
-    { code: "bg", name: "Български", flag: "🇧🇬" },
-    { code: "en", name: "English", flag: "🇬🇧" },
-    { code: "nl", name: "Nederlands", flag: "🇳🇱" },
-];
 
 export default function LanguageSwitcher() {
     const locale = useLocale();

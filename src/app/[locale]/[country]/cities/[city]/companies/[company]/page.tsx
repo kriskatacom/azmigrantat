@@ -147,7 +147,6 @@ export default async function CompanyPage({ params }: PageProps) {
         ...categoryBreadcrumbs.map((b, index) =>
             index === categoryBreadcrumbs.length - 1 ? { name: b.name } : b,
         ),
-        { name: company.name },
     ];
 
     const activeBanner: Banner = {
@@ -202,21 +201,26 @@ export default async function CompanyPage({ params }: PageProps) {
             <div className="w-full md:container md:mx-auto relative md:grid md:grid-cols-2 md:gap-5 md:max-md:p-5">
                 {adsSlides.length > 0 ? (
                     <div>
-                        <h2 className="text-2xl font-semibold text-center py-5">
+                        <h2 className="text-2xl font-semibold text-center mb-1">
                             Реклами
                         </h2>
                         <SectionCardSwiper items={adsSlides} />
                     </div>
                 ) : (
-                    <SectionCard
-                        title="Рекламиране"
-                        buttonText="Научете повече"
-                        href="/users/entrepreneurs/ads/new"
-                        content="Рекламирайте бизнеса си при нас и постигнете широка аудитория. Увеличете продажбите си!"
-                        imageSrc={company.ads_image_url}
-                        companyName={company.name}
-                        className="rounded-lg overflow-hidden"
-                    />
+                    <div>
+                        <h2 className="text-2xl font-semibold text-center mb-1">
+                            Реклами
+                        </h2>
+                        <SectionCard
+                            title="Рекламиране"
+                            buttonText="Научете повече"
+                            href="/users/entrepreneurs/ads/new"
+                            content="Рекламирайте бизнеса си при нас и постигнете широка аудитория. Увеличете продажбите си!"
+                            imageSrc={company.ads_image_url}
+                            companyName={company.name}
+                            className="rounded-lg overflow-hidden"
+                        />
+                    </div>
                 )}
                 {/* {offersSlides.length > 0 ? (
                     <div>
@@ -245,12 +249,13 @@ export default async function CompanyPage({ params }: PageProps) {
                     </p>
                 </div> */}
                 <div>
-                    <h2 className="text-2xl font-semibold text-center py-5">
+                    <h2 className="text-2xl font-semibold text-center pb-1">
                         Обяви
                     </h2>
                     <SectionCardSwiper
                         items={offersSlides}
                         baseHref={`${baseCityHref}/companies/${company.slug}`}
+                        effect={"flip"}
                         showContent
                     />
                 </div>
