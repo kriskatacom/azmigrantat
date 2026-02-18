@@ -18,7 +18,7 @@ export default function ContactsHeader() {
                     size={"sm"}
                     className="bg-website-light border-website-light text-lg"
                 >
-                    {t("howToTravelButton")}
+                    {t("howToTravelButton")} ?
                 </Button>
             </div>
         </div>

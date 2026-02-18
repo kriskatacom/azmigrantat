@@ -11,7 +11,7 @@ import { User } from "@/lib/services/user-service";
 
 type MainNavbarProps = {
     user?: User;
-}
+};
 
 export const MainNavbar = ({ user }: MainNavbarProps) => {
     const pathname = usePathname();
@@ -30,10 +30,10 @@ export const MainNavbar = ({ user }: MainNavbarProps) => {
     // Check if we're on the homepage (locale root)
     // next-intl's usePathname returns pathname without locale prefix
     const isHomePage = pathname === "/";
-
+    
     if (isHomePage)
         return (
-            <div className="absolute top-0 left-0 w-full">
+            <div className="absolute top-0 left-0 w-full z-50">
                 <nav className="container mx-auto flex justify-between items-center p-2">
                     <Link href="/">
                         <img
@@ -63,7 +63,7 @@ export const MainNavbar = ({ user }: MainNavbarProps) => {
                             >
                                 {item.slug.startsWith("http") ? (
                                     <a
-                                        className="notranslate block px-5 text-lg"
+                                        className="notranslate block py-3 px-5 text-lg"
                                         href={item.slug}
                                         title={item.title}
                                         target="_blank"
