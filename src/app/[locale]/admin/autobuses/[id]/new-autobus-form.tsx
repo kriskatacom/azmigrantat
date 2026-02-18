@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
@@ -12,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { slugify } from "@/lib/utils";
 import { Autobus, City, Country } from "@/lib/types";
 import { RelationForm } from "@/components/relation-form";
+import { Card } from "@/components/ui/card";
 
 export interface NewAutobus {
     id: number | null;
@@ -112,121 +112,132 @@ export default function NewAutobusForm({ autobus, countries }: Params) {
     }, [formData.country_id]);
 
     return (
-        <form
-            onSubmit={handleSubmit}
-            className="m-5 p-5 border rounded-md space-y-10"
-        >
-            <div className="space-y-2">
-                <Label>Име на автобусната гара *</Label>
-                <Input
-                    value={formData.name}
-                    onChange={(e) => handleChange("name", e.target.value)}
-                />
-            </div>
-
-            <div className="space-y-2">
-                <Label>Slug *</Label>
-                <Input
-                    value={formData.slug}
-                    onChange={(e) => handleChange("slug", e.target.value)}
-                />
-                {errors.slug && (
-                    <div className="text-destructive">
-                        Това поле е задължително!
-                    </div>
-                )}
-                <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() =>
-                        setFormData((prev) => ({
-                            ...prev,
-                            slug: slugify(prev.name),
-                        }))
-                    }
+        <div className="p-5">
+            <Card>
+                <form
+                    onSubmit={handleSubmit}
+                    className="px-5 space-y-10"
                 >
-                    Генериране
-                </Button>
-            </div>
-
-            <div className="flex items-center gap-5">
-                <div className="flex gap-5">
                     <div className="space-y-2">
-                        <RelationForm
-                            items={countries.map((c) => ({
-                                id: c.id!,
-                                label: c.name!,
-                            }))}
-                            value={formData.country_id as number}
-                            onChange={(id) =>
-                                setFormData((p) => ({
-                                    ...p,
-                                    country_id: id as number,
-                                }))
-                            }
-                            placeholder="Изберете държава"
-                        />
-                        {errors.country_id && (
-                            <div className="text-destructive">
-                                Моля, изберете държава!
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="flex gap-5">
-                    <div className="space-y-2">
-                        <RelationForm
-                            items={cities.map((c) => ({
-                                id: c.id!,
-                                label: c.name!,
-                            }))}
-                            value={formData.city_id as number}
-                            onChange={(id) =>
-                                setFormData((p) => ({
-                                    ...p,
-                                    city_id: id as number,
-                                }))
-                            }
-                            disabled={isCitiesLoading}
-                            placeholder="Изберете град"
-                        />
-                        {errors.city_id && (
-                            <div className="text-destructive">
-                                Моля, изберете град!
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {formData.id && (
-                <>
-                    <div className="space-y-2">
-                        <Label>Официален сайт</Label>
+                        <Label>Име на автобусната гара *</Label>
                         <Input
-                            value={formData.website_url}
+                            value={formData.name}
                             onChange={(e) =>
-                                handleChange("website_url", e.target.value)
+                                handleChange("name", e.target.value)
                             }
                         />
                     </div>
-                </>
-            )}
 
-            <Button
-                type="submit"
-                variant={"outline"}
-                size="lg"
-                disabled={isSubmitting}
-            >
-                {isSubmitting ? (
-                    <FiLoader className="animate-spin" />
-                ) : (
-                    <FiSave />
-                )}
-                {autobus?.id ? "Записване" : "Създаване"}
-            </Button>
-        </form>
+                    <div className="space-y-2">
+                        <Label>Slug *</Label>
+                        <Input
+                            value={formData.slug}
+                            onChange={(e) =>
+                                handleChange("slug", e.target.value)
+                            }
+                        />
+                        {errors.slug && (
+                            <div className="text-destructive">
+                                Това поле е задължително!
+                            </div>
+                        )}
+                        <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                                setFormData((prev) => ({
+                                    ...prev,
+                                    slug: slugify(prev.name),
+                                }))
+                            }
+                        >
+                            Генериране
+                        </Button>
+                    </div>
+
+                    <div className="flex items-center gap-5">
+                        <div className="flex gap-5">
+                            <div className="space-y-2">
+                                <RelationForm
+                                    items={countries.map((c) => ({
+                                        id: c.id!,
+                                        label: c.name!,
+                                    }))}
+                                    value={formData.country_id as number}
+                                    onChange={(id) =>
+                                        setFormData((p) => ({
+                                            ...p,
+                                            country_id: id as number,
+                                        }))
+                                    }
+                                    placeholder="Изберете държава"
+                                />
+                                {errors.country_id && (
+                                    <div className="text-destructive">
+                                        Моля, изберете държава!
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="flex gap-5">
+                            <div className="space-y-2">
+                                <RelationForm
+                                    items={cities.map((c) => ({
+                                        id: c.id!,
+                                        label: c.name!,
+                                    }))}
+                                    value={formData.city_id as number}
+                                    onChange={(id) =>
+                                        setFormData((p) => ({
+                                            ...p,
+                                            city_id: id as number,
+                                        }))
+                                    }
+                                    disabled={isCitiesLoading}
+                                    placeholder="Изберете град"
+                                />
+                                {errors.city_id && (
+                                    <div className="text-destructive">
+                                        Моля, изберете град!
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {formData.id && (
+                        <>
+                            <div className="space-y-2">
+                                <Label>Официален сайт</Label>
+                                <Input
+                                    value={formData.website_url}
+                                    onChange={(e) =>
+                                        handleChange(
+                                            "website_url",
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    <Button
+                        type="submit"
+                        variant={"outline"}
+                        size="lg"
+                        disabled={isSubmitting}
+                    >
+                        {isSubmitting ? (
+                            <FiLoader className="animate-spin" />
+                        ) : (
+                            <FiSave />
+                        )}
+                        {autobus?.id ? "Записване" : "Създаване"}
+                    </Button>
+                </form>
+            </Card>
+        </div>
     );
 }

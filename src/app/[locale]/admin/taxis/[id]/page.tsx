@@ -6,6 +6,11 @@ import { getTaxiByColumn } from "@/lib/services/taxi-service";
 import NewTaxiForm from "./new-taxi-form";
 import { getCountries } from "@/lib/services/country-service";
 import PageHeader from "@/components/admin/page-header";
+import MakeTranslations from "@/components/make-translations";
+import {
+    TranslationInfo,
+    TranslationService,
+} from "@/lib/services/translations-service";
 
 type Props = {
     params: Promise<{
@@ -39,21 +44,36 @@ type Params = {
 
 export default async function NewTaxiPage({ params }: Params) {
     const { id } = await params;
-    let taxi = null;
+    const isNew = id === "new";
 
-    if (id !== "new") {
-        taxi = await getTaxiByColumn("id", id);
+    const taxiPromise = !isNew
+        ? getTaxiByColumn("id", id)
+        : Promise.resolve(null);
+    const countriesPromise = getCountries();
+    const [taxi, countries] = await Promise.all([
+        taxiPromise,
+        countriesPromise,
+    ]);
+
+    let translationInfo: TranslationInfo = { count: 0, languages: [] };
+
+    if (taxi) {
+        const translationService = new TranslationService();
+
+        const [tInfo] = await Promise.all([
+            translationService.getAvailableLanguagesForEntity("taxi", id),
+        ]);
+
+        translationInfo = tInfo;
     }
-
-    const countries = await getCountries();
 
     return (
         <main className="flex-1">
             <PageHeader
                 title={
                     taxi
-                        ? "Редактиране на железопътна гара"
-                        : "Добавяне на нова железопътна гара"
+                        ? "Редактиране на таксиметрова компания"
+                        : "Добавяне на нова таксиметрова компания"
                 }
                 link="/admin/airlines/new"
             />
@@ -66,6 +86,15 @@ export default async function NewTaxiPage({ params }: Params) {
                     },
                 ]}
             />
+            {taxi?.id && (
+                <MakeTranslations
+                    entityType="taxi"
+                    entityId={taxi.id}
+                    translationInfo={translationInfo}
+                    fields={[{ value: "name", label: "Име", type: "text" }]}
+                    textsToTranslate={[taxi.name || ""]}
+                />
+            )}
             <NewTaxiForm taxi={taxi} countries={countries} />
             {taxi?.id && (
                 <>

@@ -5,6 +5,11 @@ import { Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { getCruiseByColumn } from "@/lib/services/cruise-service";
 import NewCruiseForm from "@/app/[locale]/admin/cruises/[id]/new-cruise-form";
 import PageHeader from "@/components/admin/page-header";
+import MakeTranslations from "@/components/make-translations";
+import {
+    TranslationInfo,
+    TranslationService,
+} from "@/lib/services/translations-service";
 
 type Props = {
     params: Promise<{
@@ -38,10 +43,24 @@ type Params = {
 
 export default async function cruisePage({ params }: Params) {
     const { id } = await params;
-    let cruise = null;
+    const isNew = id === "new";
 
-    if (id !== "new") {
-        cruise = await getCruiseByColumn("id", id);
+    const cruisePromise = !isNew
+        ? getCruiseByColumn("id", id)
+        : Promise.resolve(null);
+
+    const [cruise] = await Promise.all([cruisePromise]);
+
+    let translationInfo: TranslationInfo = { count: 0, languages: [] };
+
+    if (cruise) {
+        const translationService = new TranslationService();
+
+        const [tInfo] = await Promise.all([
+            translationService.getAvailableLanguagesForEntity("cruise", id),
+        ]);
+
+        translationInfo = tInfo;
     }
 
     return (
@@ -63,6 +82,15 @@ export default async function cruisePage({ params }: Params) {
                     },
                 ]}
             />
+            {cruise?.id && (
+                <MakeTranslations
+                    entityType="cruise"
+                    entityId={cruise.id}
+                    translationInfo={translationInfo}
+                    fields={[{ value: "name", label: "Име", type: "text" }]}
+                    textsToTranslate={[cruise.name || ""]}
+                />
+            )}
             <NewCruiseForm cruise={cruise} />
             {cruise?.id && (
                 <>

@@ -6,6 +6,8 @@ import { getCruiseByColumn } from "@/lib/services/cruise-service";
 import { getBannerByColumn, getBanners } from "@/lib/services/banner-service";
 import { BannerForm } from "./banner-form";
 import PageHeader from "@/components/admin/page-header";
+import MakeTranslations from "@/components/make-translations";
+import { TranslationInfo, TranslationService } from "@/lib/services/translations-service";
 
 type Props = {
     params: Promise<{
@@ -39,10 +41,25 @@ type Params = {
 
 export default async function BannerPage({ params }: Params) {
     const { id } = await params;
-    let banner = null;
+    const isNew = id === "new";
 
-    if (id !== "new") {
-        banner = await getBannerByColumn("id", id);
+    const bannerPromise = !isNew
+        ? getBannerByColumn("id", id)
+        : Promise.resolve(null);
+    const [banner] = await Promise.all([
+        bannerPromise,
+    ]);
+
+    let translationInfo: TranslationInfo = { count: 0, languages: [] };
+
+    if (banner) {
+        const translationService = new TranslationService();
+
+        const [tInfo] = await Promise.all([
+            translationService.getAvailableLanguagesForEntity("banner", id),
+        ]);
+
+        translationInfo = tInfo;
     }
 
     return (
@@ -62,6 +79,31 @@ export default async function BannerPage({ params }: Params) {
                     },
                 ]}
             />
+            {banner?.id && (
+                <MakeTranslations
+                    entityType="banner"
+                    entityId={banner.id}
+                    translationInfo={translationInfo}
+                    fields={[
+                        { value: "name", label: "Име", type: "text" },
+                        {
+                            value: "button_text",
+                            label: "Текст на бутона",
+                            type: "text",
+                        },
+                        {
+                            value: "description",
+                            label: "Описание",
+                            type: "wysiwyg",
+                        },
+                    ]}
+                    textsToTranslate={[
+                        banner.name || "",
+                        banner.button_text || "",
+                        banner.description || "",
+                    ]}
+                />
+            )}
             <BannerForm banner={banner} isEdit={!!banner?.id} />
             {banner?.id && (
                 <>

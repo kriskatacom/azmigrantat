@@ -7,6 +7,11 @@ import NewCompanyForm from "@/app/[locale]/admin/companies/[id]/company-form";
 import { getCountries } from "@/lib/services/country-service";
 import { getCategories } from "@/lib/services/category-service";
 import PageHeader from "@/components/admin/page-header";
+import MakeTranslations from "@/components/make-translations";
+import {
+    TranslationInfo,
+    TranslationService,
+} from "@/lib/services/translations-service";
 
 export type ImageField =
     | "image_url"
@@ -46,14 +51,30 @@ type Params = {
 
 export default async function NewCompany({ params }: Params) {
     const { id } = await params;
-    let company = null;
+    const isNew = id === "new";
 
-    if (id !== "new") {
-        company = await getCompanyByColumn("id", id);
+    const companyPromise = !isNew
+        ? getCompanyByColumn("id", id)
+        : Promise.resolve(null);
+    const countriesPromise = getCountries();
+    const categoriesPromise = getCategories();
+    const [company, countries, categories] = await Promise.all([
+        companyPromise,
+        countriesPromise,
+        categoriesPromise,
+    ]);
+
+    let translationInfo: TranslationInfo = { count: 0, languages: [] };
+
+    if (company) {
+        const translationService = new TranslationService();
+
+        const [tInfo] = await Promise.all([
+            translationService.getAvailableLanguagesForEntity("company", id),
+        ]);
+
+        translationInfo = tInfo;
     }
-
-    const countries = await getCountries();
-    const categories = await getCategories();
 
     return (
         <main className="flex-1">
@@ -75,6 +96,37 @@ export default async function NewCompany({ params }: Params) {
                     },
                 ]}
             />
+            {company?.id && (
+                <MakeTranslations
+                    entityType="company"
+                    entityId={company.id}
+                    translationInfo={translationInfo}
+                    fields={[
+                        { value: "name", label: "Име", type: "text" },
+                        {
+                            value: "excerpt",
+                            label: "Кратко описание",
+                            type: "wysiwyg",
+                        },
+                        {
+                            value: "description",
+                            label: "Описание",
+                            type: "wysiwyg",
+                        },
+                        {
+                            value: "company_slogan",
+                            label: "Слогън",
+                            type: "text",
+                        },
+                    ]}
+                    textsToTranslate={[
+                        company.name,
+                        company.excerpt,
+                        company.description,
+                        company.company_slogan as string,
+                    ]}
+                />
+            )}
             <NewCompanyForm
                 company={company}
                 countries={countries}

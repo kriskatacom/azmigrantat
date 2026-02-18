@@ -1,7 +1,9 @@
 "use client";
 
-import { Globe, Plus, SaveAllIcon, Loader2 } from "lucide-react";
+import { Globe, Plus, SaveAllIcon, Loader2, Trash2 } from "lucide-react";
 import { FaTimes } from "react-icons/fa";
+import { toast } from "sonner";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
     Card,
@@ -12,9 +14,10 @@ import {
 } from "@/components/ui/card";
 import { useLanguageStore } from "@/stores/languages-store";
 import AppImage from "@/components/AppImage";
-import { getExistingTranslationsAction } from "./actions";
-import { toast } from "sonner";
-import { useState } from "react";
+import {
+    deleteTranslationsAction,
+    getExistingTranslationsAction,
+} from "@/components/make-translations/actions";
 
 interface TranslationManagerCardProps {
     loading?: boolean;
@@ -77,6 +80,45 @@ export function TranslationManagerCard({
         }
     };
 
+    const handleDeleteLanguage = async (code: string) => {
+        const res = await deleteTranslationsAction(
+            entityType!,
+            entityId!,
+            code,
+        );
+        if (res.success) {
+            toast.success(res.message);
+            setSelectedTab(null);
+            setResultsDialogOpen(false);
+            setTranslationResults(null);
+        } else {
+            toast.error(res.error);
+        }
+    };
+
+    const handleDeleteAll = async () => {
+        if (
+            !confirm(
+                "Сигурни ли сте, че искате да изтриете ВСИЧКИ преводи за този обект?",
+            )
+        )
+            return;
+
+        try {
+            const res = await deleteTranslationsAction(entityType!, entityId!);
+            if (res.success) {
+                toast.success("Всички преводи бяха премахнати.");
+                setSelectedTab(null);
+                setResultsDialogOpen(false);
+                setTranslationResults(null);
+            } else {
+                toast.error(res.error);
+            }
+        } catch (err) {
+            toast.error("Възникна грешка при масовото изтриване.");
+        }
+    };
+
     return (
         <Card className="mx-5 mt-5 max-w-xl shadow-md border-t-4 border-t-primary shrink-0">
             <CardHeader className="space-x-4 pb-2">
@@ -95,48 +137,92 @@ export function TranslationManagerCard({
                     <div className="text-muted-foreground text-sm font-medium">
                         Приложени преводи
                     </div>
-                    <div className="flex gap-2 flex-wrap mt-1">
-                        {translationInfo.languages.map((lang) => {
-                            const isLoading = isFetching === lang.code;
+                    {(translationInfo.languages.length > 0 && (
+                        <>
+                            <button
+                                onClick={handleDeleteAll}
+                                className="text-[10px] text-red-500 hover:text-red-600 font-semibold flex items-center gap-1 transition-colors px-2 py-1 rounded bg-red-50 hover:bg-red-10"
+                            >
+                                <Trash2 className="w-3 h-3" />
+                                Изтрий всички
+                            </button>
+                            <div className="flex gap-2 flex-wrap mt-1">
+                                {translationInfo.languages.map((lang) => {
+                                    const isLoading = isFetching === lang.code;
 
-                            return (
-                                <button
-                                    key={lang.code}
-                                    disabled={!!isFetching} // Блокираме кликове, докато зарежда
-                                    onClick={() => handleOpenDialog(lang.code)}
-                                    className={`
-                        group relative flex items-center justify-center w-10 h-7 
-                        rounded shadow-sm border border-slate-200 transition-all
-                        ${isLoading ? "opacity-100 scale-105" : "hover:scale-105 active:scale-95 bg-white"}
-                        ${isFetching && !isLoading ? "opacity-50" : "opacity-100"}
-                    `}
-                                >
-                                    {/* ФЛАГ */}
-                                    <AppImage
-                                        src={`/images/flags/${lang.flag}.webp`}
-                                        alt={`${lang.name} flag`}
-                                        className={`w-full h-full object-cover rounded transition-opacity ${isLoading ? "opacity-20" : "opacity-100"}`}
-                                        width={40}
-                                        height={28}
-                                    />
+                                    return (
+                                        <div
+                                            key={lang.code}
+                                            className="relative group"
+                                        >
+                                            <button
+                                                disabled={!!isFetching}
+                                                onClick={() =>
+                                                    handleOpenDialog(lang.code)
+                                                }
+                                                className={`
+                                            relative flex items-center justify-center w-10 h-7 
+                                            rounded shadow-sm border border-slate-200 transition-all
+                                            ${isLoading ? "opacity-100 scale-105" : "hover:scale-105 active:scale-95 bg-white"}
+                                            ${isFetching && !isLoading ? "opacity-50" : "opacity-100"}
+                                        `}
+                                            >
+                                                {/* ФЛАГ */}
+                                                <AppImage
+                                                    src={`/images/flags/${lang.flag}.webp`}
+                                                    alt={`${lang.name} flag`}
+                                                    className={`w-full h-full object-cover rounded transition-opacity ${isLoading ? "opacity-20" : "opacity-100"}`}
+                                                    width={40}
+                                                    height={28}
+                                                />
 
-                                    {/* SPINNER - показва се само при зареждане */}
-                                    {isLoading && (
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                                                {/* SPINNER */}
+                                                {isLoading && (
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                                                    </div>
+                                                )}
+
+                                                {/* TOOLTIP */}
+                                                {!isLoading && (
+                                                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 scale-0 group-hover:scale-100 transition-transform bg-slate-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">
+                                                        {lang.name}
+                                                    </div>
+                                                )}
+                                            </button>
+
+                                            {/* БУТОН ЗА ИЗТРИВАНЕ (X) */}
+                                            {!isLoading && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (
+                                                            confirm(
+                                                                `Изтриване на превода за ${lang.name}?`,
+                                                            )
+                                                        ) {
+                                                            handleDeleteLanguage(
+                                                                lang.code,
+                                                            );
+                                                        }
+                                                    }}
+                                                    className="absolute -top-1.5 -right-1.5 bg-red-500 text-white rounded-full p-0.5 
+                                                        opacity-0 group-hover:opacity-100 hover:bg-red-600 
+                                                        transition-all duration-200 shadow-sm z-60"
+                                                >
+                                                    <FaTimes className="w-3 h-3" />
+                                                </button>
+                                            )}
                                         </div>
-                                    )}
-
-                                    {/* TOOLTIP */}
-                                    {!isLoading && (
-                                        <div className="absolute bottom-10 scale-0 group-hover:scale-100 transition-transform bg-slate-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-50 pointer-events-none">
-                                            {lang.name}
-                                        </div>
-                                    )}
-                                </button>
-                            );
-                        })}
-                    </div>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    )) || (
+                        <span className="text-sm text-slate-400 w-full italic">
+                            Няма създадени преводи
+                        </span>
+                    )}
                 </div>
             </CardHeader>
 

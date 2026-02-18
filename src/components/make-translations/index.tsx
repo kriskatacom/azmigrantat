@@ -78,14 +78,14 @@ export default function MakeTranslations({
                 ]);
 
                 if (response.success && response.data?.[lang.code]) {
-                    const translations = response.data[lang.code];
+                    const translationsArray = response.data[lang.code];
                     formattedResults[lang.code] = {};
                     successCount++;
 
                     fields.forEach((field, index) => {
                         const fullKey = `${entityType}_${entityId}_${field.value}`;
                         formattedResults[lang.code][fullKey] = {
-                            value: translations[textsToTranslate[index]] || "",
+                            value: translationsArray[index] || "",
                             type: field.type,
                             label: field.label,
                         };

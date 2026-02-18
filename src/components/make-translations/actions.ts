@@ -14,42 +14,39 @@ export interface TranslationResponse {
 export async function translateTextsAction(
     texts: string[],
     languages: string[],
-): Promise<TranslationResponse> {
+): Promise<{
+    success: boolean;
+    data?: Record<string, string[]>;
+    error?: string;
+}> {
     try {
-        const finalTranslations: Record<string, Record<string, string>> = {};
-        const separator = " ||| ";
-        const combinedText = texts.join(separator);
+        const finalTranslations: Record<string, string[]> = {};
+        const separator = " [SEP] ";
 
-        const sleep = (ms: number) =>
-            new Promise((resolve) => setTimeout(resolve, ms));
+        const cleanTexts = texts.map((t) => (t?.trim() === "" ? "---" : t));
+        const combinedText = cleanTexts.join(separator);
+
+        const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
         for (let i = 0; i < languages.length; i++) {
             const lang = languages[i];
-
-            if (i > 0) {
-                await sleep(800);
-            }
+            if (i > 0) await sleep(800);
 
             const res = await translate(combinedText, { to: lang });
 
             const translatedParts = res.text
-                .split(separator)
-                .map((t) => t.trim());
+                .split(/\[SEP\]|\|\|\|/i)
+                .map((t) => t.trim().replace(/^---$/, ""));
 
-            finalTranslations[lang] = {};
-            texts.forEach((original, index) => {
-                finalTranslations[lang][original] =
-                    translatedParts[index] || original;
-            });
+            finalTranslations[lang] = cleanTexts.map(
+                (_, idx) => translatedParts[idx] || cleanTexts[idx],
+            );
         }
 
         return { success: true, data: finalTranslations };
     } catch (error: any) {
         console.error("Translation Error:", error);
-        return {
-            success: false,
-            error: "Грешка при превода. Моля, опитайте по-късно.",
-        };
+        return { success: false, error: "Грешка при превода." };
     }
 }
 
@@ -99,5 +96,28 @@ export async function getExistingTranslationsAction(
         return { success: true, data };
     } catch (error) {
         return { success: false, error: "Грешка при четене на базата" };
+    }
+}
+
+export async function deleteTranslationsAction(
+    entityType: string,
+    id: string | number,
+    langCode?: string,
+) {
+    try {
+        const service = new TranslationService();
+        await service.deleteEntityTranslations(entityType, id, langCode);
+
+        revalidatePath("/", "layout");
+
+        return {
+            success: true,
+            message: langCode
+                ? `Преводите на език "${langCode}" бяха изтрити.`
+                : "Всички преводи бяха премахнати.",
+        };
+    } catch (error) {
+        console.error("Delete translation error:", error);
+        return { success: false, error: "Грешка при изтриване на преводите." };
     }
 }

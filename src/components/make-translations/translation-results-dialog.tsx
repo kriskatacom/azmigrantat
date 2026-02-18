@@ -216,6 +216,7 @@ export function TranslationResultsDialog() {
                                                 </div>
                                             ) : data.type === "textarea" ? (
                                                 <Textarea
+                                                    key={`${selectedTab}-${fieldKey}`}
                                                     value={data.value}
                                                     onChange={(e) =>
                                                         handleFieldChange(
@@ -229,6 +230,7 @@ export function TranslationResultsDialog() {
                                                 />
                                             ) : (
                                                 <Input
+                                                    key={`${selectedTab}-${fieldKey}`}
                                                     value={data.value}
                                                     onChange={(e) =>
                                                         handleFieldChange(

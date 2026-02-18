@@ -6,6 +6,11 @@ import NewTrainForm from "@/app/[locale]/admin/trains/[id]/new-train-form";
 import { getTrainByColumn } from "@/lib/services/train-service";
 import { getCountries } from "@/lib/services/country-service";
 import PageHeader from "@/components/admin/page-header";
+import {
+    TranslationInfo,
+    TranslationService,
+} from "@/lib/services/translations-service";
+import MakeTranslations from "@/components/make-translations";
 
 type Props = {
     params: Promise<{
@@ -39,13 +44,28 @@ type Params = {
 
 export default async function NewTrainPage({ params }: Params) {
     const { id } = await params;
-    let train = null;
+    const isNew = id === "new";
 
-    if (id !== "new") {
-        train = await getTrainByColumn("id", id);
+    const trainPromise = !isNew
+        ? getTrainByColumn("id", id)
+        : Promise.resolve(null);
+    const countriesPromise = getCountries();
+    const [train, countries] = await Promise.all([
+        trainPromise,
+        countriesPromise,
+    ]);
+
+    let translationInfo: TranslationInfo = { count: 0, languages: [] };
+
+    if (train) {
+        const translationService = new TranslationService();
+
+        const [tInfo] = await Promise.all([
+            translationService.getAvailableLanguagesForEntity("train", id),
+        ]);
+
+        translationInfo = tInfo;
     }
-
-    const countries = await getCountries();
 
     return (
         <main className="flex-1">
@@ -66,6 +86,15 @@ export default async function NewTrainPage({ params }: Params) {
                     },
                 ]}
             />
+            {train?.id && (
+                <MakeTranslations
+                    entityType="train"
+                    entityId={train.id}
+                    translationInfo={translationInfo}
+                    fields={[{ value: "name", label: "Име", type: "text" }]}
+                    textsToTranslate={[train.name || ""]}
+                />
+            )}
             <NewTrainForm train={train} countries={countries} />
             {train?.id && (
                 <>

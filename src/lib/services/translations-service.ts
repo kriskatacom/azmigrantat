@@ -163,4 +163,24 @@ export class TranslationService {
 
         return result;
     }
+
+    async deleteEntityTranslations(
+        entityType: string,
+        id: string | number,
+        lang?: string,
+    ): Promise<void> {
+        const keyPattern = `${entityType}_${id}_%`;
+
+        if (lang) {
+            await this.db.execute(
+                `DELETE FROM translations WHERE \`key\` LIKE ? AND lang = ?`,
+                [keyPattern, lang],
+            );
+        } else {
+            await this.db.execute(
+                `DELETE FROM translations WHERE \`key\` LIKE ?`,
+                [keyPattern],
+            );
+        }
+    }
 }

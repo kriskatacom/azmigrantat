@@ -6,6 +6,11 @@ import { getAutobusByColumn } from "@/lib/services/autobus-service";
 import NewAutobusForm from "./new-autobus-form";
 import { getCountries } from "@/lib/services/country-service";
 import PageHeader from "@/components/admin/page-header";
+import MakeTranslations from "@/components/make-translations";
+import {
+    TranslationInfo,
+    TranslationService,
+} from "@/lib/services/translations-service";
 
 type Props = {
     params: Promise<{
@@ -39,13 +44,28 @@ type Params = {
 
 export default async function NewAutobusPage({ params }: Params) {
     const { id } = await params;
-    let autobus = null;
+    const isNew = id === "new";
 
-    if (id !== "new") {
-        autobus = await getAutobusByColumn("id", id);
+    const autobusPromise = !isNew
+        ? getAutobusByColumn("id", id)
+        : Promise.resolve(null);
+    const countriesPromise = getCountries();
+    const [autobus, countries] = await Promise.all([
+        autobusPromise,
+        countriesPromise,
+    ]);
+
+    let translationInfo: TranslationInfo = { count: 0, languages: [] };
+
+    if (autobus) {
+        const translationService = new TranslationService();
+
+        const [tInfo] = await Promise.all([
+            translationService.getAvailableLanguagesForEntity("autobus", id),
+        ]);
+
+        translationInfo = tInfo;
     }
-
-    const countries = await getCountries();
 
     return (
         <main className="flex-1">
@@ -66,6 +86,15 @@ export default async function NewAutobusPage({ params }: Params) {
                     },
                 ]}
             />
+            {autobus?.id && (
+                <MakeTranslations
+                    entityType="autobus"
+                    entityId={autobus.id}
+                    translationInfo={translationInfo}
+                    fields={[{ value: "name", label: "Име", type: "text" }]}
+                    textsToTranslate={[autobus.name || ""]}
+                />
+            )}
             <NewAutobusForm autobus={autobus} countries={countries} />
             {autobus?.id && (
                 <>

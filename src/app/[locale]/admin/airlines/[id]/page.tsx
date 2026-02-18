@@ -5,6 +5,11 @@ import { Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { getAirlineByColumn } from "@/lib/services/airline-service";
 import NewAirlineForm from "./new-airline-form";
 import PageHeader from "@/components/admin/page-header";
+import MakeTranslations from "@/components/make-translations";
+import {
+    TranslationInfo,
+    TranslationService,
+} from "@/lib/services/translations-service";
 
 type Props = {
     params: Promise<{
@@ -38,10 +43,23 @@ type Params = {
 
 export default async function NewAirlinePage({ params }: Params) {
     const { id } = await params;
-    let airline = null;
+    const isNew = id === "new";
 
-    if (id !== "new") {
-        airline = await getAirlineByColumn("id", id);
+    const airlinePromise = !isNew
+        ? getAirlineByColumn("id", id)
+        : Promise.resolve(null);
+    const [airline] = await Promise.all([airlinePromise]);
+
+    let translationInfo: TranslationInfo = { count: 0, languages: [] };
+
+    if (airline) {
+        const translationService = new TranslationService();
+
+        const [tInfo] = await Promise.all([
+            translationService.getAvailableLanguagesForEntity("airline", id),
+        ]);
+
+        translationInfo = tInfo;
     }
 
     return (
@@ -63,6 +81,15 @@ export default async function NewAirlinePage({ params }: Params) {
                     },
                 ]}
             />
+            {airline?.id && (
+                <MakeTranslations
+                    entityType="airline"
+                    entityId={airline.id}
+                    translationInfo={translationInfo}
+                    fields={[{ value: "name", label: "Име", type: "text" }]}
+                    textsToTranslate={[airline.name || ""]}
+                />
+            )}
             <NewAirlineForm airline={airline} />
             {airline?.id && (
                 <>

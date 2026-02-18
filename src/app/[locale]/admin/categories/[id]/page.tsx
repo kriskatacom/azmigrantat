@@ -9,6 +9,11 @@ import {
     getCategoryTree,
 } from "@/lib/services/category-service";
 import PageHeader from "@/components/admin/page-header";
+import {
+    TranslationInfo,
+    TranslationService,
+} from "@/lib/services/translations-service";
+import MakeTranslations from "@/components/make-translations";
 
 type Props = {
     params: Promise<{
@@ -42,13 +47,28 @@ type Params = {
 
 export default async function NewCity({ params }: Params) {
     const { id } = await params;
-    let category = null;
+    const isNew = id === "new";
 
-    if (id !== "new") {
-        category = await getCategoryByColumn("id", id);
+    const categoryPromise = !isNew
+        ? getCategoryByColumn("id", id)
+        : Promise.resolve(null);
+    const categoriesPromise = getCategoryTree();
+    const [category, categories] = await Promise.all([
+        categoryPromise,
+        categoriesPromise,
+    ]);
+
+    let translationInfo: TranslationInfo = { count: 0, languages: [] };
+
+    if (category) {
+        const translationService = new TranslationService();
+
+        const [tInfo] = await Promise.all([
+            translationService.getAvailableLanguagesForEntity("category", id),
+        ]);
+
+        translationInfo = tInfo;
     }
-
-    const categories = await getCategoryTree();
 
     const breadcrumbs = [
         { name: "Табло", href: "/admin/dashboard" },
@@ -70,9 +90,29 @@ export default async function NewCity({ params }: Params) {
             />
 
             <Breadcrumbs items={breadcrumbs} />
-            
+
+            {category?.id && (
+                <MakeTranslations
+                    entityType="category"
+                    entityId={category.id}
+                    translationInfo={translationInfo}
+                    fields={[
+                        { value: "name", label: "Име", type: "text" },
+                        {
+                            value: "heading",
+                            label: "Заглавие на страницата",
+                            type: "text",
+                        },
+                    ]}
+                    textsToTranslate={[
+                        category.name || "",
+                        category.heading || "",
+                    ]}
+                />
+            )}
+
             <CategoryForm category={category} categories={categories} />
-            
+
             {category?.id && (
                 <>
                     <h2 className="px-5 text-xl font-semibold">Изображение</h2>

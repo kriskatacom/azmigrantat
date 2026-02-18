@@ -8,6 +8,11 @@ import {
     getCountryByColumn,
 } from "@/lib/services/country-service";
 import PageHeader from "@/components/admin/page-header";
+import MakeTranslations from "@/components/make-translations";
+import {
+    TranslationInfo,
+    TranslationService,
+} from "@/lib/services/translations-service";
 
 type Props = {
     params: Promise<{
@@ -41,13 +46,28 @@ type Params = {
 
 export default async function NewCountry({ params }: Params) {
     const { id } = await params;
-    let country = null;
+    const isNew = id === "new";
 
-    if (id !== "new") {
-        country = await getCountryByColumn("id", id);
+    const countryPromise = !isNew
+        ? getCountryByColumn("id", id)
+        : Promise.resolve(null);
+    const countriesPromise = getCountries();
+    const [country, countries] = await Promise.all([
+        countryPromise,
+        countriesPromise,
+    ]);
+
+    let translationInfo: TranslationInfo = { count: 0, languages: [] };
+
+    if (country) {
+        const translationService = new TranslationService();
+
+        const [tInfo] = await Promise.all([
+            translationService.getAvailableLanguagesForEntity("country", id),
+        ]);
+
+        translationInfo = tInfo;
     }
-
-    const countries = await getCountries();
 
     return (
         <main className="flex-1">
@@ -68,6 +88,27 @@ export default async function NewCountry({ params }: Params) {
                     },
                 ]}
             />
+            {country?.id && (
+                <MakeTranslations
+                    entityType="country"
+                    entityId={country.id}
+                    translationInfo={translationInfo}
+                    fields={[
+                        { value: "name", label: "Име", type: "text" },
+                        { value: "heading", label: "Заглавие", type: "text" },
+                        {
+                            value: "excerpt",
+                            label: "Описание",
+                            type: "wysiwyg",
+                        },
+                    ]}
+                    textsToTranslate={[
+                        country.name || "",
+                        country.heading || "",
+                        country.excerpt || "",
+                    ]}
+                />
+            )}
             <CountryForm country={country} countries={countries} />
             {country?.id && (
                 <>

@@ -6,6 +6,11 @@ import { Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { getCityByColumn } from "@/lib/services/city-service";
 import { getCountries } from "@/lib/services/country-service";
 import PageHeader from "@/components/admin/page-header";
+import MakeTranslations from "@/components/make-translations";
+import {
+    TranslationInfo,
+    TranslationService,
+} from "@/lib/services/translations-service";
 
 type Props = {
     params: Promise<{
@@ -39,13 +44,28 @@ type Params = {
 
 export default async function NewCity({ params }: Params) {
     const { id } = await params;
-    let city = null;
+    const isNew = id === "new";
 
-    if (id !== "new") {
-        city = await getCityByColumn("id", id);
+    const cityPromise = !isNew
+        ? getCityByColumn("id", id)
+        : Promise.resolve(null);
+    const countriesPromise = getCountries();
+    const [city, countries] = await Promise.all([
+        cityPromise,
+        countriesPromise,
+    ]);
+
+    let translationInfo: TranslationInfo = { count: 0, languages: [] };
+
+    if (city) {
+        const translationService = new TranslationService();
+
+        const [tInfo] = await Promise.all([
+            translationService.getAvailableLanguagesForEntity("city", id),
+        ]);
+
+        translationInfo = tInfo;
     }
-
-    const countries = await getCountries();
 
     const breadcrumbs = [
         { name: "Табло", href: "/admin/dashboard" },
@@ -62,6 +82,22 @@ export default async function NewCity({ params }: Params) {
                 link="/admin/cities/new"
             />
             <Breadcrumbs items={breadcrumbs} />
+            {city?.id && (
+                <MakeTranslations
+                    entityType="city"
+                    entityId={city.id}
+                    translationInfo={translationInfo}
+                    fields={[
+                        { value: "name", label: "Име", type: "text" },
+                        {
+                            value: "heading",
+                            label: "Заглавие на страницата",
+                            type: "text",
+                        },
+                    ]}
+                    textsToTranslate={[city.name || "", city.heading || ""]}
+                />
+            )}
             <CityForm city={city} countries={countries} />
             {city?.id && (
                 <>
