@@ -20,6 +20,7 @@ export type City = {
     excerpt?: string;
     image_url?: string | null;
     country_id?: number | null;
+    country_name?: string | null;
     created_at?: string;
     updated_at?: string;
 };
@@ -141,7 +142,7 @@ export interface Banner {
         | "center_center";
 
     group_key?: BannerGroup;
-    
+
     created_at?: Date;
     updated_at?: Date;
 }

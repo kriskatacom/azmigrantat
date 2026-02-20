@@ -27,8 +27,8 @@ export default function AppImage({
         setImageLoading(true);
     }, [src]);
 
-    return (
-        <div className={`relative ${fill ? "w-full h-full" : ""}`}>
+    const imageElement = (
+        <>
             {imageLoading && (
                 <div className="absolute inset-0 flex items-center justify-center z-10">
                     <span className="h-6 w-6 animate-spin rounded-full border-2 border-t-blue-500" />
@@ -39,7 +39,7 @@ export default function AppImage({
                 src={currentSrc}
                 alt={alt}
                 fill={fill}
-                className={`object-contain transition-opacity duration-500 ${
+                className={`transition-opacity duration-500 ${
                     imageLoading ? "opacity-0" : "opacity-100"
                 } ${className}`}
                 onLoad={() => setImageLoading(false)}
@@ -52,6 +52,12 @@ export default function AppImage({
                 unoptimized
                 {...props}
             />
-        </div>
+        </>
     );
+
+    if (fill) {
+        return imageElement;
+    }
+
+    return <div className="relative">{imageElement}</div>;
 }

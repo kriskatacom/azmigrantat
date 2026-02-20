@@ -7,36 +7,10 @@ import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { CardGrid } from "@/components/card-grid";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 import { UserService } from "@/lib/services/user-service";
+import { TRAVEL_CATEGORIES } from "@/lib/constants";
 
 type PageProps = {
     params: Promise<{ locale: string }>;
-};
-
-const TRAVEL_CATEGORY_SLUGS = [
-    "airTickets",
-    "autobuses",
-    "trains",
-    "cruises",
-    "taxis",
-    "sharedTravel",
-] as const;
-
-const TRAVEL_CATEGORY_IMAGES: Record<string, string> = {
-    airTickets: "/images/air-tickets.png",
-    autobuses: "/images/avtobuses.png",
-    trains: "/images/trains.png",
-    cruises: "/images/cruises.png",
-    taxis: "/images/taxis.png",
-    sharedTravel: "/images/shared-plane-travel.png",
-};
-
-const TRAVEL_CATEGORY_PATHS: Record<string, string> = {
-    airTickets: "/air-tickets",
-    autobuses: "/autobuses",
-    trains: "/trains",
-    cruises: "/cruises",
-    taxis: "/taxis",
-    sharedTravel: "/shared-travel",
 };
 
 export async function generateMetadata({
@@ -47,9 +21,12 @@ export async function generateMetadata({
         locale,
         namespace: "metadata.travelPage",
     });
+
     const url = locale === "bg" ? "/travel" : `/${locale}/travel`;
 
-    const firstCategoryImage = absoluteUrl("/images/air-tickets.png") as string;
+    const firstCategoryImage = absoluteUrl(
+        TRAVEL_CATEGORIES[0].image,
+    ) as string;
 
     return {
         title: websiteName(t("title")),
@@ -90,12 +67,9 @@ export default async function TravelPage({ params }: PageProps) {
     const user = await userService.getCurrentUser();
 
     const { locale } = await params;
+
     const t = await getTranslations({ locale, namespace: "travel" });
     const tCommon = await getTranslations({ locale, namespace: "common" });
-    const tCategories = await getTranslations({
-        locale,
-        namespace: "travel.categories",
-    });
 
     const banner = await getBannerByColumn("link", "/travel");
 
@@ -103,12 +77,6 @@ export default async function TravelPage({ params }: PageProps) {
         { name: tCommon("home"), href: "/" },
         { name: t("title") },
     ];
-
-    const mappedCategories = TRAVEL_CATEGORY_SLUGS.map((key) => ({
-        name: tCategories(key),
-        slug: TRAVEL_CATEGORY_PATHS[key],
-        image_url: TRAVEL_CATEGORY_IMAGES[key],
-    }));
 
     return (
         <>
@@ -122,8 +90,13 @@ export default async function TravelPage({ params }: PageProps) {
                 />
 
                 <CardGrid
-                    items={mappedCategories}
-                    id="countries"
+                    items={TRAVEL_CATEGORIES.map((category) => ({
+                        name: category.name,
+                        slug: category.slug,
+                        image_url: category.image,
+                        buttonText: category.buttonText,
+                    }))}
+                    id="travel-categories"
                     loadMoreStep={8}
                     initialVisible={8}
                     variant="standart"

@@ -1,13 +1,13 @@
 "use client";
 
-import { usePathname, Link } from "@/i18n/navigation";
-import { useTranslations, useLocale } from "next-intl";
-import { IoIosSearch } from "react-icons/io";
-import { iconLargeSize } from "@/lib/constants";
+import { Link } from "@/i18n/navigation";
+import { usePathname } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import LanguageSwitcher from "@/components/main-right-navbar/language-switcher";
 import MainRightSidebar from "@/components/main-right-navbar/main-right-sidebar";
 import UserButton from "@/components/main-right-navbar/user-button";
 import { User } from "@/lib/services/user-service";
+import Image from "next/image";
 
 type MainNavbarProps = {
     user?: User;
@@ -15,88 +15,49 @@ type MainNavbarProps = {
 
 export const MainNavbar = ({ user }: MainNavbarProps) => {
     const pathname = usePathname();
-    const t = useTranslations("navigation");
     const locale = useLocale();
+
+    const normalizedPathname = pathname.replace(`/${locale}`, "") || "/";
+
+    const t = useTranslations("navigation");
+
+    const isHomePage = pathname === "/";
 
     const mainMenuItems = [
         { title: t("home"), slug: "/" },
-        { title: t("travel"), slug: `/travel` },
+        { title: t("travel"), slug: "/travel" },
         { title: t("services"), slug: "/services" },
         { title: t("jobs"), slug: "/jobs" },
         { title: t("ads"), slug: "/ads" },
         { title: t("music"), slug: "https://lyricskeeper.eu" },
     ];
 
-    // Check if we're on the homepage (locale root)
-    // next-intl's usePathname returns pathname without locale prefix
-    const isHomePage = pathname === "/";
-    
-    if (isHomePage)
-        return (
-            <div className="absolute top-0 left-0 w-full z-50">
-                <nav className="container mx-auto flex justify-between items-center p-2">
-                    <Link href="/">
-                        <img
-                            src="/images/azmigrantat-website-logo.webp"
-                            alt="Аз мигрантът"
-                            className="object-cover w-15"
-                        />
-                    </Link>
-                    <ul className="flex items-center gap-2">
-                        <li>
-                            <UserButton user={user!} />
-                        </li>
-                        <li>
-                            <MainRightSidebar />
-                        </li>
-                        <li>
-                            <LanguageSwitcher />
-                        </li>
-                    </ul>
-                </nav>
-                <nav className="container mx-auto overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 max-lg:px-5 pb-5">
-                    <ul className="flex gap-4 whitespace-nowrap">
-                        {mainMenuItems.map((item) => (
-                            <li
-                                key={item.slug}
-                                className="rounded-4xl text-website-light hover:bg-website-dark"
-                            >
-                                {item.slug.startsWith("http") ? (
-                                    <a
-                                        className="notranslate block py-3 px-5 text-lg"
-                                        href={item.slug}
-                                        title={item.title}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        {item.title}
-                                    </a>
-                                ) : (
-                                    <Link
-                                        className="notranslate block py-3 px-5 text-lg"
-                                        href={item.slug}
-                                    >
-                                        {item.title}
-                                    </Link>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                </nav>
-            </div>
-        );
+    const wrapperClasses = isHomePage
+        ? "absolute top-0 left-0 w-full z-50"
+        : "bg-website-dark";
+
+    const containerClasses = isHomePage
+        ? "container mx-auto p-2"
+        : "container mx-auto py-2";
 
     return (
-        <div className="bg-website-dark">
-            <div className="container mx-auto flex justify-between items-center">
+        <div className={wrapperClasses}>
+            {/* Top Row */}
+            <div
+                className={`${containerClasses} flex justify-between items-center`}
+            >
                 <Link href="/">
-                    <img
+                    <Image
                         src="/images/azmigrantat-website-logo.webp"
                         alt="Аз мигрантът"
-                        className="object-cover w-15"
+                        width={60}
+                        height={60}
+                        priority
+                        className="object-contain"
                     />
                 </Link>
-                <ul className="flex items-center">
+
+                <ul className="flex items-center gap-2">
                     <li>
                         <UserButton user={user!} />
                     </li>
@@ -108,36 +69,39 @@ export const MainNavbar = ({ user }: MainNavbarProps) => {
                     </li>
                 </ul>
             </div>
-            <div className="container mx-auto">
-                <ul className="flex items-center gap-2 whitespace-nowrap overflow-x-auto">
+
+            {/* Menu Row */}
+            <div className="container mx-auto overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 max-lg:px-5 pb-2">
+                <ul className="flex gap-2 whitespace-nowrap">
                     {mainMenuItems.map((item) => {
-                        // next-intl's usePathname returns pathname without locale
+                        const isExternal = item.slug.startsWith("http");
+
                         const isActive =
-                            !item.slug.startsWith("http") &&
-                            pathname === item.slug;
+                            !isExternal && normalizedPathname === item.slug;
+
+                        const baseClasses =
+                            "notranslate text-website-light block px-5 py-2 text-lg transition-colors rounded-4xl hover:bg-website-menu-item";
+
+                        const activeClasses = isActive
+                            ? "bg-website-menu-item"
+                            : "text-website-light hover:bg-website-dark";
 
                         return (
-                            <li
-                                key={item.slug}
-                                className={`rounded-4xl transition-colors text-website-light ${
-                                    isActive &&
-                                    "bg-website-dark hover:bg-website-menu-item"
-                                }`}
-                            >
-                                {item.slug.startsWith("http") ? (
+                            <li key={item.slug}>
+                                {isExternal ? (
                                     <a
-                                        className="block mb-5 px-5 text-lg"
                                         href={item.slug}
                                         title={item.title}
                                         target="_blank"
                                         rel="noopener noreferrer"
+                                        className={`${baseClasses} text-website-light hover:bg-website-dark`}
                                     >
                                         {item.title}
                                     </a>
                                 ) : (
                                     <Link
-                                        className="block px-5 text-lg"
                                         href={item.slug}
+                                        className={`${baseClasses} ${activeClasses}`}
                                     >
                                         {item.title}
                                     </Link>
