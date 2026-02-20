@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { deleteUploadedFile, saveUploadedFile } from "@/app/api/lib";
-import { getAirportByColumn, updateAirport } from "@/lib/services/airports-service";
+import {
+    getAirportByColumn,
+    updateAirport,
+} from "@/lib/services/airports-service";
 
 type Params = {
     params: Promise<{
@@ -19,16 +22,26 @@ export async function POST(req: Request, { params }: Params) {
     }
 
     try {
-        const url = await saveUploadedFile(file);
+        const airport = await getAirportByColumn("id", id);
 
-        const airport = await updateAirport(Number(id), {
+        if (!airport) {
+            return NextResponse.json(
+                { error: "Авиокомпанията не съществува" },
+                { status: 404 },
+            );
+        }
+
+        const customFilename = `${airport.name}-${airport.slug}-${id}.webp`;
+        const url = await saveUploadedFile(file, true, customFilename);
+
+        const airportUpdated = await updateAirport(Number(id), {
             image_url: url,
         });
 
         return NextResponse.json({
             success: true,
             url,
-            airport,
+            airport: airportUpdated,
         });
     } catch (err: any) {
         console.error(err);

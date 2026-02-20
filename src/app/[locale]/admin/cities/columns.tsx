@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { City, Country } from "@/lib/types";
 import { createDragHandleColumn } from "@/components/data-table";
+import ImageUpload from "@/components/image-upload";
 
 export type CityWithCountry = City & {
     country?: Country;
@@ -52,38 +53,23 @@ export const columns: ColumnDef<CityWithCountry>[] = [
         meta: { label: "Изображение" },
         header: "Изображение",
         cell: ({ row }) => {
-            const country = row.original;
-            const [imageLoading, setImageLoading] = useState(true);
-
-            if (!country.image_url) {
-                return (
-                    <div className="w-24 h-16 flex items-center justify-center text-sm rounded">
-                        N/A
-                    </div>
-                );
-            }
+            const city = row.original;
 
             return (
-                <div className="relative w-30 h-20 rounded-lg overflow-hidden border">
-                    {imageLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center z-10">
-                            <span className="h-6 w-6 animate-spin rounded-full border-2 border-t-blue-500" />
-                        </div>
-                    )}
-
-                    <Link href={`/admin/cities/${country.id}`}>
-                        <Image
-                            src={country.image_url}
-                            alt={country.name as string}
-                            fill
-                            className={`w-full h-full object-cover transition-opacity duration-500 ${
-                                imageLoading ? "opacity-0" : "opacity-100"
-                            }`}
-                            onLoad={() => setImageLoading(false)}
-                            onError={() => setImageLoading(false)}
-                            unoptimized
+                <div className="flex flex-col gap-2 min-w-30">
+                    <div className="w-full max-w-50 origin-top">
+                        <ImageUpload
+                            aspectRatioClassName="h-28"
+                            image_url={city.image_url || ""}
+                            href={`/admin/cities/${city.id}`}
+                            deleteimage_url={`/api/cities/${city.id}/upload`}
+                            url={`/api/cities/${city.id}/upload`}
+                            onUploadSuccess={(newUrl: string) => {
+                                city.image_url = newUrl;
+                            }}
+                            className="m-0"
                         />
-                    </Link>
+                    </div>
                 </div>
             );
         },
@@ -179,9 +165,7 @@ export const columns: ColumnDef<CityWithCountry>[] = [
 
             const handleDelete = async () => {
                 try {
-                    const res = await axios.delete(
-                        `/api/cities/${country.id}`,
-                    );
+                    const res = await axios.delete(`/api/cities/${country.id}`);
 
                     if (res.data.success) {
                         router.refresh();

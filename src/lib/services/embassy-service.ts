@@ -36,7 +36,7 @@ export async function createEmbassy(
 }
 
 type GetEmbassiesOptions = {
-    column?: "id" | "slug" | "country_id" | "name"; // позволени колони
+    column?: "id" | "slug" | "country_id" | "name";
     value?: string | number;
 };
 
@@ -78,6 +78,8 @@ export async function getEmbassies(
     if (options?.column && options.value !== undefined) {
         sql += ` WHERE e.${options.column} = ?`;
         params.push(options.value);
+    } else {
+        sql += ` ORDER BY e.sort_order`;
     }
 
     const [rows] = await getDb().query<any[]>(sql, params);

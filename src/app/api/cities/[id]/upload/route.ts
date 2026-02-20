@@ -19,16 +19,26 @@ export async function POST(req: Request, { params }: Params) {
     }
 
     try {
-        const url = await saveUploadedFile(file);
+        const city = await getCityByColumn("id", id);
 
-        const country = await updateCity(Number(id), {
+        if (!city) {
+            return NextResponse.json(
+                { error: "Градът не съществува" },
+                { status: 404 },
+            );
+        }
+
+        const customFilename = `${city.name}-${city.slug}-${id}.webp`;
+        const url = await saveUploadedFile(file, true, customFilename);
+
+        const cityUpdated = await updateCity(Number(id), {
             image_url: url,
         });
 
         return NextResponse.json({
             success: true,
             url,
-            country,
+            city: cityUpdated,
         });
     } catch (err: any) {
         console.error(err);

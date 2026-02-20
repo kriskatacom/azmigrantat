@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { deleteUploadedFile, saveUploadedFile } from "@/app/api/lib";
-import { getCountryByColumn, updateCountry } from "@/lib/services/country-service";
+import {
+    getCountryByColumn,
+    updateCountry,
+} from "@/lib/services/country-service";
 
 type Params = {
     params: Promise<{
@@ -19,16 +22,26 @@ export async function POST(req: Request, { params }: Params) {
     }
 
     try {
-        const url = await saveUploadedFile(file);
+        const country = await getCountryByColumn("id", id);
 
-        const country = await updateCountry(Number(id), {
+        if (!country) {
+            return NextResponse.json(
+                { error: "Държавата не съществува" },
+                { status: 404 },
+            );
+        }
+
+        const customFilename = `${country.name}-${country.slug}-${id}.webp`;
+        const url = await saveUploadedFile(file, true, customFilename);
+
+        const countryUpdated = await updateCountry(Number(id), {
             image_url: url,
         });
 
         return NextResponse.json({
             success: true,
             url,
-            country,
+            country: countryUpdated,
         });
     } catch (err: any) {
         console.error(err);

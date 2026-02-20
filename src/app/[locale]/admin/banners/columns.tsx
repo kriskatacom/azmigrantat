@@ -6,8 +6,6 @@ import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
-import Image from "next/image";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -20,6 +18,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Banner } from "@/lib/types";
 import { createDragHandleColumn } from "@/components/data-table";
+import ImageUpload from "@/components/image-upload";
 
 export const columns: ColumnDef<Banner>[] = [
     createDragHandleColumn<Banner>(),
@@ -49,37 +48,22 @@ export const columns: ColumnDef<Banner>[] = [
         header: "Изображение",
         cell: ({ row }) => {
             const banner = row.original;
-            const [imageLoading, setImageLoading] = useState(true);
-
-            if (!banner.image) {
-                return (
-                    <div className="w-24 h-16 flex items-center justify-center text-sm rounded">
-                        N/A
-                    </div>
-                );
-            }
 
             return (
-                <div className="relative w-30 h-20 rounded-lg overflow-hidden border">
-                    {imageLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center z-10">
-                            <span className="h-6 w-6 animate-spin rounded-full border-2 border-t-blue-500" />
-                        </div>
-                    )}
-
-                    <Link href={`/admin/banners/${banner.id}`}>
-                        <Image
-                            src={banner.image}
-                            alt={banner.name as string}
-                            fill
-                            className={`w-full h-full object-cover transition-opacity duration-500 ${
-                                imageLoading ? "opacity-0" : "opacity-100"
-                            }`}
-                            onLoad={() => setImageLoading(false)}
-                            onError={() => setImageLoading(false)}
-                            unoptimized
+                <div className="flex flex-col gap-2 min-w-30">
+                    <div className="w-full max-w-50 origin-top">
+                        <ImageUpload
+                            aspectRatioClassName="h-28"
+                            image_url={banner.image || ""}
+                            href={`/admin/banners/${banner.id}`}
+                            deleteimage_url={`/api/banners/${banner.id}/upload`}
+                            url={`/api/banners/${banner.id}/upload`}
+                            onUploadSuccess={(newUrl: string) => {
+                                banner.image = newUrl;
+                            }}
+                            className="m-0"
                         />
-                    </Link>
+                    </div>
                 </div>
             );
         },
@@ -150,9 +134,7 @@ export const columns: ColumnDef<Banner>[] = [
 
             const handleDelete = async () => {
                 try {
-                    const res = await axios.delete(
-                        `/api/banners/${banner.id}`,
-                    );
+                    const res = await axios.delete(`/api/banners/${banner.id}`);
 
                     if (res.data.success) {
                         router.refresh();
@@ -189,7 +171,11 @@ export const columns: ColumnDef<Banner>[] = [
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                     onClick={() =>
-                                        window.open(banner.link as string, "_blank", "noopener,noreferrer")
+                                        window.open(
+                                            banner.link as string,
+                                            "_blank",
+                                            "noopener,noreferrer",
+                                        )
                                     }
                                 >
                                     Преглед

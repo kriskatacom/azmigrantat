@@ -22,16 +22,26 @@ export async function POST(req: Request, { params }: Params) {
     }
 
     try {
-        const url = await saveUploadedFile(file);
+        const municipality = await getMunicipalityByColumn("id", id);
 
-        const municipality = await updateMunicipality(Number(id), {
+        if (!municipality) {
+            return NextResponse.json(
+                { error: "Общината не съществува" },
+                { status: 404 },
+            );
+        }
+
+        const customFilename = `${municipality.name}-${municipality.slug}-${id}.webp`;
+        const url = await saveUploadedFile(file, true, customFilename);
+
+        const municipalityUpdated = await updateMunicipality(Number(id), {
             image_url: url,
         });
 
         return NextResponse.json({
             success: true,
             url,
-            municipality,
+            municipality: municipalityUpdated,
         });
     } catch (err: any) {
         console.error(err);

@@ -22,16 +22,26 @@ export async function POST(req: Request, { params }: Params) {
     }
 
     try {
-        const url = await saveUploadedFile(file);
+        const embassy = await getEmbassyByColumn("id", id);
 
-        const embassy = await updateEmbassy(Number(id), {
+        if (!embassy) {
+            return NextResponse.json(
+                { error: "Посолството не съществува" },
+                { status: 404 },
+            );
+        }
+
+        const customFilename = `${embassy.name}-${embassy.slug}-${id}.webp`;
+        const url = await saveUploadedFile(file, true, customFilename);
+
+        const embassyUpdated = await updateEmbassy(Number(id), {
             image_url: url,
         });
 
         return NextResponse.json({
             success: true,
             url,
-            embassy,
+            embassy: embassyUpdated,
         });
     } catch (err: any) {
         console.error(err);

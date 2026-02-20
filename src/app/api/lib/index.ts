@@ -60,7 +60,11 @@ export function generateSlug(name: string) {
         .replace(/--+/g, "-");
 }
 
-export async function saveUploadedFile(file: File, byDate: boolean = true) {
+export async function saveUploadedFile(
+    file: File, 
+    byDate: boolean = true, 
+    customFileName?: string // Добавяме параметър за желано име
+) {
     if (!file) throw new Error("Няма файл");
 
     const bytes = await file.arrayBuffer();
@@ -80,23 +84,26 @@ export async function saveUploadedFile(file: File, byDate: boolean = true) {
     // Създаваме директорията, ако не съществува
     await fsPromises.mkdir(uploadDir, { recursive: true });
 
-    const ext = path.extname(file.name);
-    const baseName = path.parse(file.name).name;
+    // Определяме базовото име и разширението
+    // Ако има customFileName, използваме него. Ако не, взимаме името на самия файл.
+    const originalName = customFileName || file.name;
+    const ext = path.extname(originalName);
+    const baseName = path.parse(originalName).name;
 
     let fileName = `${baseName}${ext}`;
     let filePath = path.join(uploadDir, fileName);
 
-    // 👇 проверка за съществуващ файл и добавяне на -1, -2 и т.н.
+    // 👇 Проверка за съществуващ файл и добавяне на инкрементален суфикс
     let counter = 1;
     while (true) {
         try {
-            await fsPromises.access(filePath); // проверява дали файлът съществува
-            // Ако съществува, генерираме ново име
+            await fsPromises.access(filePath);
+            // Ако файлът съществува (не е хвърлена грешка), променяме името
             fileName = `${baseName}-${counter}${ext}`;
             filePath = path.join(uploadDir, fileName);
             counter++;
         } catch {
-            // Ако файлът не съществува, можем да го използваме
+            // Ако fsPromises.access хвърли грешка, значи файлът НЕ съществува и името е свободно
             break;
         }
     }

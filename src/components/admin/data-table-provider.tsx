@@ -65,6 +65,8 @@ export default function DataTableProvider<TData extends Identifiable>({
                 throw new Error();
             }
 
+            router.refresh();
+
             toast.success("Редът е запазен успешно.");
         } catch (error) {
             console.error(error);

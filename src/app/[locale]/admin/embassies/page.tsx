@@ -1,7 +1,6 @@
 import { Metadata } from "next";
 import { websiteName } from "@/lib/utils";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
-import ClientPage from "@/app/[locale]/admin/embassies/client-page";
 import { Country } from "@/lib/types";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { getEmbassies } from "@/lib/services/embassy-service";
@@ -60,7 +59,6 @@ export default async function Embassies({ searchParams }: EmbassyProps) {
                 tableName="embassies"
                 onBulkDeleteLink="/api/embassies/bulk-delete"
             />
-            <ClientPage data={embassies} />
         </main>
     );
 }

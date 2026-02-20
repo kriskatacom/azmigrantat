@@ -80,6 +80,7 @@ import {
 import { RiDragMove2Fill } from "react-icons/ri";
 import { useSidebar } from "./main-sidebar/sidebar-context";
 import { cn } from "@/lib/utils";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 type Identifiable = {
     id: string | number;
@@ -176,13 +177,8 @@ export function DataTable<TData extends Identifiable>({
     const [mounted, setMounted] = React.useState(false);
     React.useEffect(() => setMounted(true), []);
 
-    const [internalData, setInternalData] = React.useState<TData[]>(data);
-
-    // Sync internal data with prop changes
-    React.useEffect(() => {
-        setInternalData(data);
-    }, [data]);
-
+    const [internalData, setInternalData] = React.useState<TData[]>(() => data);
+    
     // DnD sensors
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -225,10 +221,27 @@ export function DataTable<TData extends Identifiable>({
     const [rowSelection, setRowSelection] = React.useState({});
     const [globalFilter, setGlobalFilter] = React.useState("");
 
-    const [pagination, setPagination] = React.useState({
-        pageIndex: 0,
-        pageSize: 10,
-    });
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+
+    // Вземаме текущите стойности от URL
+    const pageIndexFromUrl = Math.max(
+        0,
+        Number(searchParams.get("page") ?? 1) - 1,
+    );
+    const pageSizeFromUrl = Number(searchParams.get("limit") ?? 10);
+
+    const [pageIndex, setPageIndex] = React.useState(pageIndexFromUrl);
+    const [pageSize, setPageSize] = React.useState(pageSizeFromUrl);
+
+    // Инициализация само при mount
+    React.useEffect(() => {
+        setPageIndex(pageIndexFromUrl);
+        setPageSize(pageSizeFromUrl);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const [isDeleting, setIsDeleting] = React.useState(false);
 
     const searchableColumns = React.useMemo(
@@ -257,19 +270,35 @@ export function DataTable<TData extends Identifiable>({
         [searchableColumns],
     );
 
+    const handlePaginationChange = React.useCallback(
+        (newPageIndex: number, newPageSize?: number) => {
+            const params = new URLSearchParams(window.location.search);
+            params.set("page", String(newPageIndex + 1)); // +1 за URL
+            if (newPageSize !== undefined) {
+                params.set("limit", String(newPageSize));
+            }
+
+            router.push(`${pathname}?${params.toString()}`, { scroll: false });
+
+            setPageIndex(newPageIndex);
+            if (newPageSize !== undefined) setPageSize(newPageSize);
+        },
+        [pathname, router],
+    );
+
     const table = useReactTable({
-        data: internalData,
+        data,
         columns,
         getRowId: (row) => String(row.id),
         state: {
+            pagination: { pageIndex, pageSize },
             sorting,
             columnFilters,
             columnVisibility,
             rowSelection,
             globalFilter,
-            pagination,
         },
-        onPaginationChange: setPagination,
+        manualPagination: false, // оставяме TanStack да управлява slice на данните
         getCoreRowModel: getCoreRowModel(),
         getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
@@ -393,7 +422,12 @@ export function DataTable<TData extends Identifiable>({
                 onDragEnd={handleDragEnd}
                 modifiers={[restrictToVerticalAxis]}
             >
-                <div className={cn(collapsed ? "max-w-[100vw]" : "max-w-[81.5vw]", "duration-300 bg-background overflow-auto rounded-md border")}>
+                <div
+                    className={cn(
+                        collapsed ? "max-w-[100vw]" : "max-w-[81.5vw]",
+                        "duration-300 bg-background overflow-auto rounded-md border",
+                    )}
+                >
                     <Table>
                         <TableHeader>
                             {table.getHeaderGroups().map((headerGroup) => (
@@ -469,13 +503,10 @@ export function DataTable<TData extends Identifiable>({
                         {/* Лява страна */}
                         <div className="flex items-center gap-3 text-sm text-muted-foreground">
                             <Select
-                                value={String(
-                                    table.getState().pagination.pageSize,
-                                )}
-                                onValueChange={(value: string) => {
-                                    table.setPageSize(Number(value));
-                                    table.setPageIndex(0);
-                                }}
+                                value={String(pageSize)}
+                                onValueChange={(value: string) =>
+                                    handlePaginationChange(0, Number(value))
+                                }
                             >
                                 <SelectTrigger className="w-30">
                                     <SelectValue />
@@ -495,14 +526,11 @@ export function DataTable<TData extends Identifiable>({
                     </div>
 
                     <div className="flex items-center space-x-1">
+                        {/* Първа страница */}
                         <Button
-                            variant="outline"
-                            size="lg"
-                            onClick={() => {
-                                table.setPageIndex(0);
-                                window.scrollTo({ top: 0, behavior: "smooth" });
-                            }}
-                            disabled={!table.getCanPreviousPage()}
+                            onClick={() => handlePaginationChange(0)}
+                            disabled={pageIndex === 0}
+                            size="xl"
                         >
                             Първа
                         </Button>
@@ -512,29 +540,22 @@ export function DataTable<TData extends Identifiable>({
                             <Button
                                 key={page}
                                 variant={
-                                    page === currentPage ? "default" : "outline"
+                                    page === pageIndex ? "default" : "outline"
                                 }
-                                size="lg"
-                                onClick={() => {
-                                    table.setPageIndex(page);
-                                    window.scrollTo({
-                                        top: 0,
-                                        behavior: "smooth",
-                                    });
-                                }}
+                                size="xl"
+                                onClick={() => handlePaginationChange(page)}
                             >
                                 {page + 1}
                             </Button>
                         ))}
 
+                        {/* Последна страница */}
                         <Button
-                            variant="outline"
-                            size="lg"
-                            onClick={() => {
-                                table.setPageIndex(pageCount - 1);
-                                window.scrollTo({ top: 0, behavior: "smooth" });
-                            }}
-                            disabled={!table.getCanNextPage()}
+                            onClick={() =>
+                                handlePaginationChange(pageCount - 1)
+                            }
+                            disabled={pageIndex === pageCount - 1}
+                            size="xl"
                         >
                             Последна
                         </Button>

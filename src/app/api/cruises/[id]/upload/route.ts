@@ -19,16 +19,26 @@ export async function POST(req: Request, { params }: Params) {
     }
 
     try {
-        const url = await saveUploadedFile(file);
+        const cruise = await getCruiseByColumn("id", id);
 
-        const cruise = await updateCruise(Number(id), {
+        if (!cruise) {
+            return NextResponse.json(
+                { error: "Круизът не съществува" },
+                { status: 404 },
+            );
+        }
+
+        const customFilename = `${cruise.name}-${cruise.slug}-${id}.webp`;
+        const url = await saveUploadedFile(file, true, customFilename);
+
+        const cruiseUpdated = await updateCruise(Number(id), {
             image_url: url,
         });
 
         return NextResponse.json({
             success: true,
             url,
-            cruise,
+            cruise: cruiseUpdated,
         });
     } catch (err: any) {
         console.error(err);

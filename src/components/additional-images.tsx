@@ -2,18 +2,20 @@
 
 import { useState, useRef, DragEvent } from "react";
 import axios from "axios";
-import Image from "next/image";
 import { Button } from "./ui/button";
 import { Loader2 } from "lucide-react";
 import { FaSave, FaTimes } from "react-icons/fa";
 import { cn } from "@/lib/utils";
 import { CircleProgress } from "@/components/circle-progress";
 import { ALLOWED_IMAGE_TYPES } from "@/lib/constants";
+import AppImage from "./AppImage";
 
 type Props = {
     image_urls?: string[];
     url: string;
     isWithBaseName?: boolean;
+    galleryGridClass?: string;
+    containerClass?: string;
     onUploadSuccess?: (urls: string[]) => void;
     onDeleteSuccess?: (urls: string[]) => void;
 };
@@ -22,25 +24,24 @@ export default function ModernImageUpload({
     image_urls = [],
     url,
     isWithBaseName,
+    galleryGridClass = "grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4",
+    containerClass = "space-y-5 px-5",
     onUploadSuccess,
     onDeleteSuccess,
 }: Props) {
     const [images, setImages] = useState<string[]>(image_urls);
     const [files, setFiles] = useState<File[]>([]);
-    const [progresses, setProgresses] = useState<number[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [imageLoading, setImageLoading] = useState<boolean[]>(
-        image_urls.map(() => true),
-    );
+    const [progress, setProgress] = useState<number>(0);
+    const [isUploading, setIsUploading] = useState(false);
+    const [deletingUrl, setDeletingUrl] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
+
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // 📁 Избор на файлове
+    // 📁 Добавяне на файлове
     const handleFiles = (selectedFiles: File[]) => {
         if (!selectedFiles.length) return;
         setFiles((prev) => [...prev, ...selectedFiles]);
-        setProgresses((prev) => [...prev, ...selectedFiles.map(() => 0)]);
-        setImageLoading((prev) => [...prev, ...selectedFiles.map(() => true)]);
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -48,12 +49,14 @@ export default function ModernImageUpload({
         handleFiles(selected);
     };
 
-    // 🖱 Drag & Drop handlers
+    // 🖱 Drag & Drop
     const handleDragOver = (e: DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         setIsDragging(true);
     };
+
     const handleDragLeave = () => setIsDragging(false);
+
     const handleDrop = (e: DragEvent<HTMLDivElement>) => {
         e.preventDefault();
         setIsDragging(false);
@@ -64,7 +67,10 @@ export default function ModernImageUpload({
     // ☁️ Upload
     const upload = async () => {
         if (!files.length) return;
-        setLoading(true);
+
+        setIsUploading(true);
+        setProgress(0);
+
         const formData = new FormData();
         files.forEach((file) => formData.append("images", file));
 
@@ -80,81 +86,73 @@ export default function ModernImageUpload({
                     const percent = Math.round(
                         (event.loaded * 100) / event.total,
                     );
-                    setProgresses(files.map(() => percent));
+                    setProgress(percent);
                 },
             });
 
             const uploaded: string[] = res.data.urls;
-            setImages((prev) => [...prev, ...uploaded]);
-            onUploadSuccess?.([...images, ...uploaded]);
+
+            setImages((prev) => {
+                const updated = [...prev, ...uploaded];
+                onUploadSuccess?.(updated);
+                return updated;
+            });
+
             setFiles([]);
-            setProgresses([]);
         } catch (err) {
             console.error("Upload error:", err);
         } finally {
-            setLoading(false);
+            setIsUploading(false);
+            setProgress(0);
         }
     };
 
     // ❌ Remove image
-    const removeImage = async (imgUrl: string, idx: number) => {
-        setLoading(true);
+    const removeImage = async (imgUrl: string) => {
+        setDeletingUrl(imgUrl);
+
         try {
-            await axios.delete(`${url}?image_url=${encodeURIComponent(imgUrl)}`);
-            const updated = images.filter((i) => i !== imgUrl);
-            setImages(updated);
-            setImageLoading((prev) => prev.filter((_, i) => i !== idx));
-            onDeleteSuccess?.(updated);
+            await axios.delete(
+                `${url}?image_url=${encodeURIComponent(imgUrl)}`,
+            );
+
+            setImages((prev) => {
+                const updated = prev.filter((i) => i !== imgUrl);
+                onDeleteSuccess?.(updated);
+                return updated;
+            });
         } catch (err) {
             console.error("Delete error:", err);
         } finally {
-            setLoading(false);
+            setDeletingUrl(null);
         }
     };
 
     return (
-        <div className="space-y-5 px-5">
+        <div className={containerClass}>
             {/* Image gallery */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className={galleryGridClass}>
                 {images.map((imgUrl, idx) => (
                     <div
-                        key={idx}
+                        key={imgUrl}
                         className="relative w-full h-64 rounded-lg overflow-hidden shadow-md group"
                     >
-                        {imageLoading[idx] && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-accent z-10">
-                                <Loader2 className="animate-spin w-8 h-8 text-primary" />
-                            </div>
-                        )}
-
-                        <Image
+                        <AppImage
                             src={imgUrl}
                             alt={`Image ${idx}`}
                             fill
-                            className={cn(
-                                "object-cover transition-opacity duration-500",
-                                imageLoading[idx] ? "opacity-0" : "opacity-100",
-                            )}
-                            onLoad={() =>
-                                setImageLoading((prev) => {
-                                    const copy = [...prev];
-                                    copy[idx] = false;
-                                    return copy;
-                                })
-                            }
-                            unoptimized
+                            className="object-cover w-full h-full"
                         />
 
-                        {/* Delete overlay */}
                         <Button
-                            variant={"secondary"}
-                            size={"lg"}
-                            onClick={() => removeImage(imgUrl, idx)}
-                            disabled={loading}
+                            variant="secondary"
+                            size="lg"
+                            onClick={() => removeImage(imgUrl)}
+                            disabled={!!deletingUrl || isUploading}
                             className="absolute top-5 right-5"
                             title="Премахване на снимката"
                         >
-                            {loading ? (
+                            {deletingUrl === imgUrl ? (
                                 <Loader2 className="animate-spin" />
                             ) : (
                                 <FaTimes />
@@ -169,22 +167,17 @@ export default function ModernImageUpload({
                     </div>
                 )}
 
-                {/* Circular progress */}
-                {progresses.map((p, idx) => (
-                    <div
-                        key={`progress-${idx}`}
-                        className="relative w-full h-64 flex items-center justify-center rounded-lg bg-accent"
-                    >
-                        <CircleProgress value={p} />
-
-                        {/* Percentage label */}
+                {/* Upload progress preview */}
+                {isUploading && (
+                    <div className="relative w-full h-64 flex items-center justify-center rounded-lg bg-accent">
+                        <CircleProgress value={progress} />
                         <span className="absolute text-sm font-medium text-foreground">
-                            {p}%
+                            {progress}%
                         </span>
                     </div>
-                ))}
+                )}
             </div>
-            
+
             {/* Drag & Drop zone */}
             <div
                 onDragOver={handleDragOver}
@@ -221,17 +214,18 @@ export default function ModernImageUpload({
             {/* Upload button */}
             <Button
                 onClick={upload}
-                disabled={loading || files.length === 0}
-                variant={"secondary"}
+                disabled={isUploading || files.length === 0}
+                variant="secondary"
                 size="lg"
+                className="gap-2"
             >
-                {loading ? (
-                    <Loader2 className="repeat-infinite animate-spin" />
+                {isUploading ? (
+                    <Loader2 className="animate-spin" />
                 ) : (
                     <FaSave />
                 )}
                 <span>
-                    {loading ? "Качване..." : "Качване на изображенията"}
+                    {isUploading ? "Качване..." : "Качване на изображенията"}
                 </span>
             </Button>
         </div>

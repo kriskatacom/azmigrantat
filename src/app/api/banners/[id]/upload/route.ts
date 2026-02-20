@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { deleteUploadedFile, saveUploadedFile } from "@/app/api/lib";
 import { getBannerByColumn, updateBanner } from "@/lib/services/banner-service";
+import { slugify } from "@/lib/utils";
 
 type Params = {
     params: Promise<{
@@ -19,16 +20,26 @@ export async function POST(req: Request, { params }: Params) {
     }
 
     try {
-        const url = await saveUploadedFile(file);
+        const banner = await getBannerByColumn("id", id);
 
-        const cruise = await updateBanner(Number(id), {
+        if (!banner) {
+            return NextResponse.json(
+                { error: "Банера не съществува" },
+                { status: 404 },
+            );
+        }
+
+        const customFilename = `${banner.name}-${slugify(banner.name)}-${id}.webp`;
+        const url = await saveUploadedFile(file, true, customFilename);
+
+        const bannerUpdated = await updateBanner(Number(id), {
             image: url,
         });
 
         return NextResponse.json({
             success: true,
             url,
-            cruise,
+            banner: bannerUpdated,
         });
     } catch (err: any) {
         console.error(err);

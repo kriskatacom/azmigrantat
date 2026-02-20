@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { deleteUploadedFile, saveUploadedFile } from "@/app/api/lib";
-import { getAutobusByColumn, updateAutobus } from "@/lib/services/autobus-service";
+import {
+    getAutobusByColumn,
+    updateAutobus,
+} from "@/lib/services/autobus-service";
 
 type Params = {
     params: Promise<{
@@ -19,16 +22,26 @@ export async function POST(req: Request, { params }: Params) {
     }
 
     try {
-        const url = await saveUploadedFile(file);
+        const autobus = await getAutobusByColumn("id", id);
 
-        const autobus = await updateAutobus(Number(id), {
+        if (!autobus) {
+            return NextResponse.json(
+                { error: "Автобусът не съществува" },
+                { status: 404 },
+            );
+        }
+
+        const customFilename = `${autobus.name}-${autobus.slug}-${id}.webp`;
+        const url = await saveUploadedFile(file, true, customFilename);
+
+        const autobusUpdated = await updateAutobus(Number(id), {
             image_url: url,
         });
 
         return NextResponse.json({
             success: true,
             url,
-            autobus,
+            autobus: autobusUpdated,
         });
     } catch (err: any) {
         console.error(err);

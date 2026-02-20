@@ -19,16 +19,26 @@ export async function POST(req: Request, { params }: Params) {
     }
 
     try {
-        const url = await saveUploadedFile(file);
+        const taxi = await getTaxiByColumn("id", id);
 
-        const taxi = await updateTaxi(Number(id), {
+        if (!taxi) {
+            return NextResponse.json(
+                { error: "Таксиметровата компания не съществува" },
+                { status: 404 },
+            );
+        }
+
+        const customFilename = `${taxi.name}-${taxi.slug}-${id}.webp`;
+        const url = await saveUploadedFile(file, true, customFilename);
+
+        const taxiUpdated = await updateTaxi(Number(id), {
             image_url: url,
         });
 
         return NextResponse.json({
             success: true,
             url,
-            taxi,
+            taxi: taxiUpdated,
         });
     } catch (err: any) {
         console.error(err);

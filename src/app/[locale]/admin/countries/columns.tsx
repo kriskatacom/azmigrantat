@@ -1,13 +1,12 @@
 "use client";
 
+import * as React from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
-import Image from "next/image";
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -20,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Country } from "@/lib/types";
 import { createDragHandleColumn } from "@/components/data-table";
+import ImageUpload from "@/components/image-upload";
 
 export const columns: ColumnDef<Country>[] = [
     createDragHandleColumn<Country>(),
@@ -42,49 +42,32 @@ export const columns: ColumnDef<Country>[] = [
         enableSorting: false,
         enableHiding: false,
     },
-
     {
         accessorKey: "image_url",
         meta: { label: "Изображение" },
         header: "Изображение",
         cell: ({ row }) => {
             const country = row.original;
-            const [imageLoading, setImageLoading] = useState(true);
-
-            if (!country.image_url) {
-                return (
-                    <div className="w-24 h-16 flex items-center justify-center text-sm rounded">
-                        N/A
-                    </div>
-                );
-            }
 
             return (
-                <div className="relative w-30 h-20 rounded-lg overflow-hidden border">
-                    {imageLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center z-10">
-                            <span className="h-6 w-6 animate-spin rounded-full border-2 border-t-blue-500" />
-                        </div>
-                    )}
-
-                    <Link href={`/admin/countries/${country.id}`}>
-                        <Image
-                            src={country.image_url}
-                            alt={country.name as string}
-                            fill
-                            className={`w-full h-full object-cover transition-opacity duration-500 ${
-                                imageLoading ? "opacity-0" : "opacity-100"
-                            }`}
-                            onLoad={() => setImageLoading(false)}
-                            onError={() => setImageLoading(false)}
-                            unoptimized
+                <div className="flex flex-col gap-2 min-w-30">
+                    <div className="w-full max-w-50 origin-top">
+                        <ImageUpload
+                            aspectRatioClassName="h-28"
+                            image_url={country.image_url || ""}
+                            href={`/admin/countries/${country.id}`}
+                            url={`/api/countries/${country.id}/upload`}
+                            deleteimage_url={`/api/countries/${country.id}/upload`}
+                            onUploadSuccess={(newUrl: string) => {
+                                country.image_url = newUrl;
+                            }}
+                            className="m-0"
                         />
-                    </Link>
+                    </div>
                 </div>
             );
         },
     },
-
     {
         accessorKey: "name",
         meta: { label: "Име" },
@@ -108,12 +91,9 @@ export const columns: ColumnDef<Country>[] = [
             </Link>
         ),
     },
-
     {
         accessorKey: "created_at",
-        meta: {
-            label: "Създадено",
-        },
+        meta: { label: "Създадено" },
         header: ({ column }) => (
             <button
                 className="flex items-center hover:bg-background duration-300 cursor-pointer w-full px-2 py-1"
@@ -128,7 +108,6 @@ export const columns: ColumnDef<Country>[] = [
         cell: ({ row }) => {
             const value = row.getValue("created_at") as string | null;
             if (!value) return "—";
-
             const date = new Date(value);
             return date.toLocaleDateString("bg-BG", {
                 year: "numeric",
@@ -137,12 +116,9 @@ export const columns: ColumnDef<Country>[] = [
             });
         },
     },
-
     {
         id: "actions",
-        meta: {
-            label: "Опции",
-        },
+        meta: { label: "Опции" },
         header: "Опции",
         cell: ({ row }) => {
             const country = row.original;
@@ -153,21 +129,18 @@ export const columns: ColumnDef<Country>[] = [
                     const res = await axios.delete(
                         `/api/countries/${country.id}`,
                     );
-
                     if (res.data.success) {
                         router.refresh();
                         toast.success("Тази държава беше успешно премахната!");
-                    } else {
-                        if (res.status === 403 && res.data.code === "slug") {
-                            toast.error(res.data.error);
-                        }
+                    } else if (res.status === 403 && res.data.code === "slug") {
+                        toast.error(res.data.error);
                     }
                 } catch (err: any) {
-                    if (err.response) {
+                    if (err.response)
                         toast.error(
                             err.response.data.error || "Грешка при изпращане",
                         );
-                    } else {
+                    else {
                         console.error(err);
                         toast.error("Грешка при изпращане");
                     }
@@ -181,7 +154,6 @@ export const columns: ColumnDef<Country>[] = [
                             <MoreHorizontal />
                         </Button>
                     </DropdownMenuTrigger>
-
                     <DropdownMenuContent align="end" className="w-40">
                         <DropdownMenuLabel>Опции</DropdownMenuLabel>
                         {country?.slug && (
@@ -189,9 +161,7 @@ export const columns: ColumnDef<Country>[] = [
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                     onClick={() =>
-                                        router.push(
-                                            `/${country.slug as string}`,
-                                        )
+                                        router.push(`/${country.slug}`)
                                     }
                                 >
                                     Преглед

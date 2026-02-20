@@ -37,7 +37,10 @@ export async function POST(req: Request, { params }: Params) {
         let currentImages: string[] = [];
         if (Array.isArray(landmark.additional_images)) {
             currentImages = landmark.additional_images;
-        } else if (typeof landmark.additional_images === "string" && landmark.additional_images) {
+        } else if (
+            typeof landmark.additional_images === "string" &&
+            landmark.additional_images
+        ) {
             try {
                 currentImages = JSON.parse(landmark.additional_images);
             } catch {
@@ -48,7 +51,8 @@ export async function POST(req: Request, { params }: Params) {
         // Запазваме всеки файл и събираме URL-тата
         const uploadedUrls: string[] = [];
         for (const file of files) {
-            const url = await saveUploadedFile(file);
+            const customFilename = `${landmark.name}-${landmark.slug}-${id}.webp`;
+            const url = await saveUploadedFile(file, true, customFilename);
             uploadedUrls.push(url);
         }
 

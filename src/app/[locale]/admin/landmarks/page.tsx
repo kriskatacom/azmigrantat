@@ -1,7 +1,6 @@
 import { Metadata } from "next";
 import { websiteName } from "@/lib/utils";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
-import ClientPage from "@/app/[locale]/admin/landmarks/client-page";
 import { Country } from "@/lib/types";
 import { getCountryByColumn } from "@/lib/services/country-service";
 import { getLandmarks } from "@/lib/services/landmark-service";
@@ -11,6 +10,7 @@ import {
     columns,
     LandmarkWithCountry,
 } from "@/app/[locale]/admin/landmarks/columns";
+import LandmarksTable from "./data-table-provider";
 
 export const metadata: Metadata = {
     title: websiteName("Забележителности"),
@@ -54,12 +54,7 @@ export default async function Landmarks({ searchParams }: EmbassyProps) {
         <main className="flex-1">
             <PageHeader title="Забележителности" link="/admin/landmarks/new" />
             <Breadcrumbs items={breadcrumbs} />
-            <DataTableProvider
-                data={landmarks}
-                columns={columns}
-                tableName="landmarks"
-                onBulkDeleteLink="/api/landmarks/bulk-delete"
-            />
+            <LandmarksTable landmarks={landmarks} />
         </main>
     );
 }

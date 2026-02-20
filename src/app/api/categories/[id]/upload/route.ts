@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { deleteUploadedFile, saveUploadedFile } from "@/app/api/lib";
-import { getCategoryByColumn, updateCategory } from "@/lib/services/category-service";
+import {
+    getCategoryByColumn,
+    updateCategory,
+} from "@/lib/services/category-service";
 
 type Params = {
     params: Promise<{
@@ -19,16 +22,26 @@ export async function POST(req: Request, { params }: Params) {
     }
 
     try {
-        const url = await saveUploadedFile(file);
+        const category = await getCategoryByColumn("id", id);
 
-        const country = await updateCategory(Number(id), {
+        if (!category) {
+            return NextResponse.json(
+                { error: "Категорията не съществува" },
+                { status: 404 },
+            );
+        }
+
+        const customFilename = `${category.name}-${category.slug}-${id}.webp`;
+        const url = await saveUploadedFile(file, true, customFilename);
+
+        const categoryUpdated = await updateCategory(Number(id), {
             image_url: url,
         });
 
         return NextResponse.json({
             success: true,
             url,
-            country,
+            category: categoryUpdated,
         });
     } catch (err: any) {
         console.error(err);

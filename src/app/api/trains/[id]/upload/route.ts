@@ -19,16 +19,26 @@ export async function POST(req: Request, { params }: Params) {
     }
 
     try {
-        const url = await saveUploadedFile(file);
+        const train = await getTrainByColumn("id", id);
 
-        const autobus = await updateTrain(Number(id), {
+        if (!train) {
+            return NextResponse.json(
+                { error: "Влакът не съществува" },
+                { status: 404 },
+            );
+        }
+
+        const customFilename = `${train.name}-${train.slug}-${id}.webp`;
+        const url = await saveUploadedFile(file, true, customFilename);
+
+        const trainUpdated = await updateTrain(Number(id), {
             image_url: url,
         });
 
         return NextResponse.json({
             success: true,
             url,
-            autobus,
+            train: trainUpdated,
         });
     } catch (err: any) {
         console.error(err);
