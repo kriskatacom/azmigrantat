@@ -100,8 +100,8 @@ export default function GalleryDialog({ allLandmarkIds }: GalleryDialogProps) {
                 ) : currentLandmark ? (
                     <>
                         <DialogHeader>
-                            <DialogTitle className="text-2xl font-bold flex items-center justify-between">
-                                <div>
+                            <DialogTitle className="text-2xl font-bold">
+                                <div className="flex items-center justify-between pr-5">
                                     <span>{currentLandmark.name}</span>
                                     <span className="text-sm font-normal text-muted-foreground">
                                         {currentIndex + 1} / {allIds.length}

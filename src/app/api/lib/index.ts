@@ -1,9 +1,8 @@
 import path from "path";
-import { load } from "cheerio";
 import axios from "axios";
 import fsPromises from "fs/promises";
-import fs from "fs";
 import fsSync from "fs";
+import sharp from "sharp";
 
 export function validatePassword(password: string) {
     const re =
@@ -63,12 +62,18 @@ export function generateSlug(name: string) {
 export async function saveUploadedFile(
     file: File, 
     byDate: boolean = true, 
-    customFileName?: string // Добавяме параметър за желано име
+    customFileName?: string
 ) {
     if (!file) throw new Error("Няма файл");
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
+
+    // Конвертираме буфера към WebP формат чрез sharp
+    // Можеш да добавиш .webp({ quality: 80 }), ако искаш допълнителна компресия
+    const webpBuffer = await sharp(buffer)
+        .webp()
+        .toBuffer();
 
     let uploadDir = path.join(process.cwd(), "public/uploads");
 
@@ -81,36 +86,32 @@ export async function saveUploadedFile(
         uploadDir = path.join(uploadDir, year.toString(), month, day);
     }
 
-    // Създаваме директорията, ако не съществува
     await fsPromises.mkdir(uploadDir, { recursive: true });
 
-    // Определяме базовото име и разширението
-    // Ако има customFileName, използваме него. Ако не, взимаме името на самия файл.
+    // Обработка на името: винаги завършва на .webp
     const originalName = customFileName || file.name;
-    const ext = path.extname(originalName);
     const baseName = path.parse(originalName).name;
+    const ext = ".webp"; 
 
     let fileName = `${baseName}${ext}`;
     let filePath = path.join(uploadDir, fileName);
 
-    // 👇 Проверка за съществуващ файл и добавяне на инкрементален суфикс
+    // Проверка за дублиращи се имена
     let counter = 1;
     while (true) {
         try {
             await fsPromises.access(filePath);
-            // Ако файлът съществува (не е хвърлена грешка), променяме името
             fileName = `${baseName}-${counter}${ext}`;
             filePath = path.join(uploadDir, fileName);
             counter++;
         } catch {
-            // Ако fsPromises.access хвърли грешка, значи файлът НЕ съществува и името е свободно
             break;
         }
     }
 
-    await fsPromises.writeFile(filePath, buffer);
+    // Записваме конвертирания webpBuffer, вместо оригиналния buffer
+    await fsPromises.writeFile(filePath, webpBuffer);
 
-    // Връщаме URL относително към /public
     const relativePath = path
         .relative(path.join(process.cwd(), "public"), filePath)
         .replace(/\\/g, "/");

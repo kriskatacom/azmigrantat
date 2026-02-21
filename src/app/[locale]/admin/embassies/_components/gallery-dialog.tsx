@@ -16,7 +16,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 
-import { Embassy } from "@/lib/types";
+import { Country, Embassy } from "@/lib/types";
 import { useGalleryDialogEmbassyStore } from "../_stores/gallery-dialog-store";
 import { getEmbassyByIdAction } from "../_actions";
 
@@ -28,6 +28,7 @@ export default function GalleryDialog({ allEmbassyIds }: GalleryDialogProps) {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [currentEmbassy, setCurrentEmbassy] = useState<Embassy | null>(null);
+    const [currentCountry, setCurrentCountry] = useState<Country | null>(null);
 
     const { isOpen, activeId, onClose, allIds, setActiveId, setAllIds } =
         useGalleryDialogEmbassyStore();
@@ -38,8 +39,9 @@ export default function GalleryDialog({ allEmbassyIds }: GalleryDialogProps) {
         setLoading(true);
         try {
             const response = await getEmbassyByIdAction(id);
-            if (response.data) {
-                setCurrentEmbassy(response.data);
+            if (response.embassy) {
+                setCurrentEmbassy(response.embassy);
+                setCurrentCountry(response.country);
             }
         } catch (error) {
             console.error("Error fetching embassy:", error);
@@ -98,14 +100,20 @@ export default function GalleryDialog({ allEmbassyIds }: GalleryDialogProps) {
                 ) : currentEmbassy ? (
                     <>
                         <DialogHeader>
-                            <DialogTitle className="text-2xl font-bold flex items-center justify-between">
-                                <div>
-                                    <span>{currentEmbassy.name}</span>
+                            <DialogTitle className="text-2xl font-bold">
+                                <div className="flex items-center justify-between pr-5">
+                                    <span>
+                                        {currentEmbassy.heading ??
+                                            currentEmbassy.name}
+                                    </span>
                                     <span className="text-sm font-normal text-muted-foreground">
                                         {currentIndex + 1} / {allIds.length}
                                     </span>
                                 </div>
                             </DialogTitle>
+                            <div>
+                                <strong>Държава</strong>: {currentCountry?.name || "-"}
+                            </div>
                             <DialogDescription>
                                 Управлявайте основното изображение и галерията.
                                 Използвайте стрелките (← →) за навигация.
@@ -123,8 +131,8 @@ export default function GalleryDialog({ allEmbassyIds }: GalleryDialogProps) {
                                         image_url={
                                             currentEmbassy.image_url || ""
                                         }
-                                        url={`/api/landmarks/${currentEmbassy.id}/upload`}
-                                        deleteimage_url={`/api/landmarks/${currentEmbassy.id}/upload`}
+                                        url={`/api/embassies/${currentEmbassy.id}/upload`}
+                                        deleteimage_url={`/api/embassies/${currentEmbassy.id}/upload`}
                                         onUploadSuccess={handleUploadSuccess}
                                         className="m-0"
                                     />
@@ -141,8 +149,8 @@ export default function GalleryDialog({ allEmbassyIds }: GalleryDialogProps) {
                                             image_url={
                                                 currentEmbassy.logo || ""
                                             }
-                                            url={`/api/landmarks/${currentEmbassy.id}/upload`}
-                                            deleteimage_url={`/api/landmarks/${currentEmbassy.id}/upload`}
+                                            url={`/api/embassies/${currentEmbassy.id}/logo-upload`}
+                                            deleteimage_url={`/api/embassies/${currentEmbassy.id}/logo-upload`}
                                             onUploadSuccess={
                                                 handleUploadSuccess
                                             }
@@ -158,10 +166,11 @@ export default function GalleryDialog({ allEmbassyIds }: GalleryDialogProps) {
                                         <ImageUpload
                                             aspectRatioClassName="h-80"
                                             image_url={
-                                                currentEmbassy.right_heading_image || ""
+                                                currentEmbassy.right_heading_image ||
+                                                ""
                                             }
-                                            url={`/api/landmarks/${currentEmbassy.id}/upload`}
-                                            deleteimage_url={`/api/landmarks/${currentEmbassy.id}/upload`}
+                                            url={`/api/embassies/${currentEmbassy.id}/right-heading-image-upload`}
+                                            deleteimage_url={`/api/embassies/${currentEmbassy.id}/right-heading-image-upload`}
                                             onUploadSuccess={
                                                 handleUploadSuccess
                                             }
@@ -207,7 +216,7 @@ export default function GalleryDialog({ allEmbassyIds }: GalleryDialogProps) {
                                 size={"xl"}
                                 onClick={() =>
                                     router.push(
-                                        `/admin/landmarks/${currentEmbassy.id}`,
+                                        `/admin/embassies/${currentEmbassy.id}`,
                                     )
                                 }
                                 className="w-full sm:w-auto"

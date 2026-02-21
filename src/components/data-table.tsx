@@ -93,7 +93,7 @@ declare module "@tanstack/react-table" {
 }
 
 type DataTableProps<TData extends Identifiable> = {
-    columns: ColumnDef<TData, any>[] | ColumnDef<any>[];
+    columns: ColumnDef<TData, any>[];
     data: TData[];
     onBulkDelete?: (ids: Array<string | number>) => Promise<void>;
     onReorder?: (reorderedData: TData[]) => void;
@@ -178,7 +178,7 @@ export function DataTable<TData extends Identifiable>({
     React.useEffect(() => setMounted(true), []);
 
     const [internalData, setInternalData] = React.useState<TData[]>(() => data);
-    
+
     // DnD sensors
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -258,16 +258,17 @@ export function DataTable<TData extends Identifiable>({
     );
 
     const globalSearchFilter = React.useCallback(
-        (row: any, _: string, value: string) => {
-            const search = String(value).toLowerCase();
-            return searchableColumns.some((columnId: any) => {
-                const cellValue = row.getValue(columnId);
-                return String(cellValue ?? "")
-                    .toLowerCase()
-                    .includes(search);
+        (row: Row<TData>, columnId: string, filterValue: string) => {
+            const searchValue = filterValue.toLowerCase();
+
+            return row.getAllCells().some((cell) => {
+                const value = cell.getValue();
+                if (value === null || value === undefined) return false;
+
+                return String(value).toLowerCase().includes(searchValue);
             });
         },
-        [searchableColumns],
+        [],
     );
 
     const handlePaginationChange = React.useCallback(
@@ -300,14 +301,14 @@ export function DataTable<TData extends Identifiable>({
         },
         manualPagination: false, // оставяме TanStack да управлява slice на данните
         getCoreRowModel: getCoreRowModel(),
-        getPaginationRowModel: getPaginationRowModel(),
         getSortedRowModel: getSortedRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
         onSortingChange: setSorting,
         onColumnFiltersChange: setColumnFilters,
         onColumnVisibilityChange: setColumnVisibility,
+        getFilteredRowModel: getFilteredRowModel(),
         onRowSelectionChange: setRowSelection,
         onGlobalFilterChange: setGlobalFilter,
+        getPaginationRowModel: getPaginationRowModel(),
         globalFilterFn: globalSearchFilter,
     });
 
@@ -358,8 +359,13 @@ export function DataTable<TData extends Identifiable>({
                 {/* Търсене */}
                 <Input
                     placeholder="Търсене..."
-                    value={globalFilter}
-                    onChange={(e) => setGlobalFilter(e.target.value)}
+                    value={globalFilter ?? ""}
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        setGlobalFilter(value);
+                        // Рестартираме до първа страница в URL и стейта
+                        handlePaginationChange(0);
+                    }}
                     className="max-w-md"
                 />
 
@@ -548,7 +554,10 @@ export function DataTable<TData extends Identifiable>({
                                 size="xl"
                                 onClick={() => {
                                     handlePaginationChange(page);
-                                    window.scrollTo({ top: 0, behavior: "smooth" });
+                                    window.scrollTo({
+                                        top: 0,
+                                        behavior: "smooth",
+                                    });
                                 }}
                             >
                                 {page + 1}

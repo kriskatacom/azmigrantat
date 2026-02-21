@@ -1,5 +1,6 @@
 "use server";
 
+import { getCountryByColumn } from "@/lib/services/country-service";
 import { getEmbassyByColumn } from "@/lib/services/embassy-service";
 
 export async function getEmbassyByIdAction(id: number) {
@@ -14,7 +15,9 @@ export async function getEmbassyByIdAction(id: number) {
             return { error: "Обектът не е намерен" };
         }
 
-        return { data: embassy };
+        const country = await getCountryByColumn("id", embassy.country_id!);
+
+        return { embassy, country };
     } catch (error) {
         console.error("[GET_EMBASSY_ERROR]", error);
         return { error: "Възникна грешка при извличане на данните" };

@@ -106,6 +106,30 @@ export const columns: ColumnDef<EmbassyWithCountry>[] = [
     },
 
     {
+        accessorKey: "heading",
+        meta: { label: "Заглавие" },
+        header: ({ column }) => (
+            <button
+                className="flex items-center hover:bg-background duration-300 cursor-pointer w-full px-2 py-1"
+                onClick={() =>
+                    column.toggleSorting(column.getIsSorted() === "asc")
+                }
+            >
+                <span>Заглавие</span>
+                <ArrowUpDown className="ml-2 h-4 w-4" />
+            </button>
+        ),
+        cell: ({ row }) => (
+            <Link
+                href={`/admin/embassies/${row.original.id}`}
+                className="hover:underline"
+            >
+                {row.getValue("heading")}
+            </Link>
+        ),
+    },
+
+    {
         id: "country",
         accessorFn: (row) => row.country?.name,
         meta: { label: "Държава" },
