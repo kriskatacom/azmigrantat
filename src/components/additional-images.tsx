@@ -128,14 +128,24 @@ export default function ModernImageUpload({
         }
     };
 
+    const isSingleImage = images.length === 1 && !isUploading;
+
     return (
         <div className={containerClass}>
-            {/* Image gallery */}
-            <div className={galleryGridClass}>
+            <div
+                className={cn(
+                    galleryGridClass,
+                    isSingleImage &&
+                        "grid-cols-1 md:grid-cols-1 lg:grid-cols-1 xl:grid-cols-1",
+                )}
+            >
                 {images.map((imgUrl, idx) => (
                     <div
                         key={imgUrl}
-                        className="relative w-full h-64 rounded-lg overflow-hidden shadow-md group"
+                        className={cn(
+                            "relative w-full rounded-lg overflow-hidden shadow-md group transition-all duration-300",
+                            isSingleImage ? "h-125" : "h-64",
+                        )}
                     >
                         <AppImage
                             src={imgUrl}
@@ -145,11 +155,11 @@ export default function ModernImageUpload({
                         />
 
                         <Button
-                            variant="secondary"
+                            variant="default"
                             size="lg"
                             onClick={() => removeImage(imgUrl)}
                             disabled={!!deletingUrl || isUploading}
-                            className="absolute top-5 right-5"
+                            className="absolute top-2 right-2"
                             title="Премахване на снимката"
                         >
                             {deletingUrl === imgUrl ? (

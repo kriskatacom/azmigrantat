@@ -3,7 +3,12 @@
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import {
+    ArrowUpDown,
+    ChevronLeft,
+    ChevronRight,
+    MoreHorizontal,
+} from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -37,7 +42,6 @@ export type LandmarkWithCountry = Landmark & {
     country?: Country;
 };
 
-// --- Поддържащ компонент за клетката с изображение ---
 function ImageCell({
     currentLandmark,
     allLandmarks,
@@ -47,7 +51,6 @@ function ImageCell({
 }) {
     const router = useRouter();
 
-    // Намираме първоначалния индекс
     const initialIndex = useMemo(
         () => allLandmarks.findIndex((l) => l.id === currentLandmark.id),
         [currentLandmark.id, allLandmarks],
@@ -55,22 +58,18 @@ function ImageCell({
 
     const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
-    // Синхронизация, ако списъкът се промени отвън
     useEffect(() => {
         setCurrentIndex(initialIndex);
     }, [initialIndex]);
 
-    // Функция, която се вика при отваряне/затваряне на диалога
     const handleOpenChange = (open: boolean) => {
         if (!open) {
-            // Когато диалогът се затвори, връщаме индекса към първоначалния
             setCurrentIndex(initialIndex);
         }
     };
 
     const activeLandmark = allLandmarks[currentIndex] || currentLandmark;
 
-    // Безопасно парсване на допълнителни изображения
     const additionalImages = useMemo(() => {
         try {
             return activeLandmark.additional_images
@@ -84,7 +83,6 @@ function ImageCell({
 
     const handleUploadSuccess = () => {
         toast.success("Изображението е обновено!");
-        router.refresh();
     };
 
     const goToPrev = () =>
@@ -117,7 +115,13 @@ function ImageCell({
                     </div>
                 </DialogTrigger>
 
-                <DialogContent className="max-w-4xl p-5 rounded-2xl shadow-2xl bg-white border-none">
+                <DialogContent
+                    onKeyDown={(e) => {
+                        if (e.key === "ArrowRight") goToNext();
+                        if (e.key === "ArrowLeft") goToPrev();
+                    }}
+                    className="max-w-4xl p-5 rounded-2xl shadow-2xl bg-white border-none"
+                >
                     <DialogHeader>
                         <DialogTitle className="text-2xl font-bold">
                             {activeLandmark.name}
@@ -159,30 +163,30 @@ function ImageCell({
                             <Button
                                 variant="outline"
                                 onClick={goToPrev}
+                                size={"xl"}
                                 disabled={currentIndex === 0}
                             >
-                                ← Предишна
+                                <ChevronLeft />
                             </Button>
                             <Button
                                 variant="outline"
                                 onClick={goToNext}
+                                size={"xl"}
                                 disabled={
                                     currentIndex === allLandmarks.length - 1
                                 }
                             >
-                                Следваща →
+                                <ChevronRight />
                             </Button>
                         </div>
                         <div className="flex gap-3">
-                            <DialogClose asChild>
-                                <Button variant="ghost">Отказ</Button>
-                            </DialogClose>
                             <Button
                                 onClick={() =>
                                     router.push(
                                         `/admin/landmarks/${activeLandmark.id}`,
                                     )
                                 }
+                                size={"xl"}
                             >
                                 Пълен редактор
                             </Button>
@@ -194,7 +198,6 @@ function ImageCell({
     );
 }
 
-// --- Поддържащ компонент за действията в реда (Actions) ---
 function ActionCell({ landmark }: { landmark: LandmarkWithCountry }) {
     const router = useRouter();
 
@@ -257,7 +260,6 @@ function ActionCell({ landmark }: { landmark: LandmarkWithCountry }) {
     );
 }
 
-// --- Дефиниция на колоните ---
 export const columns = (
     allLandmarks: LandmarkWithCountry[],
 ): ColumnDef<LandmarkWithCountry>[] => [

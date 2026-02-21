@@ -7,8 +7,7 @@ import { FaTimes } from "react-icons/fa";
 import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import AppImage from "./AppImage";
-import { useRouter } from "next/navigation";
+import AppImage from "@/components/AppImage";
 
 export type AdditionalFormData = {
     name: string;
@@ -38,13 +37,13 @@ export default function ImageUpload({
     className = "mx-5",
     aspectRatioClassName = "h-80",
 }: Props) {
-    const router = useRouter();
     const [progress, setProgress] = useState(0);
     const [file, setFile] = useState<File | null>(null);
     const [image, setImage] = useState<string | null>(image_url || null);
     const [loading, setLoading] = useState(false);
     const [imageLoading, setImageLoading] = useState(true);
     const [isShow, setIsShow] = useState(!image_url);
+    const [isDragging, setIsDragging] = useState(false);
 
     useEffect(() => {
         if (image) setImageLoading(true);
@@ -57,6 +56,11 @@ export default function ImageUpload({
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0] || null;
+        processFile(selectedFile);
+    };
+
+    // Обща функция за обработка на избран или пуснат файл
+    const processFile = (selectedFile: File | null) => {
         if (!selectedFile) return;
 
         setFile(selectedFile);
@@ -67,6 +71,26 @@ export default function ImageUpload({
         setTimeout(() => {
             upload(selectedFile);
         }, 100);
+    };
+
+    // Drag-and-drop handlers
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = () => {
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+
+        const droppedFile = e.dataTransfer.files?.[0] || null;
+        if (droppedFile && droppedFile.type.startsWith("image/")) {
+            processFile(droppedFile);
+        }
     };
 
     const upload = async (fileToUpload?: File) => {
@@ -95,8 +119,6 @@ export default function ImageUpload({
             setImage(newUrl);
             setIsShow(false);
 
-            router.refresh();
-
             onUploadSuccess && onUploadSuccess(newUrl);
         } catch (err) {
             console.error("Upload error:", err);
@@ -117,7 +139,6 @@ export default function ImageUpload({
             );
 
             await axios.delete(deleteimage_url ?? url, { data: dataToSend });
-            router.refresh();
             onDeleteSuccess && onDeleteSuccess();
         } catch (err) {
             console.error("Грешка при изтриване на снимката", err);
@@ -200,12 +221,18 @@ export default function ImageUpload({
             {isShow && (
                 <>
                     <label
+                        onDragOver={handleDragOver}
+                        onDragLeave={handleDragLeave}
+                        onDrop={handleDrop}
                         className={cn(
                             "flex flex-col items-center justify-center border-2 border-dashed rounded-lg cursor-pointer transition-colors",
+                            isDragging
+                                ? "border-primary bg-primary/10"
+                                : "border-muted-foreground/25",
                             aspectRatioClassName,
                         )}
                     >
-                        <span className="text-muted-foreground text-center text-wrap">
+                        <span className="text-muted-foreground text-center text-wrap px-4">
                             {file
                                 ? file.name
                                 : "Изберете изображение или го пуснете в тази секция."}

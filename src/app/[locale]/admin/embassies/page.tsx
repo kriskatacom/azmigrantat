@@ -10,6 +10,7 @@ import {
     columns,
     EmbassyWithCountry,
 } from "@/app/[locale]/admin/embassies/columns";
+import EmbassiesTable from "./data-table-provider";
 
 export const metadata: Metadata = {
     title: websiteName("Посолства"),
@@ -53,12 +54,7 @@ export default async function Embassies({ searchParams }: EmbassyProps) {
         <main className="flex-1">
             <PageHeader title="Посолства" link="/admin/embassies/new" />
             <Breadcrumbs items={breadcrumbs} />
-            <DataTableProvider
-                data={embassies}
-                columns={columns}
-                tableName="embassies"
-                onBulkDeleteLink="/api/embassies/bulk-delete"
-            />
+            <EmbassiesTable embassies={embassies} />
         </main>
     );
 }

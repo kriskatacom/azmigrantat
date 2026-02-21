@@ -3,7 +3,7 @@
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, Pen, SaveIcon } from "lucide-react";
+import { ArrowUpDown, ChevronLeft, ChevronRight, MoreHorizontal, Pen, SaveIcon } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ import { Country, Embassy } from "@/lib/types";
 import { createDragHandleColumn } from "@/components/data-table";
 import ImageUpload from "@/components/image-upload";
 import { FaTimes } from "react-icons/fa";
+import { useEffect, useMemo, useState } from "react";
 
 export type EmbassyWithCountry = Embassy & {
     country?: Country;
@@ -39,25 +40,58 @@ type Props = {
     embassy: Embassy;
 };
 
-function ImageCell({ embassy }: Props) {
+function ImageCell({
+    currentEmbassy,
+    allEmbassies,
+}: {
+    currentEmbassy: EmbassyWithCountry;
+    allEmbassies: EmbassyWithCountry[];
+}) {
     const router = useRouter();
+
+    const initialIndex = useMemo(
+        () => allEmbassies.findIndex((l) => l.id === currentEmbassy.id),
+        [currentEmbassy.id, allEmbassies],
+    );
+
+    const [currentIndex, setCurrentIndex] = useState(initialIndex);
+
+    useEffect(() => {
+        setCurrentIndex(initialIndex);
+    }, [initialIndex]);
+
+    // Дефинираме активния обект на базата на индекса
+    const activeLandmark = allEmbassies[currentIndex] || currentEmbassy;
+
+    const handleUploadSuccess = (newUrl: string, field: string) => {
+        // Обновяваме локално обекта в масива, за да се отрази веднага в UI
+        (activeLandmark as any)[field] = newUrl;
+        toast.success("Изображението е обновено!");
+        router.refresh();
+    };
+
+    const goToPrev = () =>
+        currentIndex > 0 && setCurrentIndex((prev) => prev - 1);
+    const goToNext = () =>
+        currentIndex < allEmbassies.length - 1 &&
+        setCurrentIndex((prev) => prev + 1);
 
     return (
         <div className="flex items-start">
-            <Dialog>
-                {/* Trigger: Основно изображение */}
+            <Dialog
+                onOpenChange={(open) => !open && setCurrentIndex(initialIndex)}
+            >
                 <DialogTrigger asChild>
                     <div className="group relative w-40 h-28 cursor-pointer rounded-xl overflow-hidden shadow-sm border border-border hover:shadow-md transition-all duration-300">
                         <ImageUpload
                             aspectRatioClassName="h-28"
-                            image_url={embassy.image_url || ""}
-                            url={`/api/embassies/${embassy.id}/upload`}
+                            image_url={currentEmbassy.image_url || ""}
+                            url={`/api/embassies/${currentEmbassy.id}/upload`}
                             onUploadSuccess={(newUrl: string) => {
-                                embassy.image_url = newUrl;
+                                currentEmbassy.image_url = newUrl;
                             }}
                             className="m-0 transition-transform duration-500 group-hover:scale-105"
                         />
-                        {/* Overlay индикатор за редакция */}
                         <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
                             <span className="text-white text-xs font-medium bg-website-dark px-2 py-1 rounded-full backdrop-blur-sm">
                                 Още опции
@@ -66,100 +100,117 @@ function ImageCell({ embassy }: Props) {
                     </div>
                 </DialogTrigger>
 
-                {/* Dialog Content */}
                 <DialogContent className="max-w-4xl p-6 rounded-2xl shadow-2xl bg-white border-none">
                     <DialogHeader>
                         <DialogTitle className="text-2xl font-bold tracking-tight text-foreground">
-                            Управление на изображения
+                            {/* Добавихме името на текущото посолство за яснота */}
+                            Управление на: {activeLandmark.name}
                         </DialogTitle>
                         <DialogDescription className="text-muted-foreground text-sm mt-1">
-                            Тук можете да качите предното изображение, логото на
-                            посолството и заглавното изображение, което се
-                            появява в дясната част.
+                            Тук можете да качите основното изображение, логото и
+                            заглавното изображение.
                         </DialogDescription>
                     </DialogHeader>
 
-                    {/* Предно изображение - голямо */}
-                    <div className="w-full mt-4 space-y-2">
-                        <label className="text-xs font-bold uppercase text-muted-foreground ml-1">
-                            Предно изображение
-                        </label>
-                        <div className="w-full h-96 rounded-lg overflow-hidden border-2 border-dashed border-muted hover:border-primary/50 transition-colors bg-muted/30">
-                            <ImageUpload
-                                aspectRatioClassName="h-96"
-                                image_url={embassy.image_url || ""}
-                                url={`/api/embassies/${embassy.id}/upload`}
-                                deleteimage_url={`/api/embassies/${embassy.id}/upload`}
-                                onUploadSuccess={(newUrl: string) => {
-                                    embassy.image_url = newUrl;
-                                }}
-                                className="m-0"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Две допълнителни изображения */}
-                    <div className="grid grid-cols-2 gap-5 mt-6">
-                        {/* Лого */}
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">
-                                Изображение от ляво на заглавието
+                    {/* Добавяме ключ (key), който зависи от activeLandmark.id. 
+                        Това кара React да рендерира чисто нови ImageUpload компоненти при смяна на посолството. */}
+                    <div className="space-y-6" key={activeLandmark.id}>
+                        <div className="w-full mt-4 space-y-2">
+                            <label className="text-xs font-bold uppercase text-muted-foreground ml-1">
+                                Предно изображение
                             </label>
-                            <div className="h-40 rounded-lg overflow-hidden border-2 border-dashed border-muted hover:border-primary/50 transition-colors bg-muted/30">
+                            <div className="w-full h-96 rounded-lg overflow-hidden border-2 border-dashed border-muted hover:border-primary/50 transition-colors bg-muted/30">
                                 <ImageUpload
-                                    aspectRatioClassName="h-40"
-                                    image_url={embassy.logo || ""}
-                                    url={`/api/embassies/${embassy.id}/upload`}
-                                    deleteimage_url={`/api/embassies/${embassy.id}/upload`}
-                                    onUploadSuccess={(newUrl: string) => {
-                                        embassy.logo = newUrl;
-                                    }}
-                                    className="m-0"
-                                />
-                            </div>
-                        </div>
-
-                        {/* Десен хедър */}
-                        <div className="space-y-2">
-                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">
-                                Изображение от дясно на заглавието
-                            </label>
-                            <div className="h-40 rounded-lg overflow-hidden border-2 border-dashed border-muted hover:border-primary/50 transition-colors bg-muted/30">
-                                <ImageUpload
-                                    aspectRatioClassName="h-40"
-                                    image_url={
-                                        embassy.right_heading_image || ""
+                                    aspectRatioClassName="h-96"
+                                    image_url={activeLandmark.image_url || ""}
+                                    url={`/api/embassies/${activeLandmark.id}/upload`}
+                                    deleteimage_url={`/api/embassies/${activeLandmark.id}/upload`}
+                                    onUploadSuccess={(newUrl: string) =>
+                                        handleUploadSuccess(newUrl, "image_url")
                                     }
-                                    url={`/api/embassies/${embassy.id}/upload`}
-                                    deleteimage_url={`/api/embassies/${embassy.id}/upload`}
-                                    onUploadSuccess={(newUrl: string) => {
-                                        embassy.right_heading_image = newUrl;
-                                    }}
                                     className="m-0"
                                 />
                             </div>
                         </div>
+
+                        <div className="grid grid-cols-2 gap-5 mt-6">
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">
+                                    Лого (ляво)
+                                </label>
+                                <div className="h-40 rounded-lg overflow-hidden border-2 border-dashed border-muted hover:border-primary/50 transition-colors bg-muted/30">
+                                    <ImageUpload
+                                        aspectRatioClassName="h-40"
+                                        image_url={activeLandmark.logo || ""}
+                                        url={`/api/embassies/${activeLandmark.id}/upload`}
+                                        deleteimage_url={`/api/embassies/${activeLandmark.id}/upload`}
+                                        onUploadSuccess={(newUrl: string) =>
+                                            handleUploadSuccess(newUrl, "logo")
+                                        }
+                                        className="m-0"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">
+                                    Заглавно изображение (дясно)
+                                </label>
+                                <div className="h-40 rounded-lg overflow-hidden border-2 border-dashed border-muted hover:border-primary/50 transition-colors bg-muted/30">
+                                    <ImageUpload
+                                        aspectRatioClassName="h-40"
+                                        image_url={
+                                            activeLandmark.right_heading_image ||
+                                            ""
+                                        }
+                                        url={`/api/embassies/${activeLandmark.id}/upload`}
+                                        deleteimage_url={`/api/embassies/${activeLandmark.id}/upload`}
+                                        onUploadSuccess={(newUrl: string) =>
+                                            handleUploadSuccess(
+                                                newUrl,
+                                                "right_heading_image",
+                                            )
+                                        }
+                                        className="m-0"
+                                    />
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Footer */}
-                    <DialogFooter className="mt-6 flex justify-end gap-3">
-                        <DialogClose asChild>
-                            <Button variant="outline" size="lg">
-                                <FaTimes className="mr-2" /> Отказ
-                            </Button>
-                        </DialogClose>
-                        <DialogClose asChild>
+                    <DialogFooter className="mt-6 flex flex-col sm:flex-row justify-between gap-3">
+                        <div className="flex gap-2">
                             <Button
-                                size="lg"
-                                onClick={() =>
-                                    router.push(
-                                        `/admin/embassies/${embassy.id}`,
-                                    )
+                                variant="outline"
+                                onClick={goToPrev}
+                                size={"xl"}
+                                disabled={currentIndex === 0}
+                            >
+                                <ChevronLeft />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={goToNext}
+                                size={"xl"}
+                                disabled={
+                                    currentIndex === allEmbassies.length - 1
                                 }
                             >
-                                <Pen className="mr-2" /> Редактиране
+                                <ChevronRight />
                             </Button>
-                        </DialogClose>
+                        </div>
+                        <div className="flex gap-3">
+                            <Button
+                                onClick={() =>
+                                    router.push(
+                                        `/admin/embassies/${activeLandmark.id}`,
+                                    )
+                                }
+                                size={"xl"}
+                            >
+                                Пълен редактор
+                            </Button>
+                        </div>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
@@ -167,7 +218,9 @@ function ImageCell({ embassy }: Props) {
     );
 }
 
-export const columns: ColumnDef<EmbassyWithCountry>[] = [
+export const columns = (
+    allEmbassies: EmbassyWithCountry[],
+): ColumnDef<EmbassyWithCountry>[] => [
     createDragHandleColumn<EmbassyWithCountry>(),
     {
         id: "select",
@@ -191,9 +244,13 @@ export const columns: ColumnDef<EmbassyWithCountry>[] = [
 
     {
         accessorKey: "image_url",
-        meta: { label: "Изображение" },
         header: "Изображение",
-        cell: ({ row }) => <ImageCell embassy={row.original} />,
+        cell: ({ row }) => (
+            <ImageCell
+                currentEmbassy={row.original}
+                allEmbassies={allEmbassies}
+            />
+        ),
     },
 
     {

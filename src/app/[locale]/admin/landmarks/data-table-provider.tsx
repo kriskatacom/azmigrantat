@@ -1,4 +1,3 @@
-// components/admin/landmarks-table.tsx
 "use client";
 
 import DataTableProvider from "@/components/admin/data-table-provider";
@@ -12,7 +11,6 @@ export default function LandmarksTable({
 }: {
     landmarks: LandmarkWithCountry[];
 }) {
-    // columns вече имат достъп до landmarks
     const columns = baseColumns(landmarks);
 
     return (

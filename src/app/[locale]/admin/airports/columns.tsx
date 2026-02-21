@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Airport } from "@/lib/types";
 import { createDragHandleColumn } from "@/components/data-table";
+import ImageUpload from "@/components/image-upload";
 
 export const columns: ColumnDef<Airport>[] = [
     createDragHandleColumn<Airport>(),
@@ -49,37 +50,22 @@ export const columns: ColumnDef<Airport>[] = [
         header: "Изображение",
         cell: ({ row }) => {
             const airport = row.original;
-            const [imageLoading, setImageLoading] = useState(true);
-
-            if (!airport.image_url) {
-                return (
-                    <div className="w-24 h-16 flex items-center justify-center text-sm rounded">
-                        N/A
-                    </div>
-                );
-            }
 
             return (
-                <div className="relative w-30 h-20 rounded-lg overflow-hidden border">
-                    {imageLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center z-10">
-                            <span className="h-6 w-6 animate-spin rounded-full border-2 border-t-blue-500" />
-                        </div>
-                    )}
-
-                    <Link href={`/admin/airports/${airport.id}`}>
-                        <Image
-                            src={airport.image_url}
-                            alt={airport.name as string}
-                            fill
-                            className={`w-full h-full object-cover transition-opacity duration-500 ${
-                                imageLoading ? "opacity-0" : "opacity-100"
-                            }`}
-                            onLoad={() => setImageLoading(false)}
-                            onError={() => setImageLoading(false)}
-                            unoptimized
+                <div className="flex flex-col gap-2 min-w-30">
+                    <div className="w-full max-w-50 origin-top">
+                        <ImageUpload
+                            aspectRatioClassName="h-28"
+                            image_url={airport.image_url || ""}
+                            href={`/admin/airports/${airport.id}`}
+                            url={`/api/airports/${airport.id}/upload`}
+                            deleteimage_url={`/api/airports/${airport.id}/upload`}
+                            onUploadSuccess={(newUrl: string) => {
+                                airport.image_url = newUrl;
+                            }}
+                            className="m-0"
                         />
-                    </Link>
+                    </div>
                 </div>
             );
         },

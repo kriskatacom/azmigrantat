@@ -528,9 +528,12 @@ export function DataTable<TData extends Identifiable>({
                     <div className="flex items-center space-x-1">
                         {/* Първа страница */}
                         <Button
-                            onClick={() => handlePaginationChange(0)}
                             disabled={pageIndex === 0}
                             size="xl"
+                            onClick={() => {
+                                handlePaginationChange(0);
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
                         >
                             Първа
                         </Button>
@@ -543,7 +546,10 @@ export function DataTable<TData extends Identifiable>({
                                     page === pageIndex ? "default" : "outline"
                                 }
                                 size="xl"
-                                onClick={() => handlePaginationChange(page)}
+                                onClick={() => {
+                                    handlePaginationChange(page);
+                                    window.scrollTo({ top: 0, behavior: "smooth" });
+                                }}
                             >
                                 {page + 1}
                             </Button>
@@ -551,11 +557,12 @@ export function DataTable<TData extends Identifiable>({
 
                         {/* Последна страница */}
                         <Button
-                            onClick={() =>
-                                handlePaginationChange(pageCount - 1)
-                            }
-                            disabled={pageIndex === pageCount - 1}
                             size="xl"
+                            disabled={pageIndex === pageCount - 1}
+                            onClick={() => {
+                                handlePaginationChange(pageCount - 1);
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                            }}
                         >
                             Последна
                         </Button>
