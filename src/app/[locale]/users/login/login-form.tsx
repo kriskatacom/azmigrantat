@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Eye, EyeOff, Loader2, Mail, Lock, AlertCircle } from "lucide-react"; // Икони
 
 import {
     Form,
@@ -16,7 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils"; // Помощна функция за класове
 
 import { loginSchema, LoginFormValues } from "@/app/[locale]/users/schema";
 import { loginAction } from "@/app/[locale]/users/actions";
@@ -25,6 +26,7 @@ export function LoginForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [isLoading, setIsLoading] = useState<boolean>(false);
+    const [showPassword, setShowPassword] = useState<boolean>(false);
     const [errorMessage, setErrorMessage] = useState<string>("");
 
     const form = useForm<LoginFormValues>({
@@ -37,90 +39,101 @@ export function LoginForm() {
 
     async function onSubmit(values: LoginFormValues) {
         setIsLoading(true);
+        setErrorMessage("");
 
         try {
             const data = await loginAction(values);
 
             if (data.error) {
                 setErrorMessage(data.error);
-                return toast.error(data.error);
+                setIsLoading(false);
+                return;
             }
 
             const redirectUrl = searchParams.get("redirect");
-            const safeRedirect = redirectUrl && redirectUrl.startsWith("/") ? redirectUrl : "/";
+            const safeRedirect =
+                redirectUrl && redirectUrl.startsWith("/") ? redirectUrl : "/";
 
-            toast.success("Успешно влизане в профила!");
+            toast.success("Добре дошли отново!");
             router.push(safeRedirect);
         } catch (error: any) {
-            console.log(error);
-            toast.error("Грешка при влизане в профила");
+            setErrorMessage("Възникна неочаквана грешка. Моля, опитайте пак.");
             setIsLoading(false);
         }
     }
 
     return (
-        <Card className="w-full max-w-lg mx-auto my-5 md:my-10">
-            <CardHeader>
-                <CardTitle className="md:text-2xl text-center">
-                    Влизане в профила
-                </CardTitle>
-            </CardHeader>
+        <div className="w-full space-y-5">
+            {errorMessage && (
+                <div className="flex items-center gap-2 p-3 text-sm font-medium text-red-500 border border-red-500/20 bg-red-500/10 rounded-lg animate-in fade-in zoom-in duration-200">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>{errorMessage}</span>
+                </div>
+            )}
 
-            <CardContent className="space-y-5">
-                {errorMessage && (
-                    <div className="text-base text-center text-red-600">
-                        {errorMessage}
-                    </div>
-                )}
+            <Form {...form}>
+                <form
+                    onSubmit={form.handleSubmit(onSubmit)}
+                    className="text-white space-y-4"
+                >
+                    <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Email</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        type="email"
+                                        placeholder="ivan@example.com"
+                                        {...field}
+                                        className="border-2 border-gray-700"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
 
-                <Form {...form}>
-                    <form
-                        onSubmit={form.handleSubmit(onSubmit)}
-                        className="space-y-4"
+                    <FormField
+                        control={form.control}
+                        name="password"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Парола</FormLabel>
+                                <FormControl>
+                                    <Input
+                                        type="password"
+                                        {...field}
+                                        className="border-2 border-gray-700"
+                                        placeholder="******"
+                                    />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+
+                    <Button
+                        type="submit"
+                        className={cn(
+                            "w-full h-12 text-base font-semibold transition-all duration-200 shadow-lg",
+                            "bg-website-dark hover:bg-website-menu-item active:scale-[0.98]",
+                            "shadow-emerald-500/20 hover:shadow-emerald-500/30",
+                        )}
+                        disabled={isLoading}
                     >
-                        <FormField
-                            control={form.control}
-                            name="email"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Email</FormLabel>
-                                    <FormControl>
-                                        <Input
-                                            type="email"
-                                            placeholder="ivan@example.com"
-                                            {...field}
-                                        />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <FormField
-                            control={form.control}
-                            name="password"
-                            render={({ field }) => (
-                                <FormItem>
-                                    <FormLabel>Парола</FormLabel>
-                                    <FormControl>
-                                        <Input type="password" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                </FormItem>
-                            )}
-                        />
-
-                        <Button
-                            type="submit"
-                            className="w-full"
-                            size={"xl"}
-                            disabled={isLoading}
-                        >
-                            {isLoading ? "Създаване..." : "Влизане"}
-                        </Button>
-                    </form>
-                </Form>
-            </CardContent>
-        </Card>
+                        {isLoading ? (
+                            <div className="flex items-center gap-2">
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <span>Проверка...</span>
+                            </div>
+                        ) : (
+                            "Влизане в профила"
+                        )}
+                    </Button>
+                </form>
+            </Form>
+        </div>
     );
 }

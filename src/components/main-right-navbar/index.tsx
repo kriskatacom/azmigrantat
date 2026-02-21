@@ -2,12 +2,11 @@
 
 import { usePathname, Link } from "@/i18n/navigation";
 import { useTranslations, useLocale } from "next-intl";
-import { IoIosSearch } from "react-icons/io";
-import { iconLargeSize } from "@/lib/constants";
 import LanguageSwitcher from "@/components/main-right-navbar/language-switcher";
 import MainRightSidebar from "@/components/main-right-navbar/main-right-sidebar";
-import UserButton from "@/components/main-right-navbar/user-button";
+import { ProfileMenuItems } from "@/components/main-right-navbar/profile-menu-items";
 import { User } from "@/lib/services/user-service";
+import UserButton from "./user-button";
 
 type MainNavbarProps = {
     user?: User;
@@ -30,7 +29,7 @@ export const MainNavbar = ({ user }: MainNavbarProps) => {
     // Check if we're on the homepage (locale root)
     // next-intl's usePathname returns pathname without locale prefix
     const isHomePage = pathname === "/";
-    
+
     if (isHomePage)
         return (
             <div className="absolute top-0 left-0 w-full z-50">
@@ -44,7 +43,7 @@ export const MainNavbar = ({ user }: MainNavbarProps) => {
                     </Link>
                     <ul className="flex items-center gap-2">
                         <li>
-                            <UserButton user={user!} />
+                            <UserButton user={user ?? null} />
                         </li>
                         <li>
                             <MainRightSidebar />
@@ -98,7 +97,7 @@ export const MainNavbar = ({ user }: MainNavbarProps) => {
                 </Link>
                 <ul className="flex items-center">
                     <li>
-                        <UserButton user={user!} />
+                        <UserButton user={user ?? null} />
                     </li>
                     <li>
                         <MainRightSidebar />

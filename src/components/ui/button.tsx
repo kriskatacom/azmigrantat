@@ -1,7 +1,6 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
-
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
@@ -9,8 +8,7 @@ const buttonVariants = cva(
     {
         variants: {
             variant: {
-                default:
-                    "text-white bg-primary hover:bg-primary/90",
+                default: "text-white bg-primary hover:bg-primary/90",
                 destructive:
                     "bg-destructive text-white hover:bg-destructive/80",
                 outline:
@@ -38,27 +36,41 @@ const buttonVariants = cva(
     },
 );
 
-function Button({
-    className,
-    variant = "default",
-    size = "default",
-    asChild = false,
-    ...props
-}: React.ComponentProps<"button"> &
-    VariantProps<typeof buttonVariants> & {
-        asChild?: boolean;
-    }) {
-    const Comp = asChild ? Slot : "button";
-
-    return (
-        <Comp
-            data-slot="button"
-            data-variant={variant}
-            data-size={size}
-            className={cn(buttonVariants({ variant, size, className }))}
-            {...props}
-        />
-    );
+export interface ButtonProps
+    extends
+        React.ButtonHTMLAttributes<HTMLButtonElement>,
+        VariantProps<typeof buttonVariants> {
+    asChild?: boolean;
 }
+
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+    (
+        {
+            className,
+            variant = "default",
+            size = "default",
+            asChild = false,
+            type = "button",
+            ...props
+        },
+        ref,
+    ) => {
+        const Comp = asChild ? Slot : "button";
+
+        return (
+            <Comp
+                ref={ref}
+                type={asChild ? undefined : type}
+                data-slot="button"
+                data-variant={variant}
+                data-size={size}
+                className={cn(buttonVariants({ variant, size }), className)}
+                {...props}
+            />
+        );
+    },
+);
+
+Button.displayName = "Button";
 
 export { Button, buttonVariants };
