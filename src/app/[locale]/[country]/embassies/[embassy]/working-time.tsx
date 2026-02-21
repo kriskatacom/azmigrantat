@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { MdPunchClock } from "react-icons/md";
 import {
     Dialog,
     DialogContent,
@@ -9,7 +10,6 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog";
 import { Embassy } from "@/lib/types";
-import { MdPunchClock } from "react-icons/md";
 
 type Props = {
     embassy: Embassy;
@@ -35,9 +35,11 @@ export default function WorkingTime({ embassy }: Props) {
                         </div>
                     </DialogTrigger>
 
-                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <DialogContent className="p-5 max-w-2xl max-h-[80vh] overflow-y-auto">
                         <DialogHeader>
-                            <DialogTitle>{embassy.name}</DialogTitle>
+                            <DialogTitle className="text-left md:text-center text-xl font-semibold">
+                                Работно време
+                            </DialogTitle>
                         </DialogHeader>
 
                         <div

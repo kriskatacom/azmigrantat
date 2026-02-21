@@ -10,7 +10,7 @@ import {
     columns,
     LandmarkWithCountry,
 } from "@/app/[locale]/admin/landmarks/columns";
-import LandmarksTable from "./data-table-provider";
+import GalleryDialog from "./_components/gallery-dialog";
 
 export const metadata: Metadata = {
     title: websiteName("Забележителности"),
@@ -50,11 +50,22 @@ export default async function Landmarks({ searchParams }: EmbassyProps) {
         landmarks = await getLandmarks();
     }
 
+    const allLandmarkIds = landmarks.map((l) => l.id);
+
     return (
         <main className="flex-1">
             <PageHeader title="Забележителности" link="/admin/landmarks/new" />
             <Breadcrumbs items={breadcrumbs} />
-            <LandmarksTable landmarks={landmarks} />
+
+            <DataTableProvider
+                key={countrySlug || "all"}
+                data={landmarks}
+                columns={columns}
+                tableName="landmarks"
+                onBulkDeleteLink="/api/landmarks/bulk-delete"
+            />
+
+            <GalleryDialog allLandmarkIds={allLandmarkIds} />
         </main>
     );
 }

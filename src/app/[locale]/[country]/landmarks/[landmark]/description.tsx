@@ -1,6 +1,7 @@
 "use client";
 
 import { Landmark } from "@/lib/types";
+import { LiaLandmarkSolid } from "react-icons/lia";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -9,7 +10,6 @@ import {
     DialogTitle,
     DialogTrigger,
 } from "@/components/ui/dialog";
-import { LiaLandmarkSolid } from "react-icons/lia";
 
 type Props = {
     landmark: Landmark;
@@ -39,8 +39,10 @@ export default function Description({ landmark }: Props) {
                 </DialogTrigger>
 
                 <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                    <DialogHeader>
-                        <DialogTitle>{landmark.name}</DialogTitle>
+                    <DialogHeader className="px-5 mt-5">
+                        <DialogTitle className="text-left md:text-center text-xl font-semibold">
+                            {landmark.name}
+                        </DialogTitle>
                     </DialogHeader>
 
                     {hasContent ? (

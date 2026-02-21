@@ -35,9 +35,11 @@ export default function WorkingTime({ landmark }: Props) {
                         </div>
                     </DialogTrigger>
 
-                    <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                    <DialogContent className="p-5 max-w-2xl max-h-[80vh] overflow-y-auto">
                         <DialogHeader>
-                            <DialogTitle>{landmark.name}</DialogTitle>
+                            <DialogTitle className="text-left md:text-center text-xl font-semibold">
+                                Работно време
+                            </DialogTitle>
                         </DialogHeader>
 
                         <div

@@ -10,7 +10,7 @@ import {
     columns,
     EmbassyWithCountry,
 } from "@/app/[locale]/admin/embassies/columns";
-import EmbassiesTable from "./data-table-provider";
+import GalleryDialog from "./_components/gallery-dialog";
 
 export const metadata: Metadata = {
     title: websiteName("Посолства"),
@@ -50,11 +50,22 @@ export default async function Embassies({ searchParams }: EmbassyProps) {
         embassies = await getEmbassies();
     }
 
+    const allEmbassyIds = embassies.map((l) => l.id);
+
     return (
         <main className="flex-1">
             <PageHeader title="Посолства" link="/admin/embassies/new" />
             <Breadcrumbs items={breadcrumbs} />
-            <EmbassiesTable embassies={embassies} />
+
+            <DataTableProvider
+                key={countrySlug || "all"}
+                data={embassies}
+                columns={columns}
+                tableName="landmarks"
+                onBulkDeleteLink="/api/landmarks/bulk-delete"
+            />
+
+            <GalleryDialog allEmbassyIds={allEmbassyIds} />
         </main>
     );
 }
