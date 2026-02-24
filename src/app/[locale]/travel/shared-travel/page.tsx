@@ -5,9 +5,9 @@ import SharedTravelHero from "@/app/[locale]/travel/shared-travel/_components/he
 import { getBannerByColumn } from "@/lib/services/banner-service";
 import SharedTravelSearchForm from "./_components/search-form";
 import { getCities } from "@/lib/services/city-service";
-import DriversGrid from "@/app/[locale]/travel/shared-travel/_components/drivers-grid";
+import DriversSlider from "@/app/[locale]/travel/shared-travel/_components/drivers-slider";
 import Spacer from "@/components/spacer";
-import PostsGrid from "@/app/[locale]/travel/shared-travel/_components/posts-grid";
+import PostsSlider from "@/app/[locale]/travel/shared-travel/_components/posts-slider";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title =
@@ -74,9 +74,9 @@ export default async function SharedTravelPage() {
             {heroBanner && <SharedTravelHero banner={heroBanner} />}
             <SharedTravelSearchForm cities={cities} />
             <Spacer direction="horizontal" size={32} />
-            <PostsGrid />
+            <PostsSlider />
             <Spacer direction="horizontal" size={32} />
-            <DriversGrid />
+            <DriversSlider />
             <Spacer direction="horizontal" size={32} />
         </main>
     );

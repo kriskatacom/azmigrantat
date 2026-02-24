@@ -1,8 +1,8 @@
 "use client";
 
-import * as React from "react";
+import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { Resolver, useForm } from "react-hook-form";
 import { MapPin } from "lucide-react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,14 +36,16 @@ import {
 } from "@/components/ui/command";
 import AppImage from "@/components/AppImage";
 import { CityWithCountry } from "@/app/[locale]/admin/cities/columns";
+import { City } from "@/lib/types";
+import { useRouter } from "next/navigation";
 
 // ====================
 // Validation Schema
 // ====================
 
 const formSchema = z.object({
-    from: z.string().min(2, "Моля въведете поне 2 символа"),
-    to: z.string().min(2, "Моля въведете поне 2 символа"),
+    from: z.string().nullable(),
+    to: z.string().nullable(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -54,31 +56,42 @@ type FormValues = z.infer<typeof formSchema>;
 
 type SharedTravelSearchFormProps = {
     cities: CityWithCountry[];
+    cityFrom?: City | null;
+    cityTo?: City | null;
 };
 
 export default function SharedTravelSearchForm({
     cities,
+    cityFrom,
+    cityTo,
 }: SharedTravelSearchFormProps) {
+    const router = useRouter();
     const form = useForm<FormValues>({
-        resolver: zodResolver(formSchema),
+        resolver: zodResolver(formSchema) as Resolver<FormValues>,
         defaultValues: {
-            from: "",
-            to: "",
+            from: cityFrom?.slug || null,
+            to: cityTo?.slug || null,
         },
     });
 
-    const [cityDialog, setCityDialog] = React.useState<"from" | "to" | null>(
+    const [fromCityName, setFromCityName] = useState(
+        cityFrom?.name ?? "",
+    );
+    const [toCityName, setToCityName] = useState(cityTo?.name ?? "");
+
+    const [cityDialog, setCityDialog] = useState<"from" | "to" | null>(
         null,
     );
 
     function onSubmit(values: FormValues) {
-        console.log("Search payload:", values);
+        console.log("Search payload for URL:", values);
+        router.push(`/travel/shared-travel/drivers?from=${values.from}&to=${values.to}`);
     }
 
-    const [search, setSearch] = React.useState("");
-    const [visibleCount, setVisibleCount] = React.useState(8);
+    const [search, setSearch] = useState("");
+    const [visibleCount, setVisibleCount] = useState(8);
 
-    const filteredCities = React.useMemo(() => {
+    const filteredCities = useMemo(() => {
         if (!search.trim()) return cities;
 
         const query = search.toLowerCase();
@@ -106,7 +119,6 @@ export default function SharedTravelSearchForm({
                         onSubmit={form.handleSubmit(onSubmit)}
                         className="grid grid-cols-1 md:grid-cols-3 gap-5 items-end"
                     >
-                        {/* От къде */}
                         <FormField
                             control={form.control}
                             name="from"
@@ -117,7 +129,7 @@ export default function SharedTravelSearchForm({
                                         <Input
                                             placeholder="Град на тръгване"
                                             className="h-12 cursor-pointer"
-                                            value={field.value}
+                                            value={fromCityName} // <--- показва името
                                             readOnly
                                             onClick={() =>
                                                 setCityDialog("from")
@@ -129,7 +141,6 @@ export default function SharedTravelSearchForm({
                             )}
                         />
 
-                        {/* До къде */}
                         <FormField
                             control={form.control}
                             name="to"
@@ -140,7 +151,7 @@ export default function SharedTravelSearchForm({
                                         <Input
                                             placeholder="Краен град"
                                             className="h-12 cursor-pointer"
-                                            value={field.value}
+                                            value={toCityName} // <--- показва името
                                             readOnly
                                             onClick={() => setCityDialog("to")}
                                         />
@@ -201,9 +212,13 @@ export default function SharedTravelSearchForm({
                                         onSelect={() => {
                                             if (cityDialog) {
                                                 form.setValue(
-                                                    cityDialog as any,
-                                                    city.name,
+                                                    cityDialog as "from" | "to",
+                                                    city.slug ?? "",
                                                 );
+                                                if (cityDialog === "from")
+                                                    setFromCityName(city.name ?? "");
+                                                if (cityDialog === "to")
+                                                    setToCityName(city.name ?? "");
                                             }
                                             setCityDialog(null);
                                             setSearch("");

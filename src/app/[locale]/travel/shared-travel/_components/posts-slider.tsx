@@ -22,7 +22,7 @@ export interface Post {
     verified?: boolean;
 }
 
-export default function PostsGrid() {
+export default function PostsSlider() {
     const posts: Post[] = [
         {
             id: 1,
