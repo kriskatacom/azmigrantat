@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import { websiteName } from "@/lib/utils";
-import Container from "@/components/entrepreneurs/container";
 import { BreadcrumbItem, Breadcrumbs } from "@/components/admin-breadcrumbs";
 import DataTableProvider from "@/components/admin/data-table-provider";
 import { getCompanies } from "@/lib/services/companies-service";

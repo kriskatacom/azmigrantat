@@ -15,12 +15,14 @@ import { getCountryByColumn } from "@/lib/services/country-service";
 import CustomHeader from "@/app/[locale]/[country]/cities/[city]/companies/[company]/custom-header";
 import SectionCard from "@/app/[locale]/[country]/cities/[city]/companies/[company]/section-card";
 import Map from "@/components/map";
-import { absoluteUrl, websiteName } from "@/lib/utils";
+import { absoluteUrl, cn, websiteName } from "@/lib/utils";
 import { UserService } from "@/lib/services/user-service";
 import { Ad, Banner, Offer } from "@/lib/types";
 import SectionCardSwiper from "./section-card-swiper";
 import { AdService } from "@/lib/services/ad-service";
 import { OfferService } from "@/lib/services/offer-service";
+import AppImage from "@/components/AppImage";
+import FacebookPageEmbed from "@/components/show-facebook-page";
 
 type PageProps = {
     params: Promise<{
@@ -190,7 +192,15 @@ export default async function CompanyPage({ params }: PageProps) {
     }));
 
     return (
-        <main className="">
+        <main>
+            {category.companies_background_url && (
+                <img
+                    src={category.companies_background_url}
+                    alt="Company backgrond"
+                    className="fixed top-0 left-0 w-full h-full object-cover -z-10"
+                />
+            )}
+
             <MainNavbar user={user} />
             <PageHeader title={company.name} breadcrumbs={breadcrumbs} />
             <CustomHeader
@@ -201,14 +211,26 @@ export default async function CompanyPage({ params }: PageProps) {
             <div className="w-full md:container md:mx-auto relative md:grid md:grid-cols-2 md:gap-5 md:max-md:p-5">
                 {adsSlides.length > 0 ? (
                     <div>
-                        <h2 className="text-2xl font-semibold text-center mb-1">
+                        <h2
+                            className={cn(
+                                category.companies_background_url &&
+                                    "text-white",
+                                "text-2xl font-semibold text-center mb-1",
+                            )}
+                        >
                             Реклами
                         </h2>
                         <SectionCardSwiper items={adsSlides} />
                     </div>
                 ) : (
                     <div>
-                        <h2 className="text-2xl font-semibold text-center mb-1">
+                        <h2
+                            className={cn(
+                                category.companies_background_url &&
+                                    "text-white",
+                                "text-2xl font-semibold text-center mb-1",
+                            )}
+                        >
                             Реклами
                         </h2>
                         <SectionCard
@@ -249,7 +271,12 @@ export default async function CompanyPage({ params }: PageProps) {
                     </p>
                 </div> */}
                 <div>
-                    <h2 className="text-2xl font-semibold text-center pb-1">
+                    <h2
+                        className={cn(
+                            category.companies_background_url && "text-white",
+                            "text-2xl font-semibold text-center mb-1",
+                        )}
+                    >
                         Обяви
                     </h2>
                     <SectionCardSwiper
@@ -282,9 +309,18 @@ export default async function CompanyPage({ params }: PageProps) {
             </div>
 
             {company.google_map && company.your_location && (
-                <Map
-                    google_map={company.google_map}
-                    your_location={company.your_location}
+                <div className="container mx-auto">
+                    <Map
+                        google_map={company.google_map}
+                        your_location={company.your_location}
+                    />
+                </div>
+            )}
+
+            {company.facebook_page_link && (
+                <FacebookPageEmbed
+                    pageUrl={`https://www.facebook.com/profile.php?id=${company.facebook_page_link}`}
+                    height={800}
                 />
             )}
         </main>

@@ -222,6 +222,7 @@ export type Category = {
     excerpt?: string;
     content?: string;
     image_url?: string | null;
+    companies_background_url?: string | null;
     created_at?: string;
     updated_at?: string;
 };
@@ -250,6 +251,7 @@ export type Company = {
     category_id?: number | null;
     user_id?: string | null;
     user_name?: string | null;
+    facebook_page_link?: string | null;
     created_at?: Date;
     updated_at?: Date;
 };

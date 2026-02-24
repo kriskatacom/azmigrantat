@@ -126,6 +126,20 @@ export default async function NewCity({ params }: Params) {
                     />
                 </>
             )}
+
+            {category?.id && (
+                <>
+                    <h2 className="px-5 text-xl font-semibold">Изображение за фон на компаниите от категорията</h2>
+                    <ImageUpload
+                        image_url={category.companies_background_url as string}
+                        url={
+                            category?.id
+                                ? `/api/categories/${category.id}/companies-background-url-upload`
+                                : ""
+                        }
+                    />
+                </>
+            )}
         </main>
     );
 }

@@ -257,3 +257,21 @@ CREATE TABLE `offers` (
     CONSTRAINT `fk_offers_company` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT `fk_offers_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+
+CREATE TABLE translations (
+    `id` BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `key` VARCHAR(255) NOT NULL,
+    `value` TEXT NOT NULL,
+    `lang` CHAR(2) NOT NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX idx_translations_key_lang
+ON translations(`key`, `lang`);
+
+CREATE INDEX idx_translations_lang
+ON translations(lang);
+
+ALTER TABLE `categories` ADD `companies_background_url` VARCHAR(512) NULL AFTER `image_url`;
+ALTER TABLE `companies` ADD `facebook_page_link` VARCHAR(512) NULL AFTER `user_id`;
+ALTER TABLE `users` CHANGE `role` `role` ENUM('user','moderator','admin','entrepreneur') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'user';

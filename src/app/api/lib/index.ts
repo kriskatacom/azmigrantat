@@ -69,8 +69,6 @@ export async function saveUploadedFile(
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Конвертираме буфера към WebP формат чрез sharp
-    // Можеш да добавиш .webp({ quality: 80 }), ако искаш допълнителна компресия
     const webpBuffer = await sharp(buffer)
         .webp()
         .toBuffer();
@@ -88,7 +86,6 @@ export async function saveUploadedFile(
 
     await fsPromises.mkdir(uploadDir, { recursive: true });
 
-    // Обработка на името: винаги завършва на .webp
     const originalName = customFileName || file.name;
     const baseName = path.parse(originalName).name;
     const ext = ".webp"; 
@@ -96,7 +93,6 @@ export async function saveUploadedFile(
     let fileName = `${baseName}${ext}`;
     let filePath = path.join(uploadDir, fileName);
 
-    // Проверка за дублиращи се имена
     let counter = 1;
     while (true) {
         try {
@@ -108,8 +104,7 @@ export async function saveUploadedFile(
             break;
         }
     }
-
-    // Записваме конвертирания webpBuffer, вместо оригиналния buffer
+    
     await fsPromises.writeFile(filePath, webpBuffer);
 
     const relativePath = path

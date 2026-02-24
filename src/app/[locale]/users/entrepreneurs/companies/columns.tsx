@@ -19,6 +19,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Company } from "@/lib/types";
 import { createDragHandleColumn } from "@/components/data-table";
+import AppImage from "@/components/AppImage";
+import Link from "next/link";
 
 export const columns: ColumnDef<Company>[] = [
     createDragHandleColumn<Company>(),
@@ -48,35 +50,16 @@ export const columns: ColumnDef<Company>[] = [
         header: "Изображение",
         cell: ({ row }) => {
             const company = row.original;
-            const [imageLoading, setImageLoading] = useState(true);
-
-            if (!company.image_url) {
-                return (
-                    <div className="w-24 h-16 flex items-center justify-center text-sm rounded">
-                        N/A
-                    </div>
-                );
-            }
 
             return (
                 <div className="relative w-30 h-20 rounded-lg overflow-hidden border">
-                    {imageLoading && (
-                        <div className="absolute inset-0 flex items-center justify-center z-10">
-                            <span className="h-6 w-6 animate-spin rounded-full border-2 border-t-blue-500" />
-                        </div>
-                    )}
-
-                    <Image
-                        src={company.image_url}
-                        alt={company.name as string}
-                        fill
-                        className={`w-full h-full object-cover transition-opacity duration-500 ${
-                            imageLoading ? "opacity-0" : "opacity-100"
-                        }`}
-                        onLoad={() => setImageLoading(false)}
-                        onError={() => setImageLoading(false)}
-                        unoptimized
-                    />
+                    <Link href={`/users/entrepreneurs/companies/${company.id}`}>
+                        <AppImage
+                            src={company.image_url}
+                            alt={company.name as string}
+                            fill
+                        />
+                    </Link>
                 </div>
             );
         },
@@ -176,7 +159,7 @@ export const columns: ColumnDef<Company>[] = [
                         <DropdownMenuLabel>Опции</DropdownMenuLabel>
                         <DropdownMenuItem
                             onClick={() =>
-                                router.push(`/admin/companies/${company.id}`)
+                                router.push(`/users/entrepreneurs/companies/${company.id}`)
                             }
                         >
                             Редактиране

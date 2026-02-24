@@ -244,50 +244,38 @@ export const ALLOWED_IMAGE_TYPES = [
 
 export const ALLOWED_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
 
-export const TRAVEL_CATEGORIES = [
-    {
-        id: 1,
-        name: "Самолетни билети",
-        buttonText: "Информация",
-        slug: "/air-tickets",
-        image: "/images/air-tickets.png",
-    },
-    {
-        id: 2,
-        name: "Автобуси",
-        buttonText: "Информация",
-        slug: "/autobuses",
-        image: "/images/avtobuses.png",
-    },
-    {
-        id: 3,
-        name: "Железопътен превоз",
-        buttonText: "Информация",
-        slug: "/trains",
-        image: "/images/trains.png",
-    },
-    {
-        id: 4,
-        name: "Круизи",
-        buttonText: "Информация",
-        slug: "/cruises",
-        image: "/images/cruises.png",
-    },
-    {
-        id: 5,
-        name: "Таксита",
-        buttonText: "Информация",
-        slug: "/taxis",
-        image: "/images/taxis.png",
-    },
-    {
-        id: 6,
-        name: "Споделено пътуване",
-        buttonText: "Информация",
-        slug: "/shared-travel",
-        image: "/images/shared-plane-travel.png",
-    },
-];
+export const TRAVEL_CATEGORY_SLUGS = [
+    "airTickets",
+    "autobuses",
+    "trains",
+    "cruises",
+    "taxis",
+    "sharedTravel",
+] as const;
+
+export const TRAVEL_CATEGORY_IMAGES: Record<
+    (typeof TRAVEL_CATEGORY_SLUGS)[number],
+    string
+> = {
+    airTickets: "/images/air-tickets.png",
+    autobuses: "/images/avtobuses.png",
+    trains: "/images/trains.png",
+    cruises: "/images/cruises.png",
+    taxis: "/images/taxis.png",
+    sharedTravel: "/images/shared-travel/travel-background.webp",
+};
+
+export const TRAVEL_CATEGORY_PATHS: Record<
+    (typeof TRAVEL_CATEGORY_SLUGS)[number],
+    string
+> = {
+    airTickets: "/air-tickets",
+    autobuses: "/autobuses",
+    trains: "/trains",
+    cruises: "/cruises",
+    taxis: "/taxis",
+    sharedTravel: "/shared-travel",
+};
 
 export const AIR_TICKETS_PAGE_ITEMS: CardEntity[] = [
     {

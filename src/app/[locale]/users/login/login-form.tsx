@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Loader2, Mail, Lock, AlertCircle } from "lucide-react"; // Икони
+import { Loader2, AlertCircle } from "lucide-react";
 
 import {
     Form,
@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils"; // Помощна функция за класове
+import { cn } from "@/lib/utils";
 
 import { loginSchema, LoginFormValues } from "@/app/[locale]/users/schema";
 import { loginAction } from "@/app/[locale]/users/actions";
@@ -42,20 +42,29 @@ export function LoginForm() {
         setErrorMessage("");
 
         try {
-            const data = await loginAction(values);
+            const response = await loginAction(values);
 
-            if (data.error) {
-                setErrorMessage(data.error);
+            if (response.error) {
+                setErrorMessage(response.error);
                 setIsLoading(false);
                 return;
             }
 
+            const role = response.data?.role;
             const redirectUrl = searchParams.get("redirect");
-            const safeRedirect =
-                redirectUrl && redirectUrl.startsWith("/") ? redirectUrl : "/";
+
+            let finalRedirect = "/";
+
+            if (redirectUrl && redirectUrl.startsWith("/")) {
+                finalRedirect = redirectUrl;
+            } else if (role === "entrepreneur") {
+                finalRedirect = "/users/entrepreneurs/dashboard";
+            } else if (role === "admin") {
+                finalRedirect = "/admin/dashboard";
+            }
 
             toast.success("Добре дошли отново!");
-            router.push(safeRedirect);
+            router.push(finalRedirect);
         } catch (error: any) {
             setErrorMessage("Възникна неочаквана грешка. Моля, опитайте пак.");
             setIsLoading(false);

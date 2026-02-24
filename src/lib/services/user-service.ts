@@ -5,7 +5,7 @@ import { saveSession, clearSession, getSession } from "@/lib/session";
 
 export const COOKIE_NAME = "user";
 
-export type UserRole = "user" | "moderator" | "admin";
+export type UserRole = "user" | "moderator" | "admin" | "entrepreneur";
 
 export interface User {
     id: string;

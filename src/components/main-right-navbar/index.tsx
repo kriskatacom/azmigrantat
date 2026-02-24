@@ -1,101 +1,68 @@
 "use client";
 
 import { usePathname, Link } from "@/i18n/navigation";
-import { useTranslations, useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import LanguageSwitcher from "@/components/main-right-navbar/language-switcher";
 import MainRightSidebar from "@/components/main-right-navbar/main-right-sidebar";
-import { ProfileMenuItems } from "@/components/main-right-navbar/profile-menu-items";
 import { User } from "@/lib/services/user-service";
-import UserButton from "./user-button";
+import UserButton from "@/components/main-right-navbar/user-button";
+import Image from "next/image";
+import clsx from "clsx";
+import { useEffect, useState } from "react";
 
 type MainNavbarProps = {
     user?: User;
 };
 
 export const MainNavbar = ({ user }: MainNavbarProps) => {
+    const [mounted, setMounted] = useState(false);
     const pathname = usePathname();
     const t = useTranslations("navigation");
-    const locale = useLocale();
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) return null;
+
+    const isHomePage = pathname === "/";
 
     const mainMenuItems = [
         { title: t("home"), slug: "/" },
-        { title: t("travel"), slug: `/travel` },
+        { title: t("travel"), slug: "/travel" },
         { title: t("services"), slug: "/services" },
         { title: t("jobs"), slug: "/jobs" },
         { title: t("ads"), slug: "/ads" },
-        { title: t("music"), slug: "https://lyricskeeper.eu" },
+        { title: t("music"), slug: "https://lyricskeeper.eu", external: true },
     ];
 
-    // Check if we're on the homepage (locale root)
-    // next-intl's usePathname returns pathname without locale prefix
-    const isHomePage = pathname === "/";
-
-    if (isHomePage)
-        return (
-            <div className="absolute top-0 left-0 w-full z-50">
-                <nav className="container mx-auto flex justify-between items-center p-2">
-                    <Link href="/">
-                        <img
-                            src="/images/azmigrantat-website-logo.webp"
-                            alt="Аз мигрантът"
-                            className="object-cover w-15"
-                        />
-                    </Link>
-                    <ul className="flex items-center gap-2">
-                        <li>
-                            <UserButton user={user ?? null} />
-                        </li>
-                        <li>
-                            <MainRightSidebar />
-                        </li>
-                        <li>
-                            <LanguageSwitcher />
-                        </li>
-                    </ul>
-                </nav>
-                <nav className="container mx-auto overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 max-lg:px-5 pb-5">
-                    <ul className="flex gap-4 whitespace-nowrap">
-                        {mainMenuItems.map((item) => (
-                            <li
-                                key={item.slug}
-                                className="rounded-4xl text-website-light hover:bg-website-dark"
-                            >
-                                {item.slug.startsWith("http") ? (
-                                    <a
-                                        className="notranslate block py-3 px-5 text-lg"
-                                        href={item.slug}
-                                        title={item.title}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                    >
-                                        {item.title}
-                                    </a>
-                                ) : (
-                                    <Link
-                                        className="notranslate block py-3 px-5 text-lg"
-                                        href={item.slug}
-                                    >
-                                        {item.title}
-                                    </Link>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
-                </nav>
-            </div>
-        );
+    const isActiveRoute = (slug: string) => {
+        if (slug === "/") return pathname === "/";
+        return pathname.startsWith(slug);
+    };
 
     return (
-        <div className="bg-website-dark">
-            <div className="container mx-auto flex justify-between items-center">
+        <div
+            className={clsx(
+                "w-full z-50",
+                isHomePage
+                    ? "absolute top-0 left-0"
+                    : "bg-website-dark relative",
+            )}
+        >
+            {/* Top bar */}
+            <nav className="container mx-auto flex justify-between items-center p-2">
                 <Link href="/">
-                    <img
+                    <Image
                         src="/images/azmigrantat-website-logo.webp"
                         alt="Аз мигрантът"
-                        className="object-cover w-15"
+                        width={60}
+                        height={60}
+                        priority={isHomePage}
                     />
                 </Link>
-                <ul className="flex items-center">
+
+                <ul className="flex items-center gap-2">
                     <li>
                         <UserButton user={user ?? null} />
                     </li>
@@ -106,37 +73,44 @@ export const MainNavbar = ({ user }: MainNavbarProps) => {
                         <LanguageSwitcher />
                     </li>
                 </ul>
-            </div>
-            <div className="container mx-auto">
-                <ul className="flex items-center gap-2 whitespace-nowrap overflow-x-auto">
+            </nav>
+
+            {/* Menu */}
+            <nav
+                className={clsx(
+                    "container mx-auto overflow-x-auto whitespace-nowrap",
+                    isHomePage
+                        ? "scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 pb-5 max-lg:px-5"
+                        : "",
+                )}
+            >
+                <ul className="flex gap-2">
                     {mainMenuItems.map((item) => {
-                        // next-intl's usePathname returns pathname without locale
+                        const isExternal = item.external;
                         const isActive =
-                            !item.slug.startsWith("http") &&
-                            pathname === item.slug;
+                            !isExternal && isActiveRoute(item.slug);
 
                         return (
                             <li
                                 key={item.slug}
-                                className={`rounded-4xl transition-colors text-website-light ${
-                                    isActive &&
-                                    "bg-website-dark hover:bg-website-menu-item"
-                                }`}
+                                className={clsx(
+                                    "rounded-4xl text-website-light transition-colors",
+                                    isActive && "bg-website-menu-item",
+                                )}
                             >
-                                {item.slug.startsWith("http") ? (
+                                {isExternal ? (
                                     <a
-                                        className="block mb-5 px-5 text-lg"
                                         href={item.slug}
-                                        title={item.title}
                                         target="_blank"
                                         rel="noopener noreferrer"
+                                        className="block py-3 px-5 text-lg"
                                     >
                                         {item.title}
                                     </a>
                                 ) : (
                                     <Link
-                                        className="block px-5 text-lg"
                                         href={item.slug}
+                                        className="block py-3 px-5 text-lg hover:bg-website-dark rounded-4xl"
                                     >
                                         {item.title}
                                     </Link>
@@ -145,7 +119,7 @@ export const MainNavbar = ({ user }: MainNavbarProps) => {
                         );
                     })}
                 </ul>
-            </div>
+            </nav>
         </div>
     );
 };

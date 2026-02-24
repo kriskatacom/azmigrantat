@@ -7,36 +7,14 @@ import { BreadcrumbItem } from "@/components/admin-breadcrumbs";
 import { CardGrid } from "@/components/card-grid";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 import { UserService } from "@/lib/services/user-service";
+import {
+    TRAVEL_CATEGORY_SLUGS,
+    TRAVEL_CATEGORY_IMAGES,
+    TRAVEL_CATEGORY_PATHS,
+} from "@/lib/constants";
 
 type PageProps = {
     params: Promise<{ locale: string }>;
-};
-
-const TRAVEL_CATEGORY_SLUGS = [
-    "airTickets",
-    "autobuses",
-    "trains",
-    "cruises",
-    "taxis",
-    "sharedTravel",
-] as const;
-
-const TRAVEL_CATEGORY_IMAGES: Record<string, string> = {
-    airTickets: "/images/air-tickets.png",
-    autobuses: "/images/avtobuses.png",
-    trains: "/images/trains.png",
-    cruises: "/images/cruises.png",
-    taxis: "/images/taxis.png",
-    sharedTravel: "/images/shared-plane-travel.png",
-};
-
-const TRAVEL_CATEGORY_PATHS: Record<string, string> = {
-    airTickets: "/air-tickets",
-    autobuses: "/autobuses",
-    trains: "/trains",
-    cruises: "/cruises",
-    taxis: "/taxis",
-    sharedTravel: "/shared-travel",
 };
 
 export async function generateMetadata({
@@ -49,7 +27,9 @@ export async function generateMetadata({
     });
     const url = locale === "bg" ? "/travel" : `/${locale}/travel`;
 
-    const firstCategoryImage = absoluteUrl("/images/air-tickets.png") as string;
+    const firstCategoryImage = absoluteUrl(
+        TRAVEL_CATEGORY_IMAGES[TRAVEL_CATEGORY_SLUGS[0]],
+    ) as string;
 
     return {
         title: websiteName(t("title")),
