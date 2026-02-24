@@ -101,6 +101,9 @@ export default async function NewTrainPage({ params }: Params) {
                     <h2 className="px-5 text-xl font-semibold">Изображение</h2>
                     <ImageUpload
                         image_url={train.image_url as string}
+                        deleteimage_url={
+                            train?.id ? `/api/trains/${train.id}/upload` : ""
+                        }
                         url={train?.id ? `/api/trains/${train.id}/upload` : ""}
                     />
                 </>

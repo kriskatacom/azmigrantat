@@ -106,6 +106,11 @@ export default async function NewAutobusPage({ params }: Params) {
                                 ? `/api/autobuses/${autobus.id}/upload`
                                 : ""
                         }
+                        deleteimage_url={
+                            autobus?.id
+                                ? `/api/autobuses/${autobus.id}/upload`
+                                : ""
+                        }
                     />
                 </>
             )}

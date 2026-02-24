@@ -130,6 +130,11 @@ export default async function NewCountry({ params }: Params) {
                                     ? `/api/embassies/${embassy.id}/upload`
                                     : ""
                             }
+                            deleteimage_url={
+                                embassy?.id
+                                    ? `/api/embassies/${embassy.id}/upload`
+                                    : ""
+                            }
                         />
                     </div>
                 )}
@@ -145,6 +150,11 @@ export default async function NewCountry({ params }: Params) {
                                     ? `/api/embassies/${embassy.id}/logo-upload`
                                     : ""
                             }
+                            deleteimage_url={
+                                embassy?.id
+                                    ? `/api/embassies/${embassy.id}/logo-upload`
+                                    : ""
+                            }
                         />
                     </div>
                 )}
@@ -156,6 +166,11 @@ export default async function NewCountry({ params }: Params) {
                         <ImageUpload
                             image_url={embassy.right_heading_image as string}
                             url={
+                                embassy?.id
+                                    ? `/api/embassies/${embassy.id}/right-heading-image-upload`
+                                    : ""
+                            }
+                            deleteimage_url={
                                 embassy?.id
                                     ? `/api/embassies/${embassy.id}/right-heading-image-upload`
                                     : ""

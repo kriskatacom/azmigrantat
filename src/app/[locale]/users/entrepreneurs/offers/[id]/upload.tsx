@@ -17,6 +17,7 @@ export default function Upload({ offer }: ImageUploadProps) {
                     {offer?.id && (
                         <ImageUpload
                             image_url={offer.image as string}
+                            deleteimage_url={offer?.id ? `/api/offers/${offer.id}/upload` : ""}
                             url={offer?.id ? `/api/offers/${offer.id}/upload` : ""}
                             className="mx-0"
                         />

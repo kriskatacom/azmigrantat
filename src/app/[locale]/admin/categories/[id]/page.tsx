@@ -118,6 +118,11 @@ export default async function NewCity({ params }: Params) {
                     <h2 className="px-5 text-xl font-semibold">Изображение</h2>
                     <ImageUpload
                         image_url={category.image_url as string}
+                        deleteimage_url={
+                            category?.id
+                                ? `/api/categories/${category.id}/upload`
+                                : ""
+                        }
                         url={
                             category?.id
                                 ? `/api/categories/${category.id}/upload`
@@ -132,6 +137,11 @@ export default async function NewCity({ params }: Params) {
                     <h2 className="px-5 text-xl font-semibold">Изображение за фон на компаниите от категорията</h2>
                     <ImageUpload
                         image_url={category.companies_background_url as string}
+                        deleteimage_url={
+                            category?.id
+                                ? `/api/categories/${category.id}/companies-background-url-upload`
+                                : ""
+                        }
                         url={
                             category?.id
                                 ? `/api/categories/${category.id}/companies-background-url-upload`

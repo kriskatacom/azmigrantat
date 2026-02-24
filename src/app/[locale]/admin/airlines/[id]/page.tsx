@@ -101,6 +101,11 @@ export default async function NewAirlinePage({ params }: Params) {
                                 ? `/api/airlines/${airline.id}/upload`
                                 : ""
                         }
+                        deleteimage_url={
+                            airline?.id
+                                ? `/api/airlines/${airline.id}/upload`
+                                : ""
+                        }
                     />
                 </>
             )}

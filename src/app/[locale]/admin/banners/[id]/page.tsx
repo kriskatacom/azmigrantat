@@ -3,7 +3,7 @@ import { websiteName } from "@/lib/utils";
 import ImageUpload from "@/components/image-upload";
 import { Breadcrumbs } from "@/components/admin-breadcrumbs";
 import { getCruiseByColumn } from "@/lib/services/cruise-service";
-import { getBannerByColumn, getBanners } from "@/lib/services/banner-service";
+import { getBannerByColumn } from "@/lib/services/banner-service";
 import { BannerForm } from "./banner-form";
 import PageHeader from "@/components/admin/page-header";
 import MakeTranslations from "@/components/make-translations";
@@ -111,6 +111,9 @@ export default async function BannerPage({ params }: Params) {
                     <ImageUpload
                         image_url={banner.image as string}
                         url={
+                            banner?.id ? `/api/banners/${banner.id}/upload` : ""
+                        }
+                        deleteimage_url={
                             banner?.id ? `/api/banners/${banner.id}/upload` : ""
                         }
                     />

@@ -100,6 +100,9 @@ export default async function cruisePage({ params }: Params) {
                         url={
                             cruise?.id ? `/api/cruises/${cruise.id}/upload` : ""
                         }
+                        deleteimage_url={
+                            cruise?.id ? `/api/cruises/${cruise.id}/upload` : ""
+                        }
                     />
                 </>
             )}

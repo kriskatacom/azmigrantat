@@ -102,6 +102,9 @@ export default async function NewTaxiPage({ params }: Params) {
                     <ImageUpload
                         image_url={taxi.image_url as string}
                         url={taxi?.id ? `/api/taxis/${taxi.id}/upload` : ""}
+                        deleteimage_url={
+                            taxi?.id ? `/api/taxis/${taxi.id}/upload` : ""
+                        }
                     />
                 </>
             )}

@@ -120,6 +120,11 @@ export default async function NewCountry({ params }: Params) {
                                 ? `/api/countries/${country.id}/upload`
                                 : ""
                         }
+                        deleteimage_url={
+                            country?.id
+                                ? `/api/countries/${country.id}/upload`
+                                : ""
+                        }
                     />
                 </>
             )}

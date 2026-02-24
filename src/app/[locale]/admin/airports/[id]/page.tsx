@@ -113,6 +113,11 @@ export default async function NewCompany({ params }: Params) {
                                 ? `/api/airports/${airport.id}/upload`
                                 : ""
                         }
+                        deleteimage_url={
+                            airport?.id
+                                ? `/api/airports/${airport.id}/upload`
+                                : ""
+                        }
                     />
                 </>
             )}

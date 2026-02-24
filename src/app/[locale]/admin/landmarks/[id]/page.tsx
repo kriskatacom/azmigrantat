@@ -131,6 +131,11 @@ export default async function NewCountry({ params }: Params) {
                                     ? `/api/landmarks/${landmark.id}/upload`
                                     : ""
                             }
+                            deleteimage_url={
+                                landmark?.id
+                                    ? `/api/landmarks/${landmark.id}/upload`
+                                    : ""
+                            }
                         />
                     </>
                 )}

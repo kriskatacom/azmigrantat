@@ -142,6 +142,11 @@ export default async function NewCompany({ params }: Params) {
                                 ? `/api/companies/${company.id}/upload?image_to_update=image_url`
                                 : ""
                         }
+                        deleteimage_url={
+                            company?.id
+                                ? `/api/companies/${company.id}/upload?image_to_update=image_url`
+                                : ""
+                        }
                         additionalFormData={[
                             { name: "image_to_update", value: "image_url" },
                         ]}
@@ -152,6 +157,11 @@ export default async function NewCompany({ params }: Params) {
                     <ImageUpload
                         image_url={company.offer_image_url as string}
                         url={
+                            company?.id
+                                ? `/api/companies/${company.id}/upload`
+                                : ""
+                        }
+                        deleteimage_url={
                             company?.id
                                 ? `/api/companies/${company.id}/upload`
                                 : ""
@@ -173,6 +183,11 @@ export default async function NewCompany({ params }: Params) {
                                 ? `/api/companies/${company.id}/upload`
                                 : ""
                         }
+                        deleteimage_url={
+                            company?.id
+                                ? `/api/companies/${company.id}/upload`
+                                : ""
+                        }
                         additionalFormData={[
                             { name: "image_to_update", value: "ads_image_url" },
                         ]}
@@ -183,6 +198,11 @@ export default async function NewCompany({ params }: Params) {
                     <ImageUpload
                         image_url={company.bottom_image_url as string}
                         url={
+                            company?.id
+                                ? `/api/companies/${company.id}/upload`
+                                : ""
+                        }
+                        deleteimage_url={
                             company?.id
                                 ? `/api/companies/${company.id}/upload`
                                 : ""

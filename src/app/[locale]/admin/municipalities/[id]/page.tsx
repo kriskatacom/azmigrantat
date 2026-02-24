@@ -121,6 +121,11 @@ export default async function NewMunicipality({ params }: Params) {
                                 ? `/api/municipalities/${municipality.id}/upload`
                                 : ""
                         }
+                        deleteimage_url={
+                            municipality?.id
+                                ? `/api/municipalities/${municipality.id}/upload`
+                                : ""
+                        }
                     />
                 </>
             )}

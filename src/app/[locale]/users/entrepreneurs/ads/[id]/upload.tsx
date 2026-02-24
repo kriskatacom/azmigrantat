@@ -18,6 +18,7 @@ export default function Upload({ ad }: ImageUploadProps) {
                         <ImageUpload
                             image_url={ad.image as string}
                             url={ad?.id ? `/api/ads/${ad.id}/upload` : ""}
+                            deleteimage_url={ad?.id ? `/api/ads/${ad.id}/upload` : ""}
                             className="mx-0"
                         />
                     )}

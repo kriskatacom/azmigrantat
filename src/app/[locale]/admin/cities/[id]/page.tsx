@@ -104,6 +104,7 @@ export default async function NewCity({ params }: Params) {
                     <h2 className="px-5 text-xl font-semibold">Изображение</h2>
                     <ImageUpload
                         image_url={city.image_url as string}
+                        deleteimage_url={city?.id ? `/api/cities/${city.id}/upload` : ""}
                         url={city?.id ? `/api/cities/${city.id}/upload` : ""}
                     />
                 </>
