@@ -17,6 +17,7 @@ type FormInputProps<T extends FieldValues> = {
     label: string;
     placeholder?: string;
     description?: string;
+    className?: string;
     type?: string;
 };
 
@@ -26,6 +27,7 @@ export function FormInput<T extends FieldValues>({
     label,
     placeholder,
     description,
+    className,
     type = "text",
 }: FormInputProps<T>) {
     return (
@@ -40,6 +42,7 @@ export function FormInput<T extends FieldValues>({
                             type={type}
                             placeholder={placeholder}
                             {...field}
+                            className={className}
                         />
                     </FormControl>
                     {description && (

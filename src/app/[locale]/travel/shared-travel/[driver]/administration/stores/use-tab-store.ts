@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 
-export type TabKey = "general" | "media" | "post";
+export type TabKey = "general" | "media" | "post" | "contacts";
 
 type TabsState = {
     activeTab: TabKey;

@@ -9,6 +9,7 @@ CREATE TABLE `drivers` (
     `name` VARCHAR(255) NULL,
     `slug` VARCHAR(255) NOT NULL,
     `description` TEXT NULL,
+    `post_description` TEXT NULL,
     `temp_description` TEXT NULL,
 
     `profile_image_url` VARCHAR(255) NULL,
@@ -16,6 +17,7 @@ CREATE TABLE `drivers` (
     `cover_image_url` VARCHAR(255) NULL,
     `temp_background_image_url` VARCHAR(255) NULL,
     `gallery_images` JSON NULL,
+    `contact_methods` JSON NULL,
 
     `age` INT NULL,
     `phone` VARCHAR(128) NULL,

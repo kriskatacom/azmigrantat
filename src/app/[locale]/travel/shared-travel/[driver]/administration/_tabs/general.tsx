@@ -58,7 +58,7 @@ export default function GeneralTab({ driver }: { driver: Driver }) {
                 <FormTextarea
                     control={form.control}
                     name="description"
-                    label="Описание на проекта"
+                    label="Описание на профила"
                     placeholder="Опишете маршрутите и предпочитаните места, на които често пътувате"
                     description="Това поле ще помогне на другите потребители да разберат къде обикновено пътувате и какви маршрути предпочитате. Минимум 10 символа, максимум 500 символа."
                     rows={20}

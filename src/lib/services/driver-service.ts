@@ -9,9 +9,12 @@ export interface Driver {
     name: string | null;
     slug: string;
     description: string | null;
+    temp_description: string | null;
+    post_description: string | null;
     profile_image_url: string | null;
     cover_image_url: string | null;
     images: string | null;
+    contact_methods: string | null;
     age: number | null;
     phone: string | null;
     email: string | null;

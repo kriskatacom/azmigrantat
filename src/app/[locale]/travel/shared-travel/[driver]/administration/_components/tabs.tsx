@@ -12,13 +12,14 @@ const tabs: TabItem[] = [
     { key: "general", label: "Общи" },
     { key: "media", label: "Изображения" },
     { key: "post", label: "Обява" },
+    { key: "contacts", label: "Контакти" },
 ];
 
 export default function Tabs() {
     const { activeTab, setActiveTab } = useTabsStore();
 
     return (
-        <div className="border-b flex gap-2 px-2 md:px-5 pb-4">
+        <div className="border-b flex gap-2 px-2 md:px-5 pb-4 overflow-auto">
             {tabs.map((tab) => (
                 <button
                     key={tab.key}

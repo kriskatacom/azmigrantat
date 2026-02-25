@@ -37,8 +37,8 @@ export default function Main({ driver }: MainProps) {
                 <Description driver={driver} />
                 <Gallery driver={driver} images={images} />
             </div>
-            <Contacts />
-            <ThePost />
+            <Contacts driver={driver} />
+            <ThePost driver={driver} />
         </div>
     );
 }
