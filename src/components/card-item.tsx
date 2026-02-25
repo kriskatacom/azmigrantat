@@ -3,9 +3,9 @@ import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import striptags from "striptags";
 import { EyeIcon } from "lucide-react";
-import AppImage from "./AppImage";
 import { GridColumns } from "./card-grid";
 import { useTranslations } from "use-intl";
+import SmartImage from "./smart-image";
 
 type LinkType = "internal" | "external";
 
@@ -69,7 +69,7 @@ export const CardItem: React.FC<CardItemProps> = ({
                     target={item.linkType === "external" ? "_blank" : "_self"}
                 >
                     <div className="absolute top-0 left-0 w-full h-full">
-                        <AppImage
+                        <SmartImage
                             src={item.image_url || "/images/default.webp"}
                             alt={item.name}
                             fill
@@ -99,7 +99,7 @@ export const CardItem: React.FC<CardItemProps> = ({
             <Link href={`${hrefPrefix}/${item.slug}`} className="flex h-full">
                 {/* Image */}
                 <div className="relative w-40 md:w-50 shrink-0">
-                    <AppImage
+                    <SmartImage
                         src={item.image_url || "/images/default.webp"}
                         alt={item.name}
                         fill

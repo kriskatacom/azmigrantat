@@ -21,17 +21,21 @@ export const Hero: React.FC<HeroProps> = ({
     ctaLink,
     height = 600,
 }) => {
+    const [mounted, setMounted] = React.useState(false);
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    if (!mounted) return null;
+    
     return (
         <section
             className="relative w-full flex items-center justify-center text-center overflow-hidden"
             style={{ height: `${height}px` }}
         >
             {title && image_url && (
-                <AppImage
-                    src={image_url}
-                    alt={title}
-                    fill
-                />
+                <AppImage src={image_url} alt={title} fill />
             )}
             <div className="absolute inset-0 bg-black/50" />
             <div className="text-white max-w-4xl mx-auto relative z-10 px-5">

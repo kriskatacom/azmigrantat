@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { DriverSchemaInput } from "@/app/[locale]/travel/shared-travel/[driver]/administration/_tabs/general";
 import { DriverPostSchemaInput } from "@/app/[locale]/travel/shared-travel/[driver]/administration/_tabs/post";
 import { getDriverByColumn, updateDriver } from "@/lib/services/driver-service";
-import { ContactsSchemaInput } from "../_tabs/contacts";
+import { ContactsSchemaInput } from "@/app/[locale]/travel/shared-travel/[driver]/administration/_tabs/contacts";
 
 export const updateDriverAction = async (
     driverId: number,

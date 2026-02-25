@@ -36,7 +36,7 @@ const CONTACT_TYPES = [
     { label: "Telegram", value: "telegram" },
 ];
 
-type ContactsSchemaInput = z.infer<typeof contactsSchema>;
+export type ContactsSchemaInput = z.infer<typeof contactsSchema>;
 
 export default function ContactsTab({ driver }: { driver: Driver }) {
     const parsedContacts =

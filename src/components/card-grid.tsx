@@ -111,12 +111,7 @@ export const CardGrid: React.FC<CardGridProps> = ({
                     <Alert title="Няма намерени данни!">{noItemsMessage}</Alert>
                 </div>
             ) : (
-                <ul
-                    className={cn(isWithSearch && "mt-2", "card-grid")}
-                    style={{
-                        gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-                    }}
-                >
+                <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 py-3 px-5">
                     {filteredItems.slice(0, visibleCount).map((item, index) => {
                         const isNew = index >= visibleCount - loadMoreStep;
                         const delay = isNew
@@ -142,10 +137,9 @@ export const CardGrid: React.FC<CardGridProps> = ({
             )}
 
             {visibleCount < filteredItems.length && (
-                <div className="mt-6 flex justify-center">
+                <div className="my-5 flex justify-center">
                     <Button
                         onClick={handleLoadMore}
-                        variant="outline"
                         size="xl"
                     >
                         Зареждане на още

@@ -25,8 +25,8 @@ export default async function LocaleLayout({
     }
 
     return (
-        <html suppressHydrationWarning lang="bg">
-            <body suppressHydrationWarning className="bg-slate-100">
+        <html lang={locale} className="light" style={{ colorScheme: "light" }}>
+            <body className="bg-slate-100">
                 <NextIntlClientProvider>
                     <ThemeProvider
                         attribute="class"
@@ -34,9 +34,7 @@ export default async function LocaleLayout({
                         defaultTheme="light"
                         enableSystem={false}
                     >
-                        <TooltipProvider>
-                            {children}
-                        </TooltipProvider>
+                        <TooltipProvider>{children}</TooltipProvider>
                         <ClientOnly>
                             <Toaster position="top-center" />
                         </ClientOnly>
