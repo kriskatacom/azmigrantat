@@ -1,20 +1,16 @@
+"use client";
+
 import z from "zod";
+import { Cpu } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { FormInput } from "@/components/forms/form-input";
-import { Driver } from "@/lib/services/driver-service";
-import { updateDriverAction } from "@/app/[locale]/travel/shared-travel/[driver]/_components/administration/actions";
 import { FormBase } from "@/components/forms/form-base";
+import { FormInput } from "@/components/forms/form-input";
 import { FormTextarea } from "@/components/forms/form-textarea";
-import { Button } from "@/components/ui/button";
-import { Cpu } from "lucide-react";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { TooltipButton } from "@/components/tooltip-button";
+import { Driver } from "@/lib/services/driver-service";
+import { updateDriverAction } from "@/app/[locale]/travel/shared-travel/[driver]/administration/actions";
 
 export const projectSchema = z.object({
     name: z.string().min(1, { error: "Моля, въведете името и фамилията си!" }),
@@ -30,11 +26,7 @@ export const projectSchema = z.object({
 
 export type DriverSchemaInput = z.infer<typeof projectSchema>;
 
-type DialogContentFormProps = {
-    driver: Driver;
-};
-
-export default function DialogContentForm({ driver }: DialogContentFormProps) {
+export default function GeneralTab({ driver }: { driver: Driver }) {
     const form = useForm({
         resolver: zodResolver(projectSchema),
         defaultValues: {
@@ -54,7 +46,7 @@ export default function DialogContentForm({ driver }: DialogContentFormProps) {
     }
 
     return (
-        <div className="px-2 md:px-5">
+        <div className="p-2 md:p-5">
             <FormBase form={form} onSubmit={onSubmit} submitText="Запазване">
                 <FormInput
                     control={form.control}

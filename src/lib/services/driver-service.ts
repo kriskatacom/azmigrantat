@@ -10,7 +10,7 @@ export interface Driver {
     slug: string;
     description: string | null;
     profile_image_url: string | null;
-    background_image_url: string | null;
+    cover_image_url: string | null;
     images: string | null;
     age: number | null;
     phone: string | null;

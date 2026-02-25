@@ -6,11 +6,30 @@ import ThePost from "@/app/[locale]/travel/shared-travel/[driver]/_components/th
 
 type MainProps = {
     driver: Driver;
-}
+};
 
 export default function Main({ driver }: MainProps) {
+    let parsedImages: string[] = [];
 
-    const images: string[] = driver.images && JSON.parse(driver.images as string) || [];
+    if (driver.images) {
+        try {
+            const result =
+                typeof driver.images === "string"
+                    ? JSON.parse(driver.images)
+                    : driver.images;
+
+            if (Array.isArray(result)) {
+                parsedImages = result.filter(Boolean);
+            }
+        } catch (error) {
+            console.error("Invalid driver.images JSON:", error);
+        }
+    }
+
+    const images: string[] = [
+        driver.cover_image_url,
+        ...parsedImages,
+    ].filter((img): img is string => Boolean(img));
 
     return (
         <div className="max-w-4xl mx-auto px-2 py-2 md:py-5">

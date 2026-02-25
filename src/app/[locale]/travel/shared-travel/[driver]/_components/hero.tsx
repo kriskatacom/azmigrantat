@@ -1,7 +1,7 @@
 import { FaLongArrowAltRight } from "react-icons/fa";
+import { City } from "@/lib/types";
 import AppImage from "@/components/AppImage";
 import { Driver } from "@/lib/services/driver-service";
-import { City } from "@/lib/types";
 
 type HeroProps = {
     driver: Driver;
@@ -14,7 +14,7 @@ export default function Hero({ driver, fromCity, toCity }: HeroProps) {
         <div className="relative w-full">
             <div className="relative w-full min-h-80 md:min-h-100 lg:min-h-150">
                 <AppImage
-                    src="/images/shared-travel/posts/car-01.webp"
+                    src={driver.cover_image_url ?? ""}
                     alt="Hero background"
                     fill
                     className="object-cover"

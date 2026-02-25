@@ -1,8 +1,8 @@
 "use client";
 
-import Image from "next/image";
-import React, { useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
+import AppImage from "@/components/AppImage";
 
 type HeroProps = {
     title?: string;
@@ -21,23 +21,16 @@ export const Hero: React.FC<HeroProps> = ({
     ctaLink,
     height = 600,
 }) => {
-    const [imageLoading, setImageLoading] = useState(true);
-
     return (
         <section
             className="relative w-full flex items-center justify-center text-center overflow-hidden"
             style={{ height: `${height}px` }}
         >
             {title && image_url && (
-                <Image
+                <AppImage
                     src={image_url}
                     alt={title}
                     fill
-                    className={`object-cover transition-opacity duration-500 ${
-                        imageLoading ? "opacity-0" : "opacity-100"
-                    }`}
-                    onLoad={() => setImageLoading(false)}
-                    onError={() => setImageLoading(false)}
                 />
             )}
             <div className="absolute inset-0 bg-black/50" />

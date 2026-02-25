@@ -13,7 +13,7 @@ CREATE TABLE `drivers` (
 
     `profile_image_url` VARCHAR(255) NULL,
     `preview_image_url` VARCHAR(255) NULL,
-    `background_image_url` VARCHAR(255) NULL,
+    `cover_image_url` VARCHAR(255) NULL,
     `temp_background_image_url` VARCHAR(255) NULL,
     `gallery_images` JSON NULL,
 

@@ -6,7 +6,7 @@ import { getCityByColumn } from "@/lib/services/city-service";
 import Main from "@/app/[locale]/travel/shared-travel/[driver]/_components/main";
 import Spacer from "@/components/spacer";
 import { UserService } from "@/lib/services/user-service";
-import AdministrationDialog from "@/app/[locale]/travel/shared-travel/[driver]/_components/administration/administration-dialog";
+import AdministrationDialog from "@/app/[locale]/travel/shared-travel/[driver]/administration/_components/administration-dialog";
 
 type DriverProfileProps = {
     params: Promise<{

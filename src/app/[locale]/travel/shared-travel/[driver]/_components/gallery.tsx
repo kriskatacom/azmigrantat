@@ -29,14 +29,23 @@ export default function Gallery({ driver, images }: GalleryProps) {
                 <h2 className="text-white bg-website-dark text-xl lg:text-2xl font-semibold p-3 md:p-5">
                     Галерия
                 </h2>
-                {driver.background_image_url && (
+                {(driver.cover_image_url && (
                     <div className="relative w-full h-full">
                         <AppImage
-                            src={driver.background_image_url}
-                            alt=""
-                            fill
+                            src={driver.cover_image_url}
+                            alt={driver.name ?? ""}
                             className="object-cover"
+                            fill
                             onClick={() => setOpen(!open)}
+                        />
+                    </div>
+                )) || (
+                    <div className="relative w-full h-full">
+                        <AppImage
+                            src="/images/fallback.png"
+                            alt="Няма добавена снимка"
+                            className="object-cover"
+                            fill
                         />
                     </div>
                 )}
