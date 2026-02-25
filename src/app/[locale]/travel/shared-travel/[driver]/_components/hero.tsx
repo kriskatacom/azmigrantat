@@ -12,7 +12,7 @@ type HeroProps = {
 export default function Hero({ driver, fromCity, toCity }: HeroProps) {
     return (
         <div className="relative w-full">
-            <div className="relative w-full min-h-100 md:min-h-125 lg:min-h-150">
+            <div className="relative w-full min-h-80 md:min-h-100 lg:min-h-150">
                 <AppImage
                     src="/images/shared-travel/posts/car-01.webp"
                     alt="Hero background"

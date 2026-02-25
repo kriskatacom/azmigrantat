@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import { ThemeProvider } from "@/app/providers/theme-provider";
 import { ClientOnly } from "@/components/client-only";
 import "../globals.css";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export function generateStaticParams() {
     return routing.locales.map((locale) => ({ locale }));
@@ -33,7 +34,9 @@ export default async function LocaleLayout({
                         defaultTheme="light"
                         enableSystem={false}
                     >
-                        {children}
+                        <TooltipProvider>
+                            {children}
+                        </TooltipProvider>
                         <ClientOnly>
                             <Toaster position="top-center" />
                         </ClientOnly>

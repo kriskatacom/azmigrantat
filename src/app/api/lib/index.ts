@@ -2,7 +2,6 @@ import path from "path";
 import axios from "axios";
 import fsPromises from "fs/promises";
 import fsSync from "fs";
-import sharp from "sharp";
 
 export function validatePassword(password: string) {
     const re =
@@ -60,19 +59,17 @@ export function generateSlug(name: string) {
 }
 
 export async function saveUploadedFile(
-    file: File, 
-    byDate: boolean = true, 
-    customFileName?: string
+    file: File,
+    byDate: boolean = true,
+    customFileName?: string,
 ) {
     if (!file) throw new Error("Няма файл");
 
+    // Прочитаме съдържанието на файла
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    const webpBuffer = await sharp(buffer)
-        .webp()
-        .toBuffer();
-
+    // Определяме директория за запис
     let uploadDir = path.join(process.cwd(), "public/uploads");
 
     if (byDate) {
@@ -84,15 +81,18 @@ export async function saveUploadedFile(
         uploadDir = path.join(uploadDir, year.toString(), month, day);
     }
 
+    // Създаваме директорията, ако не съществува
     await fsPromises.mkdir(uploadDir, { recursive: true });
 
+    // Име на файла
     const originalName = customFileName || file.name;
-    const baseName = path.parse(originalName).name;
-    const ext = ".webp"; 
+    const { name: baseName, ext } = path.parse(originalName);
 
+    // Използваме оригиналното разширение
     let fileName = `${baseName}${ext}`;
     let filePath = path.join(uploadDir, fileName);
 
+    // Проверяваме за дубликати
     let counter = 1;
     while (true) {
         try {
@@ -104,9 +104,11 @@ export async function saveUploadedFile(
             break;
         }
     }
-    
-    await fsPromises.writeFile(filePath, webpBuffer);
 
+    // Записваме файла
+    await fsPromises.writeFile(filePath, buffer);
+
+    // Връщаме относителния път за front-end
     const relativePath = path
         .relative(path.join(process.cwd(), "public"), filePath)
         .replace(/\\/g, "/");

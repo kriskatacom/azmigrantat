@@ -1,16 +1,20 @@
+import { redirect } from "next/navigation";
 import { MainNavbar } from "@/components/main-right-navbar";
 import { getDriverByColumn } from "@/lib/services/driver-service";
-import { redirect } from "next/navigation";
-import Hero from "./_components/hero";
+import Hero from "@/app/[locale]/travel/shared-travel/[driver]/_components/hero";
 import { getCityByColumn } from "@/lib/services/city-service";
-import Main from "./_components/main";
+import Main from "@/app/[locale]/travel/shared-travel/[driver]/_components/main";
 import Spacer from "@/components/spacer";
+import { UserService } from "@/lib/services/user-service";
+import AdministrationDialog from "@/app/[locale]/travel/shared-travel/[driver]/_components/administration/administration-dialog";
 
 type DriverProfileProps = {
     params: Promise<{
         driver: string;
     }>;
 };
+
+const userService = new UserService();
 
 export default async function DriverProfile({ params }: DriverProfileProps) {
     const driverSlug = (await params).driver;
@@ -28,14 +32,15 @@ export default async function DriverProfile({ params }: DriverProfileProps) {
         return redirect("/travel/shared-travel");
     }
 
+    const user = await userService.getCurrentUser();
+
     return (
         <main>
-            <MainNavbar />
-            <Hero
-                driver={driver}
-                fromCity={cityFrom}
-                toCity={cityTo}
-            />
+            <MainNavbar user={user} />
+            <Hero driver={driver} fromCity={cityFrom} toCity={cityTo} />
+            {user && driver.user_id === user.id && (
+                <AdministrationDialog driver={driver} />
+            )}
             <Main driver={driver} />
             <Spacer direction="horizontal" />
         </main>

@@ -8,6 +8,7 @@ import { getCities } from "@/lib/services/city-service";
 import DriversSlider from "@/app/[locale]/travel/shared-travel/_components/drivers-slider";
 import Spacer from "@/components/spacer";
 import PostsSlider from "@/app/[locale]/travel/shared-travel/_components/posts-slider";
+import { UserService } from "@/lib/services/user-service";
 
 export async function generateMetadata(): Promise<Metadata> {
     const title =
@@ -63,14 +64,18 @@ export async function generateMetadata(): Promise<Metadata> {
     };
 }
 
+const userService = new UserService();
+
 export default async function SharedTravelPage() {
     const heroBanner = await getBannerByColumn("link", "/travel/shared-travel");
 
     const cities = await getCities();
 
+    const user = await userService.getCurrentUser();
+
     return (
         <main>
-            <MainNavbar />
+            <MainNavbar user={user} />
             {heroBanner && <SharedTravelHero banner={heroBanner} />}
             <SharedTravelSearchForm cities={cities} />
             <Spacer direction="horizontal" size={32} />

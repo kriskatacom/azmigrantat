@@ -5,6 +5,7 @@ import SharedTravelSearchForm from "@/app/[locale]/travel/shared-travel/_compone
 import DriversGrid from "@/app/[locale]/travel/shared-travel/drivers/drivers-grid";
 import { getBannerByColumn } from "@/lib/services/banner-service";
 import { getCities, getCityByColumn } from "@/lib/services/city-service";
+import { UserService } from "@/lib/services/user-service";
 
 type DriversProps = {
     searchParams: Promise<{
@@ -13,8 +14,12 @@ type DriversProps = {
     }>;
 };
 
+const userService = new UserService();
+
 export default async function DriversPage({ searchParams }: DriversProps) {
     const { from, to } = await searchParams;
+
+    const user = await userService.getCurrentUser();
 
     const heroBanner = await getBannerByColumn("link", "/travel/shared-travel"); // TODO: /travel/shared-travel/drivers
 
@@ -25,7 +30,7 @@ export default async function DriversPage({ searchParams }: DriversProps) {
 
     return (
         <main>
-            <MainNavbar />
+            <MainNavbar user={user} />
             {heroBanner && <SharedTravelHero banner={heroBanner} />}
             <SharedTravelSearchForm
                 cities={cities}
