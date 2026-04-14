@@ -1,0 +1,124 @@
+{
+    "elements": [
+        {
+            "id": "el_edu_overline",
+            "group": "Education Секция",
+            "type": "text",
+            "label": "Надзаглавие",
+            "slug": "edu_overline",
+            "description": "Малък текст над основното заглавие",
+            "value": "Квалификация",
+            "order": 1
+        },
+        {
+            "id": "el_edu_title",
+            "group": "Education Секция",
+            "type": "textarea",
+            "label": "Основно заглавие",
+            "slug": "edu_title",
+            "description": "Може да съдържа HTML тагове за оцветяване",
+            "value": "Доказана експертиза и <span class=\"text-indigo-600\">академичен успех</span>",
+            "order": 2
+        },
+        {
+            "id": "el_edu_desc",
+            "group": "Education Секция",
+            "type": "text-editor",
+            "label": "Описание",
+            "slug": "edu_description",
+            "description": "Основен параграф с текст",
+            "value": "Завърших цялостната програма на **SoftUni** със специализация <span class=\"text-slate-900 dark:text-white font-bold\">JavaScript Developer</span> с отличен успех. Този интензивен път ми помогна да овладея както основите на програмирането, така и най-модерните технологии.",
+            "order": 3
+        },
+        {
+            "id": "el_edu_stat_1_val",
+            "group": "Education Секция",
+            "type": "text",
+            "label": "Статистика 1 - Стойност",
+            "slug": "edu_stat_1_value",
+            "description": "Напр. 10+",
+            "value": "10+",
+            "order": 4
+        },
+        {
+            "id": "el_edu_stat_1_lbl",
+            "group": "Education Секция",
+            "type": "textarea",
+            "label": "Статистика 1 - Етикет",
+            "slug": "edu_stat_1_label",
+            "description": "Текст под цифрата",
+            "value": "Професионални<br>Сертификата",
+            "order": 5
+        },
+        {
+            "id": "el_edu_stat_2_val",
+            "group": "Education Секция",
+            "type": "text",
+            "label": "Статистика 2 - Стойност",
+            "slug": "edu_stat_2_value",
+            "description": "Напр. 6.00",
+            "value": "6.00",
+            "order": 6
+        },
+        {
+            "id": "el_edu_stat_2_lbl",
+            "group": "Education Секция",
+            "type": "textarea",
+            "label": "Статистика 2 - Етикет",
+            "slug": "edu_stat_2_label",
+            "description": "Текст под цифрата",
+            "value": "Отличен успех<br>в програмата",
+            "order": 7
+        },
+        {
+            "id": "el_edu_cert_issuer",
+            "group": "Education Секция",
+            "type": "text",
+            "label": "Сертификат - Издател",
+            "slug": "edu_cert_issuer",
+            "description": "Име на институцията (напр. SoftUni)",
+            "value": "SoftUni",
+            "order": 8
+        },
+        {
+            "id": "el_edu_cert_title",
+            "group": "Education Секция",
+            "type": "text",
+            "label": "Сертификат - Име",
+            "slug": "edu_cert_name",
+            "description": "Заглавие на дипломата",
+            "value": "JavaScript Developer Diploma",
+            "order": 9
+        },
+        {
+            "id": "el_edu_cert_type",
+            "group": "Education Секция",
+            "type": "text",
+            "label": "Сертификат - Тип",
+            "slug": "edu_cert_type",
+            "description": "Подзаглавие (Professional Qualification)",
+            "value": "Professional Qualification",
+            "order": 10
+        },
+        {
+            "id": "el_edu_cert_skills",
+            "group": "Education Секция",
+            "type": "textarea",
+            "label": "Списък с умения",
+            "slug": "edu_cert_skills",
+            "description": "Всяко умение на нов ред",
+            "value": "JS Fundamentals & Advanced\nReact & Next.js Frameworks\nNode.js & Express.js Backend\nDatabase Management (SQL & NoSQL)",
+            "order": 11
+        },
+        {
+            "id": "el_edu_cert_grade",
+            "group": "Education Секция",
+            "type": "text",
+            "label": "Сертификат - Оценка",
+            "slug": "edu_cert_grade",
+            "description": "Текст в зеленото каре (напр. EXCELLENT)",
+            "value": "EXCELLENT",
+            "order": 12
+        }
+    ]
+}
