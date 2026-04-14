@@ -67,7 +67,8 @@ trait HasAdminTrait
     protected function updateResource($model, array $data, array $imageKeys = [])
     {
         $data['options'] = $this->processResourceOptions($model, $imageKeys);
-        return $model->update($data);
+        $model->fill($data);
+        return $model->save();
     }
 
     protected function processResourceOptions($model = null, array $imageKeys = []): array

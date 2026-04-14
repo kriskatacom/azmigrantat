@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Core\Session;
 use App\Core\View;
 use App\Helpers\SecurityHelper;
+use App\Modules\Str;
 use App\Services\MediaService;
 use App\Services\OpenGraphService;
 
@@ -15,6 +16,27 @@ class HandleExceptions {}
 
 abstract class BaseController
 {
+    protected function generateHierarchicalSlug(string $source, ?int $parentId, string $modelClass): string
+    {
+        $parts = explode('/', trim($source, '/'));
+        $currentPart = Str::slug(end($parts));
+
+        if (!$parentId) {
+            return '/' . $currentPart;
+        }
+
+        $parent = $modelClass::find($parentId);
+
+        if (!$parent) {
+            return '/' . $currentPart;
+        }
+
+        $parentPath = '/' . ltrim($parent->slug, '/');
+        $fullPath = rtrim($parentPath, '/') . '/' . $currentPart;
+
+        return preg_replace('#/+#', '/', $fullPath);
+    }
+    
     protected function validateSpam()
     {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {

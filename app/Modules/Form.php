@@ -117,18 +117,18 @@ class Form
     <?php
     }
 
-    public static function getTreeOptions(string $modelClass, array $excludeIds = [], string $titleField = 'name', string $emptyLabel = 'Без родител'): array
+    public static function getTreeOptions(string $modelClass, array $excludeIds = [], string $titleField = 'name', string $emptyLabel = 'Без родител', string $sortBy = 'menu_order'): array
     {
         $options = ['' => $emptyLabel];
 
-        $build = function ($parentId = null, $level = 0) use (&$options, &$build, $modelClass, $excludeIds, $titleField) {
+        $build = function ($parentId = null, $level = 0) use (&$options, &$build, $modelClass, $excludeIds, $titleField, $sortBy) {
             $query = $modelClass::where('parent_id', $parentId);
 
             if (!empty($excludeIds)) {
                 $query->whereNotIn('id', $excludeIds);
             }
 
-            $items = $query->orderBy('menu_order', 'asc')->get();
+            $items = $query->orderBy($sortBy, 'asc')->get();
 
             foreach ($items as $item) {
                 $prefix = $level > 0 ? str_repeat('— ', $level) : '';

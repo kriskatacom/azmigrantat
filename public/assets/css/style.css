@@ -11,25 +11,17 @@ html {
     scroll-behavior: smooth;
 }
 
-/* --- 2. Theme Configuration --- */
 @theme {
-    /* Colors */
     --color-primary: #0b2935;
     --color-indigo-600: #4f46e5;
+    --color-primary-dark: #0b2935;
+    --color-primary-darken: #0e3545;
+    --color-primary-light: #e3e295;
+    --color-primary-blue: #8fd5e7;
 
-    /* Breakpoints */
     --breakpoint-xs: 480px;
-
-    /* Custom Animations */
-    --animate-fade-in: fade-in 0.2s ease-out;
-    --animate-gradient-x: gradient-x 3s ease infinite;
-    --animate-shimmer: shimmer 2s linear infinite;
-    --animate-blob: blob 7s infinite;
 }
 
-/* --- 3. Keyframes definitions --- */
-
-/* Плавна поява на елементи */
 @keyframes fade-in {
     from {
         opacity: 0;

@@ -98,7 +98,8 @@ class PageController extends BaseController
         $this->updateResource($page, $data, ['image_desktop', 'image_tablet', 'image_phone']);
 
         $this->flash('success', 'Страницата беше създадена успешно!');
-        $this->redirect("/admin/pages/edit/{$page->id}");
+
+        return $this->redirect("/admin/pages/edit/{$page->id}");
     }
 
     public function edit($id)
@@ -150,7 +151,7 @@ class PageController extends BaseController
         $parentId = !empty($input['parent_id']) ? (int)$input['parent_id'] : null;
 
         $slugSource = !empty($input['slug']) ? $input['slug'] : $title;
-        $finalSlug = $this->generateHierarchicalSlug($slugSource, $parentId);
+        $finalSlug = $this->generateHierarchicalSlug($slugSource, $parentId, $page);
 
         $customPath = !empty($input['custom_path'])
             ? '/' . ltrim(preg_replace('#/+#', '/', trim($input['custom_path'])), '/')
@@ -171,19 +172,6 @@ class PageController extends BaseController
             'is_active'   => isset($input['is_active']) ? 1 : 0,
             'options'     => $options
         ];
-    }
-
-    private function generateHierarchicalSlug(string $source, ?int $parentId): string
-    {
-        $parts = explode('/', trim($source, '/'));
-        $currentPart = Str::slug(end($parts));
-
-        if (!$parentId || !($parent = Page::find($parentId))) {
-            return '/' . $currentPart;
-        }
-
-        $fullPath = rtrim($parent->slug, '/') . '/' . $currentPart;
-        return preg_replace('#/+#', '/', $fullPath);
     }
 
     private function updateChildrenSlugs(Page $parent): void

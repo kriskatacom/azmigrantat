@@ -11,6 +11,10 @@ use App\Core\View;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
 
+    <title><?= htmlspecialchars($title ?? "Изработка на сайтове и приложения - " . WEBSITE_NAME) ?></title>
+    <meta name="description" content="<?= htmlspecialchars($description ?? "Уеб дизайнер и програмист на свободна практика") ?>">
+    <link rel="canonical" href="<?= FULL_DOMAIN . $_SERVER['REQUEST_URI'] ?>">
+
     <?= $og_tags ?? '' ?>
 
     <meta name="google-site-verification" content="0BTaVPxQo31IFjb4zLMDu8g3NcmvyPwR8xrvacWgOqI" />
@@ -65,17 +69,17 @@ use App\Core\View;
     <script defer src="/assets/js/main.js"></script>
 </head>
 
-<body class="antialiased text-gray-900 dark:text-white bg-white dark:bg-slate-900 flex flex-col min-h-screen">
+<body class="antialiased flex flex-col min-h-screen">
 
-    <?php View::loadPartial('partials/navbar'); ?>
+    <?php View::loadPartial('partials/primary-navbar'); ?>
 
     <main id="main-content" class="grow">
         <?= $content ?>
     </main>
 
-    <?php View::loadPartial('partials/admin-bar'); ?>
-
-    <?php View::loadPartial('partials/call-top-bar'); ?>
+    <?php View::component('admin-bar', 'components', [
+        'pageId' => $elements['page_id'] ?? $currentPageId ?? null
+    ]); ?>
 
     <footer class="relative pt-20 pb-10 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-white/5 transition-colors duration-500">
         <div class="absolute bottom-0 right-0 w-96 h-96 bg-indigo-600/5 dark:bg-indigo-500/10 blur-[120px] rounded-full pointer-events-none"></div>
@@ -128,7 +132,7 @@ use App\Core\View;
 
             <div class="pt-10 border-t border-slate-100 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-6">
                 <div class="text-slate-500 dark:text-slate-500 text-sm font-medium">
-                    © <?= date('Y') ?> KRISKATA.COM. Всички права запазени.
+                    © <?= date('Y') ?> gradove-i-sela.azmigrantat.com. Всички права запазени.
                 </div>
 
                 <div class="flex items-center gap-6 text-sm font-bold uppercase tracking-widest">

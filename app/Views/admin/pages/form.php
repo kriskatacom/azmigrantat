@@ -43,14 +43,16 @@ $isEdit = $page->exists; ?>
 
     <div class="col-span-10 2xl:col-span-6 space-y-5">
 
-        <?php Form::section('Локализация и преводи', function () use ($translatableConfig, $translations) { ?>
-            <div class="space-y-4">
-                <?= TranslationManager::renderFields(
-                    $translatableConfig,
-                    $translations
-                ) ?>
-            </div>
-        <?php }, 'fa-language'); ?>
+        <?php if (!empty($translatableConfig) && !empty($translations)): ?>
+            <?php Form::section('Локализация и преводи', function () use ($translatableConfig, $translations) { ?>
+                <div class="space-y-4">
+                    <?= TranslationManager::renderFields(
+                        $translatableConfig,
+                        $translations
+                    ) ?>
+                </div>
+            <?php }, 'fa-language'); ?>
+        <?php endif; ?>
 
         <?php Form::section('Основна информация', function () use ($page) { ?>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">

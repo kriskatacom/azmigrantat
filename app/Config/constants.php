@@ -112,6 +112,7 @@ define('SIDEBAR_LINKS', [
     ['url' => '/admin/galleries', 'icon' => 'fa-photo-film', 'label' => 'Галерии'],
     ['url' => '/admin/redirects', 'icon' => 'fa-route', 'label' => 'Пренасочвания'],
     ['url' => '/admin/translations', 'icon' => 'fa-language', 'label' => 'Преводи'],
+    ['url' => '/admin/cities', 'icon' => 'fa-city', 'label' => 'Градове'],
     ['url' => BASE_URL, 'icon' => 'fa-arrow-left', 'label' => 'Към основния сайт'],
 ]);
 
