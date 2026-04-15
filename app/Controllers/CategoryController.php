@@ -18,44 +18,88 @@ class CategoryController extends BaseController
 
     public function showByCity($citySlug, $businessCategorySlug)
     {
+        $city = City::where('slug', '/' . $citySlug)->first() ?: $this->abort404();
+
         $categoryParts = explode('/', trim($businessCategorySlug, '/'));
-        $lastCategorySlug = end($categoryParts);
-
-        $city = City::where('slug', '/' . $citySlug)->first();
-        if (!$city) {
-            $this->abort404();
-        }
-
         $businessCategory = BusinessCategory::active()
-            ->where('slug', $lastCategorySlug)
-            ->first();
-
-        if (!$businessCategory) {
-            $this->abort404();
-        }
+            ->where('slug', end($categoryParts))
+            ->first() ?: $this->abort404();
 
         $searchQuery = $_GET['q'] ?? null;
-
-        $childrenQuery = $businessCategory->children()->active();
-        if ($searchQuery) {
-            $childrenQuery->where('name', 'LIKE', "%{$searchQuery}%");
-        }
-        $items = $childrenQuery->get();
-
         $showCompanies = false;
+
+        $ads = $this->getCategoryRelatedAds($city->id, $businessCategory);
+
+        $items = $businessCategory->children()->active();
+        if ($searchQuery) {
+            $items->where('name', 'LIKE', "%{$searchQuery}%");
+        }
+        $items = $items->get();
+
         if ($items->isEmpty()) {
-            $companiesQuery = Company::active()
-                ->where('city_id', $city->id)
-                ->where('category_id', $businessCategory->id);
-
-            if ($searchQuery) {
-                $companiesQuery->where('name', 'LIKE', "%{$searchQuery}%");
-            }
-
-            $items = $companiesQuery->orderBy('sort_order', 'asc')->get();
+            $items = $this->getCompaniesByCategory($city->id, $businessCategory->id, $searchQuery);
             $showCompanies = true;
         }
 
+        $seoData = $this->generateCategorySeoData($city, $businessCategory);
+
+        return $this->renderWithSeo('categories/show-by-city', $seoData, [
+            'city'          => $city,
+            'category'      => $businessCategory,
+            'items'         => $items,
+            'citySlug'      => $citySlug,
+            'parentCatSlug' => $businessCategorySlug,
+            'searchQuery'   => $searchQuery,
+            'showCompanies' => $showCompanies,
+            'ads'           => $ads
+        ]);
+    }
+
+    private function getCompaniesByCategory($cityId, $categoryId, $searchQuery = null)
+    {
+        $query = Company::active()
+            ->where('city_id', $cityId)
+            ->where('category_id', $categoryId);
+
+        if ($searchQuery) {
+            $query->where('name', 'LIKE', "%{$searchQuery}%");
+        }
+
+        return $query->orderBy('sort_order', 'asc')->get();
+    }
+
+    private function getCategoryRelatedAds($cityId, $businessCategory)
+    {
+        $categoryIds = [$businessCategory->id];
+
+        $childIds = $businessCategory->children()->pluck('id')->toArray();
+        $categoryIds = array_merge($categoryIds, $childIds);
+
+        $allCompanyIds = Company::active()
+            ->where('city_id', $cityId)
+            ->whereIn('category_id', array_unique($categoryIds))
+            ->pluck('id')
+            ->toArray();
+
+        if (empty($allCompanyIds)) {
+            return collect();
+        }
+
+        $today = date('Y-m-d');
+
+        return \App\Models\CompanyAd::active()
+            ->whereIn('company_id', $allCompanyIds)
+            ->where(function ($query) use ($today) {
+                $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(options, '$.valid_until')) >= ?", [$today])
+                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(options, '$.valid_until')) IS NULL")
+                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(options, '$.valid_until')) = ''");
+            })
+            ->inRandomOrder()
+            ->get();
+    }
+
+    private function generateCategorySeoData($city, $businessCategory)
+    {
         $langNames = App::getLangNames();
         $currentLang = $_SESSION['lang'] ?? App::$defaultLang;
         $langName = $langNames[$currentLang] ?? '';
@@ -63,21 +107,11 @@ class CategoryController extends BaseController
         $seoTitle = "{$businessCategory->name} в {$city->name} - " . $langName;
         $seoDescription = "Всички фирми и услуги в категория {$businessCategory->name} за град {$city->name}.";
 
-        $seoData = [
+        return [
             'title'       => $businessCategory->getOptionTranslation('seo_title', $seoTitle),
             'description' => $businessCategory->getOptionTranslation('seo_description', $seoDescription),
             'og_image'    => $businessCategory->image_url ?? $city->options['image_desktop'] ?? null
         ];
-
-        return $this->renderWithSeo('categories/show-by-city', $seoData, [
-            'city'            => $city,
-            'category'        => $businessCategory,
-            'items'           => $items,
-            'citySlug'        => $citySlug,
-            'parentCatSlug'   => $businessCategorySlug,
-            'searchQuery'     => $searchQuery,
-            'showCompanies'   => $showCompanies // Предаваме флаг към View-то
-        ]);
     }
 
     public function index()

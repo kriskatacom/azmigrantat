@@ -1,6 +1,8 @@
 <?php
 
 use App\Core\View;
+use App\Services\HelperService;
+
 ?>
 <header class="relative pt-50 pb-20 bg-slate-900 overflow-hidden">
     <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full z-0 opacity-30">
@@ -11,12 +13,12 @@ use App\Core\View;
     <div class="container mx-auto px-6 relative z-10 text-center">
         <nav class="flex justify-center mb-8">
             <span class="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-blue-400 text-xs font-bold uppercase tracking-[0.2em]">
-                Резултати от търсене
+                <?= HelperService::trans('search_results') ?>
             </span>
         </nav>
 
         <h1 class="text-4xl md:text-5xl lg:text-7xl font-black text-white mb-6 tracking-tight">
-            Търсене за: <span class="text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-indigo-400 italic">
+            <?= HelperService::trans('searching_of') ?>: <span class="text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-indigo-400 italic">
                 "<?= htmlspecialchars($query) ?>"
             </span>
         </h1>
@@ -78,7 +80,7 @@ use App\Core\View;
                             <?php endif; ?>
 
                             <div class="mt-4 flex items-center text-sm font-bold uppercase tracking-wider text-blue-400 opacity-0 -translate-x-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0">
-                                <span>Разгледай</span>
+                                <span><?= HelperService::trans('information') ?></span>
                                 <svg class="ml-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 5l7 7-7 7" />
                                 </svg>

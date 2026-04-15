@@ -8,7 +8,7 @@ $is_open = $_SESSION['sidebar_open'] ?? true;
 </div>
 
 <aside id="main-sidebar"
-    class="fixed inset-y-0 left-0 w-10/12 md:w-80 bg-black text-white z-50 transform shadow-2xl transition-transform duration-300 ease-in-out <?= $is_open ? 'translate-x-0' : '-translate-x-full' ?>">
+    class="fixed inset-y-0 left-0 w-10/12 md:w-80 bg-black text-white z-50 transform shadow-2xl transition-transform duration-300 ease-in-out overflow-auto <?= $is_open ? 'translate-x-0' : '-translate-x-full' ?>">
 
     <div class="p-5 flex items-center justify-between">
         <div class="flex flex-col justify-center items-center mx-auto">

@@ -149,6 +149,8 @@ use App\Core\View;
         </div>
     </footer>
 
+    <?php View::loadPartial('partials/lightbox'); ?>
+
 </body>
 
 </html>

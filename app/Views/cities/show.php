@@ -1,6 +1,7 @@
 <?php
 
 use App\Core\View;
+use App\Services\HelperService;
 
 $breadcrumbs = [];
 if ($city->parent_id && isset($city->parent)) {
@@ -27,18 +28,18 @@ if (count($children) > 0) {
             'url'   => '/cities/' . ltrim($child->slug, '/'),
             'name'  => $child->name,
             'image' => $child->options['image_desktop'] ?? null,
-            'label' => 'Информация'
+            'label' => HelperService::trans('information')
         ];
     }
 } elseif (isset($categories) && count($categories) > 0) {
-    $gridTitle = 'Бизнес и партньорство - ';
+    $gridTitle = HelperService::trans('business_partnership') . ' - ';
     $gridHighlight = $city->getTranslatedName();
     foreach ($categories as $cat) {
         $gridItems[] = [
             'url'   => '/cities/' . ltrim($city->slug, '/') . '/categories/' . ltrim($cat->slug, '/'),
             'name'  => $cat->name,
             'image' => $cat->image_url ?? null,
-            'label' => 'Разгледай'
+            'label' => HelperService::trans('information')
         ];
     }
 }
