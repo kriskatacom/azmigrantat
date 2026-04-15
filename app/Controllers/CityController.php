@@ -31,12 +31,18 @@ class CityController extends BaseController
         }
 
         $childrenQuery = $city->children();
-
         if ($searchQuery) {
             $childrenQuery->where('name', 'LIKE', "%{$searchQuery}%");
         }
-
         $children = $childrenQuery->get();
+
+        $categories = [];
+        if ($children->isEmpty()) {
+            $categories = \App\Models\BusinessCategory::active()
+                ->root()
+                ->orderBy('sort_order', 'asc')
+                ->get();
+        }
 
         $seoData = [
             'title'       => $city->getOptionTranslation('seo_title', $city->name),
@@ -47,6 +53,7 @@ class CityController extends BaseController
         return $this->renderWithSeo('cities/show', $seoData, [
             'city'        => $city,
             'children'    => $children,
+            'categories'  => $categories,
             'searchQuery' => $searchQuery
         ]);
     }

@@ -113,6 +113,7 @@ define('SIDEBAR_LINKS', [
     ['url' => '/admin/redirects', 'icon' => 'fa-route', 'label' => 'Пренасочвания'],
     ['url' => '/admin/translations', 'icon' => 'fa-language', 'label' => 'Преводи'],
     ['url' => '/admin/cities', 'icon' => 'fa-city', 'label' => 'Градове'],
+    ['url' => '/admin/companies', 'icon' => 'fa-building', 'label' => 'Компании'],
     ['url' => BASE_URL, 'icon' => 'fa-arrow-left', 'label' => 'Към основния сайт'],
 ]);
 

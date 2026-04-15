@@ -45,6 +45,7 @@ use App\Core\View;
     <link rel="stylesheet" href="/assets/css/min/tailwind.css">
     <link rel="stylesheet" href="/assets/css/min/swiper-bundle.min.css" />
     <link rel="stylesheet" href="/assets/css/min/font-awesome.all.min.css" />
+    <link rel="stylesheet" href="/assets/css/min/fancybox.min.css" />
 
     <script>
         if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -66,6 +67,7 @@ use App\Core\View;
 
     <script defer src="/assets/js/min/alpinejs.min.js"></script>
     <script defer src="/assets/js/min/swiper-bundle.min.js"></script>
+    <script src="/assets/js/min/fancybox.umd.min.js"></script>
     <script defer src="/assets/js/main.js"></script>
 </head>
 

@@ -43,6 +43,30 @@ class MediaService
         ]);
     }
 
+    public function uploadMultiple(array $files, string $folder = 'uploads'): array
+    {
+        $uploadedPaths = [];
+
+        foreach ($files['name'] as $index => $name) {
+            if ($files['error'][$index] === UPLOAD_ERR_OK) {
+                $file = [
+                    'name'     => $files['name'][$index],
+                    'tmp_name' => $files['tmp_name'][$index],
+                    'size'     => $files['size'][$index],
+                    'error'    => $files['error'][$index]
+                ];
+
+                $media = $this->upload($file, $folder);
+
+                if ($media) {
+                    $uploadedPaths[] = $media->file_path;
+                }
+            }
+        }
+
+        return $uploadedPaths;
+    }
+
     private function processImage(string $filePath): array
     {
         $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
@@ -129,7 +153,8 @@ class MediaService
                     }
                 }
             }
-        } catch (\Throwable $e) {}
+        } catch (\Throwable $e) {
+        }
 
         return $img;
     }

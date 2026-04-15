@@ -30,6 +30,5 @@ use App\Services\HelperService; ?>
 </header>
 
 <div class="space-y-2">
-    <div class="md:text-xl lg:text-2xl xl:text-3xl font-bold uppercase text-center">Открийте България</div>
-    <div class="md:text-2xl font-semibold uppercase text-center">Градове и села по области</div>
+    <div class="md:text-2xl font-semibold uppercase text-center">Бизнес и партньорство по области</div>
 </div>

@@ -2,7 +2,11 @@
 
 namespace App\Controllers;
 
+use App\Core\App;
+use App\Models\BusinessCategory;
 use App\Models\Category;
+use App\Models\City;
+use App\Models\Company;
 use App\Modules\Str;
 use App\Traits\HasAdminTrait;
 use Illuminate\Support\Facades\Validator;
@@ -11,6 +15,70 @@ use Exception;
 class CategoryController extends BaseController
 {
     use HasAdminTrait;
+
+    public function showByCity($citySlug, $businessCategorySlug)
+    {
+        $categoryParts = explode('/', trim($businessCategorySlug, '/'));
+        $lastCategorySlug = end($categoryParts);
+
+        $city = City::where('slug', '/' . $citySlug)->first();
+        if (!$city) {
+            $this->abort404();
+        }
+
+        $businessCategory = BusinessCategory::active()
+            ->where('slug', $lastCategorySlug)
+            ->first();
+
+        if (!$businessCategory) {
+            $this->abort404();
+        }
+
+        $searchQuery = $_GET['q'] ?? null;
+
+        $childrenQuery = $businessCategory->children()->active();
+        if ($searchQuery) {
+            $childrenQuery->where('name', 'LIKE', "%{$searchQuery}%");
+        }
+        $items = $childrenQuery->get();
+
+        $showCompanies = false;
+        if ($items->isEmpty()) {
+            $companiesQuery = Company::active()
+                ->where('city_id', $city->id)
+                ->where('category_id', $businessCategory->id);
+
+            if ($searchQuery) {
+                $companiesQuery->where('name', 'LIKE', "%{$searchQuery}%");
+            }
+
+            $items = $companiesQuery->orderBy('sort_order', 'asc')->get();
+            $showCompanies = true;
+        }
+
+        $langNames = App::getLangNames();
+        $currentLang = $_SESSION['lang'] ?? App::$defaultLang;
+        $langName = $langNames[$currentLang] ?? '';
+
+        $seoTitle = "{$businessCategory->name} в {$city->name} - " . $langName;
+        $seoDescription = "Всички фирми и услуги в категория {$businessCategory->name} за град {$city->name}.";
+
+        $seoData = [
+            'title'       => $businessCategory->getOptionTranslation('seo_title', $seoTitle),
+            'description' => $businessCategory->getOptionTranslation('seo_description', $seoDescription),
+            'og_image'    => $businessCategory->image_url ?? $city->options['image_desktop'] ?? null
+        ];
+
+        return $this->renderWithSeo('categories/show-by-city', $seoData, [
+            'city'            => $city,
+            'category'        => $businessCategory,
+            'items'           => $items,
+            'citySlug'        => $citySlug,
+            'parentCatSlug'   => $businessCategorySlug,
+            'searchQuery'     => $searchQuery,
+            'showCompanies'   => $showCompanies // Предаваме флаг към View-то
+        ]);
+    }
 
     public function index()
     {

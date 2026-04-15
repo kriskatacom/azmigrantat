@@ -27,6 +27,7 @@ class OpenGraphService
             'image_phone' => $imgPhone,
             'type'        => $data['og_type'] ?? 'website',
             'locale'      => 'bg_BG',
+            'robots'      => $data['robots'] ?? 'noindex, nofollow',
         ];
     }
 
@@ -45,7 +46,8 @@ class OpenGraphService
 
         $html  = "    <title>{$title}</title>\n";
         $html .= "    <meta name=\"description\" content=\"{$description}\">\n";
-        $html .= "    <meta name=\"robots\" content=\"index, follow\">\n";
+
+        $html .= "    <meta name=\"robots\" content=\"{$this->tags['robots']}\">\n";
 
         if (!empty($this->tags['keywords'])) {
             $html .= "    <meta name=\"keywords\" content=\"" . htmlspecialchars($this->tags['keywords']) . "\">\n";

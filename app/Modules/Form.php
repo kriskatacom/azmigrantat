@@ -83,7 +83,7 @@ class Form
         $wrapperId = $options['wrapper_id'] ?? '';
     ?>
         <div <?= $wrapperId ? "id=\"$wrapperId\"" : "" ?> class="w-full">
-            <label for="<?= $id ?>" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label for="<?= $id ?>" class="block text-sm font-medium text-slate-700 mb-1">
                 <?= $label ?>
             </label>
 
@@ -93,7 +93,7 @@ class Form
                 rows="<?= $rows ?>"
                 <?= $required ?>
                 placeholder="<?= $placeholder ?>"
-                class="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-y min-h-25 dark:text-slate-200"><?= htmlspecialchars($value) ?></textarea>
+                class="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all resize-y min-h-25"><?= htmlspecialchars($value) ?></textarea>
 
             <?php if ($help): ?>
                 <p class="text-xs text-slate-400 mt-1 ml-1 italic"><?= $help ?></p>

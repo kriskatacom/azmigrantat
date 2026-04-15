@@ -53,7 +53,7 @@ class Router
 
         if (isset($this->routes[$method])) {
             foreach ($this->routes[$method] as $routePath => $routeData) {
-                $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\*\}/', '(.+)', $routePath);
+                $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\*\}/', '(.+?)', $routePath);
                 $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '([^/]+)', $pattern);
                 $pattern = "#^" . $pattern . "$#";
 
