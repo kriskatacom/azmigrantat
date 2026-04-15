@@ -127,7 +127,6 @@ $companyOptions = $company->options ?? [];
         <?php Form::section('Адаптивни предни изображения', function () use ($companyOptions) { ?>
             <div class="grid grid-cols-1 gap-8">
                 <?php
-                // Използвай 'image_url' за основна, ако така е в аксесора на модела
                 Form::image('Основна снимка (Desktop)', 'options[image_url]', $companyOptions['image_url'] ?? null, [
                     'help' => 'Основно изображение за големи екрани.'
                 ]);

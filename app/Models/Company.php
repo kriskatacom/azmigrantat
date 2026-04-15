@@ -32,7 +32,7 @@ class Company extends Model
         'address',
         'working_time',
         'is_active',
-        'options' // Добавяме основното поле за настройки и снимки
+        'options'
     ];
 
     protected $casts = [
@@ -41,12 +41,11 @@ class Company extends Model
         'city_id' => 'integer',
         'category_id' => 'integer',
         'user_id' => 'integer',
-        'options' => 'array', // Автоматично превръща JSON в PHP масив
+        'options' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
 
-    // Връзки (Relationships)
     public function city(): BelongsTo
     {
         return $this->belongsTo(City::class, 'city_id');
@@ -62,7 +61,6 @@ class Company extends Model
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    // Скоупове (Scopes)
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
@@ -73,10 +71,8 @@ class Company extends Model
         return $query->orderBy('sort_order', 'asc')->orderBy('name', 'asc');
     }
 
-    // Аксесоари за достъп до снимките в options
     public function getProfileImageAttribute(): string
     {
-        // Търсим 'image_url' вътре в 'options'
         return $this->options['image_url'] ?? '/assets/img/default-company.jpg';
     }
 
@@ -92,13 +88,16 @@ class Company extends Model
 
     public function getAdditionalImagesAttribute(): array
     {
-        // Връща масив от снимки или празен масив, ако няма такива
         return $this->options['additional_images'] ?? [];
     }
 
-    // Помощни методи
     public function hasWorkingTime(): bool
     {
         return !empty($this->working_time);
+    }
+    
+    public function services()
+    {
+        return $this->hasMany(CompanyService::class, 'company_id')->orderBy('sort_order');
     }
 }

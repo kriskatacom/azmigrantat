@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Models\Company;
 use App\Models\City;
 use App\Models\BusinessCategory;
+use App\Models\CompanyService;
 use App\Modules\Form;
 use App\Modules\Str;
 use App\Traits\HasAdminTrait;
@@ -26,6 +27,22 @@ class CompanyController extends BaseController
             $this->abort404();
         }
 
+        $services = CompanyService::active()
+            ->where('company_id', $company->id)
+            ->ordered()
+            ->get();
+
+        $today = date('Y-m-d');
+        $ads = \App\Models\CompanyAd::active()
+            ->where('company_id', $company->id)
+            ->where(function ($query) use ($today) {
+                $query->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(options, '$.valid_until')) >= ?", [$today])
+                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(options, '$.valid_until')) IS NULL")
+                    ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(options, '$.valid_until')) = ''");
+            })
+            ->ordered()
+            ->get();
+
         $seoTitle = $company->name . ($company->company_slogan ? " - " . $company->company_slogan : "");
         $seoData = [
             'title'       => $seoTitle,
@@ -38,7 +55,8 @@ class CompanyController extends BaseController
             'city'     => $company->city,
             'category' => $company->category,
             'ads'      => [],
-            'offers'   => [],
+            'services'   => $services,
+            'ads'      => $ads,
         ]);
     }
 
@@ -133,7 +151,6 @@ class CompanyController extends BaseController
 
         $data = $this->prepareData($_POST, $company);
 
-        // updateResource се грижи за изтриването на стари файлове и обновяването на JSON полето
         $this->updateResource($company, $data, [
             'image_url',
             'offer_image_url',

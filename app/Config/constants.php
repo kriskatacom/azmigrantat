@@ -114,6 +114,7 @@ define('SIDEBAR_LINKS', [
     ['url' => '/admin/translations', 'icon' => 'fa-language', 'label' => 'Преводи'],
     ['url' => '/admin/cities', 'icon' => 'fa-city', 'label' => 'Градове'],
     ['url' => '/admin/companies', 'icon' => 'fa-building', 'label' => 'Компании'],
+    ['url' => '/admin/services', 'icon' => 'fa-building', 'label' => 'Услуги'],
     ['url' => BASE_URL, 'icon' => 'fa-arrow-left', 'label' => 'Към основния сайт'],
 ]);
 

@@ -55,13 +55,15 @@ trait HasAdminTrait
             $counts['scheduled'] = $modelClass::where('status', 'scheduled')->count();
         }
 
-        return $this->renderAdmin($view, [
-            'title' => $config['title'] ?? 'Управление'
-        ], [
+        $viewData = array_merge([
             $config['resource_name'] => $items,
             'currentTab'             => $currentTab,
             'counts'                 => $counts
-        ]);
+        ], $config['extra_data'] ?? []);
+
+        return $this->renderAdmin($view, [
+            'title' => $config['title'] ?? 'Управление'
+        ], $viewData);
     }
 
     protected function updateResource($model, array $data, array $imageKeys = [])

@@ -23,7 +23,6 @@ Table::pageHeader([
             'bg' => 'bg-slate-100',
             'text' => 'text-slate-600'
         ],
-        // Можеш да добавиш допълнителни табове тук по-късно (напр. VIP, Чакащи и т.н.)
     ]
 ]);
 ?>
@@ -97,6 +96,18 @@ Table::pageHeader([
 
                 <td class="p-4 text-right">
                     <div class="flex justify-end gap-2">
+                        <a href="/admin/companies/<?= $company->id ?>/services"
+                            class="p-2 text-slate-400 hover:text-amber-500 transition-colors"
+                            title="Услуги">
+                            <i class="fa-solid fa-concierge-bell"></i>
+                        </a>
+
+                        <a href="/admin/companies/<?= $company->id ?>/ads"
+                            class="p-2 text-slate-400 hover:text-indigo-500 transition-colors"
+                            title="Обяви и Реклами">
+                            <i class="fa-solid fa-rectangle-ad"></i>
+                        </a>
+
                         <a href="/admin/companies/edit/<?= $company->id ?>"
                             class="p-2 text-slate-400 hover:text-blue-600 transition-colors"
                             title="Редактиране">

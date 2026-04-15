@@ -32,12 +32,16 @@ class Table
         </div>
 
         <div class="flex items-center border-b border-slate-200 mb-5 gap-5">
-            <?php foreach ($tabs as $key => $tab): ?>
-                <a href="?tab=<?= $key ?>"
-                    class="pb-3 text-sm font-medium transition-colors relative <?= $currentTab === $key ? ($tab['text'] . ' border-b-2 border-current') : 'text-slate-500 hover:text-slate-700' ?>">
+            <?php foreach ($tabs as $key => $tab): 
+                // Ако е подаден конкретен URL, използваме него, иначе стандартния query string
+                $href = $tab['url'] ?? "?tab={$key}";
+                $isActive = ($currentTab === $key);
+            ?>
+                <a href="<?= $href ?>"
+                    class="pb-3 text-sm font-medium transition-colors relative <?= $isActive ? ($tab['text'] . ' border-b-2 border-current') : 'text-slate-500 hover:text-slate-700' ?>">
                     <?= $tab['label'] ?>
                     <?php if (isset($tab['badge'])): ?>
-                        <span class="ml-1.5 px-1.5 py-0.5 text-[10px] <?= $currentTab === $key ? $tab['bg'] . ' ' . $tab['text'] : 'bg-slate-100 text-slate-600' ?> rounded-full italic font-bold">
+                        <span class="ml-1.5 px-1.5 py-0.5 text-[10px] <?= $isActive ? $tab['bg'] . ' ' . $tab['text'] : 'bg-slate-100 text-slate-600' ?> rounded-full italic font-bold">
                             <?= $tab['badge'] ?>
                         </span>
                     <?php endif; ?>
