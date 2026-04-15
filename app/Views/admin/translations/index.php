@@ -2,16 +2,32 @@
 
 use App\Core\App;
 use App\Core\View;
+use App\Modules\Form;
 use App\Modules\Str;
 use App\Modules\Table;
 
-$currentLang = $_GET['lang'] ?? '';
+$groupChoices = ['?' . http_build_query(array_merge($_GET, ['group' => ''])) => 'Всички групи'];
+
+foreach ($groups as $group) {
+    if (empty($group)) continue;
+
+    $url = '?' . http_build_query(array_merge($_GET, ['group' => $group]));
+    $groupChoices[$url] = "📦 " . htmlspecialchars($group);
+}
+
+$currentValue = '?' . http_build_query(array_merge($_GET, ['group' => $currentGroup]));
+
+$currentLang = $_GET['tab'] ?? '';
 $activeSource = $_GET['source'] ?? '';
+$currentGroup = $_GET['group'] ?? '';
+$search = $_GET['search'] ?? '';
 
 $sourceFilters = [
-    ''        => ['label' => 'Всички', 'icon' => 'fa-layer-group'],
-    'static'  => ['label' => 'Статични', 'icon' => 'fa-code'],
-    'dynamic' => ['label' => 'Динамични', 'icon' => 'fa-file-lines'],
+    ''             => ['label' => 'Всички', 'icon' => 'fa-layer-group'],
+    'static'       => ['label' => 'Статични', 'icon' => 'fa-code'],
+    'dynamic'      => ['label' => 'Динамични', 'icon' => 'fa-file-lines'],
+    'untranslated' => ['label' => 'Непреведени', 'icon' => 'fa-circle-exclamation'],
+    'translated'   => ['label' => 'Преведени', 'icon' => 'fa-circle-check'],
 ];
 
 $tabs = [
@@ -28,7 +44,6 @@ $tabs = [
 foreach (array_merge([App::$defaultLang], App::$supportedLangs) as $lang) {
     $langData = LANGUAGES['data'][$lang] ?? null;
     $langName = $langData['name'] ?? strtoupper($lang);
-
     $isDefault = ($lang === App::$defaultLang);
 
     $tabs[$lang] = [
@@ -57,25 +72,36 @@ Table::pageHeader([
 
 <?php View::component('flash-messages', 'admin/components'); ?>
 
-<div class="flex items-center gap-2 mb-5 bg-slate-100 p-1 rounded-xl w-fit">
-    <?php foreach ($sourceFilters as $key => $filter): ?>
-        <a href="?<?= http_build_query(array_merge($_GET, ['source' => $key])) ?>"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg transition-all <?= $activeSource === $key ? 'bg-white shadow-sm text-primary' : 'text-slate-500 hover:text-slate-700' ?>">
-            <i class="fa-solid <?= $filter['icon'] ?> opacity-50"></i>
-            <?= $filter['label'] ?>
-        </a>
-    <?php endforeach; ?>
+<div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+    <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 bg-slate-100 p-1 rounded-xl w-fit border border-slate-200/50">
+            <?php foreach ($sourceFilters as $key => $filter): ?>
+                <a href="?<?= http_build_query(array_merge($_GET, ['source' => $key])) ?>"
+                    class="flex items-center gap-2 px-4 py-2 rounded-lg transition-all <?= $activeSource === $key ? 'bg-white shadow-sm text-primary font-semibold' : 'text-slate-500 hover:text-slate-700' ?>">
+                    <i class="fa-solid <?= $filter['icon'] ?> opacity-50"></i>
+                    <?= $filter['label'] ?>
+                </a>
+            <?php endforeach; ?>
+        </div>
+
+        <div class="relative">
+            <?php Form::select('', 'group_filter', $groupChoices, $currentValue, [
+                'id' => 'group-select',
+                'class' => 'onchange-redirect'
+            ]); ?>
+        </div>
+    </div>
 </div>
 
 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
     <table class="w-full text-left border-collapse">
         <?php
-        $valueLabel = $currentLang
+        $valueLabel = ($currentLang && $currentLang !== 'bg')
             ? 'Превод (' . (App::$langNames[$currentLang] ?? strtoupper($currentLang)) . ')'
             : 'Основен текст (BG)';
 
         Table::thead([
-            'translation_key' => 'Системен ключ / Тип',
+            'translation_key' => 'Системен ключ / Група',
             'display_value'   => $valueLabel,
             'available_langs' => 'Наличност',
             'Действия'
@@ -83,9 +109,9 @@ Table::pageHeader([
         ?>
 
         <?php Table::tbody($translations, 4, function ($item) use ($currentLang) {
-            $langs = explode(', ', $item->available_langs ?? '');
             $defaultLang = App::$defaultLang;
             $targetValue = $item->display_value;
+            $translatedCodes = array_map('trim', explode(',', $item->available_langs ?? ''));
 
             ob_start();
         ?>
@@ -97,6 +123,10 @@ Table::pageHeader([
                         <?= htmlspecialchars($item->translation_key) ?>
                     </div>
                     <div class="flex items-center gap-1.5">
+                        <span class="text-[9px] font-bold uppercase text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 flex items-center gap-1">
+                            <i class="fa-solid fa-folder-open text-[8px] opacity-70"></i>
+                            <?= htmlspecialchars($item->group_key ?? 'Без група') ?>
+                        </span>
                         <?php if ($item->source === 'dynamic'): ?>
                             <span class="text-[9px] font-black uppercase text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100">Динамичен</span>
                         <?php else: ?>
@@ -107,79 +137,73 @@ Table::pageHeader([
                 <?php Table::td(ob_get_clean()); ?>
 
                 <?php ob_start(); ?>
-                <div class="flex flex-col gap-1">
-                    <?php if ($currentLang && $currentLang !== $defaultLang): ?>
-                        <div class="flex items-center gap-1 text-[10px] uppercase text-slate-400 font-bold tracking-tighter">
-                            <span>BG</span>
-                            <div class="h-px w-4 bg-slate-200"></div>
+                <div class="flex flex-col gap-2">
+                    <div class="flex flex-col">
+                        <div class="flex items-center gap-1 text-[9px] uppercase text-slate-400 font-bold tracking-wider">
+                            <span class="bg-slate-100 px-1 rounded text-slate-500">
+                                <?= LANGUAGES['data']['bg']['name'] ?? 'Български' ?>
+                            </span>
                         </div>
-                        <div class="text-slate-500 text-xs mb-1 line-clamp-1 italic">
-                            <?= $item->base_value ?? '—' ?>
+                        <div class="text-slate-600 text-sm font-medium mt-0.5">
+                            <?= htmlspecialchars($item->base_value ?: '—') ?>
+                        </div>
+                    </div>
+
+                    <?php if ($currentLang && $currentLang !== 'bg'):
+                        $langNames = App::getLangNames();
+                        $currentLangName = $langNames[$currentLang] ?? strtoupper($currentLang);
+                    ?>
+                        <div class="flex flex-col border-t border-slate-50 pt-1.5">
+                            <div class="flex items-center gap-1 text-[9px] uppercase font-bold tracking-wider text-primary/60">
+                                <span class="bg-primary/5 px-1 rounded"><?= $currentLangName ?></span>
+                            </div>
+                            <div class="text-slate-900 text-sm font-bold mt-0.5">
+                                <?php if ($targetValue): ?>
+                                    <?= Str::limit($targetValue, 150) ?>
+                                <?php else: ?>
+                                    <span class="text-red-400 italic text-xs flex items-center gap-1">
+                                        <i class="fa-solid fa-circle-exclamation"></i> Липсва превод на <?= $currentLangName ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     <?php endif; ?>
-
-                    <div class="max-w-md text-slate-700 text-sm font-medium leading-relaxed" title="<?= htmlspecialchars($targetValue ?? '') ?>">
-                        <?php if ($targetValue): ?>
-                            <?= Str::limit($targetValue, 120) ?>
-                        <?php else: ?>
-                            <span class="text-red-400 italic text-xs flex items-center gap-1">
-                                <i class="fa-solid fa-circle-exclamation"></i> Липсва превод
-                            </span>
-                        <?php endif; ?>
-                    </div>
                 </div>
                 <?php Table::td(ob_get_clean()); ?>
 
                 <?php ob_start();
                 $allLangs = array_merge([App::$defaultLang], App::$supportedLangs);
-                $limit = 4;
-                $displayedLangs = array_slice($allLangs, 0, $limit);
-                $remainingCount = count($allLangs) - $limit;
-
-                $translatedCodes = explode(', ', $item->available_langs ?? '');
+                $translatedCodes = array_map('trim', explode(',', $item->available_langs ?? ''));
                 ?>
-                <div class="flex items-center -space-x-2">
-                    <?php foreach ($displayedLangs as $code):
-                        $hasContent = in_array(trim($code), $translatedCodes);
+                <div class="flex items-center -space-x-1.5 py-1">
+                    <?php foreach ($allLangs as $code):
+                        $hasContent = in_array($code, $translatedCodes);
                         $langData = LANGUAGES['data'][$code] ?? null;
                         if (!$langData) continue;
 
                         $statusClass = $hasContent
-                            ? "border-emerald-500 ring-2 ring-emerald-500/15 opacity-100"
-                            : "border-slate-200 opacity-30 grayscale";
+                            ? "border-emerald-500 opacity-100 z-10"
+                            : "border-slate-200 opacity-20 grayscale hover:opacity-50";
                     ?>
                         <div class="relative inline-block group" title="<?= $langData['name'] ?>: <?= $hasContent ? 'Преведено' : 'Липсва' ?>">
-                            <div class="w-8 h-8 rounded-full border-2 overflow-hidden transition-all duration-300 transform group-hover:-translate-y-1 group-hover:z-30 group-hover:scale-110 bg-white <?= $statusClass ?>">
+                            <div class="w-6 h-6 rounded-full border bg-white overflow-hidden transition-all duration-200 transform group-hover:-translate-y-1 group-hover:scale-125 group-hover:z-30 shadow-sm <?= $statusClass ?>">
                                 <img src="<?= $langData['flag'] ?>" class="w-full h-full object-cover" alt="<?= $code ?>">
                             </div>
+
                             <?php if ($hasContent): ?>
-                                <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full z-20 shadow-sm"></span>
+                                <span class="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-emerald-500 border border-white rounded-full z-20"></span>
                             <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
-
-                    <?php if ($remainingCount > 0): ?>
-                        <div class="relative z-0 group">
-                            <div class="w-8 h-8 flex items-center justify-center border-2 border-slate-200 bg-slate-50 rounded-full shadow-sm ml-2 cursor-help transition-all hover:bg-slate-100"
-                                title="Още: <?= implode(', ', array_slice($allLangs, $limit)) ?>">
-                                <span class="text-[10px] font-black text-slate-500 tracking-tighter">+<?= $remainingCount ?></span>
-                            </div>
-                        </div>
-                    <?php endif; ?>
                 </div>
                 <?php Table::td(ob_get_clean()); ?>
 
                 <?php ob_start(); ?>
                 <div class="flex items-center justify-end gap-1">
-                    <a href="/admin/translations/edit/<?= urlencode($item->translation_key) ?>"
-                        class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all"
-                        title="Редактиране">
+                    <a href="/admin/translations/edit/<?= urlencode($item->translation_key) ?>" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/5 rounded-lg transition-all">
                         <i class="fa-solid fa-pen-to-square"></i>
                     </a>
-                    <button type="button"
-                        onclick="confirmDeleteKey('<?= addslashes($item->translation_key) ?>')"
-                        class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                        title="Изтриване">
+                    <button type="button" onclick="confirmDeleteKey('<?= addslashes($item->translation_key) ?>')" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
                         <i class="fa-solid fa-trash-can"></i>
                     </button>
                 </div>
@@ -195,14 +219,12 @@ Table::pageHeader([
 
 <script>
     function confirmDeleteKey(key) {
-        if (confirm('ВНИМАНИЕ: Ще изтриете ключа "' + key + '" и всички свързани преводи! Това действие е необратимо. Сигурни ли сте?')) {
-            const encodedKey = encodeURIComponent(key);
-            const form = document.querySelector(`form[action*="${encodedKey}"]`);
-            if (form) {
-                form.submit();
-            } else {
-                window.location.href = '/admin/translations/destroy/' + encodedKey;
-            }
+        if (confirm('ВНИМАНИЕ: Ще изтриете ключа "' + key + '" и всички свързани преводи! Сигурни ли сте?')) {
+            window.location.href = '/admin/translations/destroy/' + encodeURIComponent(key);
         }
     }
+
+    document.getElementById('group-select').addEventListener('change', function() {
+        if (this.value) location.href = this.value;
+    });
 </script>

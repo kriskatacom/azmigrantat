@@ -24,7 +24,7 @@ class Table
                 <i class="fa-solid <?= $style['icon'] ?> text-xl"></i>
             </div>
             <div>
-                <h1 class="text-2xl font-bold text-slate-900"><?= $style['title'] ?></h1>
+                <h1 class="text-2xl font-semibold text-slate-900"><?= $style['title'] ?></h1>
                 <p class="text-sm font-medium text-slate-500">
                     <?= str_replace('{count}', '<span class="font-bold border-b border-dotted">' . ($config['count'] ?? 0) . '</span>', $style['subtitle'] ?? '') ?>
                 </p>
@@ -32,16 +32,12 @@ class Table
         </div>
 
         <div class="flex items-center border-b border-slate-200 mb-5 gap-5">
-            <?php foreach ($tabs as $key => $tab): 
-                // Ако е подаден конкретен URL, използваме него, иначе стандартния query string
-                $href = $tab['url'] ?? "?tab={$key}";
-                $isActive = ($currentTab === $key);
-            ?>
-                <a href="<?= $href ?>"
-                    class="pb-3 text-sm font-medium transition-colors relative <?= $isActive ? ($tab['text'] . ' border-b-2 border-current') : 'text-slate-500 hover:text-slate-700' ?>">
+            <?php foreach ($tabs as $key => $tab): ?>
+                <a href="?tab=<?= $key ?>"
+                    class="pb-3 text-sm font-medium transition-colors relative <?= $currentTab === $key ? ($tab['text'] . ' border-b-2 border-current') : 'text-slate-500 hover:text-slate-700' ?>">
                     <?= $tab['label'] ?>
                     <?php if (isset($tab['badge'])): ?>
-                        <span class="ml-1.5 px-1.5 py-0.5 text-[10px] <?= $isActive ? $tab['bg'] . ' ' . $tab['text'] : 'bg-slate-100 text-slate-600' ?> rounded-full italic font-bold">
+                        <span class="ml-1.5 px-1.5 py-0.5 text-[10px] <?= $currentTab === $key ? $tab['bg'] . ' ' . $tab['text'] : 'bg-slate-100 text-slate-600' ?> rounded-full italic font-bold">
                             <?= $tab['badge'] ?>
                         </span>
                     <?php endif; ?>
@@ -61,7 +57,7 @@ class Table
             </form>
 
             <?php if (isset($config['create_btn']) && ($config['show_create'] ?? true)): ?>
-                <a href="<?= $config['create_btn']['url'] ?>" class="px-5 py-2.5 bg-primary text-white text-sm font-bold rounded-xl hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
+                <a href="<?= $config['create_btn']['url'] ?>" class="px-5 py-2.5 bg-primary text-white font-semibold rounded-md hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 flex items-center gap-2">
                     <i class="fa-solid <?= $config['create_btn']['icon'] ?? 'fa-plus' ?>"></i>
                     <?= $config['create_btn']['label'] ?>
                 </a>

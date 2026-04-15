@@ -11,14 +11,17 @@ class Translation extends Model
     protected $fillable = [
         'lang_code',
         'translation_key',
-        'translation_value'
+        'translation_value',
+        'source',
+        'group_key'
     ];
 
     protected $casts = [
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
+        'source' => 'string'
     ];
-    
+
     public function getTranslationValue($langCode)
     {
         return self::where('translation_key', $this->translation_key)
@@ -29,6 +32,12 @@ class Translation extends Model
     public function scopeByLang($query, string $code)
     {
         return $query->where('lang_code', $code);
+    }
+
+    // НОВО: Филтър по източник
+    public function scopeBySource($query, string $source)
+    {
+        return $query->where('source', $source);
     }
 
     public static function getTranslation(string $lang, string $key): ?string
@@ -42,12 +51,16 @@ class Translation extends Model
     {
         $stats = self::selectRaw("
             COUNT(*) as total,
-            COUNT(DISTINCT lang_code) as languages
+            COUNT(DISTINCT lang_code) as languages,
+            SUM(CASE WHEN source = 'static' THEN 1 ELSE 0 END) as static_count,
+            SUM(CASE WHEN source = 'dynamic' THEN 1 ELSE 0 END) as dynamic_count
         ")->first();
 
         return [
             'total_keys' => (int) $stats->total,
-            'unique_languages' => (int) $stats->languages
+            'unique_languages' => (int) $stats->languages,
+            'static_translations' => (int) $stats->static_count,
+            'dynamic_translations' => (int) $stats->dynamic_count
         ];
     }
 }

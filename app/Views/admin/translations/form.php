@@ -6,7 +6,6 @@ use App\Core\App;
 
 $isEdit = $translation->exists;
 
-// Динамично извличане на всички езици от ядрото
 $allLangs = array_merge([App::$defaultLang], App::$supportedLangs);
 ?>
 
@@ -21,6 +20,24 @@ $allLangs = array_merge([App::$defaultLang], App::$supportedLangs);
         </a>
         <h1 class="text-2xl font-bold text-slate-900"><?= $title ?></h1>
     </div>
+</div>
+
+<div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+    <div>
+        <a href="/admin/translations" class="text-slate-500 hover:text-primary text-sm mb-2 flex items-center gap-2 transition-colors w-fit">
+            <i class="fa-solid fa-arrow-left"></i> Назад към списъка
+        </a>
+        <h1 class="text-2xl font-bold text-slate-900"><?= $title ?></h1>
+    </div>
+
+    <?php if ($isEdit || !$isEdit): ?>
+        <button type="button"
+            onclick="translateAll('<?= App::$defaultLang ?>')"
+            class="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl text-sm font-bold hover:bg-primary/90 transition-all shadow-lg shadow-primary/20 group">
+            <i class="fa-solid fa-earth-europe group-hover:rotate-12 transition-transform"></i>
+            ПРЕВЕДИ НА ВСИЧКИ ЕЗИЦИ
+        </button>
+    <?php endif; ?>
 </div>
 
 <?php View::component('flash-messages', 'admin/components'); ?>
@@ -43,21 +60,29 @@ $allLangs = array_merge([App::$defaultLang], App::$supportedLangs);
                                 </span>
                                 <span class="text-sm font-bold text-slate-700"><?= $langName ?></span>
                             </div>
-                            <?php if ($isDefault): ?>
-                                <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 uppercase tracking-wider">Основен</span>
-                            <?php endif; ?>
+
+                            <div class="flex items-center gap-2">
+                                <?php if (!$isDefault): ?>
+                                    <button type="button"
+                                        onclick="translateField('<?= App::$defaultLang ?>', '<?= $code ?>')"
+                                        class="flex items-center gap-1.5 px-3 py-1 bg-white border border-slate-200 rounded-lg text-[10px] font-bold text-primary hover:bg-primary hover:text-white hover:border-primary transition-all shadow-sm group">
+                                        <i class="fa-solid fa-wand-magic-sparkles group-hover:animate-pulse"></i>
+                                        AI ПРЕВОД
+                                    </button>
+                                <?php else: ?>
+                                    <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 uppercase tracking-wider">Основен</span>
+                                <?php endif; ?>
+                            </div>
                         </div>
 
                         <?php
-                        // Стойност за конкретния език
                         $val = $translation->getTranslationValue($code) ?? '';
-
-                        Form::textarea($isDefault ? 'Текст на превода' : '', "translations[$code]", $val, [
+                        Form::textarea('', "translations[$code]", $val, [
                             'id' => "input-{$code}",
                             'required' => $isDefault,
                             'placeholder' => "Въведете превод на " . mb_strtolower($langName) . "...",
                             'rows' => 3,
-                            'help' => !$isDefault ? "Оставете празно, ако няма превод за този език." : ""
+                            'help' => !$isDefault ? "Използвайте бутона за автоматичен превод от български." : ""
                         ]);
                         ?>
                     </div>
@@ -77,9 +102,16 @@ $allLangs = array_merge([App::$defaultLang], App::$supportedLangs);
                     'help' => 'Уникален идентификатор за превода.'
                 ]);
 
-                Form::input('Група (Namespace)', 'group', $translation->group ?? 'messages', 'text', [
+                Form::input('Група (Namespace)', 'group_key', $translation->group_key ?? 'messages', 'text', [
                     'placeholder' => 'frontend, admin, emails...',
                     'help' => 'Напр. "admin" за системни преводи.'
+                ]);
+
+                Form::select('Източник (Source)', 'source', [
+                    'dynamic' => 'Динамичен (DB)',
+                    'static'  => 'Статичен (Files)'
+                ], $translation->source ?? 'dynamic', [
+                    'help' => 'Определя дали преводът е системен или потребителски.'
                 ]);
                 ?>
             </div>
@@ -117,3 +149,71 @@ $allLangs = array_merge([App::$defaultLang], App::$supportedLangs);
         <?php endif; ?>
     </div>
 </form>
+
+<script>
+    // Глобален списък с поддържани езици (без основния)
+    const targetLanguages = <?= json_encode(array_values(array_filter($allLangs, fn($l) => $l !== App::$defaultLang))) ?>;
+
+    async function translateAll(sourceLang) {
+        const sourceText = document.getElementById(`input-${sourceLang}`).value;
+
+        if (!sourceText.trim()) {
+            alert('Моля, въведете текст в основното поле (BG) първо.');
+            return;
+        }
+
+        const mainBtn = event.currentTarget;
+        const originalHTML = mainBtn.innerHTML;
+
+        mainBtn.disabled = true;
+        mainBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Обработка...';
+
+        // Изпълняваме всички преводи паралелно
+        const translationPromises = targetLanguages.map(lang => translateField(sourceLang, lang, false));
+
+        await Promise.all(translationPromises);
+
+        mainBtn.innerHTML = '<i class="fa-solid fa-check"></i> Готово!';
+        setTimeout(() => {
+            mainBtn.disabled = false;
+            mainBtn.innerHTML = originalHTML;
+        }, 2000);
+    }
+
+    // Модифицирана функция за единичен превод
+    async function translateField(sourceLang, targetLang, showAlert = true) {
+        const sourceText = document.getElementById(`input-${sourceLang}`).value;
+        const targetInput = document.getElementById(`input-${targetLang}`);
+
+        if (!sourceText.trim()) {
+            if (showAlert) alert('Моля, въведете текст в основното поле (BG) първо.');
+            return;
+        }
+
+        // Намираме локалния бутон за този език, ако съществува
+        const localBtn = document.querySelector(`#lang-section-${targetLang} button`);
+        if (localBtn) localBtn.classList.add('opacity-50', 'pointer-events-none');
+
+        try {
+            const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(sourceText)}`;
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data && data[0]) {
+                let translatedText = "";
+                data[0].forEach(part => {
+                    if (part[0]) translatedText += part[0];
+                });
+
+                targetInput.value = translatedText;
+                targetInput.classList.add('bg-emerald-50', 'border-emerald-200');
+                setTimeout(() => targetInput.classList.remove('bg-emerald-50', 'border-emerald-200'), 1500);
+            }
+        } catch (error) {
+            console.error(`Error translating ${targetLang}:`, error);
+        } finally {
+            if (localBtn) localBtn.classList.remove('opacity-50', 'pointer-events-none');
+        }
+    }
+</script>

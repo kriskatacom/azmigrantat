@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Core\App;
 use App\Models\Translation;
 use App\Traits\HasAdminTrait;
 use Illuminate\Support\Facades\Validator;
@@ -12,21 +13,36 @@ class TranslationController extends BaseController
 
     public function index()
     {
+        $_SESSION['last_translation_url'] = $_SERVER['REQUEST_URI'];
+
         $search = $_GET['search'] ?? '';
         $activeTab = $_GET['tab'] ?? '';
         $activeSource = $_GET['source'] ?? '';
+        $activeGroup = $_GET['group'] ?? '';
+
+        $groups = Translation::distinct()->pluck('group_key')->toArray();
 
         $subQuery = Translation::query()
-            ->select('translation_key', 'source')
+            ->select('translation_key', 'source', 'group_key')
             ->selectRaw("GROUP_CONCAT(DISTINCT CASE 
-                    WHEN translation_value IS NOT NULL AND translation_value != '' 
-                    THEN lang_code 
-                END ORDER BY lang_code SEPARATOR ', ') as available_langs")
+            WHEN translation_value IS NOT NULL AND translation_value != '' 
+            THEN lang_code 
+        END ORDER BY lang_code SEPARATOR ', ') as available_langs")
             ->selectRaw("MAX(created_at) as created_at")
             ->selectRaw("MAX(CASE WHEN lang_code = 'bg' THEN translation_value END) as base_value")
-            ->groupBy('translation_key', 'source');
+            ->groupBy('translation_key', 'source', 'group_key');
 
-        if (!empty($activeSource)) {
+        if (!empty($activeGroup)) {
+            $subQuery->where('group_key', $activeGroup);
+        }
+
+        $totalLangsCount = count(array_merge([App::$defaultLang], App::$supportedLangs));
+
+        if ($activeSource === 'untranslated') {
+            $subQuery->havingRaw("COUNT(DISTINCT CASE WHEN translation_value IS NOT NULL AND translation_value != '' THEN lang_code END) < ?", [$totalLangsCount]);
+        } elseif ($activeSource === 'translated') {
+            $subQuery->havingRaw("COUNT(DISTINCT CASE WHEN translation_value IS NOT NULL AND translation_value != '' THEN lang_code END) >= ?", [$totalLangsCount]);
+        } elseif (!empty($activeSource)) {
             $subQuery->where('source', $activeSource);
         }
 
@@ -39,24 +55,27 @@ class TranslationController extends BaseController
         if (!empty($search)) {
             $subQuery->where(function ($q) use ($search) {
                 $q->where('translation_key', 'like', "%{$search}%")
-                    ->orWhere('translation_value', 'like', "%{$search}%");
+                    ->orWhere('translation_value', 'like', "%{$search}%")
+                    ->orWhere('group_key', 'like', "%{$search}%");
             });
         }
 
         $query = Translation::fromSub($subQuery, 't')
             ->select('*')
-            ->reorder('created_at', 'desc');
+            ->orderBy('created_at', 'desc');
 
         $translations = $this->paginateQuery($query, ['translation_key']);
 
         $this->renderAdmin('admin/translations/index', [
             'title' => 'Управление на преводи'
         ], [
-            'translations' => $translations,
-            'search'       => $search,
-            'currentLang'  => $activeTab,
+            'translations'  => $translations,
+            'search'        => $search,
+            'currentLang'   => $activeTab,
             'currentSource' => $activeSource,
-            'stats'        => Translation::getStats()
+            'currentGroup'  => $activeGroup,
+            'groups'        => $groups,
+            'stats'         => Translation::getStats()
         ]);
     }
 
@@ -74,23 +93,27 @@ class TranslationController extends BaseController
     {
         $rules = [
             'translation_key' => 'required|max:100',
-            'translations'    => 'required|array'
+            'translations'    => 'required|array',
+            'group_key'           => 'nullable|max:50',
+            'source'          => 'required|in:static,dynamic'
         ];
 
         $validator = Validator::make($_POST, $rules);
 
         if ($validator->fails()) {
-            $this->flash('error', 'Моля, въведете валиден системен ключ.');
+            $this->flash('error', 'Моля, попълнете правилно всички задължителни полета.');
             return $this->redirectBack();
         }
 
         $key = $_POST['translation_key'];
         $translations = $_POST['translations'];
+        $group_key = $_POST['group_key'] ?? 'messages';
+        $source = $_POST['source'] ?? 'dynamic';
 
         $exists = Translation::where('translation_key', $key)->exists();
 
         if ($exists) {
-            $this->flash('error', "Ключът '{$key}' вече се използва. Моля, използвайте друг или редактирайте съществуващия.");
+            $this->flash('error', "Ключът '{$key}' вече съществува в базата данни.");
             return $this->redirectBack();
         }
 
@@ -101,19 +124,20 @@ class TranslationController extends BaseController
                     'lang_code'         => $langCode,
                     'translation_key'   => $key,
                     'translation_value' => $value,
-                    'source' => 'static'
+                    'group_key'             => $group_key,
+                    'source'            => $source,
                 ]);
                 $addedCount++;
             }
         }
 
         if ($addedCount === 0) {
-            $this->flash('error', 'Моля, въведете превод поне на един език.');
+            $this->flash('error', 'Трябва да въведете превод поне на един език.');
             return $this->redirectBack();
         }
 
-        $this->flash('success', "Успешно добавени преводи на {$addedCount} езика за ключ: {$key}");
-        $this->redirect('/admin/translations');
+        $this->flash('success', "Успешно добавен нов ключ '{$key}' с преводи на {$addedCount} езика.");
+        return $this->redirect('/admin/translations');
     }
 
     #[HandleExceptions]
@@ -142,21 +166,36 @@ class TranslationController extends BaseController
         $key = $baseTranslation->translation_key;
 
         $translations = $_POST['translations'] ?? [];
+        $group_key = $_POST['group_key'] ?? 'messages';
+        $source = $_POST['source'] ?? 'dynamic';
 
         if (empty($translations['bg'])) {
-            $this->flash('error', 'Българският превод е задължителен.');
+            $this->flash('error', 'Основният превод (BG) е задължителен и не може да бъде празен.');
             return $this->redirectBack();
         }
 
         foreach ($translations as $code => $value) {
-            Translation::updateOrCreate(
-                ['translation_key' => $key, 'lang_code' => $code],
-                ['translation_value' => $value, 'group' => $_POST['group'] ?? 'messages']
-            );
+            $trimmedValue = trim($value);
+
+            if ($trimmedValue === '' && $code !== 'bg') {
+                Translation::where('translation_key', $key)
+                    ->where('lang_code', $code)
+                    ->delete();
+            } else {
+                Translation::updateOrCreate(
+                    ['translation_key' => $key, 'lang_code' => $code],
+                    [
+                        'translation_value' => $trimmedValue,
+                        'group_key' => $group_key,
+                        'source' => $source
+                    ]
+                );
+            }
         }
 
-        $this->flash('success', 'Всички преводи бяха обновени успешно.');
-        $this->redirect('/admin/translations');
+        $this->flash('success', "Преводите за ключ '{$key}' бяха обновени успешно.");
+        $redirectUrl = $_SESSION['last_translation_url'] ?? '/admin/translations';
+        return $this->redirect($redirectUrl);
     }
 
     #[HandleExceptions]
