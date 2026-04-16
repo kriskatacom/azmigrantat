@@ -196,11 +196,11 @@ View::component('hero-section', 'components', [
                         <div class="swiper-pagination"></div>
                     </div>
                 <?php else: ?>
-                    <img src="<?= HelperService::getImage($company['ads_image_url'] ?: $company['image_url']) ?>" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    <img src="<?= $company['options']['ads_image_url'] ?>" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
                     <div class="absolute inset-0 bg-black/40 flex items-center justify-center p-6 text-center">
                         <?php if (!empty($user['id'])): ?>
                             <span class="text-white text-2xl md:text-3xl font-black uppercase drop-shadow-md">
-                                <?= HelperService::trans('ads_showcase') ?>
+                                <?= HelperService::trans('no_ads_to_show') ?>
                             </span>
                         <?php else: ?>
                             <div class="space-y-5">
@@ -229,7 +229,7 @@ View::component('hero-section', 'components', [
             </h3>
 
             <div class="relative h-80 md:h-120 rounded-xl shadow-md overflow-hidden">
-                <?php if (!empty($services)): ?>
+                <?php if (!empty($services) && count($services) > 0): ?>
                     <div class="swiper servicesSwiper h-full w-full">
                         <div class="swiper-wrapper">
                             <?php foreach ($services as $service):
@@ -261,13 +261,13 @@ View::component('hero-section', 'components', [
                         <div class="swiper-pagination"></div>
                     </div>
                 <?php else: ?>
-                    <img src="<?= HelperService::getImage($company['offer_image_url'] ?: $company['image_url']) ?>"
+                    <img src="<?= $company['options']['offer_image_url'] ?>"
                         class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
 
                     <div class="absolute inset-0 bg-black/40 flex items-center justify-center p-6 text-center">
                         <?php if (!empty($user['id'])): ?>
                             <span class="text-white text-2xl md:text-3xl font-black uppercase drop-shadow-md">
-                                <?= HelperService::trans('ad_display_here') ?>
+                                <?= HelperService::trans('no_services_to_show') ?>
                             </span>
                         <?php else: ?>
                             <div class="space-y-5">

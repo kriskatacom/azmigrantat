@@ -9,6 +9,10 @@ $action = $isEdit ? "/admin/companies/update/{$company->id}" : "/admin/companies
 $companyOptions = $company->options ?? [];
 ?>
 
+<div class="fixed bottom-5 right-5 z-50">
+    <?php Form::mainSubmit(); ?>
+</div>
+
 <div class="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
     <div>
         <a href="/admin/companies" class="text-slate-500 hover:text-primary text-sm mb-2 flex items-center gap-2 transition-colors w-fit">
@@ -23,7 +27,7 @@ $companyOptions = $company->options ?? [];
 
 <?php View::component('flash-messages', 'admin/components'); ?>
 
-<form action="<?= $action ?>" method="POST" class="grid 2xl:grid-cols-3 gap-5" enctype="multipart/form-data">
+<form data-main-form action="<?= $action ?>" method="POST" class="grid 2xl:grid-cols-3 gap-5" enctype="multipart/form-data">
 
     <div class="xl:col-span-2 space-y-5">
 
@@ -84,19 +88,41 @@ $companyOptions = $company->options ?? [];
         <?php }, 'fa-images'); ?>
 
         <?php Form::section('Локация и Карта', function () use ($company) { ?>
-            <div class="grid xl:grid-cols-2 gap-5">
-                <?php Form::input('Точен адрес', 'address', $company->address ?? '', 'text', [
-                    'placeholder' => 'гр. Монтана, ул. Индустриална 1'
-                ]); ?>
+            <div class="space-y-6">
+                <div class="space-y-4">
+                    <?php Form::input('Google Maps (Вградена карта)', 'google_map', $company->google_map ?? '', 'url', [
+                        'id' => 'js-input-map-embed',
+                        'icon' => 'fa-code',
+                        'placeholder' => 'Линк или iframe код...',
+                        'help' => 'Поставете целия iframe код или само src линка.'
+                    ]); ?>
 
-                <?php Form::input('Google Maps URL', 'google_map', $company->google_map ?? '', 'url', [
-                    'placeholder' => 'https://www.google.com/maps/...'
-                ]); ?>
-            </div>
-            <div class="mt-4">
-                <?php Form::input('Локация за показване (Текст)', 'your_location', $company->your_location ?? '', 'text', [
-                    'placeholder' => 'Монтана, Южна промишлена зона'
-                ]); ?>
+                    <div id="js-preview-map-container" class="<?= empty($company->google_map) ? 'hidden' : '' ?> bg-slate-50 p-4 rounded-lg border border-slate-200">
+                        <p class="text-xs font-bold text-slate-500 uppercase mb-2">Преглед на картата:</p>
+                        <div class="aspect-video w-full rounded overflow-hidden shadow-sm bg-slate-200">
+                            <iframe id="js-preview-iframe" src="<?= $company->google_map ?? '' ?>" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="border-slate-100">
+
+                <div class="space-y-4">
+                    <?php Form::input('Локация за навигация', 'options[google_map_link]', $company->options['google_map_link'] ?? '', 'url', [
+                        'id' => 'js-input-map-link',
+                        'icon' => 'fa-route',
+                        'placeholder' => 'Линк към обект...',
+                        'help' => 'Линк за бутона "Упътване".'
+                    ]); ?>
+
+                    <div id="js-preview-link-container" class="<?= empty($company->options['google_map_link']) ? 'hidden' : '' ?> bg-slate-50 p-6 rounded-lg border border-slate-200 flex flex-col items-center">
+                        <p class="text-xs font-bold text-slate-500 uppercase mb-3">Визуализация на бутона:</p>
+                        <a id="js-preview-route-btn" href="<?= $company->options['google_map_link'] ?? '#' ?>" target="_blank" class="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-full shadow-lg hover:bg-blue-700 transition-all">
+                            <i class="fa-solid fa-location-arrow"></i>
+                            Виж маршрут до обекта
+                        </a>
+                    </div>
+                </div>
             </div>
         <?php }, 'fa-map-location-dot'); ?>
 
@@ -139,11 +165,11 @@ $companyOptions = $company->options ?? [];
         <?php Form::section('Default изображения (Системни)', function () use ($companyOptions) { ?>
             <div class="grid grid-cols-1 gap-8">
                 <?php
-                Form::image('Изображение за Обяви', 'options[ads_image_url]', $companyOptions['ads_image_url'] ?? null, [
-                    'help' => 'Показва се като банер в секция обяви.'
+                Form::image('Изображение за реклами и обяви', 'options[ads_image_url]', $companyOptions['ads_image_url'] ?? null, [
+                    'help' => 'Изображение по подразбиране за списъка с реклами и обяви.'
                 ]);
                 Form::image('Изображение за Услуги', 'options[offer_image_url]', $companyOptions['offer_image_url'] ?? null, [
-                    'help' => 'Основно изображение за списъка с услуги.'
+                    'help' => 'Изображение по подразбиране за списъка с услуги.'
                 ]);
                 Form::image('Изображение за Footer', 'options[bottom_image_url]', $companyOptions['bottom_image_url'] ?? null, [
                     'help' => 'Изображение, което се визуализира най-долу в профила.'
@@ -175,15 +201,98 @@ $companyOptions = $company->options ?? [];
 
         <?php Form::section('Контакти', function () use ($company) { ?>
             <div class="space-y-4">
-                <?php Form::input('Телефон', 'phone', $company->phone ?? '', 'text', ['icon' => 'fa-phone']); ?>
-                <?php Form::input('Email', 'email', $company->email ?? '', 'email', ['icon' => 'fa-envelope']); ?>
-                <?php Form::input('Уебсайт', 'website_link', $company->website_link ?? '', 'url', ['icon' => 'fa-globe']); ?>
-                <?php Form::input('Facebook', 'facebook_page_link', $company->facebook_page_link ?? '', 'url', ['icon' => 'fa-facebook']); ?>
+                <?php Form::input('Телефон', 'phone', $company->phone ?? '', 'text', [
+                    'icon' => 'fa-phone',
+                    'placeholder' => '+359 8XX XXX XXX'
+                ]); ?>
+
+                <?php Form::input('Email', 'email', $company->email ?? '', 'email', [
+                    'icon' => 'fa-envelope',
+                    'placeholder' => 'office@company.com'
+                ]); ?>
+
+                <?php Form::input('Уебсайт', 'website_link', $company->website_link ?? '', 'url', [
+                    'icon' => 'fa-globe',
+                    'placeholder' => 'https://www.website.com'
+                ]); ?>
+
+                <?php Form::input('Точен адрес', 'address', $company->address ?? '', 'text', [
+                    'icon' => 'fa-map-marker-alt',
+                    'placeholder' => 'гр. Монтана, ул. Индустриална 1'
+                ]); ?>
             </div>
         <?php }, 'fa-address-book'); ?>
 
-        <div class="pt-2">
-            <?php Form::submit($isEdit ? 'Запази промените' : 'Създай компания', $isEdit ? 'fa-save' : 'fa-plus'); ?>
-        </div>
+        <?php Form::section('Facebook страница', function () use ($company) { ?>
+            <div class="space-y-4">
+                <?php Form::input('Facebook Линк', 'facebook_page_link', $company->facebook_page_link ?? '', 'url', [
+                    'icon' => 'fa-facebook',
+                    'placeholder' => 'https://www.facebook.com/yourpage',
+                    'help' => 'Facebook страницата ще се показва най-отдолу в страницата на компанията в клиентската зона.'
+                ]); ?>
+            </div>
+        <?php }, 'fa-facebook'); ?>
     </div>
 </form>
+
+<script>
+    (function() {
+        const setupField = (inputSelector, containerSelector, previewSelector, type) => {
+            const input = document.querySelector(inputSelector);
+            const container = document.querySelector(containerSelector);
+            const preview = document.querySelector(previewSelector);
+
+            if (!input || !container || !preview) return;
+
+            const extractUrl = (val) => {
+                if (val.includes('<iframe')) {
+                    const match = val.match(/src=["']([^"']+)["']/i);
+                    return match ? match[1] : val;
+                }
+                return val;
+            };
+
+            const updatePreview = () => {
+                console.log(input);
+                const rawValue = input.value ? input.value.trim() : '';
+                const cleanUrl = extractUrl(rawValue);
+
+
+                if (cleanUrl && cleanUrl.startsWith('http')) {
+                    if (type === 'src') preview.src = cleanUrl;
+                    if (type === 'href') preview.href = cleanUrl;
+                    container.classList.remove('hidden');
+                } else {
+                    container.classList.add('hidden');
+                    if (type === 'src') preview.src = '';
+                }
+            };
+
+            const cleanInputOnBlur = () => {
+                console.log(0);
+
+                const rawValue = input.value ? input.value.trim() : '';
+                const cleanUrl = extractUrl(rawValue);
+                if (rawValue !== cleanUrl) {
+                    input.value = cleanUrl;
+                }
+            };
+
+            input.addEventListener('input', updatePreview);
+            input.addEventListener('blur', cleanInputOnBlur);
+
+            if (input.value) updatePreview();
+        };
+
+        const init = () => {
+            setupField('#js-input-map-embed input', '#js-preview-map-container', '#js-preview-iframe', 'src');
+            setupField('#js-input-map-link input', '#js-preview-link-container', '#js-preview-route-btn', 'href');
+        };
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    })();
+</script>

@@ -252,6 +252,7 @@ $value = $value ?? '';
         user-select: text;
         -webkit-user-select: text;
     }
+
     .ql-video {
         width: 100%;
         aspect-ratio: 16/8;
@@ -669,67 +670,82 @@ $value = $value ?? '';
 </script>
 
 <script>
-    let currentSelectedImg = null;
+    (function() {
+        // Всичко тук е скрито от външния свят
+        let currentSelectedImg = null;
 
-    const imageControls = document.getElementById('image-controls');
-
-    // Показване на контролите при клик върху снимка
-    document.querySelector('#<?= $uniqueId ?>').addEventListener('click', (e) => {
-        if (e.target.tagName === 'IMG') {
-            currentSelectedImg = e.target;
-            const rect = currentSelectedImg.getBoundingClientRect();
-            const wrapperRect = document.querySelector('#parent_<?= $uniqueId ?>').getBoundingClientRect();
-
-            imageControls.style.display = 'flex';
-            imageControls.style.top = (rect.top - wrapperRect.top - 45) + 'px';
-            imageControls.style.left = (rect.left - wrapperRect.left) + 'px';
-        } else {
-            imageControls.style.display = 'none';
-        }
-    });
-
-    // Функция за обновяване на снимката
-    window.updateImg = (type, value) => {
-        if (!currentSelectedImg) return;
-
-        if (type === 'align') {
-            if (value === 'left') {
-                currentSelectedImg.style.float = 'left';
-                currentSelectedImg.style.display = 'inline';
-                currentSelectedImg.style.margin = '0 20px 10px 0';
-            } else if (value === 'right') {
-                currentSelectedImg.style.float = 'right';
-                currentSelectedImg.style.display = 'inline';
-                currentSelectedImg.style.margin = '0 0 10px 20px';
-            } else if (value === 'center') {
-                currentSelectedImg.style.float = 'none';
-                currentSelectedImg.style.display = 'block';
-                currentSelectedImg.style.margin = '10px auto';
-            }
-        } else if (type === 'size') {
-            currentSelectedImg.style.width = value;
-            currentSelectedImg.style.height = 'auto';
-        } else if (type === 'delete') {
-            currentSelectedImg.remove();
-            imageControls.style.display = 'none';
-        }
-
-        // Ръчно извикваме синхронизацията на Quill
         const editorId = '<?= $uniqueId ?>';
+        const controls = document.getElementById('image-controls');
         const container = document.getElementById(editorId);
-        if (container.quill) {
-            // Трик, за да накараме Quill да разбере, че има промяна
-            const html = container.querySelector('.ql-editor').innerHTML;
-            document.getElementById('input_' + editorId).value = html;
-        }
-    };
+        const parent = document.getElementById('parent_' + editorId);
+        const hiddenInput = document.getElementById('input_' + editorId);
 
-    // Скриване при скрол или клик извън редактора
-    document.addEventListener('mousedown', (e) => {
-        if (!imageControls.contains(e.target) && e.target.tagName !== 'IMG') {
-            imageControls.style.display = 'none';
-        }
-    });
+        if (!container || !controls) return;
+
+        // Показване на контролите
+        container.addEventListener('click', (e) => {
+            if (e.target.tagName === 'IMG') {
+                currentSelectedImg = e.target;
+                const rect = currentSelectedImg.getBoundingClientRect();
+                const wrapperRect = parent.getBoundingClientRect();
+
+                controls.style.display = 'flex';
+                controls.style.top = (rect.top - wrapperRect.top - 45) + 'px';
+                controls.style.left = (rect.left - wrapperRect.left) + 'px';
+            } else {
+                controls.style.display = 'none';
+            }
+        });
+
+        // Дефинираме функцията за обновяване вътре, но я изнасяме към window
+        // за да може onclick="" от бутоните да я вижда
+        window.updateImg = (type, value) => {
+            if (!currentSelectedImg) return;
+
+            if (type === 'align') {
+                const s = currentSelectedImg.style;
+                if (value === 'left') {
+                    Object.assign(s, {
+                        float: 'left',
+                        display: 'inline',
+                        margin: '0 20px 10px 0'
+                    });
+                } else if (value === 'right') {
+                    Object.assign(s, {
+                        float: 'right',
+                        display: 'inline',
+                        margin: '0 0 10px 20px'
+                    });
+                } else if (value === 'center') {
+                    Object.assign(s, {
+                        float: 'none',
+                        display: 'block',
+                        margin: '10px auto'
+                    });
+                }
+            } else if (type === 'size') {
+                currentSelectedImg.style.width = value;
+                currentSelectedImg.style.height = 'auto';
+            } else if (type === 'delete') {
+                currentSelectedImg.remove();
+                controls.style.display = 'none';
+            }
+
+            // Синхронизация с Quill
+            if (container.quill || container.__quill) {
+                const html = container.querySelector('.ql-editor').innerHTML;
+                if (hiddenInput) hiddenInput.value = html;
+            }
+        };
+
+        // Скриване при клик извън редактора/контролите
+        document.addEventListener('mousedown', (e) => {
+            if (!controls.contains(e.target) && e.target.tagName !== 'IMG') {
+                controls.style.display = 'none';
+            }
+        });
+
+    })(); // Край на IIFE
 </script>
 
 <style>

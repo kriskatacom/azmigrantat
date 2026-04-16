@@ -64,9 +64,9 @@ use App\Services\HelperService;
     <div class="container mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
         <?php
         $links = [
-            '/' => 'home',
+            'https://azmigrantat.com' => 'home',
             '/travel' => 'travel',
-            'https://gradove-sela.azmigrantat.com' => 'cities_and_villages',
+            'https://gradove-i-sela.azmigrantat.com' => 'cities_and_villages',
             'https://business.azmigrantat.com' => 'business_partnership',
             '/jobs' => 'looking_offer_jobs',
             '/ads' => 'ads',

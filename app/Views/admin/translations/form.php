@@ -20,15 +20,6 @@ $allLangs = array_merge([App::$defaultLang], App::$supportedLangs);
         </a>
         <h1 class="text-2xl font-bold text-slate-900"><?= $title ?></h1>
     </div>
-</div>
-
-<div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-    <div>
-        <a href="/admin/translations" class="text-slate-500 hover:text-primary text-sm mb-2 flex items-center gap-2 transition-colors w-fit">
-            <i class="fa-solid fa-arrow-left"></i> Назад към списъка
-        </a>
-        <h1 class="text-2xl font-bold text-slate-900"><?= $title ?></h1>
-    </div>
 
     <?php if ($isEdit || !$isEdit): ?>
         <button type="button"

@@ -136,6 +136,10 @@ class HelperService
 
     public static function url(string $path): string
     {
+        if (preg_match('/^(http|https):|^\/\//i', $path)) {
+            return $path;
+        }
+
         $lang = $_SESSION['lang'] ?? 'bg';
         $path = ltrim($path, '/');
 
