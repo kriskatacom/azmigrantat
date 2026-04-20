@@ -33,7 +33,11 @@ trait HasAdminTrait
         }
 
         if (in_array('hierarchical', $config['features'] ?? []) && empty($_GET['search']) && $currentTab !== 'trash') {
-            $query->whereNull('parent_id');
+            if (!empty($_GET['parent_id'])) {
+                $query->where('parent_id', $_GET['parent_id']);
+            } elseif (in_array('hierarchical', $config['features'] ?? []) && empty($_GET['search']) && $currentTab !== 'trash') {
+                $query->whereNull('parent_id');
+            }
         }
 
         if (isset($config['order_by'])) {

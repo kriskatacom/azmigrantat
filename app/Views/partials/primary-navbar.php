@@ -39,7 +39,7 @@ use App\Services\HelperService;
                             </a>
                         <?php endif; ?>
 
-                        <form action="/auth/logout" method="POST" class="w-full">
+                        <form action="/users/logout" method="POST" class="w-full">
                             <button type="submit" class="w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition">
                                 <?= HelperService::trans('logout') ?>
                             </button>
@@ -47,7 +47,7 @@ use App\Services\HelperService;
                     </div>
                 </div>
             <?php else: ?>
-                <a href="/auth/login" class="hover:text-primary-light transition group" title="Вход">
+                <a href="/users/login" class="hover:text-primary-light transition group" title="Вход">
                     <?php HelperService::icon('user-icon', 'text-white w-8 h-8 group-hover:scale-110 transition-transform'); ?>
                 </a>
             <?php endif; ?>
@@ -65,7 +65,7 @@ use App\Services\HelperService;
         <?php
         $links = [
             'https://azmigrantat.com' => 'home',
-            '/travel' => 'travel',
+            'https://azmigrantat.com/travel' => 'travel',
             'https://gradove-i-sela.azmigrantat.com' => 'cities_and_villages',
             'https://business.azmigrantat.com' => 'business_partnership',
             '/jobs' => 'looking_offer_jobs',

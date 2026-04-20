@@ -205,7 +205,7 @@ View::component('hero-section', 'components', [
                         <?php else: ?>
                             <div class="space-y-5">
                                 <h3 class="text-white text-2xl md:text-3xl font-black uppercase drop-shadow-md">Управлявайте рекламите си с лекота</h3>
-                                <a href="/auth/login" title="Влизане в профила" class="text-white btn-primary">Влизане в профила</a>
+                                <a href="/users/login" title="Влизане в профила" class="text-white btn-primary">Влизане в профила</a>
                             </div>
                         <?php endif; ?>
                     </div>
@@ -272,7 +272,7 @@ View::component('hero-section', 'components', [
                         <?php else: ?>
                             <div class="space-y-5">
                                 <h3 class="text-white text-2xl md:text-3xl font-black uppercase drop-shadow-md">Открийте нашите услуги</h3>
-                                <a href="/auth/login" title="Влизане в профила" class="text-white btn-primary inline-block">Влизане в профила</a>
+                                <a href="/users/login" title="Влизане в профила" class="text-white btn-primary inline-block">Влизане в профила</a>
                             </div>
                         <?php endif; ?>
                     </div>

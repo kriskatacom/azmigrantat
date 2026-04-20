@@ -5,9 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class BusinessCategory extends Model
 {
+    use SoftDeletes;
+    
     protected $table = 'business_categories';
 
     protected $fillable = [
@@ -30,17 +33,11 @@ class BusinessCategory extends Model
         'updated_at' => 'datetime'
     ];
 
-    /**
-     * Връзка към родителската бизнес категория
-     */
     public function parent(): BelongsTo
     {
         return $this->belongsTo(BusinessCategory::class, 'parent_id');
     }
 
-    /**
-     * Връзка към подкатегориите (децата)
-     */
     public function children(): HasMany
     {
         return $this->hasMany(BusinessCategory::class, 'parent_id')
@@ -48,36 +45,28 @@ class BusinessCategory extends Model
             ->orderBy('sort_order', 'asc');
     }
 
-    /**
-     * Филтър за активни категории
-     */
+    public function companies()
+    {
+        return $this->hasMany(Company::class, 'category_id');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
     }
 
-    /**
-     * Филтър за главни категории (без родител)
-     */
     public function scopeRoot($query)
     {
         return $query->whereNull('parent_id');
     }
 
-    /**
-     * Помощен метод за преведено име (за съвместимост с View-тата)
-     */
     public function getTranslatedName(): string
     {
         return $this->name ?? '';
     }
 
-    /**
-     * Помощен метод за превод на опции/SEO (ако имаш такава логика в другите модели)
-     */
     public function getOptionTranslation(string $key, $default = null)
     {
-        // Ако нямаш отделна таблица за опции тук, връщаме заглавието или дефолтната стойност
         if ($key === 'h1_title') return $this->heading ?? $this->name;
         return $default;
     }

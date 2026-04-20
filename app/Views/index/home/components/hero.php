@@ -21,7 +21,7 @@ use App\Services\HelperService; ?>
 
         <div class="absolute -bottom-11 left-[50%] -translate-x-[50%]">
             <?= View::component('search-autocomplete', 'components', [
-                'placeholder' => 'Открийте градовете и селата...',
+                'placeholder' => 'Бизнес и партньорство в България...',
                 'action'      => '/cities/search'
             ]) ?>
         </div>

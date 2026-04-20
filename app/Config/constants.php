@@ -107,6 +107,7 @@ define('SIDEBAR_LINKS', [
     ['url' => '/admin/pages', 'icon' => 'fa-book-open', 'label' => 'Страници'],
     ['url' => '/admin/articles', 'icon' => 'fa-newspaper', 'label' => 'Статии'],
     ['url' => '/admin/categories', 'icon' => 'fa-folder-tree', 'label' => 'Категории'],
+    ['url' => '/admin/business-categories', 'icon' => 'fa-briefcase', 'label' => 'Бизнес Категории'],
     ['url' => '/admin/tags', 'icon' => 'fa-tags', 'label' => 'Тагове'],
     ['url' => '/admin/media', 'icon' => 'fa-images', 'label' => 'Медия'],
     ['url' => '/admin/galleries', 'icon' => 'fa-photo-film', 'label' => 'Галерии'],

@@ -1,5 +1,6 @@
 <?php
 
+use App\Controllers\BusinessCategoryController;
 use App\Controllers\CategoryController;
 use App\Core\Router;
 use App\Controllers\ContactController;
@@ -54,6 +55,16 @@ $router->post('/admin/ads/delete/{id}', [CompanyAdController::class, 'delete'], 
 $router->post('/admin/ads/restore/{id}', [CompanyAdController::class, 'restore'], $adminAuth);
 $router->post('/admin/ads/force-delete/{id}', [CompanyAdController::class, 'forceDelete'], $adminAuth);
 $router->post('/admin/ads/toggle-status/{id}', [CompanyAdController::class, 'toggleStatus'], $adminAuth);
+
+// Бизнес категории
+$router->get('/admin/business-categories', [BusinessCategoryController::class, 'index']);
+$router->get('/admin/business-categories/create', [BusinessCategoryController::class, 'create']);
+$router->post('/admin/business-categories/store', [BusinessCategoryController::class, 'store']);
+$router->get('/admin/business-categories/edit/{id}', [BusinessCategoryController::class, 'edit']);
+$router->post('/admin/business-categories/update/{id}', [BusinessCategoryController::class, 'update']);
+$router->post('/admin/business-categories/delete/{id}', [BusinessCategoryController::class, 'delete']);
+$router->post('/admin/business-categories/restore/{id}', [BusinessCategoryController::class, 'restore']);
+$router->post('/admin/business-categories/force-delete/{id}', [BusinessCategoryController::class, 'forceDelete']);
 
 // Публични рутове
 $router->get('/cities/{city_slug*}/categories/{cat_slug*}/company/{slug}', [CompanyController::class, 'show']);

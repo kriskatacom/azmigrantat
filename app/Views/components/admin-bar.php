@@ -86,7 +86,7 @@ if (Auth::isAdmin()): ?>
                             <?php endif; ?>
                         </a>
 
-                        <form action="/auth/logout" method="POST" class="m-0 p-0 flex shrink-0">
+                        <form action="/users/logout" method="POST" class="m-0 p-0 flex shrink-0">
                             <button type="submit"
                                 class="group flex items-center gap-2 text-xs bg-red-500/5 hover:bg-red-500 text-red-400 hover:text-white px-4 py-1.5 rounded-md uppercase font-semibold transition-all duration-300 cursor-pointer shadow-sm whitespace-nowrap">
                                 <span>Изход</span>
