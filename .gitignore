@@ -1,0 +1,7 @@
+/node_modules
+/vendor
+/public/uploads
+/public/assets/css/min
+/public/assets/js/min
+.env
+/app/storage/logs

@@ -1,0 +1,22 @@
+{
+    "name": "auth.kriskata",
+    "version": "1.0.0",
+    "type": "module",
+    "main": "index.js",
+    "scripts": {
+        "build": "tailwindcss -c tailwind.config.js -i ./public/assets/css/style.css -o ./public/assets/css/min/tailwind.css --minify",
+        "watch": "tailwindcss -c tailwind.config.js -i ./public/assets/css/style.css -o ./public/assets/css/min/tailwind.css --watch"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "description": "",
+    "devDependencies": {
+        "autoprefixer": "^10.4.21",
+        "postcss": "^8.5.6",
+        "tailwindcss": "^4.2.1"
+    },
+    "dependencies": {
+        "@tailwindcss/cli": "^4.2.1"
+    }
+}
