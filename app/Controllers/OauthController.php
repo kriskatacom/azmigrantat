@@ -7,6 +7,7 @@ use App\Models\OauthApp;
 use App\Models\OauthAuthCode;
 use App\Core\Auth;
 use App\Models\OauthConsent;
+use App\Models\User;
 use Exception;
 
 class OauthController extends BaseController
@@ -35,7 +36,7 @@ class OauthController extends BaseController
         if ($hasConsented) {
             return $this->approve();
         }
-        
+
         if (!Auth::check()) {
             $this->redirect('/users/login?return_to=' . urlencode($_SERVER['REQUEST_URI']));
         }
@@ -86,7 +87,7 @@ class OauthController extends BaseController
 
         OauthConsent::updateOrCreate([
             'user_id' => Auth::id(),
-            'app_id'  => $app->id
+            'app_id' => $app->id
         ]);
 
         $separator = (parse_url($redirectUri, PHP_URL_QUERY) == NULL) ? '?' : '&';
@@ -174,10 +175,20 @@ class OauthController extends BaseController
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
+            'role' => $user->role,
             'avatar' => $user->avatar_url ?? null
         ]);
     }
 
+    public function getUsers()
+    {
+        $users = User::all(['id', 'name', 'email', 'role']);
+
+        return $this->json([
+            'success' => true,
+            'data' => $users
+        ]);
+    }
 }
 
 // http://localhost:8000/oauth/authorize?client_id=app_lo284alsgav6&redirect_uri=https://gradove-i-sela.azmigrantat.com

@@ -34,7 +34,7 @@ class MenuController extends BaseController
             'description' => 'Създаване на ново меню.'
         ];
 
-        $this->renderAdmin('admin/menus/form', $seoData, [
+        $this->renderWithLayout('admin/menus/form', $seoData, [
             'menu' => new Menu(),
         ]);
     }
@@ -78,7 +78,7 @@ class MenuController extends BaseController
             'title' => 'Редактиране на меню: ' . $menu->title,
         ];
 
-        $this->renderAdmin('admin/menus/form', $seoData, [
+        $this->renderWithLayout('admin/menus/form', $seoData, [
             'menu' => $menu
         ]);
     }
@@ -192,7 +192,7 @@ class MenuController extends BaseController
             'title' => 'Структура на ' . $menu->title . ' | Админ панел',
         ];
 
-        $this->renderAdmin('admin/menus/structure', $seoData, [
+        $this->renderWithLayout('admin/menus/structure', $seoData, [
             'menu'      => $menu,
             'items'     => $items,
             'pages'     => $parentOptions,

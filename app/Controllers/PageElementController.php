@@ -30,7 +30,7 @@ class PageElementController extends BaseController
 
         $values = PageElementValue::getMappedByPageId($pageId);
 
-        return $this->renderAdmin('admin/pages/elements/index', [
+        return $this->renderWithLayout('admin/pages/elements/index', [
             'title' => 'Елементи на страницата: ' . $page->title
         ], [
             'page'     => $page,
@@ -76,7 +76,7 @@ class PageElementController extends BaseController
     {
         $page = Page::findOrFail($pageId);
 
-        $this->renderAdmin('admin/pages/elements/form', ['title' => 'Нова дефиниция на елемент'], [
+        $this->renderWithLayout('admin/pages/elements/form', ['title' => 'Нова дефиниция на елемент'], [
             'pageId'  => $pageId,
             'page'    => $page,
             'element' => new PageElement()
@@ -110,7 +110,7 @@ class PageElementController extends BaseController
     {
         $element = PageElement::where('page_id', $pageId)->findOrFail($elementId);
 
-        $this->renderAdmin('admin/pages/elements/form', ['title' => 'Редакция на дефиниция'], [
+        $this->renderWithLayout('admin/pages/elements/form', ['title' => 'Редакция на дефиниция'], [
             'element' => $element,
             'pageId'  => $pageId
         ]);

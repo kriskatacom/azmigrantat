@@ -36,7 +36,7 @@ class MediaController extends BaseController
             'description' => 'Добавяне на нови изображения и документи в библиотеката.'
         ];
 
-        $this->renderAdmin('admin/media/upload', $seoData);
+        $this->renderWithLayout('admin/media/upload', $seoData);
     }
 
     public function store()

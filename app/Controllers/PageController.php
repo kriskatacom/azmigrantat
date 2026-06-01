@@ -73,7 +73,7 @@ class PageController extends BaseController
     {
         $parentOptions = Form::getTreeOptions(Page::class, [], 'name');
 
-        $this->renderAdmin('admin/pages/form', ['title' => 'Нова страница'], [
+        $this->renderWithLayout('admin/pages/form', ['title' => 'Нова страница'], [
             'page' => new Page(),
             'parentOptions' => $parentOptions
         ]);
@@ -107,7 +107,7 @@ class PageController extends BaseController
 
         $data = $this->getFormData($page);
 
-        $this->renderAdmin('admin/pages/form', [
+        $this->renderWithLayout('admin/pages/form', [
             'title' => "Редактиране: " . ($page->title ?? 'Страница')
         ], $data);
     }

@@ -42,9 +42,9 @@ abstract class BaseController
         $this->executeRender($viewPath, $seoData, $additionalData, 'main');
     }
 
-    protected function renderAdmin(string $viewPath, array $seoData, array $additionalData = [])
+    protected function renderWithLayout(string $viewPath, array $seoData, array $additionalData = [], $layout = 'admin')
     {
-        $this->executeRender($viewPath, $seoData, $additionalData, 'admin');
+        $this->executeRender($viewPath, $seoData, $additionalData, $layout);
     }
 
     private function executeRender(string $viewPath, array $seoData, array $additionalData, string $layout)

@@ -1,11 +1,11 @@
 <?php
 
-use App\Core\Auth;
+use App\Helpers\AuthHelper;
 
 $id = $pageId ?? $elements['page_id'] ?? null;
-$user = Auth::user();
+$user = AuthHelper::user();
 
-if (Auth::isAdmin()): ?>
+if (AuthHelper::isAdmin()): ?>
     <style>
         body {
             margin-top: 40px !important;
@@ -52,7 +52,7 @@ if (Auth::isAdmin()): ?>
                 <div class="flex items-center gap-6 shrink-0 h-full">
 
                     <div class="flex items-center gap-6 border-l border-gray-100 pl-6 h-full">
-                        <a href="/admin/users/edit/<?= Auth::user()['id'] ?>"
+                        <a href="/admin/users/edit/<?= AuthHelper::user()['id'] ?>"
                             class="flex items-center gap-3 group transition-all">
                             <div class="hidden sm:flex flex-col items-end">
                                 <span

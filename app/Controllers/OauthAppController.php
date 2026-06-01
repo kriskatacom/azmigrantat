@@ -25,7 +25,7 @@ class OauthAppController extends BaseController
 
     public function create()
     {
-        $this->renderAdmin('admin/oauth_apps/form', ['title' => 'Ново SSO приложение'], [
+        $this->renderWithLayout('admin/oauth_apps/form', ['title' => 'Ново SSO приложение'], [
             'application' => new OauthApp()
         ]);
     }
@@ -59,7 +59,7 @@ class OauthAppController extends BaseController
     {
         $app = OauthApp::findOrFail($id);
 
-        $this->renderAdmin('admin/oauth_apps/form', ['title' => "Редактиране на {$app->name}"], [
+        $this->renderWithLayout('admin/oauth_apps/form', ['title' => "Редактиране на {$app->name}"], [
             'application' => $app
         ]);
     }

@@ -8,6 +8,8 @@ class OauthAccessToken extends Model
 {
     protected $table = 'oauth_access_tokens';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'token',
         'user_id',

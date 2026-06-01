@@ -66,7 +66,7 @@ class TranslationController extends BaseController
 
         $translations = $this->paginateQuery($query, ['translation_key']);
 
-        $this->renderAdmin('admin/translations/index', [
+        $this->renderWithLayout('admin/translations/index', [
             'title' => 'Управление на преводи'
         ], [
             'translations'  => $translations,
@@ -81,7 +81,7 @@ class TranslationController extends BaseController
 
     public function create()
     {
-        $this->renderAdmin(
+        $this->renderWithLayout(
             'admin/translations/form',
             ['title' => 'Добавяне на нов превод'],
             ['translation' => new Translation()]
@@ -152,7 +152,7 @@ class TranslationController extends BaseController
             return $this->redirect('/admin/translations');
         }
 
-        $this->renderAdmin('admin/translations/form', [
+        $this->renderWithLayout('admin/translations/form', [
             'title' => "Редактиране на ключ: {$key}"
         ], [
             'translation' => $translation

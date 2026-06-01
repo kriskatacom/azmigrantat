@@ -51,7 +51,7 @@ class AdminController extends BaseController
             'description' => 'Бърз преглед на статистиката и съдържанието.',
         ];
 
-        $this->renderAdmin('admin/dashboard/index', $seoData, [
+        $this->renderWithLayout('admin/dashboard/index', $seoData, [
             'stats' => $stats,
             'sessions' => $activeSessions
         ]);

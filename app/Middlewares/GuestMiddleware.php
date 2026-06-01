@@ -2,20 +2,13 @@
 
 namespace App\Middlewares;
 
-use App\Services\UserService;
+use App\Helpers\AuthHelper;
 
 class GuestMiddleware
 {
-    protected UserService $userService;
-
-    public function __construct()
-    {
-        $this->userService = new UserService();
-    }
-
     public function handle(): void
     {
-        if ($this->userService->isLoggedIn()) {
+        if (AuthHelper::check()) {
             header('Location: /users/profile');
             exit;
         }

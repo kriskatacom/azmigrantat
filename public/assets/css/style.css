@@ -14,8 +14,9 @@ html {
 /* --- 2. Theme Configuration --- */
 @theme {
     /* Colors */
-    --color-primary: #e5e195;
-    --color-darken-primary: #28444F;
+    --color-primary: #0B2935;
+    --color-secondary: #E4DE94;
+    --color-darken-primary: #30444d;
     --color-dark-primary: #0B2935;
     --color-indigo-600: #4f46e5;
 

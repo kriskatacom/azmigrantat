@@ -5,6 +5,7 @@ namespace App\Controllers;
 use App\Controllers\HandleExceptions;
 use App\Core\Auth;
 use App\Core\Session;
+use App\Helpers\AuthHelper;
 use App\Models\SessionModel;
 use App\Models\User;
 use App\Services\MediaService;
@@ -62,17 +63,17 @@ class UserController extends BaseController
             'description' => 'Списък и редактиране на потребители.'
         ];
 
-        $this->renderAdmin('admin/users/index', $seoData, [
-            'users'      => $users,
-            'sessions'   => $sessions,
+        $this->renderWithLayout('admin/users/index', $seoData, [
+            'users' => $users,
+            'sessions' => $sessions,
             'currentTab' => $currentTab,
-            'search'     => $search
-        ]);
+            'search' => $search
+        ], AuthHelper::role());
     }
 
     public function create()
     {
-        $this->renderAdmin(
+        $this->renderWithLayout(
             'admin/users/form',
             ['title' => 'Създаване на потребител'],
             ['user' => new User()]
@@ -92,20 +93,20 @@ class UserController extends BaseController
         $this->validateSpam();
 
         $rules = [
-            'name'             => 'required|min:3',
-            'email'            => 'required|email',
-            'password'         => 'required|min:6',
+            'name' => 'required|min:3',
+            'email' => 'required|email',
+            'password' => 'required|min:6',
             'confirm_password' => 'required|same:password',
         ];
 
         $messages = [
-            'name.required'             => 'Моля, въведете вашето име.',
-            'name.min'                  => 'Името трябва да е поне 3 символа.',
-            'email.required'            => 'Имейл адресът е задължителен.',
-            'email.email'               => 'Моля, въведете валиден имейл.',
-            'password.required'         => 'Паролата е задължителна.',
-            'password.min'              => 'Паролата трябва да е поне 6 символа.',
-            'confirm_password.same'     => 'Паролите не съвпадат.',
+            'name.required' => 'Моля, въведете вашето име.',
+            'name.min' => 'Името трябва да е поне 3 символа.',
+            'email.required' => 'Имейл адресът е задължителен.',
+            'email.email' => 'Моля, въведете валиден имейл.',
+            'password.required' => 'Паролата е задължителна.',
+            'password.min' => 'Паролата трябва да е поне 6 символа.',
+            'confirm_password.same' => 'Паролите не съвпадат.',
             'confirm_password.required' => 'Моля, потвърдете паролата.'
         ];
 
@@ -132,7 +133,7 @@ class UserController extends BaseController
             : 'Добре дошли! Регистрацията премина успешно.';
 
         $this->flash('success', $welcomeMessage);
-        $this->redirect('/users/profile');
+        $this->redirect('/users/login');
     }
 
     public function loginForm()
@@ -150,13 +151,13 @@ class UserController extends BaseController
         $this->validateSpam();
 
         $rules = [
-            'email'    => 'required|email',
+            'email' => 'required|email',
             'password' => 'required'
         ];
 
         $messages = [
-            'email.required'    => 'Моля, въведете вашия имейл.',
-            'email.email'       => 'Въведеният имейл не е валиден.',
+            'email.required' => 'Моля, въведете вашия имейл.',
+            'email.email' => 'Въведеният имейл не е валиден.',
             'password.required' => 'Моля, въведете вашата парола.'
         ];
 
@@ -172,6 +173,20 @@ class UserController extends BaseController
             $_POST['email'],
             $_POST['password']
         );
+
+        if (!$user) {
+            $this->flash('error', 'Грешни данни за вход.');
+            return $this->redirectBack();
+        }
+
+        Manager::table('sessions')
+            ->where('last_activity', '<', time() - 86400)
+            ->delete();
+
+        Manager::table('sessions')
+            ->where('user_id', $user->id)
+            ->where('id', '!=', session_id())
+            ->delete();
 
         $otherSession = Manager::table('sessions')
             ->where('user_id', $user->id)
@@ -206,10 +221,7 @@ class UserController extends BaseController
             $user->save();
         }
 
-        Session::set('user_id', $user->id);
-        Session::set('user_role', $user->role);
-        Session::set('user_name', $user->name);
-
+        Session::set('user', $user);
         Session::csrfToken();
 
         $redirectTo = $_POST['return_to'] ?? null;
@@ -234,22 +246,32 @@ class UserController extends BaseController
 
     public function profile()
     {
-        $user = $this->userService->getCurrentUser();
+        $userId = AuthHelper::id();
 
-        $this->renderWithSeo('users/profile/index', [
+        if (!$userId) {
+            return $this->redirect('/users/login');
+        }
+
+        $user = $this->userService->findUser($userId);
+
+        $seoData = [
             'title' => 'Моят профил',
             'description' => 'Управлявайте личните си данни и настройки на профила.',
-        ], ['user' => $user]);
+        ];
+
+        $this->renderWithLayout('users/profile/index', $seoData, [
+            'user' => $user
+        ], 'admin');
     }
 
     #[HandleExceptions]
     public function store()
     {
         $fields = [
-            'email'    => FILTER_VALIDATE_EMAIL,
-            'name'     => FILTER_DEFAULT,
+            'email' => FILTER_VALIDATE_EMAIL,
+            'name' => FILTER_DEFAULT,
             'password' => FILTER_DEFAULT,
-            'role'     => FILTER_DEFAULT
+            'role' => FILTER_DEFAULT
         ];
 
         $validatedData = $this->validateRequest($fields);
@@ -261,7 +283,7 @@ class UserController extends BaseController
 
         $this->userService->register($validatedData + [
             'username' => $_POST['username'] ?? null,
-            'role'     => $_POST['role'] ?? 'user',
+            'role' => $_POST['role'] ?? 'user',
             'password' => $_POST['password'],
         ]);
 
@@ -281,17 +303,17 @@ class UserController extends BaseController
         $user = User::findOrFail($targetId);
 
         $rules = [
-            'name'     => 'required|min:3',
-            'email'    => 'required|email|unique:users,email,' . $user->id,
+            'name' => 'required|min:3',
+            'email' => 'required|email|unique:users,email,' . $user->id,
             'password' => 'nullable|min:6|confirmed',
-            'gender'   => 'nullable|in:male,female,other',
+            'gender' => 'nullable|in:male,female,other',
         ];
 
         $messages = [
-            'name.required'      => 'Името е задължително.',
-            'email.required'     => 'Имейлът е задължителен.',
-            'email.unique'       => 'Този имейл вече се използва от друг потребител.',
-            'password.min'       => 'Новата парола трябва да е поне 6 символа.',
+            'name.required' => 'Името е задължително.',
+            'email.required' => 'Имейлът е задължителен.',
+            'email.unique' => 'Този имейл вече се използва от друг потребител.',
+            'password.min' => 'Новата парола трябва да е поне 6 символа.',
             'password.confirmed' => 'Паролите не съвпадат.',
         ];
 
@@ -324,14 +346,14 @@ class UserController extends BaseController
     #[HandleExceptions]
     public function edit($id)
     {
-        $user = $this->userService->findUser((int)$id);
+        $user = $this->userService->findUser((int) $id);
 
         $seoData = [
             'title' => "Редактиране на {$user->name} | Админ панел",
             'description' => 'Промяна на потребителски данни и роли.'
         ];
 
-        $this->renderAdmin('admin/users/form', $seoData, [
+        $this->renderWithLayout('admin/users/form', $seoData, [
             'user' => $user
         ]);
     }
@@ -339,7 +361,7 @@ class UserController extends BaseController
     #[HandleExceptions]
     public function destroy($id)
     {
-        $this->userService->deleteUser((int)$id, (int)Auth::id());
+        $this->userService->deleteUser((int) $id, (int) Auth::id());
         $this->flash('success', 'Потребителят беше изтрит успешно.');
         $this->redirect('/admin/users');
     }

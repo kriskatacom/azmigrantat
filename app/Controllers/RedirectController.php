@@ -26,7 +26,7 @@ class RedirectController extends BaseController
 
     public function create()
     {
-        $this->renderAdmin('admin/redirects/form', ['title' => 'Ново пренасочване'], [
+        $this->renderWithLayout('admin/redirects/form', ['title' => 'Ново пренасочване'], [
             'redirect' => new Redirect(),
             'statuses' => [301 => '301 (Permanent)', 302 => '302 (Temporary)']
         ]);
@@ -61,7 +61,7 @@ class RedirectController extends BaseController
     {
         $redirect = Redirect::findOrFail($id);
 
-        $this->renderAdmin('admin/redirects/form', ['title' => 'Редакция на пренасочване'], [
+        $this->renderWithLayout('admin/redirects/form', ['title' => 'Редакция на пренасочване'], [
             'redirect' => $redirect,
             'statuses' => [301 => '301 (Permanent)', 302 => '302 (Temporary)']
         ]);

@@ -55,7 +55,7 @@ trait HasAdminTrait
             $counts['scheduled'] = $modelClass::where('status', 'scheduled')->count();
         }
 
-        return $this->renderAdmin($view, [
+        return $this->renderWithLayout($view, [
             'title' => $config['title'] ?? 'Управление'
         ], [
             $config['resource_name'] => $items,
