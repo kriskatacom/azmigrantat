@@ -6,7 +6,7 @@
         }
     },
     "require": {
-        "phpmailer/phpmailer": "^7.0",
+        "phpmailer/phpmailer": "^7.1",
         "illuminate/database": "^12.56",
         "vlucas/phpdotenv": "^5.6",
         "robmorgan/phinx": "^0.16.11",
@@ -16,7 +16,8 @@
         "illuminate/translation": "^12.56",
         "illuminate/filesystem": "^12.56",
         "illuminate/validation": "^12.56",
-        "illuminate/config": "^12.56"
+        "illuminate/config": "^12.56",
+        "twilio/sdk": "^8.11"
     },
     "scripts": {
         "migrate": "phinx migrate",

@@ -23,13 +23,27 @@ class UserService
         $role = $isFirstUser ? 'admin' : ($rawData['role'] ?? 'user');
 
         $user = User::create([
-            'name'          => $rawData['name'],
-            'email'         => $rawData['email'],
-            'username'      => $username,
+            'name' => $rawData['name'],
+            'email' => $rawData['email'],
+            'username' => $username,
             'password_hash' => $rawData['password'],
-            'role'          => $role,
-            'is_active'     => 1
+            'role' => $role,
+            'is_active' => 1,
+            'email_verified' => false,
         ]);
+
+        $token = $user->generateVerificationToken();
+        $url = DOMAIN . '/verify-email?token=' . $token;
+
+        EmailService::send(
+            $user->email,
+            'Потвърждение на регистрация',
+            'verify-email',
+            [
+                'name' => $user->name,
+                'url' => $url
+            ]
+        );
 
         return [$user, $isFirstUser];
     }
@@ -48,6 +62,11 @@ class UserService
             throw new Exception('Вашият профил е деактивиран.');
         }
 
+        if (!$user->email_verified) {
+            Session::setOld($_POST);
+            throw new Exception('Моля, потвърдете имейла си преди да влезете.');
+        }
+
         $user->update(['last_login' => date('Y-m-d H:i:s.v')]);
 
         $_SESSION['user_id'] = $user->id;
@@ -60,7 +79,8 @@ class UserService
     public function updateProfile(int $userId, array $data)
     {
         $user = User::find($userId);
-        if (!$user) throw new \Exception('Потребителят не е намерен.');
+        if (!$user)
+            throw new \Exception('Потребителят не е намерен.');
 
         $user->name = $data['name'] ?? $user->name;
         $user->username = $data['username'] ?? $user->username;
@@ -90,7 +110,8 @@ class UserService
 
     public function getCurrentUser(): ?User
     {
-        if (!$this->isLoggedIn()) return null;
+        if (!$this->isLoggedIn())
+            return null;
 
         $user = User::find($_SESSION['user_id']);
 
@@ -129,7 +150,7 @@ class UserService
     public function adminUpdateUser(int $userId, array $data): bool
     {
         $user = $this->findUser($userId);
-        $currentAdminId = (int)($_SESSION['user_id'] ?? 0);
+        $currentAdminId = (int) ($_SESSION['user_id'] ?? 0);
 
         if (isset($data['email']) && $data['email'] !== $user->email) {
             if (User::where('email', $data['email'])->where('id', '!=', $userId)->exists()) {
@@ -141,7 +162,7 @@ class UserService
             if (isset($data['role']) && $data['role'] !== $user->role) {
                 throw new \Exception('Не можете да променяте собствената си роля.');
             }
-            if (isset($data['is_active']) && (int)$data['is_active'] === User::STATUS_INACTIVE) {
+            if (isset($data['is_active']) && (int) $data['is_active'] === User::STATUS_INACTIVE) {
                 throw new \Exception('Не можете да деактивирате собствения си профил.');
             }
         }
@@ -151,12 +172,12 @@ class UserService
         }
 
         $updateData = [
-            'name'      => $data['name'] ?? $user->name,
-            'email'     => $data['email'] ?? $user->email,
-            'role'      => $data['role'] ?? $user->role,
-            'username'  => $data['username'] ?? $user->username,
-            'is_active' => isset($data['is_active']) ? (int)$data['is_active'] : $user->is_active,
-            'options'   => $data['options'] ?? $user->options,
+            'name' => $data['name'] ?? $user->name,
+            'email' => $data['email'] ?? $user->email,
+            'role' => $data['role'] ?? $user->role,
+            'username' => $data['username'] ?? $user->username,
+            'is_active' => isset($data['is_active']) ? (int) $data['is_active'] : $user->is_active,
+            'options' => $data['options'] ?? $user->options,
         ];
 
         if ($userId === $currentAdminId) {
@@ -171,13 +192,13 @@ class UserService
 
     public function canChangeStatus($targetUser)
     {
-        $currentUserId = (int)Auth::id();
+        $currentUserId = (int) Auth::id();
 
         if (Auth::user()->role !== \App\Models\User::ROLE_ADMIN) {
             return false;
         }
 
-        if ((int)$targetUser->id === $currentUserId) {
+        if ((int) $targetUser->id === $currentUserId) {
             return false;
         }
 
@@ -190,8 +211,8 @@ class UserService
 
     public function updateIsActive($id)
     {
-        $user = User::findOrFail((int)$id);
-        $currentAdminId = (int)($_SESSION['user_id'] ?? 0);
+        $user = User::findOrFail((int) $id);
+        $currentAdminId = (int) ($_SESSION['user_id'] ?? 0);
 
         if ($user->id === $currentAdminId) {
             throw new Exception('Не можете да променяте собствения си статус на активност! Това би ви изхвърлило от системата.');

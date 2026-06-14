@@ -18,11 +18,13 @@ class User extends Model
     const GENDER_FEMALE = 'female';
     const GENDER_OTHER = 'other';
 
-    public static function getRoles(): array {
+    public static function getRoles(): array
+    {
         return [self::ROLE_USER, self::ROLE_ADMIN, self::ROLE_MODERATOR];
     }
 
-    public static function getGenders(): array {
+    public static function getGenders(): array
+    {
         return [self::GENDER_MALE, self::GENDER_FEMALE, self::GENDER_OTHER];
     }
 
@@ -42,6 +44,8 @@ class User extends Model
         'profile_image',
         'bio',
         'last_login',
+        'phone',
+        'two_factor_verified_at',
         'is_active'
     ];
 
@@ -90,29 +94,29 @@ class User extends Model
             ->first();
 
         return [
-            'total'         => (int) $stats->total,
-            'admins'        => (int) $stats->admins,
-            'users'         => (int) $stats->regulars,
-            'active'        => (int) $stats->active,
-            'inactive'      => (int) $stats->inactive,
-            'logged_today'  => (int) $stats->logged_today,
-            'trashed'       => (int) $stats->trashed,
+            'total' => (int) $stats->total,
+            'admins' => (int) $stats->admins,
+            'users' => (int) $stats->regulars,
+            'active' => (int) $stats->active,
+            'inactive' => (int) $stats->inactive,
+            'logged_today' => (int) $stats->logged_today,
+            'trashed' => (int) $stats->trashed,
             'activity_rate' => $stats->total > 0 ? round(($stats->active / $stats->total) * 100, 1) : 0
         ];
     }
 
     public function getStatusData(): array
     {
-        return match ((int)$this->is_active) {
+        return match ((int) $this->is_active) {
             self::STATUS_ACTIVE => [
                 'label' => 'Активен',
                 'color' => 'text-green-600',
-                'dot'   => 'bg-green-500'
+                'dot' => 'bg-green-500'
             ],
             default => [
                 'label' => 'Неактивен',
                 'color' => 'text-slate-400',
-                'dot'   => 'bg-slate-300'
+                'dot' => 'bg-slate-300'
             ],
         };
     }
@@ -133,5 +137,17 @@ class User extends Model
                 'class' => 'bg-blue-50 text-blue-600 border-blue-100'
             ],
         };
+    }
+
+    public function generateVerificationToken()
+    {
+        $this->verification_token = bin2hex(random_bytes(32));
+        $this->save();
+        return $this->verification_token;
+    }
+
+    public function isTwoFactorVerified(): bool
+    {
+        return isset($_SESSION['2fa_verified']) && $_SESSION['2fa_verified'] === true;
     }
 }

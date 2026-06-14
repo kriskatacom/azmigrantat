@@ -13,12 +13,16 @@ class EmailService
 
         try {
             $mail->isSMTP();
-            $mail->Host       = env('SMTP_HOST', 'localhost');
-            $mail->SMTPAuth   = env('SMTP_AUTH') === 'true';
-            $mail->Username   = env('SMTP_USER');
-            $mail->Password   = env('SMTP_PASS');
-            $mail->Port       = (int) env('SMTP_PORT', 587);
-            $mail->CharSet    = 'UTF-8';
+            $mail->Host = env('SMTP_HOST', 'localhost');
+            $mail->SMTPAuth = env('SMTP_AUTH') === 'true';
+            $mail->Username = env('SMTP_USER');
+            $mail->Password = env('SMTP_PASS');
+            $mail->Port = (int) env('SMTP_PORT', 587);
+            $mail->CharSet = 'UTF-8';
+            $mail->SMTPAuth = true;
+
+            $mail->Hostname = env('SMTP_DOMAIN');
+            $mail->Helo = env('SMTP_DOMAIN');
 
             $secure = env('SMTP_SECURE');
             if ($secure === 'tls') {
@@ -27,7 +31,7 @@ class EmailService
                 $mail->SMTPSecure = PHPMailer::ENCRYPTION_SMTPS;
             }
 
-            $mail->setFrom(env('SMTP_USER'), 'Kriskata.com');
+            $mail->setFrom(env('SMTP_USER'), 'I the migrant');
             $mail->addAddress($to);
 
             if (isset($data['email'])) {
@@ -46,11 +50,13 @@ class EmailService
 
             $mail->isHTML(true);
             $mail->Subject = $subject;
-            $mail->Body    = $htmlBody;
+            $mail->Body = $htmlBody;
             $mail->AltBody = strip_tags(str_replace(['<br>', '<br/>'], "\n", $htmlBody));
 
             return $mail->send();
         } catch (Exception $e) {
+            var_dump("Mail Error: " . $mail->ErrorInfo);
+            exit;
             error_log("Mail Error: " . $mail->ErrorInfo);
             return false;
         }

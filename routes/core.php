@@ -26,7 +26,7 @@ $router->get('/users/login', [UserController::class, 'loginForm'], [GuestMiddlew
 $router->post('/users/login', [UserController::class, 'authenticate'], [GuestMiddleware::class]);
 
 $router->get('/users/profile', [UserController::class, 'profile'], [AuthMiddleware::class]);
-$router->post('/users/profile/update', [UserController::class, 'update'], [AuthMiddleware::class]);
+$router->post('/users/profile/update', [UserController::class, 'profileUpdate'], [AuthMiddleware::class]);
 
 $router->get('/users/logout', [UserController::class, 'logout'], [AuthMiddleware::class]);
 $router->post('/users/logout', [UserController::class, 'logout'], [AuthMiddleware::class]);

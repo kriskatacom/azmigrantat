@@ -190,6 +190,3 @@ class OauthController extends BaseController
         ]);
     }
 }
-
-// http://localhost:8000/oauth/authorize?client_id=app_lo284alsgav6&redirect_uri=https://gradove-i-sela.azmigrantat.com
-// krisi.199898@gmail.com

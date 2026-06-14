@@ -136,6 +136,24 @@ class UserController extends BaseController
         $this->redirect('/users/login');
     }
 
+    public function verifyEmail()
+    {
+        $token = $_GET['token'] ?? null;
+        $user = User::where('verification_token', $token)->first();
+
+        if ($user) {
+            $user->email_verified = true;
+            $user->verification_token = null;
+            $user->save();
+
+            $this->flash('success', 'Имейлът ви е потвърден успешно!');
+            return $this->redirect('/users/login');
+        }
+
+        $this->flash('error', 'Невалиден или изтекъл токен.');
+        return $this->redirect('/users/login');
+    }
+
     public function loginForm()
     {
         $this->renderWithSeo('users/login/index', [
@@ -289,6 +307,34 @@ class UserController extends BaseController
 
         $this->flash('success', 'Потребителят беше добавен успешно!');
         $this->redirect('/admin/users');
+    }
+
+    #[HandleExceptions]
+    public function profileUpdate()
+    {
+        $userId = AuthHelper::id();
+        $data = $_POST;
+
+        if (!$userId) {
+            return $this->redirect('/users/login');
+        }
+
+        $user = $this->userService->findUser($userId);
+
+        if (!empty($data['password'])) {
+            $data['password_hash'] = $data['password'];
+        }
+
+        unset($data['password'], $data['password_confirmation'], $data['is_active']);
+
+        $this->updateResource($user, $data, ['profile_image']);
+
+        $seoData = [
+            'title' => 'Редактиране на профил',
+            'description' => 'Промяна на личните данни и настройки на профила.',
+        ];
+
+        $this->redirect('/users/profile');
     }
 
     #[HandleExceptions]

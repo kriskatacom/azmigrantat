@@ -1,5 +1,6 @@
 <?php
 
+use App\Controllers\Api\TwoFAuthController;
 use App\Core\Router;
 
 use App\Controllers\Api\UserController;
@@ -17,6 +18,11 @@ $router->get('/api/user/me', [OauthController::class, 'me']);
 
 $router->post('/oauth/approve', [OauthController::class, 'approve'], [AuthMiddleware::class]);
 $router->post('/oauth/token', [OauthController::class, 'token']);
+
+$router->get('/verify-email', [App\Controllers\UserController::class, 'verifyEmail']);
+
+$router->post('/api/2fa/send', [TwoFAuthController::class, 'send2faCode'], [AuthMiddleware::class]);
+$router->post('/api/2fa/verify', [TwoFAuthController::class, 'verify2faCode'], [AuthMiddleware::class]);
 
 $router->get('/api/users', [UserController::class, 'getUsers']);
 

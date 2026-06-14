@@ -12,4 +12,5 @@ $app = new App();
 
 $app->initSession();
 $routePath = $app->initLanguage();
+date_default_timezone_set('UTC');
 $app->dispatch($routePath);
