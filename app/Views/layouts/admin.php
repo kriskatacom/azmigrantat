@@ -39,6 +39,8 @@ $is_open = $_SESSION['sidebar_open'];
     <script src="/assets/js/min/nestable.min.js"></script>
     <script src="/assets/js/min/dropzone.min.js"></script>
     <script src="/assets/js/admin-main.js"></script>
+    
+    <script src="/assets/js/min/alpine.min.js" defer></script>
 
     <style>
         .sidebar-transition {

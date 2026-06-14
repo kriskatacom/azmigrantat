@@ -47,7 +47,7 @@ class AdminController extends BaseController
             ->get();
 
         $seoData = [
-            'title'       => 'Табло за управление | СУ „Васил Левски“',
+            'title'       => 'Табло за управление',
             'description' => 'Бърз преглед на статистиката и съдържанието.',
         ];
 
