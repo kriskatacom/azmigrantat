@@ -49,7 +49,8 @@ $router->post('/admin/users/destroy/{id}', [UserController::class, 'destroy'], $
 // $router->post('/admin/media/restore/{id}', [MediaController::class, 'restore'], $adminAuth);
 // $router->get('/admin/media/upload', [MediaController::class, 'upload'], $adminAuth);
 
-$router->post('/admin/ajax/upload', [MediaController::class, 'ajaxUpload'], $adminAuth);
+$router->post('/admin/media/ajax-upload', [MediaController::class, 'ajaxUpload'], $adminAuth);
+$router->post('/admin/media/ajax-delete', [MediaController::class, 'ajaxDelete'], $adminAuth);
 
 // $router->get('/admin/pages', [PageController::class, 'index'], $adminAuth);
 // $router->get('/admin/pages/create', [PageController::class, 'create'], $adminAuth);

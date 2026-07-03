@@ -100,6 +100,8 @@ class MediaService
 
     private function createResourceAndFixOrientation(string $path, string $ext)
     {
+        $img = null;
+
         try {
             $img = match ($ext) {
                 'jpg', 'jpeg' => @\imagecreatefromjpeg($path),

@@ -11,6 +11,7 @@ class CreateUsersTable extends AbstractMigration
             $table = $this->table('users');
             $table->addColumn('email', 'string', ['limit' => 255])
                 ->addColumn('password_hash', 'string', ['limit' => 255])
+                ->addColumn('reset_token', 'string', ['limit' => 255, 'null' => true])
                 ->addColumn('name', 'string', ['limit' => 100])
                 ->addColumn('username', 'string', ['limit' => 50, 'null' => true])
                 ->addColumn('role', 'enum', ['values' => User::getRoles(), 'default' => User::ROLE_USER])

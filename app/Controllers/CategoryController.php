@@ -11,13 +11,18 @@ class CategoryController extends BaseController
     {
         $tab = $_GET['tab'] ?? 'active';
         $parentId = $_GET['parent_id'] ?? null;
+        $search = $_GET['search'] ?? '';
 
         $query = Category::withTrashed()->with('children');
 
-        if ($parentId !== null && $parentId !== '') {
-            $query->where('parent_id', $parentId);
+        if (!empty($search)) {
+            $query->where('name', 'like', "%{$search}%");
         } else {
-            $query->whereNull('parent_id');
+            if ($parentId !== null && $parentId !== '') {
+                $query->where('parent_id', $parentId);
+            } else {
+                $query->whereNull('parent_id');
+            }
         }
 
         $allCategories = $query->get();
@@ -38,6 +43,8 @@ class CategoryController extends BaseController
             ['path' => \Illuminate\Pagination\Paginator::resolveCurrentPath()]
         );
 
+        $categories->appends($_GET);
+
         $currentParentModel = $parentId ? Category::withTrashed()->find($parentId) : null;
 
         $this->renderWithLayout('admin/categories/index', [
@@ -46,7 +53,8 @@ class CategoryController extends BaseController
             'categories' => $categories,
             'currentParent' => $parentId,
             'currentParentModel' => $currentParentModel,
-            'tab' => $tab
+            'tab' => $tab,
+            'search' => $search
         ]);
     }
 

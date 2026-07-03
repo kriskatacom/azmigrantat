@@ -21,11 +21,11 @@ class MediaController extends BaseController
     public function index()
     {
         return $this->resourceIndex(Media::class, 'admin/media/index', [
-            'title'         => 'Библиотека | Админ панел',
+            'title' => 'Библиотека | Админ панел',
             'resource_name' => 'media',
             'search_fields' => ['file_name', 'alt_text'],
-            'order_by'      => 'created_at',
-            'order_dir'     => 'desc'
+            'order_by' => 'created_at',
+            'order_dir' => 'desc'
         ]);
     }
 
@@ -116,11 +116,38 @@ class MediaController extends BaseController
             $media = $this->mediaService->upload($_FILES['file']);
 
             return $this->json([
-                'id'   => $media->id,
-                'url'  => $media->file_path,
+                'id' => $media->id,
+                'url' => $media->file_path,
                 'name' => $media->file_name
             ]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
+            return $this->json(['error' => $e->getMessage()]);
+        }
+    }
+
+    public function ajaxDelete()
+    {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $path = $input['path'] ?? '';
+
+        if (empty($path)) {
+            return $this->json(['error' => 'Няма предоставен път до файл.']);
+        }
+
+        try {
+            $media = Media::where('file_path', $path)->first();
+
+            if ($media) {
+                $media->delete();
+            } else {
+                $fullPath = PUBLIC_PATH . $path;
+                if (strpos($path, '/uploads/') === 0 && strpos($path, '..') === false && file_exists($fullPath)) {
+                    unlink($fullPath);
+                }
+            }
+
+            return $this->json(['success' => true]);
+        } catch (Exception $e) {
             return $this->json(['error' => $e->getMessage()]);
         }
     }

@@ -275,6 +275,206 @@ class Form
     <?php
     }
 
+    public static function multiImage(string $label, string $name, array $currentImages = [])
+    {
+        $id = 'multi-upload-' . bin2hex(random_bytes(4));
+        ?>
+        <div class="space-y-3" data-component="multi-image-upload" id="<?= $id ?>">
+            <label class="text-sm font-semibold text-slate-700 block"><?= $label ?></label>
+            
+            <div class="drop-zone flex flex-col items-center justify-center p-8 bg-slate-50/50 rounded-2xl border-2 border-dashed border-slate-200 transition-all hover:bg-slate-50/80 hover:border-primary/50 cursor-pointer relative group">
+                <input type="file" multiple accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer file-input">
+                <div class="text-center pointer-events-none">
+                    <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2 group-hover:text-primary transition-colors"></i>
+                    <div class="font-bold text-sm text-slate-700">Влачете изображения тук или <span class="text-primary hover:underline">кликнете за избор</span></div>
+                    <div class="text-xs text-slate-400 mt-1">Поддържат се всички графични формати през MediaService</div>
+                </div>
+            </div>
+
+            <div class="previews-grid grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5 gap-4 mt-4">
+                <?php foreach ($currentImages as $path): ?>
+                    <div class="relative group aspect-video rounded-xl overflow-hidden shadow-sm border border-slate-200 bg-white image-item" data-path="<?= htmlspecialchars($path) ?>">
+                        <img src="<?= htmlspecialchars($path) ?>" class="w-full h-full object-cover">
+                        <input type="hidden" name="<?= $name ?>[]" value="<?= htmlspecialchars($path) ?>">
+                        
+                        <div class="absolute inset-0 bg-black/40 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none lg:pointer-events-auto"></div>
+                        
+                        <div class="absolute top-2 right-2 z-10 flex gap-1.5 p-1 rounded-lg bg-black/20 lg:bg-transparent backdrop-blur-sm lg:backdrop-blur-none">
+                            <button type="button" class="btn-view-img w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-white text-slate-700 rounded-md shadow-md hover:bg-primary hover:text-white transition-all transform hover:scale-110" title="Преглед на голям екран">
+                                <i class="fa-solid fa-eye text-xs sm:text-sm"></i>
+                            </button>
+                            <button type="button" class="btn-delete-img w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-white text-red-500 rounded-md shadow-md hover:bg-red-500 hover:text-white transition-all transform hover:scale-110" title="Премахване">
+                                <i class="fa-solid fa-trash-can text-xs sm:text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="lightbox-modal fixed inset-0 z-100 hidden bg-black/80 backdrop-blur-sm items-center justify-center p-4 opacity-0 transition-opacity duration-200">
+                <button type="button" class="lightbox-close absolute top-5 right-5 text-white/70 hover:text-white text-3xl p-2 transition-colors cursor-pointer" title="Затваряне (Esc)">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <div class="max-w-5xl max-h-[85vh] relative flex items-center justify-center pointer-events-none">
+                    <img class="lightbox-img max-w-full max-h-[85vh] rounded-lg shadow-2xl border border-white/10 object-contain pointer-events-auto" src="" alt="Преглед">
+                </div>
+            </div>
+        </div>
+
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('<?= $id ?>');
+            if (!container) return;
+
+            const fileInput = container.querySelector('.file-input');
+            const dropZone = container.querySelector('.drop-zone');
+            const grid = container.querySelector('.previews-grid');
+            const lightbox = container.querySelector('.lightbox-modal');
+            const lightboxImg = lightbox.querySelector('.lightbox-img');
+            const lightboxClose = lightbox.querySelector('.lightbox-close');
+            const inputName = '<?= $name ?>[]';
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => { e.preventDefault(); dropZone.classList.add('border-primary', 'bg-primary/5'); });
+            });
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => { e.preventDefault(); dropZone.classList.remove('border-primary', 'bg-primary/5'); });
+            });
+
+            dropZone.addEventListener('drop', (e) => { handleFiles(e.dataTransfer.files); });
+            fileInput.addEventListener('change', (e) => { handleFiles(e.target.files); });
+
+            function handleFiles(files) {
+                [...files].forEach(uploadFileToServer);
+            }
+
+            function uploadFileToServer(file) {
+                const tempId = 'temp-' + Math.random().toString(36).substr(2, 9);
+                const loaderHtml = `
+                    <div id="${tempId}" class="relative aspect-video rounded-xl overflow-hidden shadow-sm border border-slate-200 bg-slate-50 flex flex-col items-center justify-center p-2">
+                        <i class="fa-solid fa-circle-notch fa-spin text-primary text-lg mb-1"></i>
+                        <div class="text-[10px] text-slate-400 truncate max-w-full px-1">${file.name}</div>
+                    </div>
+                `;
+                grid.insertAdjacentHTML('beforeend', loaderHtml);
+                const tempItem = document.getElementById(tempId);
+
+                const formData = new FormData();
+                formData.append('file', file);
+
+                fetch('/admin/media/ajax-upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.url) { 
+                        tempItem.outerHTML = `
+                            <div class="relative group aspect-video rounded-xl overflow-hidden shadow-sm border border-slate-200 bg-white image-item" data-path="${data.url}">
+                                <img src="${data.url}" class="w-full h-full object-cover">
+                                <input type="hidden" name="${inputName}" value="${data.url}">
+                                <div class="absolute inset-0 bg-black/40 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-300 pointer-events-none lg:pointer-events-auto"></div>
+                                <div class="absolute top-2 right-2 z-10 flex gap-1.5 p-1 rounded-lg bg-black/20 lg:bg-transparent backdrop-blur-sm lg:backdrop-blur-none">
+                                    <button type="button" class="btn-view-img w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-white text-slate-700 rounded-md shadow-md hover:bg-primary hover:text-white transition-all transform hover:scale-110" title="Преглед на голям екран">
+                                        <i class="fa-solid fa-eye text-xs sm:text-sm"></i>
+                                    </button>
+                                    <button type="button" class="btn-delete-img w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center bg-white text-red-500 rounded-md shadow-md hover:bg-red-500 hover:text-white transition-all transform hover:scale-110" title="Премахване">
+                                        <i class="fa-solid fa-trash-can text-xs sm:text-sm"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        alert('Грешка при качване: ' + (data.error || 'Неизвестна грешка'));
+                        tempItem.remove();
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    tempItem.remove();
+                });
+            }
+
+            grid.addEventListener('click', function(e) {
+                const viewBtn = e.target.closest('.btn-view-img');
+                if (viewBtn) {
+                    const item = viewBtn.closest('.image-item');
+                    const path = item.getAttribute('data-path');
+                    if (path) {
+                        openLightbox(path);
+                    }
+                    return;
+                }
+
+                const deleteBtn = e.target.closest('.btn-delete-img');
+                if (!deleteBtn) return;
+
+                const item = deleteBtn.closest('.image-item');
+                const path = item.getAttribute('data-path');
+
+                if (confirm('Сигурни ли сте, че искате да премахнете това изображение?')) {
+                    deleteBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-xs"></i>';
+                    deleteBtn.disabled = true;
+
+                    fetch('/admin/media/ajax-delete', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ path: path })
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            item.remove();
+                        } else {
+                            alert('Грешка при премахване: ' + data.error);
+                            deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can text-sm"></i>';
+                            deleteBtn.disabled = false;
+                        }
+                    })
+                    .catch(err => {
+                        console.error(err);
+                        deleteBtn.innerHTML = '<i class="fa-solid fa-trash-can text-sm"></i>';
+                        deleteBtn.disabled = false;
+                    });
+                }
+            });
+
+            function openLightbox(src) {
+                lightboxImg.src = src;
+                lightbox.classList.remove('hidden');
+                lightbox.classList.add('flex');
+                setTimeout(() => lightbox.classList.remove('opacity-0'), 10);
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeLightbox() {
+                lightbox.classList.add('opacity-0');
+                setTimeout(() => {
+                    lightbox.classList.remove('flex');
+                    lightbox.classList.add('hidden');
+                    lightboxImg.src = '';
+                }, 200);
+                document.body.style.overflow = '';
+            }
+
+            lightboxClose.addEventListener('click', closeLightbox);
+
+            lightbox.addEventListener('click', function(e) {
+                if (e.target === lightbox) {
+                    closeLightbox();
+                }
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && !lightbox.classList.contains('hidden')) {
+                    closeLightbox();
+                }
+            });
+        });
+        </script>
+        <?php
+    }
+
     public static function submit(string $text = 'Запазване на промените', string $icon = 'fa-save')
     {
     ?>
