@@ -15,6 +15,11 @@ class PageController extends BaseController
 {
     use HasAdminTrait;
 
+    public function azmigrantat()
+    {
+        $this->redirect(MAIN_WEBSITE_URL);
+    }
+
     public function show(string|null $slug = '/')
     {
         $normalizedSlug = ($slug === null || $slug === 'home') ? '/home' : '/' . ltrim($slug, '/');
@@ -39,19 +44,19 @@ class PageController extends BaseController
         $pageElements = $this->parseElements($page->options ?? []);
 
         $seoData = [
-            'title'            => $page->title,
-            'meta_title'       => $page->options['meta_title'] ?? $page->title,
+            'title' => $page->title,
+            'meta_title' => $page->options['meta_title'] ?? $page->title,
             'meta_description' => $page->options['meta_description'] ?? '',
-            'meta_keywords'    => $page->options['meta_keywords'] ?? '',
-            'image_desktop'         => $page->options['image_desktop'] ?? null,
-            'image_tablet'         => $page->options['image_tablet'] ?? null,
-            'image_phone'         => $page->options['image_phone'] ?? null,
+            'meta_keywords' => $page->options['meta_keywords'] ?? '',
+            'image_desktop' => $page->options['image_desktop'] ?? null,
+            'image_tablet' => $page->options['image_tablet'] ?? null,
+            'image_phone' => $page->options['image_phone'] ?? null,
         ];
 
         return $this->renderWithSeo($this->getViewPath($page), $seoData, [
-            'page'          => $page,
-            'options'       => $page->options ?? [],
-            'el'            => $pageElements,
+            'page' => $page,
+            'options' => $page->options ?? [],
+            'el' => $pageElements,
             'currentPageId' => $page->id
         ]);
     }
@@ -59,13 +64,13 @@ class PageController extends BaseController
     public function index()
     {
         return $this->resourceIndex(Page::class, 'admin/pages/index', [
-            'title'         => 'Управление на страници | Админ панел',
+            'title' => 'Управление на страници | Админ панел',
             'resource_name' => 'pages',
-            'with'          => ['children', 'parent'],
+            'with' => ['children', 'parent'],
             'search_fields' => ['title', 'slug', 'content'],
-            'order_by'      => 'menu_order',
-            'order_dir'     => 'asc',
-            'features'      => ['hierarchical']
+            'order_by' => 'menu_order',
+            'order_dir' => 'asc',
+            'features' => ['hierarchical']
         ]);
     }
 
@@ -84,7 +89,7 @@ class PageController extends BaseController
     {
         $validator = Validator::make($_POST, [
             'title' => 'required|min:2',
-            'slug'  => 'nullable|unique:pages,slug'
+            'slug' => 'nullable|unique:pages,slug'
         ]);
 
         if ($validator->fails()) {
@@ -103,7 +108,7 @@ class PageController extends BaseController
 
     public function edit($id)
     {
-        $page = Page::findOrFail((int)$id);
+        $page = Page::findOrFail((int) $id);
 
         $data = $this->getFormData($page);
 
@@ -115,11 +120,11 @@ class PageController extends BaseController
     #[HandleExceptions]
     public function update($id)
     {
-        $page = Page::findOrFail((int)$id);
+        $page = Page::findOrFail((int) $id);
 
         $validator = Validator::make($_POST, [
             'title' => 'required|min:2',
-            'slug'  => 'nullable|unique:pages,slug,' . $page->id
+            'slug' => 'nullable|unique:pages,slug,' . $page->id
         ]);
 
         if ($validator->fails()) {
@@ -147,7 +152,7 @@ class PageController extends BaseController
     private function preparePageData(array $input, ?Page $page = null): array
     {
         $title = $input['title'] ?? '';
-        $parentId = !empty($input['parent_id']) ? (int)$input['parent_id'] : null;
+        $parentId = !empty($input['parent_id']) ? (int) $input['parent_id'] : null;
 
         $slugSource = !empty($input['slug']) ? $input['slug'] : $title;
         $finalSlug = $this->generateHierarchicalSlug($slugSource, $parentId);
@@ -161,15 +166,15 @@ class PageController extends BaseController
         $options['h1_title'] = $options['h1_title'] ?: $title;
 
         return [
-            'title'       => $title,
-            'slug'        => $finalSlug,
-            'parent_id'   => $parentId,
+            'title' => $title,
+            'slug' => $finalSlug,
+            'parent_id' => $parentId,
             'custom_path' => $customPath,
-            'content'     => $input['content'] ?? '',
-            'template'    => $input['template'] ?? 'default',
-            'view_name'   => $input['view_name'] ?? null,
-            'is_active'   => isset($input['is_active']) ? 1 : 0,
-            'options'     => $options
+            'content' => $input['content'] ?? '',
+            'template' => $input['template'] ?? 'default',
+            'view_name' => $input['view_name'] ?? null,
+            'is_active' => isset($input['is_active']) ? 1 : 0,
+            'options' => $options
         ];
     }
 
@@ -252,7 +257,7 @@ class PageController extends BaseController
     {
         $parentOptions = Form::getTreeOptions(
             Page::class,
-            $page->exists ? [(int)$page->id] : [],
+            $page->exists ? [(int) $page->id] : [],
             'title',
             'Без родител (Главна страница)'
         );
@@ -266,9 +271,9 @@ class PageController extends BaseController
 
         if ($page->exists) {
             $fieldsToSync = [
-                'title'            => $page->title,
-                'content'          => $page->content,
-                'meta_title'       => $page->options['meta_title'] ?? '',
+                'title' => $page->title,
+                'content' => $page->content,
+                'meta_title' => $page->options['meta_title'] ?? '',
                 'meta_description' => $page->options['meta_description'] ?? ''
             ];
 
@@ -280,11 +285,11 @@ class PageController extends BaseController
         }
 
         return [
-            'isEdit'             => $page->exists,
-            'page'               => $page,
-            'parentOptions'      => $parentOptions,
-            'languages'          => $languages,
-            'translations'       => $translations,
+            'isEdit' => $page->exists,
+            'page' => $page,
+            'parentOptions' => $parentOptions,
+            'languages' => $languages,
+            'translations' => $translations,
             'translatableConfig' => getTranslatable('pages', $page->view_name)
         ];
     }

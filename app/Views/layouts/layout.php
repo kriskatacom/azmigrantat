@@ -17,7 +17,7 @@ use App\Core\View;
 
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="KRISKATA">
+    <meta name="apple-mobile-web-app-title" content="<?= COMPANY_NAME ?>">
 
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-7GM0W515PY"></script>
     <script>
@@ -71,7 +71,7 @@ use App\Core\View;
 
     <footer class="text-white bg-black py-5">
         <div class="container mx-auto text-center">
-            <p>2026 All Rights Reversed. I the migrant - <a href="https://azmigrantat.com" title="I the migrant" class="hover:text-primary">https://azmigrantat.com</a></p>
+            <p>2026 All Rights Reversed. <?= COMPANY_NAME ?> - <a href="<?= FULL_DOMAIN ?>" title="I the migrant" class="hover:text-primary"><?= FULL_DOMAIN ?></a></p>
         </div>
     </footer>
 

@@ -18,7 +18,7 @@ class OpenGraphService
         $imgPhone   = !empty($data['image_phone'])   ? $this->prepareImageUrl($data['image_phone'])   : $imgDesktop;
 
         $this->tags = [
-            'title'       => !View::isHome() ? ($data['meta_title'] ?? $data['title'] ?? '') . ' - ' . WEBSITE_DOMAIN_NAME : WEBSITE_DOMAIN_NAME,
+            'title'       => !View::isHome() ? ($data['meta_title'] ?? $data['title'] ?? '') . ' - ' . COMPANY_NAME : COMPANY_NAME,
             'description' => $data['meta_description'] ?? 'Добре дошли в нашия портал.',
             'keywords'    => $data['meta_keywords'] ?? '',
             'url'         => $currentUrl,

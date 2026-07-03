@@ -90,16 +90,6 @@
 </div>
 
 <div class="mt-8">
-    <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <i class="fa-solid fa-users-viewfinder text-primary"></i>
-            Активни в момента
-        </h2>
-        <span class="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-1 rounded-full">
-            Последни 5 сесии
-        </span>
-    </div>
-
     <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         <div class="divide-y divide-slate-100">
             <?php foreach ($sessions as $session): ?>
@@ -132,12 +122,6 @@
                     </div>
                 </div>
             <?php endforeach; ?>
-
-            <?php if ($sessions->isEmpty()): ?>
-                <div class="p-8 text-center text-slate-400 italic text-sm">
-                    Няма активни сесии в момента.
-                </div>
-            <?php endif; ?>
         </div>
     </div>
 </div>

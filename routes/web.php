@@ -36,7 +36,7 @@ $router->post('/api/2fa/verify', [TwoFAuthController::class, 'verify2faCode'], [
 
 $router->get('/api/users', [UserController::class, 'getUsers']);
 
-$router->get('/', [PageController::class, 'show']);
+$router->get('/', [PageController::class, 'azmigrantat']);
 $router->get('/{slug*}', [PageController::class, 'show']);
 
 return $router;

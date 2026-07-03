@@ -15,8 +15,9 @@ define('PROTOCOL', (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'h
 define('ROOT', dirname(__DIR__, 2));
 define('PUBLIC_PATH', ROOT . '/public');
 
-define('WEBSITE_DOMAIN_NAME', 'auth.azmigrantat.com');
-define('FULL_DOMAIN', 'https://azmigrantat.com');
+define('WEBSITE_DOMAIN_NAME', 'users.azmigrantat.com');
+define('FULL_DOMAIN', 'https://users.azmigrantat.com');
+define('MAIN_WEBSITE_URL', 'https://azmigrantat.com');
 
 define('DATABASE_ADMIN_EMAIL', $_ENV['DATABASE_ADMIN_EMAIL']);
 define('DATABASE_ADMIN_PASSWORD', $_ENV['DATABASE_ADMIN_PASSWORD']);
