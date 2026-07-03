@@ -14,7 +14,7 @@ class UserService
     {
         if (User::withTrashed()->where('email', $rawData['email'])->exists()) {
             Session::setOld($_POST);
-            throw new \Exception('Този имейл адрес вече е регистриран.');
+            throw new Exception('Този имейл адрес вече е регистриран.');
         }
 
         $isFirstUser = User::count() === 0;
@@ -80,7 +80,7 @@ class UserService
     {
         $user = User::find($userId);
         if (!$user)
-            throw new \Exception('Потребителят не е намерен.');
+            throw new Exception('Потребителят не е намерен.');
 
         $user->name = $data['name'] ?? $user->name;
         $user->username = $data['username'] ?? $user->username;
@@ -154,16 +154,16 @@ class UserService
 
         if (isset($data['email']) && $data['email'] !== $user->email) {
             if (User::where('email', $data['email'])->where('id', '!=', $userId)->exists()) {
-                throw new \Exception('Този имейл адрес вече се използва от друг потребител.');
+                throw new Exception('Този имейл адрес вече се използва от друг потребител.');
             }
         }
 
         if ($userId === $currentAdminId) {
             if (isset($data['role']) && $data['role'] !== $user->role) {
-                throw new \Exception('Не можете да променяте собствената си роля.');
+                throw new Exception('Не можете да променяте собствената си роля.');
             }
             if (isset($data['is_active']) && (int) $data['is_active'] === User::STATUS_INACTIVE) {
-                throw new \Exception('Не можете да деактивирате собствения си профил.');
+                throw new Exception('Не можете да деактивирате собствения си профил.');
             }
         }
 
@@ -240,13 +240,13 @@ class UserService
         $user = User::findOrFail($userId);
 
         if ($user->id === $currentAdminId) {
-            throw new \Exception('Не можете да изтриете собствения си профил!');
+            throw new Exception('Не можете да изтриете собствения си профил!');
         }
 
         if ($user->role === 'admin') {
             $adminCount = User::where('role', 'admin')->count();
             if ($adminCount <= 1) {
-                throw new \Exception('Не можете да изтриете последния администратор в системата!');
+                throw new Exception('Не можете да изтриете последния администратор в системата!');
             }
         }
 

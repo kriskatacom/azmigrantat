@@ -100,3 +100,6 @@ define('PAGE_TEMPLATES', [
     'none' => 'Без шаблон',
     'default' => 'Стандартен шаблон',
 ]);
+
+define('COMPANY_PHONE', $_ENV['COMPANY_PHONE'] ?? '+359 123 456 789');
+define('COMPANY_NAME', $_ENV['COMPANY_NAME'] ?? 'Аз, мигрантът');

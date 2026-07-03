@@ -4,12 +4,9 @@ use App\Core\Session;
 use App\Core\View;
 ?>
 
-<div class="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+<div class="flex flex-col justify-center py-12 sm:px-6 lg:px-8">
     <div class="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <h2 class="text-3xl font-extrabold text-slate-900 dark:text-white">Вход в системата</h2>
-        <p class="mt-2 text-slate-600 dark:text-slate-400">
-            Нямате профил? <a href="/users/register" class="text-blue-600 hover:underline">Регистрирайте се</a>
-        </p>
     </div>
 
     <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md px-4">
@@ -46,6 +43,12 @@ use App\Core\View;
                     'variant' => 'blue'
                 ]); ?>
             </form>
+            
+            <p class="mt-2 text-slate-600 dark:text-slate-400">
+                Нямате профил? <a href="/users/register" class="text-blue-600 hover:underline">Регистрирайте се</a>
+            </p>
+            
+            <a href="/users/forgot-password" class="text-blue-600 hover:underline">Забравена парола</a>
         </div>
     </div>
 </div>

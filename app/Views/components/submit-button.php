@@ -16,7 +16,7 @@ $variantClasses = $variants[$selectedVariant] ?? $variants['blue'];
 
 <button type="submit"
     id="<?= $uniqueId ?>"
-    class="w-full flex justify-center items-center py-3 px-4 rounded-xl shadow-lg text-base font-bold text-white transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900 <?= $variantClasses ?> <?= $customClass ?>">
+    class="mb-0 w-full flex justify-center items-center py-3 px-4 rounded-xl shadow-lg text-base font-bold text-white transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-slate-900 <?= $variantClasses ?> <?= $customClass ?>">
 
     <span class="btn-text flex items-center gap-2">
         <?= $label ?>

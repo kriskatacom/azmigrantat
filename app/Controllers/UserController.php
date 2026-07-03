@@ -8,6 +8,7 @@ use App\Core\Session;
 use App\Helpers\AuthHelper;
 use App\Models\SessionModel;
 use App\Models\User;
+use App\Services\EmailService;
 use App\Services\MediaService;
 use App\Services\UserService;
 use App\Traits\HasAdminTrait;
@@ -329,11 +330,6 @@ class UserController extends BaseController
 
         $this->updateResource($user, $data, ['profile_image']);
 
-        $seoData = [
-            'title' => 'Редактиране на профил',
-            'description' => 'Промяна на личните данни и настройки на профила.',
-        ];
-
         $this->redirect('/users/profile');
     }
 
@@ -417,5 +413,128 @@ class UserController extends BaseController
     {
         $this->userService->updateIsActive($id);
         $this->redirectBack();
+    }
+
+    public function showForgotPassword()
+    {
+        $this->renderWithSeo('users/forgot-password/index', [
+            'title' => 'Забравена парола',
+            'description' => 'Въведете своя имейл адрес, за да получите линк за възстановяване на паролата.',
+            'keywords' => 'забравена парола, възстановяване, профил'
+        ]);
+    }
+
+    public function showResetPassword()
+    {
+        $token = $_GET['token'] ?? null;
+
+        if (!$token) {
+            $this->flash('error', 'Невалидна или липсваща връзка за възстановяване на паролата.');
+            return $this->redirect('/users/login');
+        }
+
+        $user = User::where('reset_token', $token)->first();
+
+        if (!$user) {
+            $this->flash('error', 'Връзката за възстановяване на паролата е невалидна или е изтекла.');
+            return $this->redirect('/users/forgot-password');
+        }
+
+        $this->renderWithSeo('users/reset-password/index', [
+            'title' => 'Създаване на нова парола',
+            'description' => 'Въведете своята нова сигурна парола.',
+        ], [
+            'token' => $token
+        ]);
+    }
+
+    #[HandleExceptions]
+    public function resetPassword()
+    {
+        $this->validateSpam();
+
+        $rules = [
+            'token' => 'required',
+            'password' => 'required|min:6',
+            'confirm_password' => 'required|same:password',
+        ];
+
+        $messages = [
+            'token.required' => 'Липсва валиден токен за възстановяване.',
+            'password.required' => 'Моля, въведете нова парола.',
+            'password.min' => 'Новата парола трябва да е поне 6 символа.',
+            'confirm_password.required' => 'Моля, потвърдете новата парола.',
+            'confirm_password.same' => 'Паролите не съвпадат.'
+        ];
+
+        $validator = Validator::make($_POST, $rules, $messages);
+
+        if ($validator->fails()) {
+            $this->flash('error', $validator->errors()->first());
+            return $this->redirectBack();
+        }
+
+        $user = User::where('reset_token', $_POST['token'])->first();
+
+        if (!$user) {
+            $this->flash('error', 'Връзката за възстановяване е невалидна или е изтекла.');
+            return $this->redirect('/users/forgot-password');
+        }
+
+        $user->password_hash = $_POST['password'];
+        $user->reset_token = null;
+        $user->save();
+
+        $this->flash('success', 'Паролата ви беше променена успешно! Вече можете да влезете.');
+        return $this->redirect('/users/login');
+    }
+
+    #[HandleExceptions]
+    public function forgotPassword()
+    {
+        $this->validateSpam();
+
+        $rules = [
+            'email' => 'required|email'
+        ];
+
+        $messages = [
+            'email.required' => 'Моля, въведете вашия имейл.',
+            'email.email' => 'Въведеният имейл не е валиден.'
+        ];
+
+        $validator = Validator::make($_POST, $rules, $messages);
+
+        if ($validator->fails()) {
+            Session::setOld(['email' => $_POST['email'] ?? '']);
+            $this->flash('error', $validator->errors()->first());
+            return $this->redirectBack();
+        }
+
+        $user = User::where('email', $_POST['email'])->first();
+
+        if ($user) {
+            $token = bin2hex(random_bytes(32));
+            $user->reset_token = $token;
+            $user->save();
+
+            $resetUrl = BASE_URL . "/users/reset-password?token={$token}";
+
+            EmailService::send(
+                $user->email,
+                'Възстановяване на парола',
+                'forgot-password-link',
+                [
+                    'name' => $user->name,
+                    'resetUrl' => $resetUrl,
+                    'siteUrl' => FULL_DOMAIN,
+                    'phone' => COMPANY_PHONE,
+                    'companyName' => COMPANY_NAME,
+                ]
+            );
+        }
+
+        $this->flash('success', 'Ако имейл адресът съществува в системата, ще получите инструкции за възстановяване.');
+        return $this->redirect('/users/login');
     }
 }

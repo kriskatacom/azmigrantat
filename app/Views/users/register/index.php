@@ -4,7 +4,7 @@ use App\Core\Session;
 use App\Core\View;
 ?>
 
-<div class="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors duration-300">
+<div class="flex flex-col justify-center py-12 sm:px-6 lg:px-8 transition-colors duration-300">
     <div class="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-blue-600 mb-4 shadow-lg shadow-blue-500/30">
             <i class="fa-solid fa-user-plus text-white text-2xl"></i>
@@ -30,26 +30,13 @@ use App\Core\View;
 
                 <?php View::component('spam-protection', 'components'); ?>
 
-                <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    <div class="sm:col-span-1">
-                        <?php View::component('form-input', 'components', [
-                            'label' => 'Пълно име',
-                            'name' => 'name',
-                            'required' => true,
-                            'placeholder' => 'Иван Иванов',
-                            'value' => Session::getOld('name')
-                        ]); ?>
-                    </div>
-
-                    <div class="sm:col-span-1">
-                        <?php View::component('form-input', 'components', [
-                            'label' => 'Username',
-                            'name' => 'username',
-                            'placeholder' => 'ivan_92',
-                            'value' => Session::getOld('username')
-                        ]); ?>
-                    </div>
-                </div>
+                <?php View::component('form-input', 'components', [
+                    'label' => 'Пълно име',
+                    'name' => 'name',
+                    'required' => true,
+                    'placeholder' => 'Иван Иванов',
+                    'value' => Session::getOld('name')
+                ]); ?>
 
                 <?php View::component('form-input', 'components', [
                     'label' => 'Имейл адрес',

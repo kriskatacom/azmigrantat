@@ -4,12 +4,7 @@ use App\Controllers\AdminController;
 use App\Controllers\InstallController;
 use App\Controllers\UserController;
 use App\Controllers\MediaController;
-use App\Controllers\MenuController;
 use App\Controllers\OauthAppController;
-use App\Controllers\PageController;
-use App\Controllers\PageElementController;
-use App\Controllers\RedirectController;
-use App\Controllers\TranslationController;
 use App\Middlewares\AdminMiddleware;
 use App\Middlewares\AuthMiddleware;
 use App\Middlewares\GuestMiddleware;
@@ -24,6 +19,10 @@ $router->get('/users/register', [UserController::class, 'registerForm'], [GuestM
 $router->post('/users/register', [UserController::class, 'register'], [GuestMiddleware::class]);
 $router->get('/users/login', [UserController::class, 'loginForm'], [GuestMiddleware::class]);
 $router->post('/users/login', [UserController::class, 'authenticate'], [GuestMiddleware::class]);
+$router->get('/users/forgot-password', [UserController::class, 'showForgotPassword'], [GuestMiddleware::class]);
+$router->post('/users/forgot-password', [UserController::class, 'forgotPassword'], [GuestMiddleware::class]);
+$router->get('/users/reset-password', [UserController::class, 'showResetPassword'], [GuestMiddleware::class]);
+$router->post('/users/reset-password', [UserController::class, 'resetPassword'], [GuestMiddleware::class]);
 
 $router->get('/users/profile', [UserController::class, 'profile'], [AuthMiddleware::class]);
 $router->post('/users/profile/update', [UserController::class, 'profileUpdate'], [AuthMiddleware::class]);
