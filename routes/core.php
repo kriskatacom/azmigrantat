@@ -2,8 +2,8 @@
 
 use App\Controllers\AdminController;
 use App\Controllers\InstallController;
+use App\Controllers\StorageController;
 use App\Controllers\UserController;
-use App\Controllers\MediaController;
 use App\Controllers\OauthAppController;
 use App\Middlewares\AdminMiddleware;
 use App\Middlewares\AuthMiddleware;
@@ -49,8 +49,9 @@ $router->post('/admin/users/destroy/{id}', [UserController::class, 'destroy'], $
 // $router->post('/admin/media/restore/{id}', [MediaController::class, 'restore'], $adminAuth);
 // $router->get('/admin/media/upload', [MediaController::class, 'upload'], $adminAuth);
 
-$router->post('/admin/media/ajax-upload', [MediaController::class, 'ajaxUpload'], $adminAuth);
-$router->post('/admin/media/ajax-delete', [MediaController::class, 'ajaxDelete'], $adminAuth);
+$router->post('/admin/storage/ajax-upload', [StorageController::class, 'ajaxUpload'], $adminAuth);
+$router->post('/admin/storage/ajax-delete', [StorageController::class, 'ajaxDelete'], $adminAuth);
+$router->get('/admin/storage/file', [StorageController::class, 'getFile']);
 
 // $router->get('/admin/pages', [PageController::class, 'index'], $adminAuth);
 // $router->get('/admin/pages/create', [PageController::class, 'create'], $adminAuth);

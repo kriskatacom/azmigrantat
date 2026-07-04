@@ -17,7 +17,8 @@
         "illuminate/filesystem": "^12.56",
         "illuminate/validation": "^12.56",
         "illuminate/config": "^12.56",
-        "twilio/sdk": "^8.11"
+        "twilio/sdk": "^8.11",
+        "aws/aws-sdk-php": "^3.387"
     },
     "scripts": {
         "migrate": "phinx migrate",

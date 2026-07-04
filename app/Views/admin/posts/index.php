@@ -6,18 +6,58 @@ use App\Core\View;
 $currentTab = $_GET['tab'] ?? 'active';
 $search = $_GET['search'] ?? '';
 
-// Инициализация на заглавната част, брояча, бутона за създаване и табовете
+$currentParams = $_GET;
+$baseQuery = $currentParams;
+unset($baseQuery['tab']);
+
+$getLink = function ($tabName) use ($baseQuery) {
+    return '/admin/posts?' . http_build_query(array_merge($baseQuery, ['tab' => $tabName]));
+};
+
 Table::pageHeader([
     'base_url' => '/admin/posts',
     'count' => $posts->total(),
     'create_btn' => ['url' => '/admin/posts/create', 'label' => 'Нова публикация', 'icon' => 'fa-plus'],
     'tabs' => [
-        'active' => ['label' => 'Активни', 'title' => 'Активни публикации', 'subtitle' => 'Публикувани: {count}', 'icon' => 'fa-newspaper', 'bg' => 'bg-primary/10', 'text' => 'text-primary'],
-        'trash' => ['label' => 'Кошче', 'title' => 'Кошче', 'subtitle' => 'В кошчето: {count}', 'icon' => 'fa-trash-can', 'bg' => 'bg-red-50', 'text' => 'text-red-500']
+        'all' => [
+            'url' => $getLink('all'),
+            'label' => 'Всички',
+            'title' => 'Всички',
+            'subtitle' => 'Общо записи: {count}',
+            'icon' => 'fa-list',
+            'bg' => 'bg-slate-50',
+            'text' => 'text-slate-600'
+        ],
+        'active' => [
+            'url' => $getLink('active'),
+            'label' => 'Активни',
+            'title' => 'Активни публикации',
+            'subtitle' => 'Публикувани: {count}',
+            'icon' => 'fa-newspaper',
+            'bg' => 'bg-emerald-50',
+            'text' => 'text-emerald-600'
+        ],
+        'inactive' => [
+            'url' => $getLink('inactive'),
+            'label' => 'Неактивни',
+            'title' => 'Неактивни публикации',
+            'subtitle' => 'Скрити публикации: {count}',
+            'icon' => 'fa-folder',
+            'bg' => 'bg-orange-50',
+            'text' => 'text-orange-500'
+        ],
+        'trash' => [
+            'url' => $getLink('trash'),
+            'label' => 'Изтрити',
+            'title' => 'Кошче',
+            'subtitle' => 'Изтрити публикации: {count}',
+            'icon' => 'fa-trash',
+            'bg' => 'bg-red-50',
+            'text' => 'text-red-500'
+        ],
     ]
 ]);
 
-// Компонент за системни съобщения (Успех / Грешка)
 View::component('flash-messages', 'admin/components'); ?>
 
 <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -36,7 +76,6 @@ View::component('flash-messages', 'admin/components'); ?>
                     <tr class="hover:bg-slate-50 transition-colors">
 
                         <?php
-                        // 1. Колона: Заглавие, Slug и Миниатюра (Thumbnail)
                         ob_start(); ?>
                         <div class="flex items-center gap-3">
                             <a href="/admin/posts/edit/<?= $post->id ?>" class="flex items-center gap-3 group">
@@ -64,24 +103,20 @@ View::component('flash-messages', 'admin/components'); ?>
                         <?php Table::td(ob_get_clean()); ?>
 
                         <?php
-                        // 2. Колона: Локация (Извлечена и попълнена от Nominatim API на OpenStreetMap)
                         $locationHtml = $post->location
                             ? '<span class="flex items-center gap-1.5 text-slate-600"><i class="fa-solid fa-location-dot text-slate-400 text-xs"></i> ' . htmlspecialchars($post->location) . '</span>'
                             : '<span class="text-slate-400 italic text-xs">Няма посочена локация</span>';
                         Table::td($locationHtml, 'text-sm'); ?>
 
                         <?php
-                        // 3. Колона: Автор (Връзката Many-to-One към модела User)
                         $authorName = $post->user->name ?? 'Изтрит потребител';
                         Table::td('<span class="font-medium text-slate-700">' . htmlspecialchars($authorName) . '</span>', 'text-sm'); ?>
 
                         <?php
-                        // 4. Колона: Дата на създаване
                         $dateText = $post->created_at ? $post->created_at->format('d.m.Y H:i') : '-';
                         Table::td('<span class="text-xs text-slate-400 font-mono">' . $dateText . '</span>'); ?>
 
                         <?php
-                        // 5. Колона: Действия (в зависимост от това дали сме в Кошчето или в Активни)
                         ob_start(); ?>
                         <div class="flex justify-end gap-2">
                             <?php if ($post->trashed()): ?>

@@ -18,12 +18,15 @@ class Post extends Model
         'location',
         'content',
         'images',
+        'videos',
         'user_id',
+        'is_active',
         'category_id'
     ];
 
     protected $casts = [
         'images' => 'array',
+        'videos' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
         'deleted_at' => 'datetime',

@@ -287,7 +287,7 @@ class Form
                 <div class="text-center pointer-events-none">
                     <i class="fa-solid fa-cloud-arrow-up text-3xl text-slate-400 mb-2 group-hover:text-primary transition-colors"></i>
                     <div class="font-bold text-sm text-slate-700">Влачете изображения тук или <span class="text-primary hover:underline">кликнете за избор</span></div>
-                    <div class="text-xs text-slate-400 mt-1">Поддържат се всички графични формати през MediaService</div>
+                    <div class="text-xs text-slate-400 mt-1">Поддържат се всички графични формати през StorageService</div>
                 </div>
             </div>
 
@@ -362,7 +362,7 @@ class Form
                 const formData = new FormData();
                 formData.append('file', file);
 
-                fetch('/admin/media/ajax-upload', {
+                fetch('/admin/storage/ajax-upload', {
                     method: 'POST',
                     body: formData
                 })
@@ -416,7 +416,7 @@ class Form
                     deleteBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-xs"></i>';
                     deleteBtn.disabled = true;
 
-                    fetch('/admin/media/ajax-delete', {
+                    fetch('/admin/storage/ajax-delete', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ path: path })
