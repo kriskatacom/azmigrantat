@@ -20,6 +20,7 @@ class CreatePostsTable extends AbstractMigration
               ->addColumn('user_id', 'integer', ['signed' => false, 'null' => false])
               ->addColumn('category_id', 'integer', ['signed' => true, 'null' => true, 'default' => null])
               ->addColumn('is_active', 'integer', ['limit' => MysqlAdapter::INT_TINY, 'null' => false, 'default' => 1])
+              ->addColumn('options', 'json', ['null' => true])
               ->addColumn('created_at', 'datetime', ['precision' => 3, 'null' => true, 'default' => null])
               ->addColumn('updated_at', 'datetime', ['precision' => 3, 'null' => true, 'default' => null])
               ->addColumn('deleted_at', 'datetime', ['precision' => 3, 'null' => true, 'default' => null]);

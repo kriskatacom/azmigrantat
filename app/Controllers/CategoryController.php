@@ -13,6 +13,10 @@ class CategoryController extends BaseController
         $parentId = $_GET['parent_id'] ?? null;
         $search = $_GET['search'] ?? '';
 
+        // Вземаме параметрите за сортиране от URL адреса
+        $sortField = $_GET['sort'] ?? '';
+        $sortDirection = $_GET['direction'] ?? 'asc';
+
         $query = Category::withTrashed()->with('children');
 
         if (!empty($search)) {
@@ -30,6 +34,16 @@ class CategoryController extends BaseController
         $filtered = $allCategories->filter(function ($category) use ($tab) {
             return $category->matchesTab($tab);
         });
+
+        // --- ДОБАВЕНО СОРТИРАНЕ НА КОЛЕКЦИЯТА ---
+        if (!empty($sortField)) {
+            if (strtolower($sortDirection) === 'desc') {
+                $filtered = $filtered->sortByDesc($sortField);
+            } else {
+                $filtered = $filtered->sortBy($sortField);
+            }
+        }
+        // ----------------------------------------
 
         $currentPage = \Illuminate\Pagination\LengthAwarePaginator::resolveCurrentPage();
         $perPage = 15;

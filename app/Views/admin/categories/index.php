@@ -62,9 +62,8 @@ Table::pageHeader([
         ],
     ]
 ]);
-?>
 
-<?php View::component('flash-messages', 'admin/components'); ?>
+View::component('flash-messages', 'admin/components'); ?>
 
 <nav class="mb-4 flex items-center text-sm text-slate-500">
     <a href="/admin/categories?tab=<?= $currentTab ?>"
@@ -90,86 +89,107 @@ Table::pageHeader([
             <a href="<?= $url ?>" class="hover:text-primary transition-colors">
                 <?= htmlspecialchars($ancestor->name) ?>
             </a>
-        <?php endforeach; endif; ?>
+        <?php endforeach; 
+    endif; ?>
 </nav>
 
-<div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-</div>
+<?php
+$columns = [
+    'name'   => 'Категория',
+    'slug'   => [
+        'label' => 'Slug',
+        'sortable' => false
+    ],
+    'status' => [
+        'label' => 'Статус',
+        'sortable' => false
+    ],
+    'actions'=> [
+        'label' => 'Действия',
+        'sortable' => false
+    ]
+];
 
-<div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-    <table class="w-full text-left border-collapse">
-        <?php Table::thead(['name' => 'Категория', 'slug' => 'Slug', 'status' => 'Статус', 'actions' => 'Действия']); ?>
+Table::header();
+Table::thead($columns);
 
-        <?php Table::tbody($categories, 4, function ($category) {
-            ob_start();
-            $isDeleted = !is_null($category->deleted_at);
-            $currentParams = $_GET;
-            $currentParams['parent_id'] = $category->id;
-            $newQueryString = http_build_query($currentParams);
-            ?>
-            <tr class="hover:bg-slate-50 transition-colors">
-                <?php
-                $hasHidden = $category->hasHiddenChildren();
-                $nameHtml = '
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-slate-100 text-slate-500 rounded-lg flex items-center justify-center font-bold">
-                            ' . ($category->image_url ? '<img src="' . $category->image_url . '" class="w-full h-full object-cover rounded-lg">' : Str::initial($category->name)) . '
-                        </div>
-                        <div>
-                            <div class="font-medium text-slate-900 flex items-center gap-2">
-                                ' . ($category->children->isNotEmpty()
-                                ? '<a href="/admin/categories?' . $newQueryString . '" class="hover:text-blue-500 transition-colors flex items-center gap-1">
-                                            ' . htmlspecialchars($category->name) . '
-                                            <i class="fa-solid fa-chevron-right text-[10px] opacity-50"></i>
-                                    </a>'
-                                : htmlspecialchars($category->name)
-                            ) . '
-                                ' . ($hasHidden ? '<span class="text-[10px] text-orange-500 font-semibold bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">Съдържа скрити</span>' : '') . '
-                            </div>
-                            <div class="text-xs text-slate-500">' . ($category->parent ? 'Родител: ' . htmlspecialchars($category->parent->name) : 'Основна') . '</div>
-                        </div>
-                    </div>
-                ';
-                Table::td($nameHtml);
-                ?>
+$colspan = count($columns);
 
-                <?php Table::td('<code class="text-xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">' . htmlspecialchars($category->slug) . '</code>'); ?>
-
-                <?php Table::td('
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ' . ($isDeleted ? 'bg-red-100 text-red-700' : ($category->is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600')) . '">
-                        <span class="w-1.5 h-1.5 rounded-full ' . ($isDeleted ? 'bg-red-500' : ($category->is_active ? 'bg-green-500' : 'bg-slate-400')) . '"></span>
-                        ' . ($isDeleted ? 'Изтрита' : ($category->is_active ? 'Активна' : 'Скрита')) . '
-                    </span>
-                '); ?>
-
-                <?php
-                ob_start();
-                ?>
-                <div class="flex items-center justify-end gap-1"> <?php if ($isDeleted): ?>
-                        <form action="/admin/categories/restore/<?= $category->id ?>" method="POST">
-                            <button class="p-2 text-slate-400 hover:text-emerald-600 transition-colors" title="Възстановяване">
-                                <i class="fa-solid fa-trash-arrow-up"></i>
-                            </button>
-                        </form>
-                    <?php else: ?>
-                        <a href="/admin/categories/edit/<?= $category->id ?>" class="p-2 text-slate-400 hover:text-primary transition-colors">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                        </a>
-                        <form action="/admin/categories/destroy/<?= $category->id ?>" method="POST" onsubmit="return confirm('Изтриване?')">
-                            <button class="p-2 text-slate-400 hover:text-red-500 transition-colors">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                        </form>
-                    <?php endif; ?>
+Table::tbody($categories, $colspan, function ($category) {
+    ob_start();
+    $isDeleted = !is_null($category->deleted_at);
+    $currentParams = $_GET;
+    $currentParams['parent_id'] = $category->id;
+    $newQueryString = http_build_query($currentParams);
+    ?>
+    <tr class="hover:bg-slate-50 transition-colors">
+        <?php
+        $hasHidden = $category->hasHiddenChildren();
+        
+        $nameHtml = '
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-slate-100 text-slate-500 rounded-lg flex items-center justify-center font-bold overflow-hidden shrink-0">
+                    ' . ($category->image_url ? '<img src="' . $category->image_url . '" class="w-full h-full object-cover">' : Str::initial($category->name)) . '
                 </div>
-                <?php
-                $actions = ob_get_clean();
-                Table::td($actions, 'w-32', true); 
-                ?>
-            </tr>
-            <?php return ob_get_clean();
-        }, 'fa-folder-open'); ?>
-    </table>
-</div>
+                <div>
+                    <div class="font-medium text-slate-900 flex items-center gap-2">
+                        ' . ($category->children->isNotEmpty()
+                            ? '<a href="/admin/categories?' . $newQueryString . '" class="hover:text-blue-500 transition-colors flex items-center gap-1">
+                                    ' . htmlspecialchars($category->name) . '
+                                    <i class="fa-solid fa-chevron-right text-[10px] opacity-50"></i>
+                               </a>'
+                            : htmlspecialchars($category->name)
+                        ) . '
+                        ' . ($hasHidden ? '<span class="text-[10px] text-orange-500 font-semibold bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">Съдържа скрити</span>' : '') . '
+                    </div>
+                    <div class="text-xs text-slate-500">' . ($category->parent ? 'Родител: ' . htmlspecialchars($category->parent->name) : 'Основна') . '</div>
+                </div>
+            </div>
+        ';
+        Table::td($nameHtml);
+        ?>
 
-<?php Table::footer($categories); ?>
+        <?php
+        Table::td('<code class="text-xs text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">' . htmlspecialchars($category->slug) . '</code>'); 
+        ?>
+
+        <?php
+        Table::td('
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ' . ($isDeleted ? 'bg-red-100 text-red-700' : ($category->is_active ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600')) . '">
+                <span class="w-1.5 h-1.5 rounded-full ' . ($isDeleted ? 'bg-red-500' : ($category->is_active ? 'bg-green-500' : 'bg-slate-400')) . '"></span>
+                ' . ($isDeleted ? 'Изтрита' : ($category->is_active ? 'Активна' : 'Скрита')) . '
+            </span>
+        '); 
+        ?>
+
+        <?php
+        ob_start();
+        ?>
+        <div class="flex items-center justify-end gap-1"> 
+            <?php if ($isDeleted): ?>
+                <form action="/admin/categories/restore/<?= $category->id ?>" method="POST">
+                    <button class="p-2 text-slate-400 hover:text-emerald-600 transition-colors" title="Възстановяване">
+                        <i class="fa-solid fa-trash-arrow-up"></i>
+                    </button>
+                </form>
+            <?php else: ?>
+                <a href="/admin/categories/edit/<?= $category->id ?>" class="p-2 text-slate-400 hover:text-primary transition-colors">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </a>
+                <form action="/admin/categories/destroy/<?= $category->id ?>" method="POST" onsubmit="return confirm('Изтриване?')">
+                    <button class="p-2 text-slate-400 hover:text-red-500 transition-colors">
+                        <i class="fa-solid fa-trash-can"></i>
+                    </button>
+                </form>
+            <?php endif; ?>
+        </div>
+        <?php
+        $actions = ob_get_clean();
+        Table::td($actions, 'w-32', true);
+        ?>
+    </tr>
+    <?php 
+    return ob_get_clean();
+}, 'fa-folder-open');
+
+Table::footer($categories); 

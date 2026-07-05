@@ -39,7 +39,7 @@ $is_open = $_SESSION['sidebar_open'];
     <script src="/assets/js/min/nestable.min.js"></script>
     <script src="/assets/js/min/dropzone.min.js"></script>
     <script src="/assets/js/admin-main.js"></script>
-    
+
     <script src="/assets/js/min/alpine.min.js" defer></script>
 
     <style>
@@ -95,13 +95,15 @@ $is_open = $_SESSION['sidebar_open'];
                     </div>
 
                     <div class="relative group cursor-pointer">
-                        <div class="w-10 h-10 rounded-full overflow-hidden ring-2 ring-slate-100 group-hover:ring-indigo-600 transition-all duration-300 shadow-lg shadow-indigo-100">
+                        <div
+                            class="w-10 h-10 rounded-full overflow-hidden ring-2 ring-slate-100 group-hover:ring-indigo-600 transition-all duration-300 shadow-lg shadow-indigo-100">
                             <?php
                             $user = Auth::user();
                             $avatar = $user['image_url'] ?? null;
                             ?>
                             <?php if ($avatar): ?>
-                                <img src="<?= $avatar ?>" alt="<?= htmlspecialchars($user['name'] ?? '') ?>" class="w-full h-full object-cover">
+                                <img src="<?= $avatar ?>" alt="<?= htmlspecialchars($user['name'] ?? '') ?>"
+                                    class="w-full h-full object-cover">
                             <?php else: ?>
                                 <div class="w-full h-full bg-indigo-600 flex items-center justify-center text-white">
                                     <span class="text-sm font-bold">
@@ -110,12 +112,13 @@ $is_open = $_SESSION['sidebar_open'];
                                 </div>
                             <?php endif; ?>
                         </div>
-                        <span class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-sm"></span>
+                        <span
+                            class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full shadow-sm"></span>
                     </div>
                 </div>
             </header>
 
-            <main id="admin-content" class="flex-1 p-5">
+            <main id="admin-content" class="flex-1 md:p-5">
                 <div class="bg-slate-100">
                     <div class="flex-1 flex flex-col min-w-0">
                         <?php View::component('flash', 'admin/components'); ?>
@@ -123,8 +126,15 @@ $is_open = $_SESSION['sidebar_open'];
                         <?= $content ?>
                     </div>
 
-                    <footer class="mt-20 border-t border-slate-200 pt-6 text-center text-xs text-slate-400 font-medium uppercase tracking-widest">
-                        &copy; <?= date('Y') ?> СУ „<?= WEBSITE_DOMAIN_NAME ?>“. Система за управление.
+                    <footer
+                        class="mt-20 border-t border-slate-200 pt-6 text-center text-xs text-slate-400 font-medium uppercase tracking-widest">
+                        <?php if (Auth::isAdmin()): ?>
+                            <span>&copy; <?= date('Y') ?></span>
+                            <span><?= WEBSITE_DOMAIN_NAME ?> - Система за управление.</span>
+                        <?php else: ?>
+                            <span>&copy; <?= date('Y') ?></span>
+                            <span><?= WEBSITE_DOMAIN_NAME ?></span>
+                        <?php endif; ?>
                     </footer>
                 </div>
             </main>

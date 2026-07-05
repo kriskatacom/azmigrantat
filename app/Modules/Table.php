@@ -19,9 +19,9 @@ class Table
             'title' => 'Списък'
         ]);
         ?>
-        <div class="mb-5 flex items-start gap-5">
+        <div class="mb-5 max-md:mt-5 max-md:px-5 flex items-start gap-5">
             <div
-                class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 <?= $style['bg'] ?> <?= $style['text'] ?>">
+                class="w-12 h-12 rounded-md border border-slate-200 flex items-center justify-center shrink-0 <?= $style['bg'] ?> <?= $style['text'] ?>">
                 <i class="fa-solid <?= $style['icon'] ?> text-xl"></i>
             </div>
             <div>
@@ -32,7 +32,7 @@ class Table
             </div>
         </div>
 
-        <div class="flex items-center overflow-auto mb-6 gap-2 p-1 bg-slate-100/50 rounded-lg">
+        <div class="flex items-center overflow-auto mb-5 gap-2 p-1 bg-slate-100/50 rounded-lg max-md:px-5">
             <?php foreach ($tabs as $key => $tab): ?>
                 <a href="?tab=<?= $key ?>" class="inline-flex items-center px-4 py-2 text-sm font-semibold transition-all duration-200 rounded-md whitespace-nowrap
             <?= $currentTab === $key
@@ -51,8 +51,8 @@ class Table
             <?php endforeach; ?>
         </div>
 
-        <div class="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <form action="<?= $config['base_url'] ?>" method="GET" class="flex items-end gap-3 flex-1 md:flex-none">
+        <div class="mb-5 flex flex-col md:flex-row md:items-end justify-between gap-4 max-md:px-5">
+            <form action="<?= $config['base_url'] ?>" method="GET" class="flex items-end gap-3 md:flex-none">
                 <input type="hidden" name="tab" value="<?= htmlspecialchars($currentTab) ?>">
                 <div class="w-full md:w-80">
                     <?php Form::input('', 'search', $search, 'text', ['placeholder' => 'Търсене...']); ?>
@@ -73,73 +73,63 @@ class Table
         <?php
     }
 
-    public static function header(string $title, string $subtitle, string $searchAction, string $searchValue = '')
+    public static function header()
     {
-        $sort = $_GET['sort'] ?? '';
-        $order = $_GET['order'] ?? '';
         ?>
-        <div class="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-bold text-slate-900"><?= $title ?></h1>
-                <p class="text-slate-500 text-sm"><?= $subtitle ?></p>
-            </div>
-
-            <form action="<?= $searchAction ?>" method="GET" class="relative">
-                <?php if ($sort): ?>
-                    <input type="hidden" name="sort" value="<?= htmlspecialchars($sort) ?>">
-                    <input type="hidden" name="order" value="<?= htmlspecialchars($order) ?>">
-                <?php endif; ?>
-
-                <input type="text" name="search" value="<?= htmlspecialchars($searchValue) ?>" placeholder="Търсене..."
-                    class="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-lg w-full md:w-80 focus:ring-2 focus:ring-primary outline-none transition-all">
-                <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400"></i>
-            </form>
-        </div>
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="max-md:px-5 bg-white rounded-xl shadow-sm border border-slate-200 overflow-auto">
             <table class="w-full text-left border-collapse">
                 <?php
     }
 
     public static function thead(array $columns)
     {
-        $sort = $_GET['sort'] ?? '';
-        $order = $_GET['order'] ?? 'asc';
+        $currentSort = $_GET['sort'] ?? '';
+        $currentDir = $_GET['direction'] ?? 'asc';
+        $currentParams = $_GET;
 
-        ?>
-                <thead>
-                    <tr class="bg-slate-50 border-b border-slate-200">
-                        <?php foreach ($columns as $dbField => $label): ?>
-                            <?php
-                            $isSortable = !is_numeric($dbField);
-                            $isActive = ($sort === $dbField);
-                            $nextOrder = ($isActive && $order === 'asc') ? 'desc' : 'asc';
+        echo "<thead class=\"bg-slate-50/75 border-b border-slate-100\">";
+        echo "<tr>";
 
-                            $queryParams = array_merge($_GET, ['sort' => $dbField, 'order' => $nextOrder]);
-                            $sortUrl = '?' . http_build_query($queryParams);
-                            ?>
-                            <th
-                                class="p-4 font-semibold text-slate-700 <?= empty($dbField) || is_numeric($dbField) ? 'text-right' : '' ?>">
-                                <?php if ($isSortable): ?>
-                                    <a href="<?= $sortUrl ?>"
-                                        class="flex items-center gap-1 hover:text-primary transition-colors group">
-                                        <?= $label ?>
-                                        <span class="text-slate-300 group-hover:text-primary/50">
-                                            <?php if ($isActive): ?>
-                                                <i class="fa-solid fa-sort-<?= $order === 'asc' ? 'up' : 'down' ?> text-primary"></i>
-                                            <?php else: ?>
-                                                <i class="fa-solid fa-sort text-xs opacity-50"></i>
-                                            <?php endif; ?>
-                                        </span>
-                                    </a>
-                                <?php else: ?>
-                                    <?= $label ?>
-                                <?php endif; ?>
-                            </th>
-                        <?php endforeach; ?>
-                    </tr>
-                </thead>
-                <tbody class="divide-y divide-slate-100">
-                    <?php
+        foreach ($columns as $key => $column) {
+            $isSortable = is_string($key) && !empty($key);
+            $label = $column;
+            $class = '';
+
+            if (is_array($column)) {
+                $label = $column['label'] ?? '';
+                $class = $column['class'] ?? '';
+                if (isset($column['sortable']) && $column['sortable'] === false) {
+                    $isSortable = false;
+                }
+            }
+
+            $alignClass = ($label === 'Действия') ? 'text-right' : 'text-left';
+
+            echo "<th class=\"p-3 text-xs font-semibold text-slate-500 uppercase tracking-wider {$alignClass} {$class}\">";
+
+            if ($isSortable) {
+                $nextDir = ($currentSort === $key && $currentDir === 'asc') ? 'desc' : 'asc';
+                $queryParams = array_merge($currentParams, ['sort' => $key, 'direction' => $nextDir]);
+                $sortUrl = '?' . http_build_query($queryParams);
+
+                $icon = 'fa-sort text-slate-300';
+                if ($currentSort === $key) {
+                    $icon = ($currentDir === 'asc') ? 'fa-sort-up text-primary' : 'fa-sort-down text-primary';
+                }
+
+                echo "<a href=\"{$sortUrl}\" class=\"inline-flex items-center gap-1 hover:text-slate-700 transition-colors\">";
+                echo htmlspecialchars($label);
+                echo "<i class=\"fa-solid {$icon} text-[10px] ml-0.5\"></i>";
+                echo "</a>";
+            } else {
+                echo htmlspecialchars($label);
+            }
+
+            echo "</th>";
+        }
+
+        echo "</tr>";
+        echo "</thead>";
     }
 
     public static function footer($items)
@@ -172,7 +162,7 @@ class Table
     public static function td($content, string $class = '', bool $isRight = false)
     {
         $alignClass = $isRight ? 'text-right' : 'text-left';
-        $finalClass = "p-4 {$alignClass} {$class}";
+        $finalClass = "p-2 {$alignClass} {$class}";
 
         echo "<td class=\"" . trim($finalClass) . "\">";
         echo $content;

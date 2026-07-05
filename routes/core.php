@@ -40,6 +40,8 @@ $router->get('/admin/users/edit/{id}', [UserController::class, 'edit'], $adminAu
 $router->post('/admin/users/update/{id}', [UserController::class, 'update'], $adminAuth);
 $router->post('/admin/users/update-is-active/{id}', [UserController::class, 'updateIsActive'], $adminAuth);
 $router->post('/admin/users/destroy/{id}', [UserController::class, 'destroy'], $adminAuth);
+$router->post('/admin/users/restore/{id}', [UserController::class, 'restore'], $adminAuth);
+$router->post('/admin/users/force-delete/{id}', [UserController::class, 'forceDelete'], $adminAuth);
 
 // $router->get('/admin/media', [MediaController::class, 'index'], $adminAuth);
 // $router->post('/admin/media/store', [MediaController::class, 'store'], $adminAuth);

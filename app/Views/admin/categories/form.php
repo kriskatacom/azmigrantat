@@ -15,18 +15,19 @@ $parentCategories = \App\Models\Category::where('id', '!=', $category->id ?? 0)
     <?php Form::mainSubmit(); ?>
 </div>
 
-<div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-    <div>
-        <a href="/admin/categories" class="text-slate-500 hover:text-primary text-sm mb-2 flex items-center gap-2 transition-colors w-fit">
-            <i class="fa-solid fa-arrow-left"></i> Назад към списъка
-        </a>
-        <h1 class="text-2xl font-bold text-slate-900"><?= $title ?></h1>
-    </div>
+<div class="mb-5 max-md:pt-5 max-md:px-5 space-y-2">
+    <h1 class="text-xl md:text-2xl md:font-bold text-slate-900">
+        <?= $isEdit ? "Редактиране на категория" : "Нова категория" ?>
+    </h1>
+    <a href="/admin/categories"
+        class="text-slate-500 hover:text-primary flex items-center gap-2 transition-colors">
+        <i class="fa-solid fa-arrow-left"></i> Назад към списъка
+    </a>
 </div>
 
 <?php View::component('flash-messages', 'admin/components'); ?>
 
-<form data-main-form action="<?= $isEdit ? "/admin/categories/update/{$category->id}" : "/admin/categories/store"; ?>" method="POST" class="grid grid-cols-1 lg:grid-cols-3 gap-6" enctype="multipart/form-data">
+<form data-main-form action="<?= $isEdit ? "/admin/categories/update/{$category->id}" : "/admin/categories/store"; ?>" method="POST" class="grid grid-cols-1 lg:grid-cols-3 md:gap-5" enctype="multipart/form-data">
 
     <div class="lg:col-span-2 space-y-6">
         <?php Form::section('Основни данни', function () use ($category, $parentCategories) { ?>

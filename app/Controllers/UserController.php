@@ -30,46 +30,14 @@ class UserController extends BaseController
 
     public function index()
     {
-        $currentTab = $_GET['tab'] ?? 'all';
-        $search = $_GET['search'] ?? '';
-
-        $users = null;
-        $sessions = null;
-
-        if ($currentTab === 'sessions') {
-            $sessions = SessionModel::with('user')
-                ->whereNotNull('user_id')
-                ->when($search, function ($query, $search) {
-                    return $query->whereHas('user', function ($q) use ($search) {
-                        $q->where('name', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%");
-                    });
-                })
-                ->orderBy('last_activity', 'desc')
-                ->get();
-        } else {
-            $query = User::query();
-
-            if ($currentTab === 'inactive') {
-                $query->where('is_active', false);
-            } elseif ($currentTab === 'active') {
-                $query->where('is_active', true);
-            }
-
-            $users = $this->paginateQuery($query, ['name', 'email', 'username']);
-        }
-
-        $seoData = [
-            'title' => 'Управление на потребители | Админ панел',
-            'description' => 'Списък и редактиране на потребители.'
-        ];
-
-        $this->renderWithLayout('admin/users/index', $seoData, [
-            'users' => $users,
-            'sessions' => $sessions,
-            'currentTab' => $currentTab,
-            'search' => $search
-        ], AuthHelper::role());
+        return $this->resourceIndex(User::class, 'admin/users/index', [
+            'title' => 'Управление на потребители',
+            'resource_name' => 'users',
+            'search_fields' => ['name', 'email'],
+            'order_by' => 'created_at',
+            'order_dir' => 'desc',
+            'columns' => ['name', 'client_id', 'redirect_uri', 'is_active', 'created_at']
+        ]);
     }
 
     public function create()
@@ -328,7 +296,7 @@ class UserController extends BaseController
 
         unset($data['password'], $data['password_confirmation'], $data['is_active']);
 
-        $this->updateResource($user, $data, ['profile_image']);
+        $user->update($data);
 
         $this->redirect('/users/profile');
     }
@@ -348,7 +316,7 @@ class UserController extends BaseController
             'name' => 'required|min:3',
             'email' => 'required|email|unique:users,email,' . $user->id,
             'password' => 'nullable|min:6|confirmed',
-            'gender' => 'nullable|in:male,female,other',
+            'options.gender' => 'nullable|in:male,female,other',
         ];
 
         $messages = [
@@ -379,7 +347,13 @@ class UserController extends BaseController
 
         unset($data['password'], $data['password_confirmation'], $data['is_active']);
 
-        $this->updateResource($user, $data, ['profile_image']);
+        if (isset($data['options']) && is_array($data['options'])) {
+            $data['options'] = json_encode($data['options'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        } else {
+            $data['options'] = json_encode([], JSON_UNESCAPED_SLASHES);
+        }
+
+        $user->update($data);
 
         $this->flash('success', 'Профилът е обновен успешно!');
         $this->redirectBack();
@@ -389,6 +363,8 @@ class UserController extends BaseController
     public function edit($id)
     {
         $user = $this->userService->findUser((int) $id);
+
+        $user->options = is_string($user->options) ? json_decode($user->options, true) : ($user->options ?? []);
 
         $seoData = [
             'title' => "Редактиране на {$user->name} | Админ панел",
@@ -404,8 +380,29 @@ class UserController extends BaseController
     public function destroy($id)
     {
         $this->userService->deleteUser((int) $id, (int) Auth::id());
-        $this->flash('success', 'Потребителят беше изтрит успешно.');
+        $this->flash('success', 'Потребителят беше преместен в кошчето.');
         $this->redirect('/admin/users');
+    }
+
+    public function restore($id)
+    {
+        $user = User::onlyTrashed()->findOrFail((int) $id);
+        $user->restore();
+
+        $user->is_active = 0;
+        $user->save();
+
+        $this->flash('success', 'Потребителят беше възстановен успешно като деактивиран.');
+        return $this->redirect("/admin/users?tab=trash");
+    }
+
+    public function forceDelete($id)
+    {
+        $user = User::onlyTrashed()->findOrFail((int) $id);
+
+        $user->forceDelete();
+        $this->flash('info', 'Потребителят беше изтрит завинаги.');
+        return $this->redirect("/admin/users?tab=trash");
     }
 
     #[HandleExceptions]

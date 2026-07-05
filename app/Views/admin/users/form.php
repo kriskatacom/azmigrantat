@@ -9,34 +9,36 @@ $isEdit = $user->exists; ?>
     <?php Form::mainSubmit(); ?>
 </div>
 
-<div class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-    <div>
-        <a href="/admin/users" class="text-slate-500 hover:text-primary text-sm mb-2 flex items-center gap-2 transition-colors w-fit">
-            <i class="fa-solid fa-arrow-left"></i> Назад към списъка
-        </a>
-        <h1 class="text-2xl font-bold text-slate-900"><?= $title ?></h1>
-    </div>
+<div class="mb-5 max-md:pt-5 max-md:px-5 space-y-2">
+    <h1 class="text-xl md:text-2xl md:font-bold text-slate-900">
+        <?= $isEdit ? "Редактиране на потребител" : "Нов потребител" ?>
+    </h1>
+    <a href="/admin/users" class="text-slate-500 hover:text-primary flex items-center gap-2 transition-colors">
+        <i class="fa-solid fa-arrow-left"></i> Назад към списъка
+    </a>
 </div>
 
 <?php View::component('flash-messages', 'admin/components'); ?>
 
-<form data-main-form action="<?= $isEdit ? "/admin/users/update/{$user->id}" : "/admin/users/store" . '?id_from_admin=1'; ?>" method="POST" class="grid grid-cols-1 lg:grid-cols-3 gap-6" enctype="multipart/form-data">
+<form data-main-form
+    action="<?= $isEdit ? "/admin/users/update/{$user->id}" : "/admin/users/store" . '?id_from_admin=1'; ?>"
+    method="POST" class="grid grid-cols-1 lg:grid-cols-3 gap-6" enctype="multipart/form-data">
 
     <div class="lg:col-span-2 space-y-6">
         <?php Form::section('Лична информация', function () use ($user) { ?>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <?php 
+                <?php
                 Form::input('Цяло име', 'name', $user->name ?? '', 'text', ['required' => true, 'placeholder' => 'Име и фамилия']);
-                Form::input('Имейл адрес', 'email', $user->email ?? '', 'email', ['required' => true, 'placeholder' => 'email@example.com']); 
+                Form::input('Имейл адрес', 'email', $user->email ?? '', 'email', ['required' => true, 'placeholder' => 'email@example.com']);
                 ?>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <?php 
+                <?php
                 Form::select('Пол', 'options[gender]', [
-                    'male'   => 'Мъж',
+                    'male' => 'Мъж',
                     'female' => 'Жена',
-                    'other'  => 'Друго'
+                    'other' => 'Друго'
                 ], $user->options['gender'] ?? 'male');
 
                 Form::input('Username', 'username', $user->username ?? '', 'text', ['placeholder' => 'ivan_92']);
@@ -44,15 +46,15 @@ $isEdit = $user->exists; ?>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <?php 
+                <?php
                 Form::input('Нова парола', 'password', '', 'password', [
                     'help' => 'Оставете празно, ако не искате промяна',
                     'placeholder' => '••••••••'
-                ]); 
+                ]);
 
                 Form::input('Потвърди паролата', 'password_confirmation', '', 'password', [
                     'placeholder' => '••••••••'
-                ]); 
+                ]);
                 ?>
             </div>
 
@@ -72,20 +74,22 @@ $isEdit = $user->exists; ?>
             <div class="space-y-4">
                 <?php
                 Form::select('Роля в системата', 'role', [
-                    'user'   => 'Потребител',
+                    'user' => 'Потребител',
                     'editor' => 'Редактор',
-                    'admin'  => 'Администратор'
+                    'admin' => 'Администратор'
                 ], $user->role ?? 'user');
                 ?>
 
                 <div class="pt-2 border-t border-slate-100">
-                    <?php Form::toggle('Активен профил', 'is_active', (bool)($user->is_active ?? true)); ?>
+                    <?php Form::toggle('Активен профил', 'is_active', (bool) ($user->is_active ?? true)); ?>
                 </div>
             </div>
 
             <?php if (isset($user->created_at)): ?>
                 <div class="mt-4 pt-4 border-t border-slate-100 text-xs text-slate-400">
-                    <p><i class="fa-solid fa-clock mr-1"></i> Създаден на: <?= date('d.m.Y H:i', strtotime($user->created_at)) ?></p>
+                    <p><i class="fa-solid fa-clock mr-1"></i> Създаден на:
+                        <?= date('d.m.Y H:i', strtotime($user->created_at)) ?>
+                    </p>
                 </div>
             <?php endif; ?>
 

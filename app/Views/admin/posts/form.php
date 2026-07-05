@@ -13,22 +13,20 @@ $translations = $translations ?? []; ?>
     <?php Form::mainSubmit(); ?>
 </div>
 
-<div class="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-    <div>
-        <a href="/admin/posts"
-            class="text-slate-500 hover:text-primary text-sm mb-2 flex items-center gap-2 transition-colors">
-            <i class="fa-solid fa-arrow-left"></i> Назад към списъка
-        </a>
-        <h1 class="text-2xl font-bold text-slate-900">
-            <?= $isEdit ? "Редактиране на публикация" : "Нова публикация" ?>
-        </h1>
-    </div>
+<div class="mb-5 max-md:pt-5 max-md:px-5 space-y-2">
+    <h1 class="text-xl md:text-2xl md:font-bold text-slate-900">
+        <?= $isEdit ? "Редактиране на публикация" : "Нова публикация" ?>
+    </h1>
+    <a href="/admin/posts"
+        class="text-slate-500 hover:text-primary flex items-center gap-2 transition-colors">
+        <i class="fa-solid fa-arrow-left"></i> Назад към списъка
+    </a>
 </div>
 
 <?php View::component('flash-messages', 'admin/components'); ?>
 
 <form data-main-form action="<?= $isEdit ? "/admin/posts/update/{$post->id}" : "/admin/posts/store" ?>" method="POST"
-    class="grid grid-cols-1 2xl:grid-cols-10 gap-5" enctype="multipart/form-data">
+    class="grid grid-cols-1 2xl:grid-cols-10 md:gap-5" enctype="multipart/form-data">
 
     <div class="col-span-10 2xl:col-span-6 space-y-5">
 
@@ -49,6 +47,10 @@ $translations = $translations ?? []; ?>
                 'help' => 'Основно заглавие на публикацията.'
             ]); ?>
         <?php }, 'fa-newspaper'); ?>
+
+        <?php Form::section('Основно изображение', function () use ($post) {
+            Form::image('Качи изображение', 'options[main_image]', $post->options['main_image'] ?? null);
+        }, 'fa-newspaper'); ?>
 
         <?php
         Form::section('Съдържание на публикацията', function () use ($post) { ?>

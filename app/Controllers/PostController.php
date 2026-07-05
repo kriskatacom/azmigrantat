@@ -46,6 +46,12 @@ class PostController extends BaseController
 
         $data['user_id'] = AuthHelper::id();
 
+        if (isset($data['options']) && is_array($data['options'])) {
+            $data['options'] = json_encode($data['options'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        } else {
+            $data['options'] = json_encode([], JSON_UNESCAPED_SLASHES);
+        }
+
         $post = Post::create($data);
 
         $this->flash('success', 'Публикацията беше създадена успешно!');
@@ -61,6 +67,8 @@ class PostController extends BaseController
         foreach ($categories as $category) {
             $categoryOptions[$category->id] = $category->name;
         }
+
+        $post->options = is_string($post->options) ? json_decode($post->options, true) : ($post->options ?? []);
 
         return $this->renderWithLayout('admin/posts/form', [
             'title' => "Редактиране: {$post->name}"
@@ -79,6 +87,12 @@ class PostController extends BaseController
         $data = $this->prepareData($post);
         if ($data === null) {
             return $this->redirectBack();
+        }
+
+        if (isset($data['options']) && is_array($data['options'])) {
+            $data['options'] = json_encode($data['options'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        } else {
+            $data['options'] = json_encode([], JSON_UNESCAPED_SLASHES);
         }
 
         $post->update($data);
@@ -145,6 +159,7 @@ class PostController extends BaseController
             'content' => $_POST['content'],
             'images' => $_POST['images'] ?? [],
             'videos' => $_POST['videos'] ?? [],
+            'options' => $_POST['options'] ?? [],
             'category_id' => $_POST['category_id'] ?: null,
             'is_active' => isset($_POST['is_active']) ? 1 : 0,
         ];
