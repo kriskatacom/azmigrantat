@@ -538,6 +538,168 @@ class Form
         <?php
     }
 
+    public static function video(string $label, string $name, ?string $currentVideoUrl = null, array $options = [])
+    {
+        $id = $options['id'] ?? 'video_' . md5($name);
+        $accept = $options['accept'] ?? 'video/mp4,video/webm,video/ogg';
+        ?>
+        <div class="space-y-2">
+            <label class="block text-sm font-medium text-slate-700"><?= $label ?></label>
+            
+            <div class="border-2 border-dashed border-slate-200 rounded-xl p-4 bg-slate-50/50 hover:bg-slate-50 transition-colors relative">
+                
+                <div class="<?= $currentVideoUrl ? '' : 'hidden' ?>" id="preview_container_<?= $id ?>">
+                    <div class="relative rounded-lg overflow-hidden bg-black aspect-video max-w-md mx-auto shadow-sm">
+                        <video src="<?= $currentVideoUrl ?>" controls class="w-full h-full" id="video_element_<?= $id ?>"></video>
+                    </div>
+                    <div class="flex items-center justify-center gap-2 text-xs mt-3">
+                        <button type="button" 
+                                onclick="removeCurrentAjaxVideo('<?= $id ?>')"
+                                class="text-red-500 hover:underline flex items-center gap-1 font-medium">
+                            <i class="fa-solid fa-trash-can text-[10px]"></i> Премахни видеото
+                        </button>
+                    </div>
+                </div>
+
+                <div class="<?= $currentVideoUrl ? 'hidden' : '' ?>" id="upload_container_<?= $id ?>">
+                    <div class="flex flex-col items-center justify-center py-4 text-center cursor-pointer" onclick="document.getElementById('input_<?= $id ?>').click()">
+                        <div class="w-10 h-10 bg-white border border-slate-200 rounded-lg flex items-center justify-center text-slate-400 shadow-sm mb-2">
+                            <i class="fa-solid fa-video text-base"></i>
+                        </div>
+                        <p class="text-sm font-medium text-slate-600">Натиснете за избор на video файл</p>
+                        <p class="text-xs text-slate-400 mt-1">Формати: MP4, WebM</p>
+                    </div>
+                </div>
+
+                <div class="hidden my-4" id="progress_container_<?= $id ?>">
+                    <div class="flex justify-between items-center mb-1 text-xs font-medium text-slate-600">
+                        <span id="progress_status_<?= $id ?>">Качване...</span>
+                        <span id="progress_percent_<?= $id ?>">0%</span>
+                    </div>
+                    <div class="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden border border-slate-200/50">
+                        <div class="bg-primary h-2.5 rounded-full transition-all duration-100 w-0" id="progress_bar_<?= $id ?>"></div>
+                    </div>
+                </div>
+
+                <input type="file" id="input_<?= $id ?>" accept="<?= $accept ?>" class="hidden" onchange="uploadVideoViaAjax(this, '<?= $id ?>')">
+                <input type="hidden" id="value_<?= $id ?>" name="<?= $name ?>" value="<?= htmlspecialchars($currentVideoUrl ?? '') ?>">
+            </div>
+        </div>
+
+        <script>
+            if (typeof uploadVideoViaAjax !== 'function') {
+                function uploadVideoViaAjax(input, id) {
+                    if (!input.files || !input.files[0]) return;
+
+                    const file = input.files[0];
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    const uploadContainer = document.getElementById('upload_container_' + id);
+                    const previewContainer = document.getElementById('preview_container_' + id);
+                    const progressContainer = document.getElementById('progress_container_' + id);
+                    const progressBar = document.getElementById('progress_bar_' + id);
+                    const progressPercent = document.getElementById('progress_percent_' + id);
+                    const progressStatus = document.getElementById('progress_status_' + id);
+                    const hiddenInput = document.getElementById('value_' + id);
+                    const videoElement = document.getElementById('video_element_' + id);
+
+                    uploadContainer.classList.add('hidden');
+                    previewContainer.classList.add('hidden');
+                    progressContainer.classList.remove('hidden');
+
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/admin/storage/ajax-upload', true);
+
+                    xhr.upload.onprogress = function(e) {
+                        if (e.lengthComputable) {
+                            const percent = Math.round((e.loaded / e.total) * 100);
+                            progressBar.style.width = percent + '%';
+                            progressPercent.innerText = percent + '%';
+                            if (percent === 100) {
+                                progressStatus.innerText = 'Обработка на файла...';
+                            }
+                        }
+                    };
+
+                    xhr.onload = function() {
+                        progressContainer.classList.add('hidden');
+                        if (xhr.status === 200) {
+                            try {
+                                const response = JSON.parse(xhr.responseText);
+                                if (response.success && response.url) {
+                                    hiddenInput.value = response.url;
+                                    videoElement.src = response.url;
+                                    previewContainer.classList.remove('hidden');
+                                } else {
+                                    alert(response.message || 'Възникна грешка при качването.');
+                                    uploadContainer.classList.remove('hidden');
+                                }
+                            } catch (e) {
+                                alert('Грешен отговор от сървъра.');
+                                uploadContainer.classList.remove('hidden');
+                            }
+                        } else {
+                            alert('Грешка при комуникацията със сървъра.');
+                            uploadContainer.classList.remove('hidden');
+                        }
+                        input.value = '';
+                    };
+
+                    xhr.onerror = function() {
+                        progressContainer.classList.add('hidden');
+                        alert('Мрежова грешка.');
+                        uploadContainer.classList.remove('hidden');
+                        input.value = '';
+                    };
+
+                    xhr.send(formData);
+                }
+            }
+
+            if (typeof removeCurrentAjaxVideo !== 'function') {
+                function removeCurrentAjaxVideo(id) {
+                    if (confirm('Сигурни ли сте, че искате да изтриете това видео завинаги?')) {
+                        const hiddenInput = document.getElementById('value_' + id);
+                        const fileUrl = hiddenInput.value;
+
+                        if (!fileUrl) {
+                            document.getElementById('preview_container_' + id).classList.add('hidden');
+                            document.getElementById('upload_container_' + id).classList.remove('hidden');
+                            document.getElementById('input_' + id).value = '';
+                            return;
+                        }
+
+                        // Променено: Изпращаме чист JSON с ключ "path", точно както го очаква StorageController
+                        fetch('/admin/storage/ajax-delete', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ path: fileUrl })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                document.getElementById('preview_container_' + id).classList.add('hidden');
+                                document.getElementById('upload_container_' + id).classList.remove('hidden');
+                                hiddenInput.value = '';
+                                document.getElementById('input_' + id).value = '';
+                            } else {
+                                alert(data.error || 'Възникна грешка при изтриването на файла.');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Мрежова грешка при опит за изтриване.');
+                        });
+                    }
+                }
+            }
+        </script>
+        <?php
+    }
+
     public static function submit(string $text = 'Запазване на промените', string $icon = 'fa-save')
     {
         ?>

@@ -18,7 +18,7 @@ class Post extends Model
         'location',
         'content',
         'images',
-        'videos',
+        'video_url',
         'options',
         'user_id',
         'is_active',
@@ -27,7 +27,6 @@ class Post extends Model
 
     protected $casts = [
         'images' => 'array',
-        'videos' => 'array',
         'options' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',

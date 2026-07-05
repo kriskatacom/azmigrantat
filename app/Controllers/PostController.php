@@ -158,7 +158,7 @@ class PostController extends BaseController
             'location' => $_POST['location'] ?? null,
             'content' => $_POST['content'],
             'images' => $_POST['images'] ?? [],
-            'videos' => $_POST['videos'] ?? [],
+            'video_url' => $_POST['video_url'] ?? [],
             'options' => $_POST['options'] ?? [],
             'category_id' => $_POST['category_id'] ?: null,
             'is_active' => isset($_POST['is_active']) ? 1 : 0,

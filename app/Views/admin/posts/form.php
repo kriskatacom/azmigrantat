@@ -61,6 +61,12 @@ $translations = $translations ?? []; ?>
             $galleryImages = $post->images ?? [];
             Form::multiImage('Изображения', 'images', $galleryImages);
         }, 'fa-images'); ?>
+
+        <?php Form::section('Видео съдържание', function () use ($post) { ?>
+            <div class="space-y-4">
+                <?php Form::video('Прикачено видео', 'video_url', $post->video_url ?? null); ?>
+            </div>
+        <?php }, 'fa-clapperboard'); ?>
     </div>
 
     <div class="col-span-10 2xl:col-span-4 space-y-5">

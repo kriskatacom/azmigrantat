@@ -17,6 +17,7 @@ class CreatePostsTable extends AbstractMigration
               ->addColumn('location', 'string', ['limit' => 255, 'null' => true, 'default' => null, 'collation' => 'utf8mb4_unicode_ci'])
               ->addColumn('content', 'text', ['null' => true, 'default' => null, 'collation' => 'utf8mb4_unicode_ci'])
               ->addColumn('images', 'text', ['null' => true, 'default' => null, 'collation' => 'utf8mb4_unicode_ci'])
+              ->addColumn('video_url', 'text', ['null' => true, 'default' => null, 'collation' => 'utf8mb4_unicode_ci'])
               ->addColumn('user_id', 'integer', ['signed' => false, 'null' => false])
               ->addColumn('category_id', 'integer', ['signed' => true, 'null' => true, 'default' => null])
               ->addColumn('is_active', 'integer', ['limit' => MysqlAdapter::INT_TINY, 'null' => false, 'default' => 1])
