@@ -6,10 +6,16 @@ use App\Services\MediaService;
 
 trait HasAdminTrait
 {
-    protected function resourceIndex(string $modelClass, string $view, array $config = [])
+    protected function resourceIndex($modelClass, string $view, array $config = [])
     {
+        if ($modelClass instanceof \Illuminate\Database\Eloquent\Builder) {
+            $query = $modelClass;
+            $modelClass = get_class($query->getModel());
+        } else {
+            $query = $modelClass::query();
+        }
+
         $currentTab = $_GET['tab'] ?? 'all';
-        $query = $modelClass::query();
 
         if (!empty($config['with'])) {
             $query->with($config['with']);
@@ -45,13 +51,13 @@ trait HasAdminTrait
         $items = $this->paginateQuery($query, $config['search_fields'] ?? ['title']);
 
         $counts = [
-            'all'   => $modelClass::count(),
+            'all' => $modelClass::count(),
             'trash' => $modelClass::onlyTrashed()->count()
         ];
 
         if (in_array('status', $config['features'] ?? [])) {
             $counts['published'] = $modelClass::where('status', 'published')->count();
-            $counts['draft']     = $modelClass::where('status', 'draft')->count();
+            $counts['draft'] = $modelClass::where('status', 'draft')->count();
             $counts['scheduled'] = $modelClass::where('status', 'scheduled')->count();
         }
 
@@ -59,8 +65,8 @@ trait HasAdminTrait
             'title' => $config['title'] ?? 'Управление'
         ], [
             $config['resource_name'] => $items,
-            'currentTab'             => $currentTab,
-            'counts'                 => $counts
+            'currentTab' => $currentTab,
+            'counts' => $counts
         ]);
     }
 
@@ -73,7 +79,7 @@ trait HasAdminTrait
     protected function processResourceOptions($model = null, array $imageKeys = []): array
     {
         $mediaService = new MediaService();
-        $existingOptions = $model ? (array)($model->options ?? []) : [];
+        $existingOptions = $model ? (array) ($model->options ?? []) : [];
         $newOptions = $_POST['options'] ?? [];
 
         $imageResults = $this->handleImageUploads($imageKeys);

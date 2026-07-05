@@ -83,6 +83,7 @@ $sidebarLinks = [];
 
 if (AuthHelper::check()) {
     $sidebarLinks[] = ['url' => '/users/profile', 'icon' => 'fa-user', 'label' => 'Моят профил'];
+    $sidebarLinks[] = ['url' => '/admin/posts', 'icon' => 'fa-newspaper', 'label' => 'Публикации'];
 }
 
 if (AuthHelper::isAdmin()) {
@@ -90,7 +91,6 @@ if (AuthHelper::isAdmin()) {
 
     $sidebarLinks[] = ['url' => '/admin/users', 'icon' => 'fa-users', 'label' => 'Потребители'];
     $sidebarLinks[] = ['url' => '/admin/categories', 'icon' => 'fa-folder-open', 'label' => 'Категории'];
-    $sidebarLinks[] = ['url' => '/admin/posts', 'icon' => 'fa-newspaper', 'label' => 'Публикации'];
     $sidebarLinks[] = ['url' => '/admin/oauth-apps', 'icon' => 'fa-key', 'label' => 'SSO Приложения'];
 }
 

@@ -2,6 +2,7 @@
 
 namespace App\Controllers;
 
+use App\Core\Auth;
 use App\Models\Category;
 use App\Models\Post;
 use App\Modules\Str;
@@ -16,7 +17,13 @@ class PostController extends BaseController
 
     public function index()
     {
-        return $this->resourceIndex(Post::class, 'admin/posts/index', [
+        $query = Post::query();
+
+        if (!Auth::isAdmin()) {
+            $query->where('user_id', Auth::id());
+        }
+
+        return $this->resourceIndex($query, 'admin/posts/index', [
             'title' => 'Управление на публикации',
             'resource_name' => 'posts',
             'search_fields' => ['name', 'content', 'location'],
@@ -137,22 +144,6 @@ class PostController extends BaseController
 
     private function prepareData(?Post $post = null): ?array
     {
-        $validator = Validator::make($_POST, [
-            'name' => 'required|min:3|max:255',
-            'location' => 'nullable|max:255',
-            'content' => 'required|min:10',
-        ], [
-            'name.required' => 'Заглавието е задължително.',
-            'name.min' => 'Заглавието трябва да е поне 3 символа.',
-            'content.required' => 'Съдържанието е задължително.',
-            'content.min' => 'Съдържанието трябва да е поне 10 символа.'
-        ]);
-
-        if ($validator->fails()) {
-            $this->flash('error', $validator->errors()->first());
-            return null;
-        }
-
         $data = [
             'name' => $_POST['name'],
             'location' => $_POST['location'] ?? null,

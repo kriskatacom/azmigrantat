@@ -51,8 +51,8 @@ $router->post('/admin/users/force-delete/{id}', [UserController::class, 'forceDe
 // $router->post('/admin/media/restore/{id}', [MediaController::class, 'restore'], $adminAuth);
 // $router->get('/admin/media/upload', [MediaController::class, 'upload'], $adminAuth);
 
-$router->post('/admin/storage/ajax-upload', [StorageController::class, 'ajaxUpload'], $adminAuth);
-$router->post('/admin/storage/ajax-delete', [StorageController::class, 'ajaxDelete'], $adminAuth);
+$router->post('/admin/storage/ajax-upload', [StorageController::class, 'ajaxUpload'], [AuthMiddleware::class]);
+$router->post('/admin/storage/ajax-delete', [StorageController::class, 'ajaxDelete'], [AuthMiddleware::class]);
 $router->get('/admin/storage/file', [StorageController::class, 'getFile']);
 
 // $router->get('/admin/pages', [PageController::class, 'index'], $adminAuth);
