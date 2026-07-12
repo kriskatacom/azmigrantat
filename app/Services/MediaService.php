@@ -69,91 +69,107 @@ class MediaService
 
     private function processImage(string $filePath): array
     {
+        if (!file_exists($filePath)) {
+            return ['error' => 'File not found'];
+        }
+
         $extension = strtolower(pathinfo($filePath, PATHINFO_EXTENSION));
+
         if (!in_array($extension, ['jpg', 'jpeg', 'png', 'webp'])) {
             return $this->getFileInfo($filePath);
         }
 
-        // 1. Създаване на ресурс и оправяне на ориентацията (EXIF)
-        $image = $this->createResourceAndFixOrientation($filePath, $extension);
-        if (!$image) return $this->getFileInfo($filePath);
+        $image = null;
+        try {
+            $image = $this->createResourceAndFixOrientation($filePath, $extension);
 
-        // 2. Resize до макс 1920px ширина
-        $width = imagesx($image);
-        $height = imagesy($image);
-        if ($width > 1920) {
-            $newWidth = 1920;
-            $newHeight = (int)($height * ($newWidth / $width));
-            $tmp = imagecreatetruecolor($newWidth, $newHeight);
+            if (!$image) {
+                return $this->getFileInfo($filePath);
+            }
 
-            // Запазване на прозрачност за PNG/WebP
-            imagealphablending($tmp, false);
-            imagesavealpha($tmp, true);
+            $width = imagesx($image);
+            $height = imagesy($image);
 
-            imagecopyresampled($tmp, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-            $image = $tmp;
+            if ($width > 1920) {
+                $newWidth = 1920;
+                $newHeight = (int)($height * ($newWidth / $width));
+                $tmp = imagecreatetruecolor($newWidth, $newHeight);
+
+                imagealphablending($tmp, false);
+                imagesavealpha($tmp, true);
+
+                if (imagecopyresampled($tmp, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height)) {
+                    imagedestroy($image);
+                    $image = $tmp;
+                }
+            }
+
+            $pathInfo = pathinfo($filePath);
+            $webpPath = $pathInfo['dirname'] . DIRECTORY_SEPARATOR . $pathInfo['filename'] . '.webp';
+
+            if ($extension !== 'webp') {
+                if (@imagewebp($image, $webpPath, 75)) {
+                    clearstatcache(true, $webpPath);
+                    clearstatcache(true, $filePath);
+
+                    if (file_exists($webpPath) && filesize($webpPath) < filesize($filePath)) {
+                        unlink($filePath);
+                        imagedestroy($image);
+                        return $this->getFileInfo($webpPath);
+                    }
+
+                    if (file_exists($webpPath)) unlink($webpPath);
+                }
+            }
+
+            if ($extension === 'png') {
+                imagepng($image, $filePath, 8);
+            } else {
+                imagejpeg($image, $filePath, 80);
+            }
+        } catch (\Throwable $e) {
+            error_log("Image processing failed for $filePath: " . $e->getMessage());
+        } finally {
+            if ($image) {
+                imagedestroy($image);
+            }
         }
-
-        // 3. Опит за WebP компресия
-        $pathInfo = pathinfo($filePath);
-        $webpPath = $pathInfo['dirname'] . DIRECTORY_SEPARATOR . $pathInfo['filename'] . '.webp';
-
-        imagewebp($image, $webpPath, 75);
-
-        // 4. Сравнение на размерите (WordPress логика)
-        if (file_exists($webpPath) && filesize($webpPath) < filesize($filePath)) {
-            unlink($filePath);
-            return [
-                'name' => $pathInfo['filename'] . '.webp',
-                'size' => filesize($webpPath),
-                'type' => 'image/webp'
-            ];
-        }
-
-        // Ако оригиналът е по-малък или WebP не е станал, запазваме оригинала (но преоразмерен)
-        if ($extension === 'png') {
-            imagepng($image, $filePath, 8);
-        } else {
-            imagejpeg($image, $filePath, 80);
-        }
-
-        if (file_exists($webpPath)) unlink($webpPath);
 
         return $this->getFileInfo($filePath);
     }
 
     private function createResourceAndFixOrientation(string $path, string $ext)
     {
+        $img = match ($ext) {
+            'jpg', 'jpeg' => @imagecreatefromjpeg($path),
+            'png'         => @imagecreatefrompng($path),
+            'webp'        => @imagecreatefromwebp($path),
+            default       => null
+        };
+
+        if (!$img) return null;
+
+        // Ротацията е "екстра" - ако гръмне, връщаме оригиналното изображение
         try {
-            $img = match ($ext) {
-                'jpg', 'jpeg' => @\imagecreatefromjpeg($path),
-                'png'         => @\imagecreatefrompng($path),
-                'webp'        => @\imagecreatefromwebp($path),
-                default       => null
-            };
-
-            if (!$img) return null;
-
-            if (function_exists('exif_read_data') && \in_array($ext, ['jpg', 'jpeg'])) {
-                $exif = @\exif_read_data($path);
-
+            if (function_exists('exif_read_data') && in_array($ext, ['jpg', 'jpeg'])) {
+                $exif = @exif_read_data($path);
                 if (!empty($exif['Orientation'])) {
-                    imagealphablending($img, false);
-                    imagesavealpha($img, true);
-
-                    $rotated = match ($exif['Orientation']) {
-                        3 => \imagerotate($img, 180, 0),
-                        6 => \imagerotate($img, -90, 0),
-                        8 => \imagerotate($img, 90, 0),
-                        default => $img
+                    $degrees = match ($exif['Orientation']) {
+                        3 => 180,
+                        6 => -90,
+                        8 => 90,
+                        default => 0
                     };
-
-                    if ($rotated !== false) {
-                        $img = $rotated;
+                    if ($degrees !== 0) {
+                        $rotated = @imagerotate($img, $degrees, 0);
+                        if ($rotated) {
+                            imagedestroy($img);
+                            $img = $rotated;
+                        }
                     }
                 }
             }
-        } catch (\Throwable $e) {
+        } catch (\Throwable $t) {
         }
 
         return $img;
@@ -161,6 +177,9 @@ class MediaService
 
     private function getFileInfo($path): array
     {
+        if (!file_exists($path)) return [];
+
+        clearstatcache(true, $path);
         return [
             'name' => basename($path),
             'size' => filesize($path),

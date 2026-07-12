@@ -7,12 +7,12 @@ $search = $_GET['search'] ?? '';
 
 Table::pageHeader([
     'base_url' => '/admin/companies',
-    'count'    => $companies->total(),
+    'count' => $companies->total(),
     'show_create' => true,
     'create_btn' => [
-        'url'   => '/admin/companies/create',
+        'url' => '/admin/companies/create',
         'label' => 'Нова компания',
-        'icon'  => 'fa-plus'
+        'icon' => 'fa-plus'
     ],
     'tabs' => [
         'all' => [
@@ -23,7 +23,36 @@ Table::pageHeader([
             'bg' => 'bg-slate-100',
             'text' => 'text-slate-600'
         ],
-    ]
+        'active' => [
+            'label' => 'Активни',
+            'title' => 'Активни компании',
+            'subtitle' => 'Виждат се в публичния профил',
+            'count' => $counts['published'] ?? 0,
+            'url' => "/admin/companies?tab=active",
+            'icon' => 'fa-check-double',
+            'bg' => 'bg-emerald-100',
+            'text' => 'text-emerald-600'
+        ],
+        'inactive' => [
+            'label' => 'Неактивни',
+            'title' => 'Спрени компании',
+            'subtitle' => 'Скрити от потребителите',
+            'count' => $counts['draft'] ?? 0,
+            'url' => "/admin/companies?tab=inactive",
+            'icon' => 'fa-eye-slash',
+            'bg' => 'bg-slate-100',
+            'text' => 'text-slate-600'
+        ],
+        'trash' => [
+            'label' => 'Кошче',
+            'title' => 'Изтрити компании',
+            'subtitle' => 'Компании в кошчето',
+            'count' => $counts['trash'] ?? 0,
+            'icon' => 'fa-trash-can',
+            'bg' => 'bg-rose-100',
+            'text' => 'text-rose-600'
+        ]
+    ],
 ]);
 ?>
 
@@ -34,11 +63,11 @@ Table::pageHeader([
 
         <?php
         $columns = [
-            'name'     => 'Компания',
+            'name' => 'Компания',
             'location' => 'Град / Категория',
-            'status'   => 'Статус',
-            'order'    => 'Подредба',
-            'actions'  => 'Действия'
+            'status' => 'Статус',
+            'order' => 'Подредба',
+            'actions' => 'Действия'
         ];
 
         Table::thead($columns);
@@ -47,8 +76,8 @@ Table::pageHeader([
         <?php Table::tbody($companies, count($columns), function ($company) {
             ob_start();
             $logo = $company->image_url;
-            $isActive = (bool)$company->is_active;
-        ?>
+            $isActive = (bool) $company->is_active;
+            ?>
             <tr class="hover:bg-slate-50 transition-colors">
                 <?php Table::td('
                     <div class="flex items-center gap-3">
@@ -96,37 +125,46 @@ Table::pageHeader([
 
                 <td class="p-4 text-right">
                     <div class="flex justify-end gap-2">
-                        <a href="/admin/companies/<?= $company->id ?>/services"
-                            class="p-2 text-slate-400 hover:text-amber-500 transition-colors"
-                            title="Услуги">
-                            <i class="fa-solid fa-concierge-bell"></i>
-                        </a>
+                        <?php if ($company->deleted_at): ?>
+                            <form action="/admin/companies/restore/<?= $company->id ?>" method="POST" class="inline">
+                                <button type="submit" class="p-2 text-slate-400 hover:text-emerald-500 transition-colors"
+                                    title="Възстановяване">
+                                    <i class="fa-solid fa-trash-arrow-up"></i>
+                                </button>
+                            </form>
 
-                        <a href="/admin/companies/<?= $company->id ?>/ads"
-                            class="p-2 text-slate-400 hover:text-indigo-500 transition-colors"
-                            title="Обяви и Реклами">
-                            <i class="fa-solid fa-rectangle-ad"></i>
-                        </a>
+                            <form action="/admin/companies/force-delete/<?= $company->id ?>" method="POST"
+                                onsubmit="return confirm('ВНИМАНИЕ: Това действие е необратимо! Сигурни ли сте?')"
+                                class="inline">
+                                <button type="submit" class="p-2 text-slate-400 hover:text-red-600 transition-colors"
+                                    title="Окончателно изтриване">
+                                    <i class="fa-solid fa-skull"></i>
+                                </button>
+                            </form>
+                        <?php else: ?>
+                            <a href="/admin/companies/<?= $company->id ?>/ads"
+                                class="p-2 text-slate-400 hover:text-indigo-500 transition-colors" title="Услуги">
+                                <i class="fa-solid fa-rectangle-ad"></i>
+                            </a>
 
-                        <a href="/admin/companies/edit/<?= $company->id ?>"
-                            class="p-2 text-slate-400 hover:text-blue-600 transition-colors"
-                            title="Редактиране">
-                            <i class="fa-solid fa-pen-to-square"></i>
-                        </a>
+                            <a href="/admin/companies/edit/<?= $company->id ?>"
+                                class="p-2 text-slate-400 hover:text-blue-600 transition-colors" title="Редактиране">
+                                <i class="fa-solid fa-pen-to-square"></i>
+                            </a>
 
-                        <form action="/admin/companies/delete/<?= $company->id ?>" method="POST"
-                            onsubmit="return confirm('Сигурни ли сте, че искате да изтриете тази компания?')"
-                            class="inline">
-                            <button type="submit"
-                                class="p-2 text-slate-400 hover:text-red-500 transition-colors"
-                                title="Изтриване">
-                                <i class="fa-solid fa-trash-can"></i>
-                            </button>
-                        </form>
+                            <form action="/admin/companies/delete/<?= $company->id ?>" method="POST"
+                                onsubmit="return confirm('Сигурни ли сте, че искате да преместите тази компания в кошчето?')"
+                                class="inline">
+                                <button type="submit" class="p-2 text-slate-400 hover:text-red-500 transition-colors"
+                                    title="Изтриване">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        <?php endif; ?>
                     </div>
                 </td>
             </tr>
-        <?php return ob_get_clean();
+            <?php return ob_get_clean();
         }, 'fa-building-circle-exclamation'); ?>
 
     </table>

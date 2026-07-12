@@ -1,5 +1,6 @@
 <?php
 
+use App\Controllers\AuthController;
 use App\Controllers\BusinessCategoryController;
 use App\Controllers\CategoryController;
 use App\Core\Router;
@@ -32,12 +33,14 @@ $router->post('/admin/companies/store', [CompanyController::class, 'store'], $ad
 $router->get('/admin/companies/edit/{id}', [CompanyController::class, 'edit'], $adminAuth);
 $router->post('/admin/companies/delete/{id}', [CompanyController::class, 'delete'], $adminAuth);
 $router->post('/admin/companies/restore/{id}', [CompanyController::class, 'restore'], $adminAuth);
+$router->post('/admin/companies/force-delete/{id}', [CompanyController::class, 'forceDelete'], $adminAuth);
 $router->post('/admin/companies/update/{id}', [CompanyController::class, 'update'], $adminAuth);
 
 // Административни рутове за услуги (Company Services)
 $router->get('/admin/companies/{companyId}/services', [CompanyServiceController::class, 'index'], $adminAuth);
 $router->get('/admin/companies/{companyId}/services/create', [CompanyServiceController::class, 'create'], $adminAuth);
-$router->post('/admin/services/store/{companyId}', [CompanyServiceController::class, 'store'], $adminAuth); // Съвпада с action във формата
+$router->post('/admin/companies/{companyId}/services/create', [CompanyServiceController::class, 'store'], $adminAuth);
+// $router->post('/admin/services/store/{companyId}', [CompanyServiceController::class, 'store'], $adminAuth);
 $router->get('/admin/services/edit/{id}', [CompanyServiceController::class, 'edit'], $adminAuth);
 $router->post('/admin/services/update/{id}', [CompanyServiceController::class, 'update'], $adminAuth);
 $router->post('/admin/services/delete/{id}', [CompanyServiceController::class, 'delete'], $adminAuth);
@@ -70,6 +73,11 @@ $router->post('/admin/business-categories/force-delete/{id}', [BusinessCategoryC
 $router->get('/cities/{city_slug*}/categories/{cat_slug*}/company/{slug}', [CompanyController::class, 'show']);
 $router->get('/cities/{city_slug*}/categories/{cat_slug*}', [CategoryController::class, 'showByCity']);
 $router->get('/cities/{slug*}', [CityController::class, 'show']);
+
+$router->get('/auth/login', [AuthController::class, 'redirectToProvider']);
+$router->get('/auth/callback', [AuthController::class, 'callback']);
+
+$router->post('/users/logout', [AuthController::class, 'logout']);
 
 $router->get('/', [PageController::class, 'show']);
 $router->get('/{slug*}', [PageController::class, 'show']);

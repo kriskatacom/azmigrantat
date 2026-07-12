@@ -1,22 +1,17 @@
 <?php
 
-use App\Controllers\UserController;
 use App\Controllers\AdminController;
 use App\Controllers\ArticleController;
 use App\Controllers\CategoryController;
 use App\Controllers\DevController;
-use App\Controllers\GalleryController;
 use App\Controllers\InstallController;
 use App\Controllers\MediaController;
-use App\Controllers\MenuController;
 use App\Controllers\PageController;
 use App\Controllers\PageElementController;
-use App\Controllers\RedirectController;
 use App\Controllers\SettingsController;
 use App\Controllers\TranslationController;
 use App\Middlewares\AdminMiddleware;
 use App\Middlewares\AuthMiddleware;
-use App\Middlewares\GuestMiddleware;
 
 $adminAuth = [AuthMiddleware::class, AdminMiddleware::class];
 
@@ -24,35 +19,16 @@ $router->get('/install', [InstallController::class, 'index']);
 $router->post('/install', [InstallController::class, 'run']);
 $router->get('/install/success', [InstallController::class, 'success']);
 
-$router->get('/users/register', [UserController::class, 'registerForm'], [GuestMiddleware::class]);
-$router->post('/users/register', [UserController::class, 'register'], [GuestMiddleware::class]);
-$router->get('/users/login', [UserController::class, 'loginForm'], [GuestMiddleware::class]);
-$router->post('/users/login', [UserController::class, 'authenticate'], [GuestMiddleware::class]);
-
-$router->get('/users/profile', [UserController::class, 'profile'], [AuthMiddleware::class]);
-$router->post('/users/profile/update', [UserController::class, 'update'], [AuthMiddleware::class]);
-
-$router->get('/users/logout', [UserController::class, 'logout'], [AuthMiddleware::class]);
-$router->post('/users/logout', [UserController::class, 'logout'], [AuthMiddleware::class]);
-
 $router->get('/admin/dashboard', [AdminController::class, 'dashboard'], $adminAuth);
 $router->post('/admin/sidebar-toggle', [AdminController::class, 'sidebarToggle'], $adminAuth);
 
-$router->get('/admin/users', [UserController::class, 'index'], $adminAuth);
-$router->get('/admin/users/create', [UserController::class, 'create'], $adminAuth);
-$router->post('/admin/users/store', [UserController::class, 'store'], $adminAuth);
-$router->get('/admin/users/edit/{id}', [UserController::class, 'edit'], $adminAuth);
-$router->post('/admin/users/update/{id}', [UserController::class, 'update'], $adminAuth);
-$router->post('/admin/users/update-is-active/{id}', [UserController::class, 'updateIsActive'], $adminAuth);
-$router->post('/admin/users/destroy/{id}', [UserController::class, 'destroy'], $adminAuth);
-
-$router->get('/admin/media', [MediaController::class, 'index'], $adminAuth);
-$router->post('/admin/media/store', [MediaController::class, 'store'], $adminAuth);
-$router->post('/admin/media/delete/{id}', [MediaController::class, 'delete'], $adminAuth);
-$router->post('/admin/media/delete/{id}', [MediaController::class, 'delete'], $adminAuth);
-$router->post('/admin/media/force-delete/{id}', [MediaController::class, 'forceDelete'], $adminAuth);
-$router->post('/admin/media/restore/{id}', [MediaController::class, 'restore'], $adminAuth);
-$router->get('/admin/media/upload', [MediaController::class, 'upload'], $adminAuth);
+// $router->get('/admin/media', [MediaController::class, 'index'], $adminAuth);
+// $router->post('/admin/media/store', [MediaController::class, 'store'], $adminAuth);
+// $router->post('/admin/media/delete/{id}', [MediaController::class, 'delete'], $adminAuth);
+// $router->post('/admin/media/delete/{id}', [MediaController::class, 'delete'], $adminAuth);
+// $router->post('/admin/media/force-delete/{id}', [MediaController::class, 'forceDelete'], $adminAuth);
+// $router->post('/admin/media/restore/{id}', [MediaController::class, 'restore'], $adminAuth);
+// $router->get('/admin/media/upload', [MediaController::class, 'upload'], $adminAuth);
 
 $router->get('/admin/pages', [PageController::class, 'index'], $adminAuth);
 $router->get('/admin/pages/create', [PageController::class, 'create'], $adminAuth);
@@ -97,40 +73,40 @@ $router->post('/admin/categories/force-delete/{id}', [CategoryController::class,
 // $router->post('/admin/tags/update/{id}', [TagController::class, 'update'], $adminAuth);
 // $router->post('/admin/tags/delete/{id}', [TagController::class, 'delete'], $adminAuth);
 
-$router->get('/admin/menus', [MenuController::class, 'index'], $adminAuth);
-$router->get('/admin/menus/create', [MenuController::class, 'create'], $adminAuth);
-$router->post('/admin/menus/store', [MenuController::class, 'store'], $adminAuth);
-$router->get('/admin/menus/edit/{id}', [MenuController::class, 'edit'], $adminAuth);
-$router->post('/admin/menus/update/{id}', [MenuController::class, 'update'], $adminAuth);
-$router->get('/admin/menus/structure/{id}', [MenuController::class, 'structure'], $adminAuth);
-$router->post('/admin/menus/add-item/{id}', [MenuController::class, 'addItem'], $adminAuth);
-$router->post('/admin/menus/update-item', [MenuController::class, 'updateItem'], $adminAuth);
-$router->post('/admin/menus/reorder-items', [MenuController::class, 'reorderItems']);
-$router->post('/admin/menus/delete/{id}', [MenuController::class, 'delete'], $adminAuth);
-$router->post('/admin/menus/restore/{id}', [MenuController::class, 'restore'], $adminAuth);
-$router->post('/admin/menus/force-delete/{id}', [MenuController::class, 'forceDelete'], $adminAuth);
-$router->post('/admin/menus/delete-item/{id}', [MenuController::class, 'deleteItem'], $adminAuth);
+// $router->get('/admin/menus', [MenuController::class, 'index'], $adminAuth);
+// $router->get('/admin/menus/create', [MenuController::class, 'create'], $adminAuth);
+// $router->post('/admin/menus/store', [MenuController::class, 'store'], $adminAuth);
+// $router->get('/admin/menus/edit/{id}', [MenuController::class, 'edit'], $adminAuth);
+// $router->post('/admin/menus/update/{id}', [MenuController::class, 'update'], $adminAuth);
+// $router->get('/admin/menus/structure/{id}', [MenuController::class, 'structure'], $adminAuth);
+// $router->post('/admin/menus/add-item/{id}', [MenuController::class, 'addItem'], $adminAuth);
+// $router->post('/admin/menus/update-item', [MenuController::class, 'updateItem'], $adminAuth);
+// $router->post('/admin/menus/reorder-items', [MenuController::class, 'reorderItems']);
+// $router->post('/admin/menus/delete/{id}', [MenuController::class, 'delete'], $adminAuth);
+// $router->post('/admin/menus/restore/{id}', [MenuController::class, 'restore'], $adminAuth);
+// $router->post('/admin/menus/force-delete/{id}', [MenuController::class, 'forceDelete'], $adminAuth);
+// $router->post('/admin/menus/delete-item/{id}', [MenuController::class, 'deleteItem'], $adminAuth);
 
-$router->get('/admin/galleries', [GalleryController::class, 'index'], $adminAuth);
-$router->get('/admin/galleries/create', [GalleryController::class, 'create'], $adminAuth);
-$router->post('/admin/galleries/store', [GalleryController::class, 'store'], $adminAuth);
-$router->get('/admin/galleries/edit/{id}', [GalleryController::class, 'edit'], $adminAuth);
-$router->post('/admin/galleries/update/{id}', [GalleryController::class, 'update'], $adminAuth);
-$router->post('/admin/galleries/detach/{galleryId}/{mediaId}', [GalleryController::class, 'detachMedia'], $adminAuth);
-$router->post('/admin/galleries/clear/{id}', [GalleryController::class, 'clearGallery'], $adminAuth);
-$router->post('/admin/galleries/delete/{id}', [GalleryController::class, 'delete'], $adminAuth);
-$router->post('/admin/galleries/restore/{id}', [GalleryController::class, 'restore'], $adminAuth);
-$router->post('/admin/galleries/force-delete/{id}', [GalleryController::class, 'forceDelete'], $adminAuth);
+// $router->get('/admin/galleries', [GalleryController::class, 'index'], $adminAuth);
+// $router->get('/admin/galleries/create', [GalleryController::class, 'create'], $adminAuth);
+// $router->post('/admin/galleries/store', [GalleryController::class, 'store'], $adminAuth);
+// $router->get('/admin/galleries/edit/{id}', [GalleryController::class, 'edit'], $adminAuth);
+// $router->post('/admin/galleries/update/{id}', [GalleryController::class, 'update'], $adminAuth);
+// $router->post('/admin/galleries/detach/{galleryId}/{mediaId}', [GalleryController::class, 'detachMedia'], $adminAuth);
+// $router->post('/admin/galleries/clear/{id}', [GalleryController::class, 'clearGallery'], $adminAuth);
+// $router->post('/admin/galleries/delete/{id}', [GalleryController::class, 'delete'], $adminAuth);
+// $router->post('/admin/galleries/restore/{id}', [GalleryController::class, 'restore'], $adminAuth);
+// $router->post('/admin/galleries/force-delete/{id}', [GalleryController::class, 'forceDelete'], $adminAuth);
 
-$router->get('/admin/redirects', [RedirectController::class, 'index'], $adminAuth);
-$router->get('/admin/redirects/create', [RedirectController::class, 'create'], $adminAuth);
-$router->post('/admin/redirects/store', [RedirectController::class, 'store'], $adminAuth);
-$router->get('/admin/redirects/edit/{id}', [RedirectController::class, 'edit'], $adminAuth);
-$router->post('/admin/redirects/update/{id}', [RedirectController::class, 'update'], $adminAuth);
-$router->post('/admin/redirects/reset-stats/{id}', [RedirectController::class, 'resetStats'], $adminAuth);
-$router->post('/admin/redirects/delete/{id}', [RedirectController::class, 'delete'], $adminAuth);
-$router->post('/admin/redirects/restore/{id}', [RedirectController::class, 'restore'], $adminAuth);
-$router->post('/admin/redirects/force-delete/{id}', [RedirectController::class, 'forceDelete'], $adminAuth);
+// $router->get('/admin/redirects', [RedirectController::class, 'index'], $adminAuth);
+// $router->get('/admin/redirects/create', [RedirectController::class, 'create'], $adminAuth);
+// $router->post('/admin/redirects/store', [RedirectController::class, 'store'], $adminAuth);
+// $router->get('/admin/redirects/edit/{id}', [RedirectController::class, 'edit'], $adminAuth);
+// $router->post('/admin/redirects/update/{id}', [RedirectController::class, 'update'], $adminAuth);
+// $router->post('/admin/redirects/reset-stats/{id}', [RedirectController::class, 'resetStats'], $adminAuth);
+// $router->post('/admin/redirects/delete/{id}', [RedirectController::class, 'delete'], $adminAuth);
+// $router->post('/admin/redirects/restore/{id}', [RedirectController::class, 'restore'], $adminAuth);
+// $router->post('/admin/redirects/force-delete/{id}', [RedirectController::class, 'forceDelete'], $adminAuth);
 
 $router->get('/admin/translations', [TranslationController::class, 'index'], $adminAuth);
 $router->get('/admin/translations/create', [TranslationController::class, 'create'], $adminAuth);

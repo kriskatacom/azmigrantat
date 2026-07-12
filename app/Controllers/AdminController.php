@@ -2,17 +2,12 @@
 
 namespace App\Controllers;
 
-use App\Core\Auth;
 use App\Core\Session;
-use App\Models\User;
 
 class AdminController extends BaseController
 {
     public function __construct()
     {
-        if (!Auth::isAdmin()) {
-            $this->redirect('/');
-        }
     }
 
     public function sidebarToggle()
@@ -33,27 +28,11 @@ class AdminController extends BaseController
         return $this->json([
             'success' => false,
             'message' => 'Липсва стойност за sidebarOpen'
-        ], 400);
+        ]);
     }
 
     public function dashboard()
     {
-        $stats = User::getDashboardStats();
-
-        $activeSessions = \App\Models\SessionModel::with('user')
-            ->whereNotNull('user_id')
-            ->orderBy('last_activity', 'desc')
-            ->limit(5)
-            ->get();
-
-        $seoData = [
-            'title'       => 'Табло за управление | СУ „Васил Левски“',
-            'description' => 'Бърз преглед на статистиката и съдържанието.',
-        ];
-
-        $this->renderAdmin('admin/dashboard/index', $seoData, [
-            'stats' => $stats,
-            'sessions' => $activeSessions
-        ]);
+        $this->renderAdmin('admin/dashboard/index', ['title' => 'Табло']);
     }
 }

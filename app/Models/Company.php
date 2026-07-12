@@ -24,7 +24,6 @@ class Company extends Model
         'city_id',
         'category_id',
         'services_description',
-        'user_id',
         'facebook_page_link',
         'website_link',
         'email',
@@ -40,7 +39,6 @@ class Company extends Model
         'sort_order' => 'integer',
         'city_id' => 'integer',
         'category_id' => 'integer',
-        'user_id' => 'integer',
         'options' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
@@ -54,11 +52,6 @@ class Company extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(BusinessCategory::class, 'category_id');
-    }
-
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function scopeActive($query)

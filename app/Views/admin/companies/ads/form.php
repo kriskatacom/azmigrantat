@@ -13,10 +13,10 @@ $isEdit = $ad->exists;
 <div class="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
     <div>
         <a href="/admin/companies/<?= $company->id ?>/ads" class="text-slate-500 hover:text-primary text-sm mb-2 flex items-center gap-2 transition-colors">
-            <i class="fa-solid fa-arrow-left"></i> Назад към обявите
+            <i class="fa-solid fa-arrow-left"></i> Назад към услуги
         </a>
         <h1 class="text-2xl font-bold text-slate-900">
-            <?= $isEdit ? "Редактиране на обява" : "Създаване на нова обява" ?>
+            <?= $isEdit ? "Редактиране на услуга" : "Създаване на нова услуга" ?>
         </h1>
         <p class="text-sm font-medium text-slate-500">
             <?= $isEdit ? "Промяна на параметрите за '{$ad->title}'" : "Добавяне на ново рекламно каре към {$company->name}." ?>
@@ -29,7 +29,7 @@ $isEdit = $ad->exists;
 <form data-main-form action="<?= $isEdit ? "/admin/ads/update/{$ad->id}" : "/admin/ads/store/{$company->id}" ?>" method="POST" class="grid grid-cols-1 2xl:grid-cols-10 gap-5" enctype="multipart/form-data">
 
     <div class="col-span-10 2xl:col-span-6 space-y-5">
-        <?php Form::section('Информация за рекламата', function () use ($ad) { ?>
+        <?php Form::section('Информация за услугата', function () use ($ad) { ?>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div class="md:col-span-2">
                     <?php Form::input('Заглавие на обявата', 'title', $ad->title ?? '', 'text', [
@@ -44,13 +44,13 @@ $isEdit = $ad->exists;
             </div>
 
             <div class="mt-5 space-y-4">
-                <?php Form::input('Линк на обявата (URL)', 'options[link_url]', $ad->options['link_url'] ?? '', 'url', [
+                <?php Form::input('Линк на услугата (URL)', 'options[link_url]', $ad->options['link_url'] ?? '', 'url', [
                     'placeholder' => 'https://example.com/promo'
                 ]); ?>
 
                 <?php View::component('form-editor', 'admin/partials', [
                     'name'  => 'options[content]',
-                    'label' => 'Текст/Описание на обявата',
+                    'label' => 'Текст/Описание на услугата',
                     'value' => $ad->options['content'] ?? ''
                 ]); ?>
             </div>
@@ -66,7 +66,7 @@ $isEdit = $ad->exists;
 
     <div class="col-span-10 2xl:col-span-4 space-y-5">
 
-        <?php Form::section('Статус на кампанията', function () use ($ad) { ?>
+        <?php Form::section('Статус на услугата', function () use ($ad) { ?>
             <div class="space-y-4">
                 <?php Form::toggle('Активна обява', 'is_active', ($ad->is_active ?? true)); ?>
 
@@ -85,7 +85,7 @@ $isEdit = $ad->exists;
             : ($ad->options ?? []);
         ?>
 
-        <?php Form::section('Рекламни банери', function () use ($adOptions) { ?>
+        <?php Form::section('Банери на услугата', function () use ($adOptions) { ?>
             <div class="grid grid-cols-1 gap-6">
                 <div class="space-y-2">
                     <label class="text-xs font-bold uppercase tracking-wider text-slate-400">Десктоп банер (1200x400)</label>

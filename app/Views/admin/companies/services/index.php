@@ -57,6 +57,10 @@ Table::pageHeader([
 ]);
 ?>
 
+<button onclick="PostModal.open()" class="bg-blue-500 text-white px-4 py-2 rounded">
+    Създай пост
+</button>
+
 <?php View::component('flash-messages', 'admin/components'); ?>
 
 <div class="mb-4">
@@ -169,5 +173,13 @@ Table::pageHeader([
 
     </table>
 </div>
+
+<?php View::component('upload-post', 'components', [
+    'title' => 'Създаване на услуга',
+    'description' => 'Тук можете да създадете нова услуга за компанията. Попълнете необходимата информация и качете снимки, за да представите услугата по най-добрия начин.',
+    'submit_url' => "/admin/companies/{$company->id}/services/create",
+    'submit_label' => 'Създаване на услугата',
+    'isEdit' => false,
+]); ?>
 
 <?php Table::footer($services); ?>

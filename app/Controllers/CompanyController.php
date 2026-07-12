@@ -90,7 +90,6 @@ class CompanyController extends BaseController
             'name'        => 'required|min:2',
             'slug'        => 'nullable|unique:companies,slug',
             'city_id'     => 'required|exists:cities,id',
-            'category_id' => 'required|exists:business_categories,id'
         ];
 
         $validator = Validator::make($_POST, $rules);
@@ -174,6 +173,32 @@ class CompanyController extends BaseController
             $this->flash('error', 'Компанията не може да бъде намерена.');
         }
         return $this->redirectTrashOrIndex(Company::class, 'companies');
+    }
+
+    #[HandleExceptions]
+    public function restore($id)
+    {
+        $company = Company::onlyTrashed()->findOrFail($id);
+
+        $company->restore();
+        
+        $company->is_active = false;
+        $company->save();
+
+        $this->flash('success', 'Компанията беше възстановена успешно.');
+
+        return $this->redirect('/admin/companies?tab=inactive');
+    }
+
+    #[HandleExceptions]
+    public function forceDelete($id)
+    {
+        $company = Company::onlyTrashed()->findOrFail($id);
+        $company->forceDelete();
+
+        $this->flash('info', 'Компанията беше изтрита завинаги от системата.');
+        
+        return $this->redirect('/admin/companies?tab=trash');
     }
 
     private function prepareData(array $input, ?Company $company = null): array

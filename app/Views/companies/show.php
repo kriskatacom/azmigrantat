@@ -155,140 +155,68 @@ View::component('hero-section', 'components', [
 </div>
 
 <div class="container mx-auto px-2 md:px-5">
-    <div class="grid md:grid-cols-2 gap-x-2 md:gap-x-5">
-        <div class="group flex flex-col bg-white border border-gray-200 rounded md:rounded-xl shadow-sm overflow-hidden mt-5">
-            <h3 class="text-center font-bold md:my-5 text-2xl md:text-2xl uppercase tracking-tight">
-                <?= HelperService::trans('services') ?>
-            </h3>
+    <div class="max-w-5xl xl:max-w-3xl mx-auto group flex flex-col bg-white border border-gray-200 rounded md:rounded-xl shadow-sm overflow-hidden mt-5">
+        <h3 class="text-center font-bold md:my-5 text-2xl md:text-2xl uppercase tracking-tight">
+            <?= HelperService::trans('services') ?>
+        </h3>
 
-            <div class="relative h-100 md:h-120 rounded-xl shadow-md overflow-hidden">
-                <?php if (!empty($ads) && $ads->count() > 0): ?>
-                    <div class="swiper adsSwiper h-full w-full">
-                        <div class="swiper-wrapper">
-                            <?php foreach ($ads as $ad):
-                                $adImage = $ad->options['image_desktop'] ?? $company['image_url'];
-                            ?>
-                                <div class="swiper-slide relative group overflow-hidden">
-                                    <?php if ($ad->options['link_url'] ?? null): ?>
-                                        <a href="<?= $ad->options['link_url'] ?>" target="_blank" class="block h-full w-full">
-                                        <?php endif; ?>
-
-                                        <img src="<?= HelperService::getImage($adImage) ?>"
-                                            class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                            alt="<?= htmlspecialchars($ad->title) ?>">
-
-                                        <?php if ($ad->title): ?>
-                                            <div class="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent z-10"></div>
-                                            <h3 class="absolute bottom-0 left-0 z-20 p-4 md:p-6 text-white font-bold text-lg md:text-2xl drop-shadow-md">
-                                                <?= htmlspecialchars($ad->title) ?>
-                                                <?php if ($ad->options['button_text'] ?? null): ?>
-                                                    <span class="block text-sm font-normal mt-2 underline opacity-80"><?= htmlspecialchars($ad->options['button_text']) ?></span>
-                                                <?php endif; ?>
-                                            </h3>
-                                        <?php endif; ?>
-
-                                        <?php if ($ad->options['link_url'] ?? null): ?>
-                                        </a>
+        <div class="relative h-100 md:h-120 rounded-xl shadow-md overflow-hidden">
+            <?php if (!empty($ads) && $ads->count() > 0): ?>
+                <div class="swiper adsSwiper h-full w-full">
+                    <div class="swiper-wrapper">
+                        <?php foreach ($ads as $ad):
+                            $adImage = $ad->options['image_desktop'] ?? $company['image_url'];
+                        ?>
+                            <div class="swiper-slide relative group overflow-hidden">
+                                <?php if ($ad->options['link_url'] ?? null): ?>
+                                    <a href="<?= $ad->options['link_url'] ?>" target="_blank" class="block h-full w-full">
                                     <?php endif; ?>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                        <div class="swiper-pagination"></div>
-                    </div>
-                <?php else: ?>
-                    <img src="<?= $company['options']['ads_image_url'] ?>" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
-                    <div class="absolute inset-0 bg-black/40 flex items-center justify-center p-6 text-center">
-                        <?php if (!empty($user['id'])): ?>
-                            <span class="text-white text-2xl md:text-3xl font-black uppercase drop-shadow-md">
-                                <?= HelperService::trans('no_ads_to_show') ?>
-                            </span>
-                        <?php else: ?>
-                            <div class="space-y-5">
-                                <h3 class="text-white text-2xl md:text-3xl font-black uppercase drop-shadow-md">Управлявайте рекламите си с лекота</h3>
-                                <a href="/users/login" title="Влизане в профила" class="text-white btn-primary">Влизане в профила</a>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
-            </div>
 
-            <?php if (!empty($user['id']) && $user['id'] === $company['user_id']): ?>
-                <div class="p-4 bg-slate-900 text-white italic text-center text-sm md:text-base">
-                    Управлявайте рекламите и обявите си тук:
-                    <a href="/admin/companies/<?= $company['id'] ?>/ads" class="mt-2 flex items-center justify-center btn-primary py-2 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 transition">
-                        <i class="fa-solid fa-rectangle-ad mr-2"></i>
-                        Управление на реклами
-                    </a>
+                                    <img src="<?= HelperService::getImage($adImage) ?>"
+                                        class="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110"
+                                        alt="<?= htmlspecialchars($ad->title) ?>">
+
+                                    <?php if ($ad->title): ?>
+                                        <div class="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-transparent z-10"></div>
+                                        <h3 class="absolute bottom-0 left-0 z-20 p-4 md:p-6 text-white font-bold text-lg md:text-2xl drop-shadow-md">
+                                            <?= htmlspecialchars($ad->title) ?>
+                                        </h3>
+                                    <?php endif; ?>
+
+                                    <?php if ($ad->options['link_url'] ?? null): ?>
+                                    </a>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="swiper-pagination"></div>
+                </div>
+            <?php else: ?>
+                <img src="<?= $company['options']['ads_image_url'] ?>" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                <div class="absolute inset-0 bg-black/40 flex items-center justify-center p-6 text-center">
+                    <?php if (!empty($user['id'])): ?>
+                        <span class="text-white text-2xl md:text-3xl font-black uppercase drop-shadow-md">
+                            <?= HelperService::trans('no_ads_to_show') ?>
+                        </span>
+                    <?php else: ?>
+                        <div class="space-y-5">
+                            <h3 class="text-white text-2xl md:text-3xl font-black uppercase drop-shadow-md">Управлявайте рекламите си с лекота</h3>
+                            <a href="/users/login" title="Влизане в профила" class="text-white btn-primary">Влизане в профила</a>
+                        </div>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
         </div>
 
-        <div class="group flex flex-col bg-white border border-gray-200 rounded md:rounded-xl shadow-sm overflow-hidden h-fit mt-5">
-            <h3 class="text-center font-bold my-2 md:my-5 text-2xl md:text-2xl uppercase tracking-tight">
-                <?= HelperService::trans('live_offers_and_ads') ?>
-            </h3>
-
-            <div class="relative h-80 md:h-120 rounded-xl shadow-md overflow-hidden">
-                <?php if (!empty($services) && count($services) > 0): ?>
-                    <div class="swiper servicesSwiper h-full w-full">
-                        <div class="swiper-wrapper">
-                            <?php foreach ($services as $service):
-                                $options = $service->options ?? [];
-                                $desktopImg = $options['image_desktop'] ?? null;
-                                $tabletImg  = $options['image_tablet'] ?? null;
-                                $phoneImg   = $options['image_phone'] ?? null;
-                                $fallbackImg = $desktopImg ?: '/assets/img/placeholder-service.jpg';
-                            ?>
-                                <div class="swiper-slide relative">
-                                    <picture>
-                                        <?php if ($phoneImg): ?>
-                                            <source media="(max-width: 640px)" srcset="<?= $phoneImg ?>">
-                                        <?php endif; ?>
-                                        <?php if ($tabletImg): ?>
-                                            <source media="(max-width: 1024px)" srcset="<?= $tabletImg ?>">
-                                        <?php endif; ?>
-                                        <img src="<?= $fallbackImg ?>"
-                                            class="w-full h-full object-cover"
-                                            alt="<?= htmlspecialchars($service->name) ?>">
-                                    </picture>
-
-                                    <div class="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-6">
-                                        <h4 class="text-white text-xl font-bold"><?= htmlspecialchars($service->name) ?></h4>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        </div>
-                        <div class="swiper-pagination"></div>
-                    </div>
-                <?php else: ?>
-                    <img src="<?= $company['options']['offer_image_url'] ?>"
-                        class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
-
-                    <div class="absolute inset-0 bg-black/40 flex items-center justify-center p-6 text-center">
-                        <?php if (!empty($user['id'])): ?>
-                            <span class="text-white text-2xl md:text-3xl font-black uppercase drop-shadow-md">
-                                <?= HelperService::trans('no_services_to_show') ?>
-                            </span>
-                        <?php else: ?>
-                            <div class="space-y-5">
-                                <h3 class="text-white text-2xl md:text-3xl font-black uppercase drop-shadow-md">Открийте нашите услуги</h3>
-                                <a href="/users/login" title="Влизане в профила" class="text-white btn-primary inline-block">Влизане в профила</a>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
+        <?php if (!empty($user['id']) && $user['id'] === $company['user_id']): ?>
+            <div class="p-4 bg-slate-900 text-white italic text-center text-sm md:text-base">
+                Управлявайте рекламите и обявите си тук:
+                <a href="/admin/companies/<?= $company['id'] ?>/ads" class="mt-2 flex items-center justify-center btn-primary py-2 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 transition">
+                    <i class="fa-solid fa-rectangle-ad mr-2"></i>
+                    Управление на реклами
+                </a>
             </div>
-
-            <?php if (!empty($user['id']) && $user['id'] === $company['user_id']): ?>
-                <div class="p-4 bg-slate-900 text-white italic text-center text-sm md:text-base">
-                    Управлявайте портфолиото си от услуги тук:
-                    <a href="/admin/companies/<?= $company['id'] ?>/services" class="mt-2 flex items-center justify-center btn-primary py-2 px-4 rounded-lg bg-blue-600 hover:bg-blue-700 transition">
-                        <i class="fa-solid fa-concierge-bell mr-2"></i>
-                        Управление на услуги
-                    </a>
-                </div>
-            <?php endif; ?>
-        </div>
+        <?php endif; ?>
     </div>
 
     <?php if (!empty($ads) || !empty($services)): ?>

@@ -11,14 +11,14 @@ Table::pageHeader([
     'show_create' => true,
     'create_btn' => [
         'url'   => "/admin/companies/{$company->id}/ads/create",
-        'label' => 'Нова обява',
+        'label' => 'Нова услуга',
         'icon'  => 'fa-plus'
     ],
     'tabs' => [
         'all' => [
             'label'    => 'Всички',
-            'title'    => 'Обяви на ' . htmlspecialchars($company->name),
-            'subtitle' => 'Всички рекламни карета и обяви',
+            'title'    => 'Услуги на ' . htmlspecialchars($company->name),
+            'subtitle' => 'Всички услуги',
             'count'    => $counts['all'] ?? 0,
             'icon'     => 'fa-rectangle-ad',
             'bg'       => 'bg-blue-100',
@@ -71,7 +71,7 @@ Table::pageHeader([
         <?php
         $columns = [
             'image'      => 'Банер',
-            'title'      => 'Заглавие на обявата', // Тук е title
+            'title'      => 'Заглавие на услуга', // Тук е title
             'is_active'  => 'Статус',
             'sort_order' => 'Приоритет',
             'actions'    => 'Действия'

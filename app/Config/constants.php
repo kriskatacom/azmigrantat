@@ -1,5 +1,14 @@
 <?php
 
+$isLocal = (strpos($_SERVER['HTTP_HOST'], 'localhost') !== false || 
+            strpos($_SERVER['HTTP_HOST'], '.test') !== false);
+
+if ($isLocal) {
+    define('OAUTH_SERVER_URL', 'http://localhost:8000');
+} else {
+    define('OAUTH_SERVER_URL', 'https://users.azmigrantat.com');
+}
+
 define('DOMAIN', $_SERVER['HTTP_HOST']);
 define('DOMAIN_NO_WWW', preg_replace('/^www\./', '', $_SERVER['HTTP_HOST']));
 define('FULL_URL', (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI']);
@@ -102,16 +111,16 @@ define('CITIES', [
 
 define('SIDEBAR_LINKS', [
     ['url' => '/admin/dashboard', 'icon' => 'fa-chart-line', 'label' => 'Табло'],
-    ['url' => '/admin/users', 'icon' => 'fa-users', 'label' => 'Потребители'],
-    ['url' => '/admin/menus', 'icon' => 'fa-bars-staggered', 'label' => 'Менюта'],
-    ['url' => '/admin/pages', 'icon' => 'fa-book-open', 'label' => 'Страници'],
+    ['url' => OAUTH_SERVER_URL . '/admin/users', 'icon' => 'fa-users', 'label' => 'Потребители'],
+    // ['url' => '/admin/menus', 'icon' => 'fa-bars-staggered', 'label' => 'Менюта'],
+    // ['url' => '/admin/pages', 'icon' => 'fa-book-open', 'label' => 'Страници'],
     ['url' => '/admin/articles', 'icon' => 'fa-newspaper', 'label' => 'Статии'],
     ['url' => '/admin/categories', 'icon' => 'fa-folder-tree', 'label' => 'Категории'],
     ['url' => '/admin/business-categories', 'icon' => 'fa-briefcase', 'label' => 'Бизнес Категории'],
-    ['url' => '/admin/tags', 'icon' => 'fa-tags', 'label' => 'Тагове'],
-    ['url' => '/admin/media', 'icon' => 'fa-images', 'label' => 'Медия'],
-    ['url' => '/admin/galleries', 'icon' => 'fa-photo-film', 'label' => 'Галерии'],
-    ['url' => '/admin/redirects', 'icon' => 'fa-route', 'label' => 'Пренасочвания'],
+    // ['url' => '/admin/tags', 'icon' => 'fa-tags', 'label' => 'Тагове'],
+    // ['url' => '/admin/media', 'icon' => 'fa-images', 'label' => 'Медия'],
+    // ['url' => '/admin/galleries', 'icon' => 'fa-photo-film', 'label' => 'Галерии'],
+    // ['url' => '/admin/redirects', 'icon' => 'fa-route', 'label' => 'Пренасочвания'],
     ['url' => '/admin/translations', 'icon' => 'fa-language', 'label' => 'Преводи'],
     ['url' => '/admin/cities', 'icon' => 'fa-city', 'label' => 'Градове'],
     ['url' => '/admin/companies', 'icon' => 'fa-building', 'label' => 'Компании'],

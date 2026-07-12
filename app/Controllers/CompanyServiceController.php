@@ -49,16 +49,6 @@ class CompanyServiceController extends BaseController
     #[HandleExceptions]
     public function store($companyId)
     {
-        $validator = Validator::make($_POST, [
-            'name'      => 'required|min:2',
-            'is_active' => 'required'
-        ]);
-
-        if ($validator->fails()) {
-            $this->flash('error', $validator->errors()->first());
-            return $this->redirectBack();
-        }
-
         $data = $this->prepareData($_POST, $companyId);
         $service = new CompanyService();
 
@@ -92,15 +82,6 @@ class CompanyServiceController extends BaseController
     {
         $service = CompanyService::findOrFail($id);
 
-        $validator = Validator::make($_POST, [
-            'name'      => 'required|min:2'
-        ]);
-
-        if ($validator->fails()) {
-            $this->flash('error', $validator->errors()->first());
-            return $this->redirectBack();
-        }
-
         $data = $this->prepareData($_POST, $service->company_id);
 
         $this->updateResource($service, $data, [
@@ -108,6 +89,8 @@ class CompanyServiceController extends BaseController
             'image_tablet',
             'image_phone'
         ]);
+
+        $_POST['additional_images'] = $this->handleGalleryUpdate($service, $_POST, 'additional_images', 'companies/gallery');
 
         $this->flash('success', 'Услугата е обновена!');
         $this->redirect("/admin/services/edit/$id");
@@ -205,7 +188,7 @@ class CompanyServiceController extends BaseController
         return [
             'company_id' => $companyId,
             'user_id'    => Auth::id(),
-            'name'       => $input['name'],
+            'name'       => $input['name'] ?? 'Без име',
             'sort_order' => (int)($input['sort_order'] ?? 0),
             'is_active'  => (bool)($input['is_active'] ?? false),
             'options'    => $input['options'] ?? []

@@ -6,6 +6,7 @@ use App\Core\Session;
 use App\Core\View;
 use App\Helpers\SecurityHelper;
 use App\Modules\Str;
+use App\Services\FileService;
 use App\Services\MediaService;
 use App\Services\OpenGraphService;
 
@@ -16,6 +17,35 @@ class HandleExceptions {}
 
 abstract class BaseController
 {
+    protected function handleGalleryUpdate(array $currentItem, array $postData, string $field = 'additional_images', string $folder = 'gallery'): string
+    {
+        $currentGallery = json_decode($currentItem[$field] ?? '[]', true);
+        $remainingImages = $postData['existing_images'] ?? [];
+
+        $removedImages = array_diff($currentGallery, $remainingImages);
+        foreach ($removedImages as $img) {
+            FileService::delete($img);
+        }
+
+        if (!empty($_FILES[$field]['name'][0])) {
+            foreach ($_FILES[$field]['name'] as $key => $val) {
+                if ($_FILES[$field]['error'][$key] === UPLOAD_ERR_OK) {
+                    $fileData = [
+                        'name'     => $_FILES[$field]['name'][$key],
+                        'type'     => $_FILES[$field]['type'][$key],
+                        'tmp_name' => $_FILES[$field]['tmp_name'][$key],
+                        'error'    => $_FILES[$field]['error'][$key],
+                        'size'     => $_FILES[$field]['size'][$key]
+                    ];
+                    $newPath = FileService::upload($fileData, $folder);
+                    if ($newPath) $remainingImages[] = $newPath;
+                }
+            }
+        }
+
+        return json_encode(array_values($remainingImages));
+    }
+    
     protected function generateHierarchicalSlug(string $source, ?int $parentId, string $modelClass): string
     {
         $parts = explode('/', trim($source, '/'));

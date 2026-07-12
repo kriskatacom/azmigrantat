@@ -1,13 +1,13 @@
 <?php
 
-use App\Core\Auth;
 use App\Core\View;
+use App\Helpers\AuthHelper;
 use App\Services\HelperService;
 ?>
 
 <nav x-data="{ sidebarOpen: false }"
     @keydown.escape="sidebarOpen = false"
-    class="<?= $navClasses ?> z-50 fixed <?= Auth::isAdmin() ? 'top-10' : 'top-0' ?> left-0 w-full px-6 py-4 flex flex-col gap-4 transition-all duration-500 bg-primary-darken/60 border-b border-white/5">
+    class="<?= $navClasses ?> z-50 fixed <?= AuthHelper::isAdmin() ? 'top-10' : 'top-0' ?> left-0 w-full px-6 py-4 flex flex-col gap-4 transition-all duration-500 bg-primary-darken/60 border-b border-white/5">
 
     <div class="container mx-auto flex justify-between items-center w-full">
         <div class="flex items-center">
@@ -19,23 +19,17 @@ use App\Services\HelperService;
         </div>
 
         <div class="flex items-center gap-6">
-            <?php if ($user = Auth::user()): ?>
+            <?php if ($user = AuthHelper::user()): ?>
                 <div class="relative group">
                     <button class="flex items-center gap-2 hover:text-primary-light transition text-white">
-                        <span class="text-sm font-medium hidden md:block"><?= htmlspecialchars($user->name) ?></span>
+                        <span class="text-sm font-medium hidden md:block"><?= htmlspecialchars($user['name']) ?></span>
                         <?php HelperService::icon('user-icon', 'text-white w-8 h-8 group-hover:text-primary-light'); ?>
                     </button>
 
                     <div class="absolute right-0 mt-2 w-48 bg-[#0a1622] border border-white/10 rounded-xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 shadow-2xl">
-                        <?php if (Auth::isAdmin()): ?>
+                        <?php if (AuthHelper::isAdmin()): ?>
                             <a href="/admin/dashboard" class="block px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition border-b border-white/5 mb-1">
                                 <?= HelperService::trans('admin_panel') ?>
-                            </a>
-                        <?php endif; ?>
-
-                        <?php if ($user->role === 'driver'): ?>
-                            <a href="/travel/shared-travel/drivers/<?= $user['username'] ?>" class="block px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition border-b border-white/5 mb-1">
-                                <?= HelperService::trans('driver_profile') ?>
                             </a>
                         <?php endif; ?>
 
@@ -47,7 +41,7 @@ use App\Services\HelperService;
                     </div>
                 </div>
             <?php else: ?>
-                <a href="/users/login" class="hover:text-primary-light transition group" title="Вход">
+                <a href="/auth/login" class="hover:text-primary-light transition group" title="Вход">
                     <?php HelperService::icon('user-icon', 'text-white w-8 h-8 group-hover:scale-110 transition-transform'); ?>
                 </a>
             <?php endif; ?>
