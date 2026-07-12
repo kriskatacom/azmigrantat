@@ -3,9 +3,16 @@
 use App\Modules\Form;
 use App\Core\View;
 
-$isEdit = $city->exists; // Проверяваме дали обекта съществува в БД
+$isEdit = $city->exists;
 $title = $isEdit ? 'Редактиране на населено място' : 'Добавяне на нов град/село';
 $action = $isEdit ? "/admin/cities/update/{$city->id}" : "/admin/cities/store";
+
+$countriesList = \App\Models\Country::where('is_active', 1)->get();
+$countryOptions = ['' => '-- Изберете държава --'];
+foreach ($countriesList as $c) {
+    $countryOptions[$c->id] = $c->name;
+}
+$currentCountryId = $city->options['country_id'] ?? '';
 ?>
 
 <div class="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
@@ -114,15 +121,19 @@ $action = $isEdit ? "/admin/cities/update/{$city->id}" : "/admin/cities/store";
             </div>
         <?php }, 'fa-images'); ?>
 
-        <?php Form::section('Йерархия и Статус', function () use ($city, $parentOptions) { ?>
+        <?php Form::section('Статус и йерархия', function () use ($city, $parentOptions, $countryOptions, $currentCountryId) { ?>
             <div class="space-y-6">
                 <div class="pb-4 border-b border-slate-100">
                     <?php Form::toggle('Активно населено място', 'is_active', (bool)($city->is_active ?? true)); ?>
                 </div>
 
                 <div class="space-y-4">
+                    <?php Form::select('Държава', 'options[country_id]', $countryOptions, $currentCountryId, [
+                        'help' => 'Към коя държава принадлежи това населено място.'
+                    ]); ?>
+
                     <?php Form::select('Тип на мястото', 'type', [
-                        'region'  => 'Област / Регион',
+                        'region'  => 'Област / Регион / Община',
                         'city'    => 'Град',
                         'village' => 'Село'
                     ], $city->type ?? 'city'); ?>

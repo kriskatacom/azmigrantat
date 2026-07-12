@@ -144,7 +144,7 @@ Table::pageHeader([
                         <?php else: ?>
                             <a href="/admin/companies/<?= $company->id ?>/ads"
                                 class="p-2 text-slate-400 hover:text-indigo-500 transition-colors" title="Услуги">
-                                <i class="fa-solid fa-rectangle-ad"></i>
+                                <i class="fa-solid fa-briefcase"></i>
                             </a>
 
                             <a href="/admin/companies/edit/<?= $company->id ?>"

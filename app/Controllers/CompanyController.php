@@ -8,15 +8,23 @@ use App\Models\BusinessCategory;
 use App\Models\CompanyService;
 use App\Modules\Form;
 use App\Modules\Str;
+use App\Services\ApiClient;
 use App\Traits\HasAdminTrait;
 use Illuminate\Support\Facades\Validator;
 use Exception;
 
 class CompanyController extends BaseController
 {
+    private ApiClient $api;
+
     use HasAdminTrait;
 
-    public function show($citySlug, $catSlug, $slug)
+    public function __construct()
+    {
+        $this->api = new ApiClient(AUTH_SERVER_URL);
+    }
+
+    public function show($country_slug, $city_slug, $category_slug, $slug)
     {
         $company = Company::active()
             ->where('slug', $slug)
@@ -54,7 +62,6 @@ class CompanyController extends BaseController
             'company'  => $company->toArray(),
             'city'     => $company->city,
             'category' => $company->category,
-            'ads'      => [],
             'services'   => $services,
             'ads'      => $ads,
         ]);
@@ -75,11 +82,13 @@ class CompanyController extends BaseController
     {
         $categories = Form::getTreeOptions(BusinessCategory::class, [], 'name', '-- Изберете категория --', 'name');
 
+        $users = $this->api->get('/api/users')['data'];
+
         $this->renderAdmin('admin/companies/form', ['title' => 'Нова компания'], [
             'company'    => new Company(),
             'cities'     => City::all(),
             'categories' => $categories,
-            'users'      => \App\Models\User::all()
+            'users'      => $users,
         ]);
     }
 
@@ -121,11 +130,13 @@ class CompanyController extends BaseController
         $company = Company::findOrFail($id);
         $categories = Form::getTreeOptions(BusinessCategory::class, [], 'name', '-- Изберете категория --', 'name');
 
+        $users = $this->api->get('/api/users')['data'];
+
         $this->renderAdmin('admin/companies/form', ['title' => 'Редакция: ' . $company->name], [
             'company'    => $company,
             'cities'     => City::all(),
             'categories' => $categories,
-            'users'      => \App\Models\User::all()
+            'users'      => $users,
         ]);
     }
 
@@ -212,6 +223,7 @@ class CompanyController extends BaseController
             'google_map'           => $input['google_map'] ?? null,
             'company_slogan'       => $input['company_slogan'] ?? null,
             'sort_order'           => (int)($input['sort_order'] ?? 0),
+            'user_id'              => $input['user_id'],
             'city_id'              => $input['city_id'],
             'category_id'          => $input['category_id'],
             'services_description' => $input['services_description'] ?? null,
@@ -224,5 +236,46 @@ class CompanyController extends BaseController
             'is_active'            => isset($input['is_active']) ? 1 : 0,
             'options'              => $input['options'] ?? []
         ];
+    }
+
+    // API Routes
+    
+    public function getCompanyByUser($id)
+    {
+        if (empty($id)) {
+            return $this->json([
+                'success' => false,
+                'error' => 'User ID is required'
+            ]);
+        }
+
+        $company = Company::where('user_id', $id)
+            ->with(['city', 'category'])
+            ->first();
+
+        if (!$company) {
+            return $this->json([
+                'success' => false,
+                'company' => null
+            ]);
+        }
+
+        $city = $company->city;
+        $category = $company->category;
+        $country = null;
+
+        $countryId = $company->options['country_id'] ?? null;
+
+        if ($countryId) {
+            $country = \App\Models\Country::find($countryId);
+        }
+
+        return $this->json([
+            'success' => true,
+            'company'  => $company->toArray(),
+            'city'     => $city ? $city->toArray() : null,
+            'category' => $category ? $category->toArray() : null,
+            'country'  => $country ? $country->toArray() : null
+        ]);
     }
 }

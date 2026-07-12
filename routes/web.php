@@ -3,6 +3,7 @@
 use App\Controllers\AuthController;
 use App\Controllers\BusinessCategoryController;
 use App\Controllers\CategoryController;
+use App\Controllers\CountryController;
 use App\Core\Router;
 use App\Controllers\ContactController;
 use App\Controllers\PageController;
@@ -26,6 +27,15 @@ $router->post('/admin/cities/delete/{id}', [CityController::class, 'delete'], $a
 $router->post('/admin/cities/restore/{id}', [CityController::class, 'restore'], $adminAuth);
 $router->post('/admin/cities/update/{id}', [CityController::class, 'update'], $adminAuth);
 
+// Административни рутове за държави
+$router->get('/admin/countries', [CountryController::class, 'index'], $adminAuth);
+$router->get('/admin/countries/create', [CountryController::class, 'create'], $adminAuth);
+$router->post('/admin/countries/store', [CountryController::class, 'store'], $adminAuth);
+$router->get('/admin/countries/edit/{id}', [CountryController::class, 'edit'], $adminAuth);
+$router->post('/admin/countries/delete/{id}', [CountryController::class, 'delete'], $adminAuth);
+$router->post('/admin/countries/restore/{id}', [CountryController::class, 'restore'], $adminAuth);
+$router->post('/admin/countries/update/{id}', [CountryController::class, 'update'], $adminAuth);
+
 // Административни рутове за компании
 $router->get('/admin/companies', [CompanyController::class, 'index'], $adminAuth);
 $router->get('/admin/companies/create', [CompanyController::class, 'create'], $adminAuth);
@@ -39,6 +49,7 @@ $router->post('/admin/companies/update/{id}', [CompanyController::class, 'update
 // Административни рутове за услуги (Company Services)
 $router->get('/admin/companies/{companyId}/services', [CompanyServiceController::class, 'index'], $adminAuth);
 $router->get('/admin/companies/{companyId}/services/create', [CompanyServiceController::class, 'create'], $adminAuth);
+$router->get('/admin/companies/user/{id}', [CompanyController::class, 'getCompanyByUser']);
 $router->post('/admin/companies/{companyId}/services/create', [CompanyServiceController::class, 'store'], $adminAuth);
 // $router->post('/admin/services/store/{companyId}', [CompanyServiceController::class, 'store'], $adminAuth);
 $router->get('/admin/services/edit/{id}', [CompanyServiceController::class, 'edit'], $adminAuth);
@@ -70,7 +81,7 @@ $router->post('/admin/business-categories/restore/{id}', [BusinessCategoryContro
 $router->post('/admin/business-categories/force-delete/{id}', [BusinessCategoryController::class, 'forceDelete']);
 
 // Публични рутове
-$router->get('/cities/{city_slug*}/categories/{cat_slug*}/company/{slug}', [CompanyController::class, 'show']);
+$router->get('/{country_slug}/{city_slug}/{category_slug}/{slug}', [CompanyController::class, 'show']);
 $router->get('/cities/{city_slug*}/categories/{cat_slug*}', [CategoryController::class, 'showByCity']);
 $router->get('/cities/{slug*}', [CityController::class, 'show']);
 

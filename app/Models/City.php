@@ -37,6 +37,11 @@ class City extends Model
         return $this->hasMany(City::class, 'parent_id')->orderBy('sort_order');
     }
 
+    public function country()
+    {
+        return $this->belongsTo(Country::class, 'options->country_id');
+    }
+
     public function getTypeName(): string
     {
         return match($this->type) {

@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Country;
 use App\Modules\Form;
 use App\Core\View;
 
@@ -7,6 +8,16 @@ $isEdit = $company->exists;
 $title = $isEdit ? 'Редактиране на компания' : 'Добавяне на нова компания';
 $action = $isEdit ? "/admin/companies/update/{$company->id}" : "/admin/companies/store";
 $companyOptions = $company->options ?? [];
+
+$userOptions = array_column($users, 'name', 'id');
+$select2Options = ['' => '-- Без собственик --'] + $userOptions;
+
+$countriesList = Country::where('is_active', 1)->get();
+$countryOptions = ['' => '-- Изберете държава --'];
+foreach ($countriesList as $c) {
+    $countryOptions[$c->id] = $c->name;
+}
+$currentCountryId = $company->options['country_id'] ?? '';
 ?>
 
 <div class="fixed bottom-5 right-5 z-50">
@@ -178,11 +189,15 @@ $companyOptions = $company->options ?? [];
             </div>
         <?php }, 'fa-layer-group'); ?>
 
-        <?php Form::section('Статус и Свързаност', function () use ($company, $cities, $categories, $users) { ?>
+        <?php Form::section('Статус и Свързаност', function () use ($countryOptions, $currentCountryId, $company, $cities, $categories, $select2Options) { ?>
             <div class="space-y-5">
                 <?php Form::toggle('Активен профил', 'is_active', (bool)($company->is_active ?? true)); ?>
 
                 <hr class="border-slate-100">
+
+                <?php Form::select('Държава', 'options[country_id]', $countryOptions, $currentCountryId, [
+                    'help' => 'Към коя държава принадлежи това населено място.'
+                ]); ?>
 
                 <?php
                 $cityOptions = $cities->pluck('name', 'id')->toArray();
@@ -190,12 +205,17 @@ $companyOptions = $company->options ?? [];
 
                 $catOptions = is_array($categories) ? $categories : [];
                 Form::select('Категория', 'category_id', $catOptions, $company->category_id ?? '');
-
-                $userOptions = $users->pluck('name', 'id')->toArray();
-                Form::select('Собственик (User)', 'user_id', $userOptions, $company->user_id ?? '');
                 ?>
 
                 <?php Form::input('Подредба', 'sort_order', $company->sort_order ?? 0, 'number'); ?>
+
+                <?php View::component('select2', 'admin/components', [
+                    'label' => 'Собственик (Потребител)',
+                    'name' => 'user_id',
+                    'options' => $select2Options,
+                    'value' => $company['user_id'] ?? '',
+                    'allowClear' => true
+                ]); ?>
             </div>
         <?php }, 'fa-sitemap'); ?>
 

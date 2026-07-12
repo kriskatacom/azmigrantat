@@ -1,5 +1,9 @@
 <?php
 
+header("Access-Control-Allow-Origin: " . $_ENV['ETOME_APP_SERVER_URL']);
+header("Access-Control-Allow-Headers: Content-Type, Accept, Authorization");
+header("Access-Control-Allow-Methods: GET, OPTIONS");
+
 $isLocal = (strpos($_SERVER['HTTP_HOST'], 'localhost') !== false || 
             strpos($_SERVER['HTTP_HOST'], '.test') !== false);
 
@@ -35,6 +39,8 @@ define('DB_USER', $_ENV['DB_USER']);
 define('DB_PASS', $_ENV['DB_PASS']);
 define('DB_CHARSET', $_ENV['DB_CHARSET']);
 define('DB_COLLATION', $_ENV['DB_COLLATION']);
+
+define('AUTH_SERVER_URL', $_ENV['AUTH_SERVER_URL']);
 
 define('LANGUAGES', [
     'default' => 'bg',
@@ -112,16 +118,9 @@ define('CITIES', [
 define('SIDEBAR_LINKS', [
     ['url' => '/admin/dashboard', 'icon' => 'fa-chart-line', 'label' => 'Табло'],
     ['url' => OAUTH_SERVER_URL . '/admin/users', 'icon' => 'fa-users', 'label' => 'Потребители'],
-    // ['url' => '/admin/menus', 'icon' => 'fa-bars-staggered', 'label' => 'Менюта'],
-    // ['url' => '/admin/pages', 'icon' => 'fa-book-open', 'label' => 'Страници'],
-    ['url' => '/admin/articles', 'icon' => 'fa-newspaper', 'label' => 'Статии'],
-    ['url' => '/admin/categories', 'icon' => 'fa-folder-tree', 'label' => 'Категории'],
     ['url' => '/admin/business-categories', 'icon' => 'fa-briefcase', 'label' => 'Бизнес Категории'],
-    // ['url' => '/admin/tags', 'icon' => 'fa-tags', 'label' => 'Тагове'],
-    // ['url' => '/admin/media', 'icon' => 'fa-images', 'label' => 'Медия'],
-    // ['url' => '/admin/galleries', 'icon' => 'fa-photo-film', 'label' => 'Галерии'],
-    // ['url' => '/admin/redirects', 'icon' => 'fa-route', 'label' => 'Пренасочвания'],
     ['url' => '/admin/translations', 'icon' => 'fa-language', 'label' => 'Преводи'],
+    ['url' => '/admin/countries', 'icon' => 'fa-globe', 'label' => 'Държави'],
     ['url' => '/admin/cities', 'icon' => 'fa-city', 'label' => 'Градове'],
     ['url' => '/admin/companies', 'icon' => 'fa-building', 'label' => 'Компании'],
     ['url' => BASE_URL, 'icon' => 'fa-arrow-left', 'label' => 'Към основния сайт'],

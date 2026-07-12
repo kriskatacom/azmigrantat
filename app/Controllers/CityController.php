@@ -24,6 +24,7 @@ class CityController extends BaseController
 
         $city = City::withTrashed()
             ->whereIn('slug', [$cleanSlug, '/' . $cleanSlug])
+            ->with(['country']) 
             ->first();
 
         if (!$city) {

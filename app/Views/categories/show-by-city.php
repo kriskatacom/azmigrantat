@@ -80,7 +80,7 @@ View::component('hero-section', 'components', [
 <?php $gridItems = [];
 foreach ($items as $item) {
     if ($showCompanies) {
-        $url = "/cities/" . ltrim($city->slug, '/') . "/categories/" . ltrim($category->slug, '/') . "/company/" . ltrim($item->slug, '/');
+        $url = '/companies/' . ltrim($item->slug, '/');
     } else {
         $url = "/cities/" . ltrim($city->slug, '/') . "/categories/" . ltrim($category->slug, '/') . "/" . ltrim($item->slug, '/');
     }

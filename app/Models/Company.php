@@ -23,6 +23,7 @@ class Company extends Model
         'sort_order',
         'city_id',
         'category_id',
+        'user_id',
         'services_description',
         'facebook_page_link',
         'website_link',

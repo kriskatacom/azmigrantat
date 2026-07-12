@@ -36,6 +36,7 @@ $is_open = $_SESSION['sidebar_open'];
     <link href="/assets/css/min/quill.snow.min.css" rel="stylesheet">
     <script src="/assets/js/min/quill.min.js"></script>
     <script src="/assets/js/min/jquery-3.6.0.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="/assets/js/min/nestable.min.js"></script>
     <script src="/assets/js/min/dropzone.min.js"></script>
     <script src="/assets/js/admin-main.js"></script>
