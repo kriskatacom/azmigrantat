@@ -1,4 +1,4 @@
-import { Slot } from "expo-router";
+import { Stack } from "expo-router";
 import { createContext, useContext, useEffect, useState } from "react";
 import { useColorScheme } from "react-native";
 import "../../global.css";
@@ -32,7 +32,12 @@ export default function Layout() {
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>
-      <Slot />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: "slide_from_right",
+        }}
+      />
     </ThemeContext.Provider>
   );
 }

@@ -1,72 +1,283 @@
 import { useAppTheme } from "@/app/_layout";
-import Header from "@/components/Header";
-import { StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import {
+  ImageBackground,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function HomeScreen() {
+  const router = useRouter();
   const { theme } = useAppTheme();
   const isDark = theme === "dark";
 
   return (
-    <View style={[styles.container, isDark ? styles.darkBg : styles.lightBg]}>
-      <Header />
+    <View style={styles.screen}>
+      <StatusBar barStyle="light-content" backgroundColor="#030714" />
 
-      <View style={styles.content}>
-        <Text
-          style={[styles.title, isDark ? styles.darkText : styles.lightText]}
-        >
-          Добре дошъл! 👋
-        </Text>
-        <Text
-          style={[
-            styles.subtitle,
-            isDark ? styles.darkSubText : styles.lightSubText,
-          ]}
-        >
-          Приложението се зарежда със системната тема на твоя телефон, но можеш
-          временно да я променяш от бутона горе!
-        </Text>
-      </View>
+      <ImageBackground
+        source={require("../../assets/images/home-background.png")}
+        style={styles.background}
+        resizeMode="cover"
+      >
+        <View style={styles.overlay} />
+
+        <View style={styles.topBar}>
+          <TouchableOpacity style={[styles.topPill, styles.livePill]}>
+            <View style={styles.liveDot} />
+            <Text style={styles.liveText}>LIVE</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.topPill}>
+            <Ionicons name="eye-outline" size={22} color="#ffffff" />
+            <Text style={styles.topPillText}>Виж повече</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.searchButton}
+            onPress={() => router.push("/search")}
+          >
+            <Ionicons name="search-outline" size={31} color="#ffffff" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.quickActions}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push("/inbox/inbox")}
+          >
+            <Ionicons
+              name="chatbubble-ellipses-outline"
+              size={26}
+              color="#ffffff"
+            />
+            <Text style={styles.actionLabel}>Чат</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionButton}>
+            <Ionicons name="mic-outline" size={30} color="#ffffff" />
+            <Text style={styles.actionLabel}>Аудио</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.actionButton}>
+            <Ionicons name="videocam-outline" size={30} color="#ffffff" />
+            <Text style={styles.actionLabel}>Видео</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.bottomNavigation}>
+          <NavigationItem
+            icon="home"
+            label="Начало"
+            active
+            onPress={() => router.push("/")}
+          />
+
+          <NavigationItem
+            icon="grid-outline"
+            label="Категории"
+            onPress={() => {}}
+          />
+
+          <TouchableOpacity style={styles.uploadItem}>
+            <View style={styles.uploadCircle}>
+              <Ionicons name="add" size={50} color="#103445" />
+            </View>
+            <Text style={styles.uploadLabel}>Качи</Text>
+          </TouchableOpacity>
+
+          <NavigationItem
+            icon="chatbubble-ellipses-outline"
+            label="Входящи"
+            onPress={() => router.push("/inbox/inbox")}
+          />
+
+          <NavigationItem
+            icon="person-outline"
+            label="Профил"
+            onPress={() => {}}
+          />
+        </View>
+      </ImageBackground>
     </View>
   );
 }
 
+type NavigationItemProps = {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  active?: boolean;
+  onPress: () => void;
+};
+
+function NavigationItem({
+  icon,
+  label,
+  active = false,
+  onPress,
+}: NavigationItemProps) {
+  return (
+    <TouchableOpacity style={styles.navigationItem} onPress={onPress}>
+      <Ionicons name={icon} size={29} color={active ? "#E8E296" : "#a1a1aa"} />
+      <Text
+        style={[styles.navigationLabel, active && styles.navigationLabelActive]}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
-  container: {
+  screen: {
+    flex: 1,
+    backgroundColor: "#030714",
+  },
+  background: {
     flex: 1,
   },
-  lightBg: {
-    backgroundColor: "#fafafa",
+  overlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "rgba(0, 0, 0, 0.12)",
   },
-  darkBg: {
-    backgroundColor: "#09090b",
+  safeArea: {
+    flex: 1,
   },
-  content: {
+  topBar: {
+    minHeight: 120,
+    paddingHorizontal: 18,
+    paddingTop: 50,
+    paddingBottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+    backgroundColor: "rgba(2, 6, 23, 0.94)",
+  },
+  topPill: {
+    height: 35,
+    paddingHorizontal: 14,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "rgba(148, 163, 184, 0.24)",
+    backgroundColor: "rgba(15, 23, 42, 0.72)",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+  },
+  livePill: {
+    borderColor: "#E8E296",
+  },
+  liveDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#E8E296",
+  },
+  liveText: {
+    color: "#E8E296",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  topPillText: {
+    color: "#e4e4e7",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  searchButton: {
+    width: 46,
+    height: 46,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: "auto",
+  },
+  centerBrand: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingBottom: 150,
   },
-  title: {
-    fontSize: 30,
-    fontWeight: "900",
-    textAlign: "center",
-    marginBottom: 8,
+  quickActions: {
+    position: "absolute",
+    right: 24,
+    bottom: 182,
+    gap: 14,
   },
-  subtitle: {
-    fontSize: 18,
-    textAlign: "center",
-    lineHeight: 26,
+  actionButton: {
+    width: 70,
+    height: 70,
+    borderRadius: 46,
+    backgroundColor: "rgba(2, 8, 30, 0.93)",
+    borderWidth: 1,
+    borderColor: "rgba(59, 130, 246, 0.24)",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000000",
+    shadowOpacity: 0.32,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 8,
   },
-  lightText: {
-    color: "#09090b",
-  },
-  darkText: {
+  actionLabel: {
     color: "#ffffff",
+    fontSize: 12,
+    marginTop: 2,
   },
-  lightSubText: {
-    color: "#71717a",
+  bottomNavigation: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 160,
+    paddingHorizontal: 10,
+    paddingBottom: 60,
+    backgroundColor: "rgba(3, 7, 24, 0.97)",
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    elevation: 14,
   },
-  darkSubText: {
+  navigationItem: {
+    width: "18%",
+    height: 76,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  navigationLabel: {
     color: "#a1a1aa",
+    fontSize: 13,
+    fontWeight: "700",
+    marginTop: 7,
+  },
+  navigationLabelActive: {
+    color: "#E8E296",
+  },
+  uploadItem: {
+    width: "20%",
+    alignItems: "center",
+    justifyContent: "flex-end",
+  },
+  uploadCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 42,
+    marginBottom: 3,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#E8E296",
+    shadowColor: "#334C54",
+    shadowOpacity: 0.7,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 15,
+  },
+  uploadLabel: {
+    color: "#a1a1aa",
+    fontSize: 13,
+    fontWeight: "700",
   },
 });
