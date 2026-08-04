@@ -13,14 +13,13 @@ import {
 export default function HomeScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
-  const isDark = theme === "dark";
 
   return (
     <View style={styles.screen}>
       <StatusBar barStyle="light-content" backgroundColor="#030714" />
 
       <ImageBackground
-        source={require("../../assets/images/home-background.png")}
+        source={require("../../assets/images/background.jpg")}
         style={styles.background}
         resizeMode="cover"
       >

@@ -1,16 +1,17 @@
 import { FontAwesome } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-    FlatList,
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  FlatList,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { MOCK_USERS } from "../../constants/users";
 import { useAppTheme } from "../_layout";
@@ -23,18 +24,15 @@ interface Message {
 }
 
 export default function ChatRoom() {
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const { theme } = useAppTheme();
-  const isDark = theme === "dark";
   const router = useRouter();
 
-  // Взимаме ID от URL параметрите
   const { id } = useLocalSearchParams();
 
-  // Намираме съответния потребител
   const user = MOCK_USERS.find((u) => u.id.toString() === id);
 
   const [inputMessage, setInputMessage] = useState("");
-  // Демо списък със съобщения
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
@@ -67,11 +65,11 @@ export default function ChatRoom() {
       <View
         style={[
           styles.container,
-          isDark ? styles.bgDark : styles.bgLight,
           styles.center,
+          { backgroundColor: theme.colors.background },
         ]}
       >
-        <Text style={isDark ? styles.textDark : styles.textLight}>
+        <Text style={{ color: theme.colors.text }}>
           Потребителят не е намерен.
         </Text>
       </View>
@@ -103,20 +101,16 @@ export default function ChatRoom() {
           style={[
             styles.bubble,
             isMe
-              ? styles.bubbleMe
-              : isDark
-                ? styles.bubbleThemDark
-                : styles.bubbleThemLight,
+              ? [styles.bubbleMe, { backgroundColor: theme.colors.button }]
+              : [styles.bubbleThem, { backgroundColor: theme.colors.card }],
           ]}
         >
           <Text
             style={[
               styles.messageText,
-              isMe
-                ? styles.textWhite
-                : isDark
-                  ? styles.textDark
-                  : styles.textLight,
+              {
+                color: isMe ? theme.colors.buttonText : theme.colors.text,
+              },
             ]}
           >
             {item.text}
@@ -124,11 +118,11 @@ export default function ChatRoom() {
           <Text
             style={[
               styles.messageTime,
-              isMe
-                ? styles.timeMe
-                : isDark
-                  ? styles.timeThemDark
-                  : styles.timeThemLight,
+              {
+                color: isMe
+                  ? "rgba(255, 255, 255, 0.7)"
+                  : theme.colors.textSecondary,
+              },
             ]}
           >
             {item.time}
@@ -138,16 +132,35 @@ export default function ChatRoom() {
     );
   };
 
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener("keyboardDidShow", () =>
+      setKeyboardVisible(true),
+    );
+
+    const hideSubscription = Keyboard.addListener("keyboardDidHide", () =>
+      setKeyboardVisible(false),
+    );
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
+
   return (
     <KeyboardAvoidingView
-      style={[styles.container, isDark ? styles.bgDark : styles.bgLight]}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
       {/* ЧАТ ХЕДЪР */}
       <View
         style={[
           styles.chatHeader,
-          isDark ? styles.headerDark : styles.headerLight,
+          {
+            backgroundColor: theme.colors.card,
+            borderBottomColor: theme.colors.border,
+          },
         ]}
       >
         <TouchableOpacity
@@ -157,7 +170,7 @@ export default function ChatRoom() {
           <FontAwesome
             name="chevron-left"
             size={20}
-            color={isDark ? "#ffffff" : "#09090b"}
+            color={theme.colors.text}
           />
         </TouchableOpacity>
 
@@ -170,24 +183,19 @@ export default function ChatRoom() {
           <View
             style={[
               styles.headerAvatarPlaceholder,
-              isDark ? styles.placeholderDark : styles.placeholderLight,
+              { backgroundColor: theme.colors.background },
             ]}
           >
             <FontAwesome
               name="user"
               size={18}
-              color={isDark ? "#a1a1aa" : "#71717a"}
+              color={theme.colors.textSecondary}
             />
           </View>
         )}
 
         <View style={styles.headerTitleContainer}>
-          <Text
-            style={[
-              styles.headerName,
-              isDark ? styles.textDark : styles.textLight,
-            ]}
-          >
+          <Text style={[styles.headerName, { color: theme.colors.text }]}>
             {user.name}
           </Text>
           <Text
@@ -204,7 +212,7 @@ export default function ChatRoom() {
           <FontAwesome
             name="info-circle"
             size={24}
-            color={isDark ? "#a1a1aa" : "#71717a"}
+            color={theme.colors.textSecondary}
           />
         </TouchableOpacity>
       </View>
@@ -216,22 +224,32 @@ export default function ChatRoom() {
         renderItem={renderMessageItem}
         contentContainerStyle={styles.messagesList}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
       />
 
       {/* ПОЛЕ ЗА ПИСАНЕ И ИЗПРАЩАНЕ */}
       <View
         style={[
           styles.inputContainer,
-          isDark ? styles.inputDarkBg : styles.inputLightBg,
+          {
+            backgroundColor: theme.colors.card,
+            borderTopColor: theme.colors.border,
+            paddingBottom:
+              Platform.OS === "ios" ? 28 : keyboardVisible ? 8 : 60,
+          },
         ]}
       >
         <TextInput
           style={[
             styles.input,
-            isDark ? styles.inputTextDark : styles.inputTextLight,
+            {
+              backgroundColor: theme.colors.background,
+              color: theme.colors.text,
+            },
           ]}
           placeholder="Напиши съобщение..."
-          placeholderTextColor={isDark ? "#71717a" : "#a1a1aa"}
+          placeholderTextColor={theme.colors.placeholder}
           value={inputMessage}
           onChangeText={setInputMessage}
           multiline
@@ -240,10 +258,14 @@ export default function ChatRoom() {
           onPress={handleSendMessage}
           style={[
             styles.sendButton,
-            inputMessage.trim() ? styles.sendActive : styles.sendInactive,
+            {
+              backgroundColor: inputMessage.trim()
+                ? theme.colors.button
+                : theme.colors.textSecondary,
+            },
           ]}
         >
-          <FontAwesome name="send" size={18} color="#ffffff" />
+          <FontAwesome name="send" size={18} color={theme.colors.buttonText} />
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -258,12 +280,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  bgLight: {
-    backgroundColor: "#f4f4f5", // Малко по-завесен фон за съобщенията в светъл режим
-  },
-  bgDark: {
-    backgroundColor: "#09090b",
-  },
   chatHeader: {
     paddingTop: 56,
     paddingBottom: 14,
@@ -271,14 +287,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderBottomWidth: 1,
-  },
-  headerLight: {
-    backgroundColor: "#ffffff",
-    borderBottomColor: "#e4e4e7",
-  },
-  headerDark: {
-    backgroundColor: "#18181b",
-    borderBottomColor: "#27272a",
   },
   backButton: {
     padding: 8,
@@ -295,12 +303,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-  },
-  placeholderLight: {
-    backgroundColor: "#f4f4f5",
-  },
-  placeholderDark: {
-    backgroundColor: "#27272a",
   },
   headerTitleContainer: {
     flex: 1,
@@ -345,59 +347,26 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   bubbleMe: {
-    backgroundColor: "#3b82f6", // Хубаво чат синьо за нашите съобщения
     borderBottomRightRadius: 4,
   },
-  bubbleThemLight: {
-    backgroundColor: "#ffffff",
-    borderBottomLeftRadius: 4,
-  },
-  bubbleThemDark: {
-    backgroundColor: "#18181b",
+  bubbleThem: {
     borderBottomLeftRadius: 4,
   },
   messageText: {
     fontSize: 15,
     lineHeight: 20,
   },
-  textWhite: {
-    color: "#ffffff",
-  },
-  textLight: {
-    color: "#09090b",
-  },
-  textDark: {
-    color: "#ffffff",
-  },
   messageTime: {
     fontSize: 10,
     alignSelf: "flex-end",
     marginTop: 4,
   },
-  timeMe: {
-    color: "rgba(255, 255, 255, 0.7)",
-  },
-  timeThemLight: {
-    color: "#71717a",
-  },
-  timeThemDark: {
-    color: "#a1a1aa",
-  },
   inputContainer: {
     flexDirection: "row",
     padding: 12,
-    paddingBottom: Platform.OS === "ios" ? 28 : 12, // Допълнително пространство при iOS за "Home indicator"
+    paddingBottom: Platform.OS === "ios" ? 28 : 12,
+    borderTopWidth: 1,
     alignItems: "center",
-  },
-  inputLightBg: {
-    backgroundColor: "#ffffff",
-    borderTopWidth: 1,
-    borderTopColor: "#e4e4e7",
-  },
-  inputDarkBg: {
-    backgroundColor: "#18181b",
-    borderTopWidth: 1,
-    borderTopColor: "#27272a",
   },
   input: {
     flex: 1,
@@ -409,25 +378,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     marginRight: 10,
   },
-  inputTextLight: {
-    backgroundColor: "#f4f4f5",
-    color: "#09090b",
-  },
-  inputTextDark: {
-    backgroundColor: "#09090b",
-    color: "#ffffff",
-  },
   sendButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-  },
-  sendActive: {
-    backgroundColor: "#3b82f6",
-  },
-  sendInactive: {
-    backgroundColor: "#94a3b8",
   },
 });

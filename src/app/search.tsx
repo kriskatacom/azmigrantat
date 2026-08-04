@@ -1,7 +1,6 @@
 import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
 import { FontAwesome } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -15,8 +14,6 @@ import {
 
 export default function SearchScreen() {
   const { theme } = useAppTheme();
-  const isDark = theme === "dark";
-  const router = useRouter();
   const [query, setQuery] = useState("");
 
   const handleSearch = () => {
@@ -27,17 +24,14 @@ export default function SearchScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, isDark ? styles.bgDark : styles.bgLight]}
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <Header title="Търсене на видеоклипове" />
 
       <View style={styles.content}>
         <Text
-          style={[
-            styles.description,
-            isDark ? styles.subTextDark : styles.subTextLight,
-          ]}
+          style={[styles.description, { color: theme.colors.textSecondary }]}
         >
           Въведете ключова дума или част от заглавието на публикацията.
         </Text>
@@ -46,13 +40,16 @@ export default function SearchScreen() {
           value={query}
           onChangeText={setQuery}
           placeholder="Например: работа в Германия"
-          placeholderTextColor={isDark ? "#71717a" : "#a1a1aa"}
+          placeholderTextColor={theme.colors.placeholder}
           returnKeyType="search"
           onSubmitEditing={handleSearch}
           style={[
             styles.input,
-            isDark ? styles.inputDark : styles.inputLight,
-            isDark ? styles.textDark : styles.textLight,
+            {
+              backgroundColor: theme.colors.background,
+              borderColor: theme.colors.inputBorder,
+              color: theme.colors.text,
+            },
           ]}
         />
 
@@ -60,12 +57,25 @@ export default function SearchScreen() {
           onPress={handleSearch}
           style={[
             styles.searchButton,
+            { backgroundColor: theme.colors.button },
             !query.trim() && styles.searchButtonDisabled,
           ]}
           disabled={!query.trim()}
         >
-          <FontAwesome name="search" size={18} color="#ffffff" />
-          <Text style={styles.searchButtonText}>Търси</Text>
+          <FontAwesome
+            name="search"
+            size={18}
+            color={theme.colors.buttonText}
+          />
+
+          <Text
+            style={[
+              styles.searchButtonText,
+              { color: theme.colors.buttonText },
+            ]}
+          >
+            Търси
+          </Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -75,36 +85,6 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-  },
-  bgLight: {
-    backgroundColor: "#f4f4f5",
-  },
-  bgDark: {
-    backgroundColor: "#09090b",
-  },
-  header: {
-    paddingTop: 15,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    borderBottomWidth: 1,
-  },
-  headerLight: {
-    backgroundColor: "#ffffff",
-    borderBottomColor: "#e4e4e7",
-  },
-  headerDark: {
-    backgroundColor: "#18181b",
-    borderBottomColor: "#27272a",
-  },
-  backButton: {
-    padding: 8,
-    marginRight: 8,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: "700",
   },
   content: {
     padding: 20,
@@ -121,19 +101,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 16,
   },
-  inputLight: {
-    backgroundColor: "#ffffff",
-    borderColor: "#d4d4d8",
-  },
-  inputDark: {
-    backgroundColor: "#18181b",
-    borderColor: "#3f3f46",
-  },
   searchButton: {
     minHeight: 52,
     marginTop: 14,
     borderRadius: 14,
-    backgroundColor: "#3b82f6",
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
@@ -143,20 +114,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   searchButtonText: {
-    color: "#ffffff",
     fontSize: 16,
     fontWeight: "700",
-  },
-  textLight: {
-    color: "#09090b",
-  },
-  textDark: {
-    color: "#ffffff",
-  },
-  subTextLight: {
-    color: "#52525b",
-  },
-  subTextDark: {
-    color: "#a1a1aa",
   },
 });

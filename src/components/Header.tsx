@@ -15,7 +15,6 @@ export default function Header({
   showBackButton = true,
 }: HeaderProps) {
   const { theme } = useAppTheme();
-  const isDark = theme === "dark";
   const router = useRouter();
 
   return (
@@ -23,35 +22,59 @@ export default function Header({
       <View
         style={[
           styles.headerContainer,
-          isDark ? styles.darkHeader : styles.lightHeader,
+          {
+            backgroundColor: theme.colors.card,
+            borderBottomColor: theme.colors.border,
+          },
         ]}
       >
         <Image
-          source={require("../../assets/images/azmigrantat-logo.png")}
+          source={require("../../assets/images/azmigrantat-logo.webp")}
           style={styles.logo}
           resizeMode="contain"
         />
 
-        {!hideSearchButton && (
+        <View style={styles.headerActions}>
+          {!hideSearchButton && (
+            <TouchableOpacity
+              onPress={() => router.push("/search")}
+              style={[
+                styles.headerIconButton,
+                {
+                  backgroundColor: theme.colors.background,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Търсене на постове"
+            >
+              <FontAwesome name="search" size={24} color={theme.colors.icon} />
+            </TouchableOpacity>
+          )}
+
           <TouchableOpacity
-            onPress={() => router.push("/search")}
+            onPress={() => router.push("/(auth)/login")}
             style={[
-              styles.searchButton,
-              isDark ? styles.darkButton : styles.lightButton,
+              styles.headerIconButton,
+              {
+                backgroundColor: theme.colors.background,
+              },
             ]}
             accessibilityRole="button"
-            accessibilityLabel="Търсене на постове"
+            accessibilityLabel="Вход"
           >
-            <FontAwesome
-              name="search"
-              size={24}
-              color={isDark ? "#ffffff" : "#4b5563"}
-            />
+            <FontAwesome name="user" size={24} color={theme.colors.icon} />
           </TouchableOpacity>
-        )}
+        </View>
       </View>
+
       <View
-        style={[styles.header, isDark ? styles.headerDark : styles.headerLight]}
+        style={[
+          styles.header,
+          {
+            backgroundColor: theme.colors.card,
+            borderBottomColor: theme.colors.border,
+          },
+        ]}
       >
         {showBackButton ? (
           <TouchableOpacity
@@ -63,7 +86,7 @@ export default function Header({
             <FontAwesome
               name="chevron-left"
               size={20}
-              color={isDark ? "#ffffff" : "#09090b"}
+              color={theme.colors.text}
             />
           </TouchableOpacity>
         ) : (
@@ -71,7 +94,12 @@ export default function Header({
         )}
 
         <Text
-          style={[styles.title, isDark ? styles.textDark : styles.textLight]}
+          style={[
+            styles.title,
+            {
+              color: theme.colors.text,
+            },
+          ]}
           numberOfLines={1}
         >
           {title}
@@ -92,13 +120,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderBottomWidth: 1,
   },
-  headerLight: {
-    backgroundColor: "#ffffff",
-    borderBottomColor: "#e4e4e7",
-  },
-  headerDark: {
-    backgroundColor: "#18181b",
-    borderBottomColor: "#27272a",
+  headerActions: {
+    marginLeft: "auto",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   backButton: {
     width: 40,
@@ -111,12 +137,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     textAlign: "center",
   },
-  textLight: {
-    color: "#09090b",
-  },
-  textDark: {
-    color: "#ffffff",
-  },
   headerContainer: {
     width: "100%",
     paddingTop: 40,
@@ -127,29 +147,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderBottomWidth: 1,
   },
-  lightHeader: {
-    backgroundColor: "#ffffff",
-    borderBottomColor: "#e4e4e7",
-  },
-  darkHeader: {
-    backgroundColor: "#18181b",
-    borderBottomColor: "#27272a",
-  },
   logo: {
     width: 50,
     height: 50,
   },
-  searchButton: {
+  headerIconButton: {
     width: 52,
     height: 52,
     borderRadius: 26,
     justifyContent: "center",
     alignItems: "center",
-  },
-  lightButton: {
-    backgroundColor: "#f4f4f5",
-  },
-  darkButton: {
-    backgroundColor: "#27272a",
   },
 });
