@@ -5,12 +5,14 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface HeaderProps {
   hideSearchButton?: boolean;
+  hideAuthButton?: boolean;
   title?: string;
   showBackButton?: boolean;
 }
 
 export default function Header({
   hideSearchButton = false,
+  hideAuthButton = false,
   title,
   showBackButton = true,
 }: HeaderProps) {
@@ -51,19 +53,21 @@ export default function Header({
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity
-            onPress={() => router.push("/(auth)/login")}
-            style={[
-              styles.headerIconButton,
-              {
-                backgroundColor: theme.colors.background,
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel="Вход"
-          >
-            <FontAwesome name="user" size={24} color={theme.colors.icon} />
-          </TouchableOpacity>
+          {!hideAuthButton && (
+            <TouchableOpacity
+              onPress={() => router.push("/(auth)/login")}
+              style={[
+                styles.headerIconButton,
+                {
+                  backgroundColor: theme.colors.background,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel="Вход"
+            >
+              <FontAwesome name="user" size={24} color={theme.colors.icon} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 

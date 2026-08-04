@@ -20,5 +20,6 @@ export interface RegisterPayload {
 
 export interface AuthResponse {
   token: string;
+  expiresIn: number;
   user: AuthUser;
 }

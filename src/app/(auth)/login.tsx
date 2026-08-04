@@ -39,13 +39,20 @@ export default function LoginScreen() {
 
     try {
       setIsSubmitting(true);
-      await login({ email: normalizedEmail, password });
+
+      await login({
+        email: normalizedEmail,
+        password,
+      });
+
       router.replace("/(protected)");
     } catch (error) {
       Alert.alert(
         "Неуспешен вход",
         error instanceof Error ? error.message : "Възникна неочаквана грешка.",
       );
+
+      console.log(error);
     } finally {
       setIsSubmitting(false);
     }

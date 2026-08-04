@@ -98,7 +98,7 @@ export default function HomeScreen() {
           <NavigationItem
             icon="person-outline"
             label="Профил"
-            onPress={() => {}}
+            onPress={() => router.push("/(auth)/login")}
           />
         </View>
       </ImageBackground>
@@ -207,8 +207,8 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   actionButton: {
-    width: 70,
-    height: 70,
+    width: 60,
+    height: 60,
     borderRadius: 46,
     backgroundColor: "rgba(2, 8, 30, 0.93)",
     borderWidth: 1,
@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
   },
   actionLabel: {
     color: "#ffffff",
-    fontSize: 12,
+    fontSize: 10,
     marginTop: 2,
   },
   bottomNavigation: {

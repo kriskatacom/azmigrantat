@@ -27,7 +27,7 @@ export default function SearchScreen() {
       style={[styles.container, { backgroundColor: theme.colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
-      <Header title="Търсене на видеоклипове" />
+      <Header title="Търсене на видеоклипове" hideSearchButton />
 
       <View style={styles.content}>
         <Text
