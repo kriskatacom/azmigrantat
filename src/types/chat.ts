@@ -1,0 +1,65 @@
+export interface ChatUser {
+  id: number;
+  name: string;
+  username: string | null;
+  profile_image: string | null;
+  is_active: boolean;
+}
+
+export interface ChatMessage {
+  id: number;
+  conversation_id: number;
+  sender_id: number;
+  client_message_id: string | null;
+  type: "text" | "image" | "video" | "audio" | "file" | "system";
+  content: string | null;
+  metadata: Record<string, unknown> | null;
+  status: "sent" | "delivered" | "read";
+  delivered_at: string | null;
+  read_at: string | null;
+  edited_at: string | null;
+  created_at: string | null;
+  sender: ChatUser | null;
+}
+
+export interface Conversation {
+  id: number;
+  type: "direct" | "group";
+  title: string | null;
+  image: string | null;
+  other_user: ChatUser | null;
+  last_message: ChatMessage | null;
+  last_read_message_id: number | null;
+  is_muted: boolean;
+  is_archived: boolean;
+  updated_at: string | null;
+}
+
+export interface ConversationsResponse {
+  success: true;
+  data: Conversation[];
+}
+
+export interface MessagesResponse {
+  success: true;
+  data: ChatMessage[];
+  meta: {
+    has_more: boolean;
+    next_before_id: number | null;
+  };
+}
+
+export interface ConversationResponse {
+  success: true;
+  data: Conversation;
+}
+
+export interface MessageResponse {
+  success: true;
+  data: ChatMessage;
+}
+
+export interface SendMessagePayload {
+  client_message_id: string;
+  content: string;
+}

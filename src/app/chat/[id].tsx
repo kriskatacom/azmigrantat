@@ -1,7 +1,18 @@
-import { FontAwesome } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useAppTheme } from "@/app/_layout";
+import { useAuth } from "@/hooks/useAuth";
 import {
+  getMessages,
+  markConversationAsRead,
+  sendMessage,
+} from "@/services/chat";
+import type { ChatMessage, ChatUser } from "@/types/chat";
+import { FontAwesome } from "@expo/vector-icons";
+import * as Crypto from "expo-crypto";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Keyboard,
@@ -13,88 +24,170 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { MOCK_USERS } from "../../constants/users";
-import { useAppTheme } from "../_layout";
-
-interface Message {
-  id: number;
-  text: string;
-  sender: "me" | "them";
-  time: string;
-}
 
 export default function ChatRoom() {
-  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const { theme } = useAppTheme();
+  const { token, user } = useAuth();
   const router = useRouter();
+  const flatListRef = useRef<FlatList<ChatMessage>>(null);
 
-  const { id } = useLocalSearchParams();
+  const params = useLocalSearchParams<{
+    id?: string | string[];
+    title?: string | string[];
+    image?: string | string[];
+    isActive?: string | string[];
+  }>();
 
-  const user = MOCK_USERS.find((u) => u.id.toString() === id);
+  const conversationId = useMemo(() => {
+    const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
+    return rawId ? Number(rawId) : NaN;
+  }, [params.id]);
 
+  const routeTitle = Array.isArray(params.title)
+    ? params.title[0]
+    : params.title;
+
+  const routeImage = Array.isArray(params.image)
+    ? params.image[0]
+    : params.image;
+
+  const routeIsActive = Array.isArray(params.isActive)
+    ? params.isActive[0]
+    : params.isActive;
+
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [inputMessage, setInputMessage] = useState("");
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      text: "Здравей! Как върви работата по проекта?",
-      sender: "them",
-      time: "14:28",
-    },
-    {
-      id: 2,
-      text: "Здрасти! Всичко е супер, пиша в момента кода на React Native.",
-      sender: "me",
-      time: "14:29",
-    },
-    {
-      id: 3,
-      text: "Супер! Дано не ти дава грешки с нативните библиотеки.",
-      sender: "them",
-      time: "14:30",
-    },
-    {
-      id: 4,
-      text: "Хаха, оправих го! Вече всичко работи перфектно без допълнителни библиотеки. 🔥",
-      sender: "me",
-      time: "14:31",
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [otherUser, setOtherUser] = useState<ChatUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
 
-  if (!user) {
-    return (
-      <View
-        style={[
-          styles.container,
-          styles.center,
-          { backgroundColor: theme.colors.background },
-        ]}
-      >
-        <Text style={{ color: theme.colors.text }}>
-          Потребителят не е намерен.
-        </Text>
-      </View>
-    );
-  }
+  const resolveOtherUser = useCallback(
+    (items: ChatMessage[]) => {
+      if (!user) {
+        return;
+      }
 
-  const handleSendMessage = () => {
-    if (inputMessage.trim() === "") return;
+      const otherMessage = items.find(
+        (message) => message.sender_id !== user.id && message.sender !== null,
+      );
 
-    const newMessage: Message = {
-      id: messages.length + 1,
-      text: inputMessage,
-      sender: "me",
-      time: new Date().toLocaleTimeString([], {
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      if (otherMessage?.sender) {
+        setOtherUser(otherMessage.sender);
+      }
+    },
+    [user],
+  );
+
+  const scrollToBottom = useCallback(() => {
+    requestAnimationFrame(() => {
+      flatListRef.current?.scrollToEnd({
+        animated: true,
+      });
+    });
+  }, []);
+
+  const loadMessages = useCallback(async () => {
+    if (!token || !Number.isInteger(conversationId)) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      const response = await getMessages(token, conversationId, {
+        limit: 50,
+      });
+
+      setMessages(response.data);
+      resolveOtherUser(response.data);
+
+      const lastMessage = response.data.at(-1);
+
+      if (lastMessage && lastMessage.sender_id !== user?.id) {
+        await markConversationAsRead(token, conversationId, lastMessage.id);
+      }
+
+      scrollToBottom();
+    } catch (error) {
+      Alert.alert(
+        "Грешка",
+        error instanceof Error
+          ? error.message
+          : "Съобщенията не можаха да бъдат заредени.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }, [token, conversationId, user?.id, resolveOtherUser, scrollToBottom]);
+
+  useEffect(() => {
+    void loadMessages();
+  }, [loadMessages]);
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
+      setKeyboardVisible(true);
+      scrollToBottom();
+    });
+
+    const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
+      setKeyboardVisible(false);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
     };
+  }, [scrollToBottom]);
 
-    setMessages([...messages, newMessage]);
+  const handleSendMessage = async () => {
+    const content = inputMessage.trim();
+
+    if (!content || !token || !Number.isInteger(conversationId) || isSending) {
+      return;
+    }
+
     setInputMessage("");
+
+    try {
+      setIsSending(true);
+
+      const message = await sendMessage(token, conversationId, {
+        client_message_id: Crypto.randomUUID(),
+        content,
+      });
+
+      setMessages((currentMessages) => {
+        const alreadyExists = currentMessages.some(
+          (currentMessage) => currentMessage.id === message.id,
+        );
+
+        if (alreadyExists) {
+          return currentMessages;
+        }
+
+        return [...currentMessages, message];
+      });
+
+      scrollToBottom();
+    } catch (error) {
+      setInputMessage(content);
+
+      Alert.alert(
+        "Неуспешно изпращане",
+        error instanceof Error
+          ? error.message
+          : "Съобщението не можа да бъде изпратено.",
+      );
+    } finally {
+      setIsSending(false);
+    }
   };
 
-  const renderMessageItem = ({ item }: { item: Message }) => {
-    const isMe = item.sender === "me";
+  const renderMessageItem = ({ item }: { item: ChatMessage }) => {
+    const isMe = item.sender_id === user?.id;
+
     return (
       <View style={[styles.messageRow, isMe ? styles.rowMe : styles.rowThem]}>
         <View
@@ -113,8 +206,9 @@ export default function ChatRoom() {
               },
             ]}
           >
-            {item.text}
+            {item.content}
           </Text>
+
           <Text
             style={[
               styles.messageTime,
@@ -125,35 +219,46 @@ export default function ChatRoom() {
               },
             ]}
           >
-            {item.time}
+            {item.created_at
+              ? new Date(item.created_at).toLocaleTimeString("bg-BG", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : ""}
           </Text>
         </View>
       </View>
     );
   };
 
-  useEffect(() => {
-    const showSubscription = Keyboard.addListener("keyboardDidShow", () =>
-      setKeyboardVisible(true),
+  if (!Number.isInteger(conversationId)) {
+    return (
+      <View
+        style={[
+          styles.container,
+          styles.center,
+          { backgroundColor: theme.colors.background },
+        ]}
+      >
+        <Text style={{ color: theme.colors.text }}>
+          Разговорът не е намерен.
+        </Text>
+      </View>
     );
+  }
 
-    const hideSubscription = Keyboard.addListener("keyboardDidHide", () =>
-      setKeyboardVisible(false),
-    );
+  const displayedName = otherUser?.name ?? routeTitle ?? "Разговор";
 
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
+  const displayedImage = otherUser?.profile_image ?? routeImage ?? null;
+
+  const isUserActive = otherUser?.is_active ?? routeIsActive === "true";
 
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: theme.colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+      keyboardVerticalOffset={0}
     >
-      {/* ЧАТ ХЕДЪР */}
       <View
         style={[
           styles.chatHeader,
@@ -166,6 +271,8 @@ export default function ChatRoom() {
         <TouchableOpacity
           onPress={() => router.back()}
           style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel="Назад"
         >
           <FontAwesome
             name="chevron-left"
@@ -174,11 +281,8 @@ export default function ChatRoom() {
           />
         </TouchableOpacity>
 
-        {user.profile_image ? (
-          <Image
-            source={{ uri: user.profile_image }}
-            style={styles.headerAvatar}
-          />
+        {displayedImage ? (
+          <Image source={{ uri: displayedImage }} style={styles.headerAvatar} />
         ) : (
           <View
             style={[
@@ -195,20 +299,28 @@ export default function ChatRoom() {
         )}
 
         <View style={styles.headerTitleContainer}>
-          <Text style={[styles.headerName, { color: theme.colors.text }]}>
-            {user.name}
+          <Text
+            style={[styles.headerName, { color: theme.colors.text }]}
+            numberOfLines={1}
+          >
+            {displayedName}
           </Text>
+
           <Text
             style={[
               styles.headerStatus,
-              user.is_active ? styles.statusOnline : styles.statusOffline,
+              isUserActive ? styles.statusOnline : styles.statusOffline,
             ]}
           >
-            {user.is_active ? "на линия" : "неактивен"}
+            {isUserActive ? "на линия" : "неактивен"}
           </Text>
         </View>
 
-        <TouchableOpacity style={styles.infoButton}>
+        <TouchableOpacity
+          style={styles.infoButton}
+          accessibilityRole="button"
+          accessibilityLabel="Информация за разговора"
+        >
           <FontAwesome
             name="info-circle"
             size={24}
@@ -217,18 +329,39 @@ export default function ChatRoom() {
         </TouchableOpacity>
       </View>
 
-      {/* СПИСЪК СЪС СЪОБЩЕНИЯ */}
-      <FlatList
-        data={messages}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={renderMessageItem}
-        contentContainerStyle={styles.messagesList}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode={Platform.OS === "ios" ? "interactive" : "on-drag"}
-      />
+      {isLoading ? (
+        <View style={[styles.container, styles.center]}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={renderMessageItem}
+          contentContainerStyle={[
+            styles.messagesList,
+            messages.length === 0 && styles.center,
+          ]}
+          ListEmptyComponent={
+            <Text
+              style={{
+                color: theme.colors.textSecondary,
+                textAlign: "center",
+              }}
+            >
+              Все още няма съобщения.
+            </Text>
+          }
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode={
+            Platform.OS === "ios" ? "interactive" : "on-drag"
+          }
+          onContentSizeChange={scrollToBottom}
+        />
+      )}
 
-      {/* ПОЛЕ ЗА ПИСАНЕ И ИЗПРАЩАНЕ */}
       <View
         style={[
           styles.inputContainer,
@@ -253,19 +386,34 @@ export default function ChatRoom() {
           value={inputMessage}
           onChangeText={setInputMessage}
           multiline
+          maxLength={10000}
+          editable={!isSending}
         />
+
         <TouchableOpacity
-          onPress={handleSendMessage}
+          onPress={() => void handleSendMessage()}
+          disabled={!inputMessage.trim() || isSending}
           style={[
             styles.sendButton,
             {
-              backgroundColor: inputMessage.trim()
-                ? theme.colors.button
-                : theme.colors.textSecondary,
+              backgroundColor:
+                inputMessage.trim() && !isSending
+                  ? theme.colors.button
+                  : theme.colors.textSecondary,
             },
           ]}
+          accessibilityRole="button"
+          accessibilityLabel="Изпрати съобщението"
         >
-          <FontAwesome name="send" size={18} color={theme.colors.buttonText} />
+          {isSending ? (
+            <ActivityIndicator size="small" color={theme.colors.buttonText} />
+          ) : (
+            <FontAwesome
+              name="send"
+              size={18}
+              color={theme.colors.buttonText}
+            />
+          )}
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
