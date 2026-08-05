@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\Category;
 use App\Modules\Str;
+use Schema;
 
 class CategoryController extends BaseController
 {
@@ -13,11 +14,12 @@ class CategoryController extends BaseController
         $parentId = $_GET['parent_id'] ?? null;
         $search = $_GET['search'] ?? '';
 
-        // Вземаме параметрите за сортиране от URL адреса
         $sortField = $_GET['sort'] ?? '';
         $sortDirection = $_GET['direction'] ?? 'asc';
 
-        $query = Category::withTrashed()->with('children');
+        $query = Category::withTrashed()->with(['children' => function($query) {
+            $query->withTrashed();
+        }]);
 
         if (!empty($search)) {
             $query->where('name', 'like', "%{$search}%");
@@ -35,7 +37,6 @@ class CategoryController extends BaseController
             return $category->matchesTab($tab);
         });
 
-        // --- ДОБАВЕНО СОРТИРАНЕ НА КОЛЕКЦИЯТА ---
         if (!empty($sortField)) {
             if (strtolower($sortDirection) === 'desc') {
                 $filtered = $filtered->sortByDesc($sortField);
@@ -166,7 +167,7 @@ class CategoryController extends BaseController
             $query->where('id', '!=', $ignoreId);
         }
 
-        while ($query->exists()) {
+        while ($query->withTrashed()->exists()) {
             $data['slug'] = $originalSlug . '-' . $count++;
             $query = Category::where('slug', $data['slug']);
             if ($ignoreId) {
@@ -179,5 +180,43 @@ class CategoryController extends BaseController
         $data['parent_id'] = (isset($data['parent_id']) && $data['parent_id'] !== '') ? $data['parent_id'] : null;
 
         return $data;
+    }
+    
+    // Api methods
+    public function getCategories()
+    {
+        $parentId = $_GET['parent_id'] ?? null;
+
+        $query = Category::query();
+
+        if ($parentId !== null && $parentId !== '') {
+            $query->where('parent_id', $parentId);
+        } else {
+            $query->whereNull('parent_id');
+        }
+
+        $query->active();
+
+        $categories = $query->get();
+
+        $parentModel = ($parentId !== null && $parentId !== '') ? Category::find($parentId) : null;
+
+        $breadcrumbs = [];
+        if ($parentModel) {
+            $current = $parentModel;
+            while ($current) {
+                array_unshift($breadcrumbs, [
+                    'id' => $current->id,
+                    'name' => $current->name
+                ]);
+                $current = $current->parent;
+            }
+        }
+
+        return $this->json([
+            'items' => $categories,
+            'parent' => $parentModel,
+            'breadcrumbs' => $breadcrumbs
+        ]);
     }
 }

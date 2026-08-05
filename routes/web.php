@@ -1,5 +1,6 @@
 <?php
 
+use App\Controllers\Api\MobileAuthController;
 use App\Controllers\Api\TwoFAuthController;
 use App\Controllers\CategoryController;
 use App\Controllers\PostController;
@@ -24,14 +25,14 @@ $router->post('/admin/categories/toggle-active/{id}', [CategoryController::class
 $router->post('/admin/categories/destroy/{id}', [CategoryController::class, 'destroy']);
 $router->post('/admin/categories/restore/{id}', [CategoryController::class, 'restore']);
 
-$router->get('/admin/posts', [PostController::class, 'index']);
-$router->get('/admin/posts/create', [PostController::class, 'create']);
-$router->post('/admin/posts/store', [PostController::class, 'store']);
-$router->get('/admin/posts/edit/{id}', [PostController::class, 'edit']);
-$router->post('/admin/posts/update/{id}', [PostController::class, 'update']);
-$router->post('/admin/posts/delete/{id}', [PostController::class, 'delete']);
-$router->post('/admin/posts/restore/{id}', [PostController::class, 'restore']);
-$router->post('/admin/posts/force-delete/{id}', [PostController::class, 'forceDelete']);
+$router->get('/admin/posts', [PostController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/admin/posts/create', [PostController::class, 'create'], [AuthMiddleware::class]);
+$router->post('/admin/posts/store', [PostController::class, 'store'], [AuthMiddleware::class]);
+$router->get('/admin/posts/edit/{id}', [PostController::class, 'edit'], [AuthMiddleware::class]);
+$router->post('/admin/posts/update/{id}', [PostController::class, 'update'], [AuthMiddleware::class]);
+$router->post('/admin/posts/delete/{id}', [PostController::class, 'delete'], [AuthMiddleware::class]);
+$router->post('/admin/posts/restore/{id}', [PostController::class, 'restore'], [AuthMiddleware::class]);
+$router->post('/admin/posts/force-delete/{id}', [PostController::class, 'forceDelete'], [AuthMiddleware::class]);
 
 $router->get('/oauth/authorize', [OauthController::class, 'authorize']);
 $router->get('/api/user/me', [OauthController::class, 'me']);
@@ -44,7 +45,17 @@ $router->get('/verify-email', [App\Controllers\UserController::class, 'verifyEma
 $router->post('/api/2fa/send', [TwoFAuthController::class, 'send2faCode'], [AuthMiddleware::class]);
 $router->post('/api/2fa/verify', [TwoFAuthController::class, 'verify2faCode'], [AuthMiddleware::class]);
 
+$router->post('/api/mobile/login', [MobileAuthController::class, 'login']);
+$router->post('/api/mobile/register', [MobileAuthController::class, 'register']);
+$router->post('/api/mobile/logout', [MobileAuthController::class, 'logout']);
+$router->get('/api/mobile/me', [MobileAuthController::class, 'me']);
+
 $router->get('/api/users', [UserController::class, 'getUsers']);
+$router->get('/api/users/account', [UserController::class, 'getAccount']);
+$router->get('/api/posts', [PostController::class, 'getPosts']);
+$router->get('/api/posts/user/{id}', [PostController::class, 'getUserPosts']);
+$router->get('/api/posts/{id}', [PostController::class, 'getPost']);
+$router->get('/api/categories', [CategoryController::class, 'getCategories']);
 
 $router->get('/', [PageController::class, 'azmigrantat']);
 $router->get('/{slug*}', [PageController::class, 'show']);

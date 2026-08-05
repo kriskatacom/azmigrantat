@@ -14,12 +14,12 @@ class OauthAppController extends BaseController
     public function index()
     {
         return $this->resourceIndex(OauthApp::class, 'admin/oauth_apps/index', [
-            'title'         => 'Управление на SSO приложения',
+            'title' => 'Управление на SSO приложения',
             'resource_name' => 'apps',
             'search_fields' => ['name', 'client_id', 'redirect_uri'],
-            'order_by'      => 'created_at',
-            'order_dir'     => 'desc',
-            'columns'       => ['name', 'client_id', 'redirect_uri', 'is_active', 'created_at']
+            'order_by' => 'created_at',
+            'order_dir' => 'desc',
+            'columns' => ['name', 'client_id', 'redirect_uri', 'is_active', 'created_at']
         ]);
     }
 
@@ -34,10 +34,9 @@ class OauthAppController extends BaseController
     public function store()
     {
         $rules = [
-            'name'         => 'required|min:2',
-            'client_id'    => 'required|unique:oauth_apps,client_id',
+            'name' => 'required|min:2',
+            'client_id' => 'required|unique:oauth_apps,client_id',
             'client_secret' => 'required',
-            'redirect_uri' => 'required|url'
         ];
 
         $validator = Validator::make($_POST, $rules);
@@ -71,7 +70,6 @@ class OauthAppController extends BaseController
 
         $validator = Validator::make($_POST, [
             'name' => 'required',
-            'redirect_uri' => 'required|url'
         ]);
 
         if ($validator->fails()) {
@@ -123,13 +121,21 @@ class OauthAppController extends BaseController
 
         $options['log_auth'] = isset($options['log_auth']) ? 1 : 0;
 
+        $options['client_type'] = in_array(
+            $options['client_type'] ?? 'confidential',
+            ['confidential', 'public'],
+            true
+        )
+            ? $options['client_type']
+            : 'confidential';
+
         return [
-            'name'          => trim($input['name']),
-            'client_id'     => trim($input['client_id']),
+            'name' => trim($input['name']),
+            'client_id' => trim($input['client_id']),
             'client_secret' => trim($input['client_secret']),
-            'redirect_uri'  => trim($input['redirect_uri']),
-            'is_active'     => isset($input['is_active']) ? 1 : 0,
-            'options'       => $options
+            'redirect_uri' => trim($input['redirect_uri']),
+            'is_active' => isset($input['is_active']) ? 1 : 0,
+            'options' => $options,
         ];
     }
 }

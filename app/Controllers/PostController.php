@@ -5,10 +5,10 @@ namespace App\Controllers;
 use App\Core\Auth;
 use App\Models\Category;
 use App\Models\Post;
+use App\Models\User;
 use App\Modules\Str;
 use App\Helpers\AuthHelper;
 use App\Traits\HasAdminTrait;
-use Illuminate\Support\Facades\Validator;
 use Exception;
 
 class PostController extends BaseController
@@ -39,6 +39,7 @@ class PostController extends BaseController
             'title' => 'Нова публикация'
         ], [
             'post' => new Post(),
+            'currentUser' => Auth::user(),
             'isEdit' => false
         ]);
     }
@@ -172,5 +173,93 @@ class PostController extends BaseController
         }
 
         return $data;
+    }
+
+    // Api methods
+
+    public function getPosts()
+    {
+        $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+        $limit = 5;
+        $offset = ($page - 1) * $limit;
+
+        $query = Post::with('user');
+
+        if (!empty($_GET['location'])) {
+            $location = trim($_GET['location']);
+            $query->where('location', $location);
+        }
+
+        if (!empty($_GET['category_id'])) {
+            $categoryId = (int) $_GET['category_id'];
+            $query->where('category_id', $categoryId);
+        }
+
+        if (!empty($_GET['search'])) {
+            $search = trim($_GET['search']);
+
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', '%' . $search . '%')
+                    ->orWhere('content', 'LIKE', '%' . $search . '%');
+            });
+        }
+
+        $posts = $query->orderBy('created_at', 'DESC')
+            ->skip($offset)
+            ->take($limit)
+            ->get();
+
+        return $this->json([
+            'posts' => $posts
+        ]);
+    }
+
+    public function getUserPosts($userId)
+    {
+        if (empty($userId)) {
+            return $this->json(['error' => 'User ID is required'], 400);
+        }
+
+        $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+        $limit = 6;
+        $offset = ($page - 1) * $limit;
+
+        $posts = Post::where('user_id', $userId)
+            ->orderBy('created_at', 'DESC')
+            ->skip($offset)
+            ->take($limit)
+            ->get();
+
+        return $this->json([
+            'posts' => $posts
+        ]);
+    }
+
+    public function getPost($id)
+    {
+        if (empty($id)) {
+            return $this->json(['error' => 'Post ID is required'], 400);
+        }
+
+        $post = Post::with('user')->find($id);
+
+        if (!$post) {
+            return $this->json(['error' => 'Post not found'], 404);
+        }
+
+        $postArray = is_object($post) ? $post->toArray() : $post;
+
+        if (empty($postArray['user']) && !empty($postArray['user_id'])) {
+            $user = User::find($postArray['user_id']);
+            $postArray['user'] = $user ? (is_object($user) ? $user->toArray() : $user) : null;
+        }
+
+        if (isset($postArray['options']) && is_string($postArray['options'])) {
+            $postArray['options'] = json_decode($postArray['options'], true);
+        }
+
+        return $this->json([
+            'post' => $postArray
+        ]);
     }
 }

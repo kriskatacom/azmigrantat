@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Api;
 
+use App\Models\Post;
 use App\Models\User;
 
 class UserController extends BaseApiController
@@ -31,6 +32,36 @@ class UserController extends BaseApiController
             'success' => true,
             'count' => count($users),
             'data' => $users
+        ]);
+    }
+
+    public function getAccount()
+    {
+        $userId = $_GET['id'] ?? null;
+
+        if ($userId !== null && $userId !== '') {
+            $user = User::find($userId);
+        } else {
+            $user = $_SESSION['user'] ?? null;
+        }
+
+        if (!$user) {
+            return $this->json(['error' => 'User not found'], 404);
+        }
+
+        $posts = Post::where('user_id', $userId)->orderBy('created_at', 'DESC')->get();
+
+        $postsArray = is_object($posts) ? $posts->toArray() : $posts;
+
+        foreach ($postsArray as &$post) {
+            if (isset($post['options']) && is_string($post['options'])) {
+                $post['options'] = json_decode($post['options'], true);
+            }
+        }
+
+        return $this->json([
+            'user' => $user,
+            'posts' => $postsArray
         ]);
     }
 }

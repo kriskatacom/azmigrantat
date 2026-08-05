@@ -85,7 +85,8 @@ class Category extends Model
             if ($matches)
                 return true;
 
-            foreach ($cat->children as $child) {
+            $children = $cat->children()->withTrashed()->get();
+            foreach ($children as $child) {
                 if ($check($child))
                     return true;
             }

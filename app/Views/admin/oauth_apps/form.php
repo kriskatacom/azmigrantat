@@ -36,7 +36,6 @@ $isEdit = $application->exists; ?>
 
                 <?php Form::input('Redirect URI (Callback URL)', 'redirect_uri', $application->redirect_uri ?? '', 'url', [
                     'placeholder' => 'https://client-site.com/auth/callback',
-                    'required' => true,
                     'help' => 'След успешно логване, потребителят ще бъде изпратен само на този адрес.'
                 ]); ?>
             <?php }, 'fa-info-circle'); ?>
@@ -77,6 +76,42 @@ $isEdit = $application->exists; ?>
                     <?php Form::toggle('Активно приложение', 'is_active', (bool)($application->is_active ?? false), [
                         'help' => 'Активиране или деактивиране на приложението'
                     ]); ?>
+
+                    <div class="space-y-2">
+                        <label for="client_type" class="block font-semibold text-slate-700">
+                            Тип на клиента
+                        </label>
+
+                        <select
+                            id="client_type"
+                            name="options[client_type]"
+                            class="w-full p-3 rounded-lg border border-slate-200 bg-white"
+                            required
+                        >
+                            <option
+                                value="confidential"
+                                <?= ($application->options['client_type'] ?? 'confidential') === 'confidential'
+                                    ? 'selected'
+                                    : '' ?>
+                            >
+                                Confidential
+                            </option>
+
+                            <option
+                                value="public"
+                                <?= ($application->options['client_type'] ?? '') === 'public'
+                                    ? 'selected'
+                                    : '' ?>
+                            >
+                                Public
+                            </option>
+                        </select>
+
+                        <p class="text-xs text-slate-400">
+                            Confidential се използва за сървърни приложения, които пазят Client Secret.
+                            Public се използва за мобилни и desktop приложения.
+                        </p>
+                    </div>
 
                     <hr class="border-slate-100">
 

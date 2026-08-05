@@ -1,5 +1,6 @@
 <?php
 
+use App\Core\Auth;
 use App\Modules\Form;
 use App\Core\View;
 
@@ -9,10 +10,15 @@ $isEdit = $user->exists; ?>
     <?php Form::mainSubmit(); ?>
 </div>
 
-<div class="mb-5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-    <div>
-        <h1 class="text-2xl font-bold text-slate-900"><?= $title ?></h1>
-    </div>
+<div class="mb-5 max-md:pt-5 max-md:px-5 space-y-2">
+    <h1 class="text-xl md:text-2xl md:font-bold text-slate-900">
+        Редактиране на информацията за профила
+    </h1>
+    <?php if (Auth::isAdmin()): ?>
+        <a href="/admin/users" class="text-slate-500 hover:text-primary flex items-center gap-2 transition-colors">
+            <i class="fa-solid fa-arrow-left"></i> Назад към списъка
+        </a>
+    <?php endif; ?>
 </div>
 
 <?php View::component('flash-messages', 'admin/components'); ?>
@@ -35,19 +41,23 @@ $isEdit = $user->exists; ?>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <?php Form::input('Имейл адрес', 'email', $user->email ?? '', 'email', ['required' => true, 'placeholder' => 'email@example.com']); ?>
                 <?php Form::input('Телефонен номер', 'phone', $user->phone ?? '', 'text', ['placeholder' => '+359888123456']); ?>
+                <?php View::component('location-picker', 'admin/components', [
+                    'name' => 'options[city]',
+                    'value' => $user->options['city'] ?? '',
+                    'placeholder' => 'София, Берлин, Лондон, Мелник...'
+                ]); ?>
+                <?php Form::input('Физически адрес', 'options[location]', $user->options['location'] ?? '', 'text'); ?>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <?php
-                Form::input('Нова парола', 'password', '', 'password', [
+                <?php Form::input('Нова парола', 'password', '', 'password', [
                     'help' => 'Оставете празно, ако не искате промяна',
                     'placeholder' => '••••••••'
                 ]);
 
                 Form::input('Потвърди паролата', 'password_confirmation', '', 'password', [
                     'placeholder' => '••••••••'
-                ]);
-                ?>
+                ]); ?>
             </div>
 
             <?php Form::textarea('Биография', 'options[bio]', $user->options['bio'] ?? '', ['placeholder' => 'Разкажете нещо за потребителя...', 'rows' => 4]); ?>
@@ -58,6 +68,12 @@ $isEdit = $user->exists; ?>
         <?php Form::section('Изображение', function () use ($user) { ?>
             <div class="space-y-4">
                 <?php Form::image('Профилна снимка', 'options[profile_image]', $user->options['profile_image'] ?? null); ?>
+            </div>
+        <?php }, 'fa-camera-retro'); ?>
+
+        <?php Form::section('Изображение на корицата', function () use ($user) { ?>
+            <div class="space-y-4">
+                <?php Form::image('Корична снимка', 'options[cover_image]', $user->options['cover_image'] ?? null); ?>
             </div>
         <?php }, 'fa-camera-retro'); ?>
 
