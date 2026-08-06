@@ -1,8 +1,11 @@
 <?php
 
+use App\Controllers\Api\ConversationController;
+use App\Controllers\Api\MessageController;
 use App\Controllers\Api\MobileAuthController;
 use App\Controllers\Api\TwoFAuthController;
 use App\Controllers\CategoryController;
+use App\Controllers\PhinxController;
 use App\Controllers\PostController;
 use App\Core\Router;
 
@@ -13,6 +16,8 @@ use App\Controllers\OauthController;
 use App\Middlewares\AuthMiddleware;
 
 $router = new Router();
+
+$router->get('/migrations/migrate', [PhinxController::class, 'migrate']);
 
 require_once __DIR__ . '/core.php';
 
@@ -49,6 +54,13 @@ $router->post('/api/mobile/login', [MobileAuthController::class, 'login']);
 $router->post('/api/mobile/register', [MobileAuthController::class, 'register']);
 $router->post('/api/mobile/logout', [MobileAuthController::class, 'logout']);
 $router->get('/api/mobile/me', [MobileAuthController::class, 'me']);
+
+$router->get('/api/mobile/conversations', [ConversationController::class, 'index']);
+$router->post('/api/mobile/conversations/direct', [ConversationController::class, 'createDirect']);
+$router->get('/api/mobile/conversations/{id}', [ConversationController::class, 'show']);
+$router->get('/api/mobile/conversations/{id}/messages', [MessageController::class, 'index']);
+$router->post('/api/mobile/conversations/{id}/messages', [MessageController::class, 'store']);
+$router->post('/api/mobile/conversations/{id}/read', [MessageController::class, 'markAsRead']);
 
 $router->get('/api/users', [UserController::class, 'getUsers']);
 $router->get('/api/users/account', [UserController::class, 'getAccount']);

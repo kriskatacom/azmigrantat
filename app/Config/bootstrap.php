@@ -24,8 +24,8 @@ $capsule->addConnection([
     'database'  => $_ENV['DB_NAME'],
     'username'  => $_ENV['DB_USER'],
     'password'  => $_ENV['DB_PASS'],
-    'charset'   => $_ENV['DB_CHARSET'] ?? 'utf8',
-    'collation' => $_ENV['DB_COLLATION'] ?? 'utf8_unicode_ci',
+    'charset'   => $_ENV['DB_CHARSET'] ?? 'utf8mb4',
+    'collation' => $_ENV['DB_COLLATION'] ?? 'utf8mb4_unicode_ci',
     'prefix'    => '',
 ]);
 

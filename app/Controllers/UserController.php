@@ -166,48 +166,6 @@ class UserController extends BaseController
             return $this->redirectBack();
         }
 
-        Manager::table('sessions')
-            ->where('last_activity', '<', time() - 86400)
-            ->delete();
-
-        Manager::table('sessions')
-            ->where('user_id', $user->id)
-            ->where('id', '!=', session_id())
-            ->delete();
-
-        $otherSession = Manager::table('sessions')
-            ->where('user_id', $user->id)
-            ->where('id', '!=', session_id())
-            ->orderBy('last_activity', 'desc')
-            ->first();
-
-        if ($otherSession) {
-            $userAgent = $otherSession->user_agent ?? 'Неизвестен браузър';
-            $ipAddress = $otherSession->ip_address ?? 'Неизвестно IP';
-            $lastSeen = date('H:i:s d.m.Y', $otherSession->last_activity);
-
-            $options = $user->options ?? [];
-            $messages = $options['messages'] ?? [];
-
-            $messages[] = [
-                'type' => 'warning',
-                'text' => "Внимание: Засечена е паралелна активност във вашия профил.",
-                'details' => [
-                    'ip' => $ipAddress,
-                    'device' => $userAgent,
-                    'time' => $lastSeen,
-                    'session_id' => substr($otherSession->id, 0, 8) . '...'
-                ],
-                'full_info' => "Нова сесия от IP: {$ipAddress} ({$userAgent}) на {$lastSeen}.",
-                'read' => false,
-                'created_at' => time()
-            ];
-
-            $options['messages'] = $messages;
-            $user->options = $options;
-            $user->save();
-        }
-
         Session::set('user', $user);
         Session::csrfToken();
 

@@ -40,12 +40,6 @@ class AdminController extends BaseController
     {
         $stats = User::getDashboardStats();
 
-        $activeSessions = \App\Models\SessionModel::with('user')
-            ->whereNotNull('user_id')
-            ->orderBy('last_activity', 'desc')
-            ->limit(5)
-            ->get();
-
         $seoData = [
             'title'       => 'Табло за управление',
             'description' => 'Бърз преглед на статистиката и съдържанието.',
@@ -53,7 +47,6 @@ class AdminController extends BaseController
 
         $this->renderWithLayout('admin/dashboard/index', $seoData, [
             'stats' => $stats,
-            'sessions' => $activeSessions
         ]);
     }
 }

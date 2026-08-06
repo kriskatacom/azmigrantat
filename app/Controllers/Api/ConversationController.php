@@ -1,0 +1,258 @@
+<?php
+
+namespace App\Controllers\Api;
+
+use App\Controllers\BaseController;
+use App\Models\Conversation;
+use App\Models\OauthAccessToken;
+use App\Models\Participant;
+use App\Models\User;
+use App\Services\ConversationService;
+use Exception;
+use Illuminate\Support\Facades\Validator;
+
+final class ConversationController extends BaseController
+{
+    private ConversationService $conversationService;
+
+    public function __construct()
+    {
+        $this->conversationService = new ConversationService();
+    }
+
+    public function index()
+    {
+        $user = $this->authenticatedUser();
+
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $conversations = $this->conversationService
+            ->getUserConversations($user);
+
+        return $this->json([
+            'success' => true,
+            'data' => $conversations
+                ->map(
+                    fn(Conversation $conversation) =>
+                    $this->serializeConversation(
+                        $conversation,
+                        (int) $user->id
+                    )
+                )
+                ->values(),
+        ]);
+    }
+
+    public function show($conversationId)
+    {
+        $user = $this->authenticatedUser();
+
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $conversation = $this->conversationService
+            ->findUserConversation(
+                (int) $conversationId,
+                (int) $user->id
+            );
+
+        if (!$conversation) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Разговорът не е намерен или нямате достъп до него.',
+            ], 404);
+        }
+
+        $conversation = $this->conversationService
+            ->loadConversationDetails($conversation);
+
+        return $this->json([
+            'success' => true,
+            'data' => $this->serializeConversation(
+                $conversation,
+                (int) $user->id
+            ),
+        ]);
+    }
+
+    public function createDirect()
+    {
+        $user = $this->authenticatedUser();
+
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $input = $this->jsonInput();
+
+        $validator = Validator::make(
+            $input,
+            [
+                'recipient_id' => 'required|integer',
+            ],
+            [
+                'required' => 'Полето :attribute е задължително.',
+                'integer' => 'Полето :attribute трябва да бъде число.',
+            ],
+            [
+                'recipient_id' => 'получател',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return $this->validationError($validator);
+        }
+
+        $recipientId = (int) $input['recipient_id'];
+
+        if ($recipientId === (int) $user->id) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Не можете да създадете разговор със себе си.',
+            ], 422);
+        }
+
+        $recipient = User::query()
+            ->where('id', $recipientId)
+            ->where('is_active', true)
+            ->first();
+
+        if (!$recipient) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Потребителят не е намерен или е неактивен.',
+            ], 404);
+        }
+
+        try {
+            $conversation = $this->conversationService
+                ->createDirectConversation($user, $recipient);
+
+            return $this->json([
+                'success' => true,
+                'data' => $this->serializeConversation(
+                    $conversation,
+                    (int) $user->id
+                ),
+            ], 201);
+        } catch (Exception $exception) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Разговорът не можа да бъде създаден.',
+            ], 500);
+        }
+    }
+
+    private function serializeConversation(
+        Conversation $conversation,
+        int $currentUserId
+    ): array {
+        $participants = $conversation->participants;
+
+        $otherParticipant = $participants
+            ->where('user_id', '!=', $currentUserId)
+            ->first();
+
+        $currentParticipant = $participants
+            ->firstWhere('user_id', $currentUserId);
+
+        return [
+            'id' => $conversation->id,
+            'type' => $conversation->type,
+            'title' => $conversation->isDirect()
+                ? $otherParticipant?->user?->name
+                : $conversation->title,
+            'image' => $conversation->isDirect()
+                ? $otherParticipant?->user?->profile_image
+                : $conversation->image,
+            'other_user' => $conversation->isDirect()
+                ? $this->serializeUser($otherParticipant?->user)
+                : null,
+            'last_message' => $conversation->lastMessage
+                ? MessageController::serializeMessage(
+                    $conversation->lastMessage
+                )
+                : null,
+            'last_read_message_id' =>
+                $currentParticipant?->last_read_message_id,
+            'is_muted' => (bool) (
+                $currentParticipant?->is_muted ?? false
+            ),
+            'is_archived' => (bool) (
+                $currentParticipant?->is_archived ?? false
+            ),
+            'updated_at' =>
+                $conversation->updated_at?->toISOString(),
+        ];
+    }
+
+    private function serializeUser(?User $user): ?array
+    {
+        if (!$user) {
+            return null;
+        }
+
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'username' => $user->username,
+            'profile_image' => $user->profile_image,
+            'is_active' => (bool) $user->is_active,
+        ];
+    }
+
+    private function authenticatedUser(): ?User
+    {
+        $authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+
+        if (!preg_match('/Bearer\s+(\S+)/i', $authorization, $matches)) {
+            return null;
+        }
+
+        $accessToken = OauthAccessToken::query()
+            ->where('token', $matches[1])
+            ->with('user')
+            ->first();
+
+        if (
+            !$accessToken ||
+            $accessToken->isExpired() ||
+            !$accessToken->user ||
+            !$accessToken->user->is_active
+        ) {
+            return null;
+        }
+
+        return $accessToken->user;
+    }
+
+    private function jsonInput(): array
+    {
+        $input = json_decode(
+            file_get_contents('php://input'),
+            true
+        );
+
+        return is_array($input) ? $input : [];
+    }
+
+    private function validationError($validator)
+    {
+        return $this->json([
+            'success' => false,
+            'message' => $validator->errors()->first(),
+            'errors' => $validator->errors()->toArray(),
+        ], 422);
+    }
+
+    private function unauthorized()
+    {
+        return $this->json([
+            'success' => false,
+            'message' => 'Необходима е автентикация.',
+        ], 401);
+    }
+}

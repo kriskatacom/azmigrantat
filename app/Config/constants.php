@@ -83,7 +83,6 @@ $sidebarLinks = [];
 
 if (AuthHelper::check()) {
     $sidebarLinks[] = ['url' => '/users/profile', 'icon' => 'fa-user', 'label' => 'Моят профил'];
-    $sidebarLinks[] = ['url' => '/admin/posts', 'icon' => 'fa-newspaper', 'label' => 'Публикации'];
 }
 
 if (AuthHelper::isAdmin()) {

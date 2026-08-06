@@ -41,35 +41,11 @@ class App
 
     public function initSession(): void
     {
-        $isInstallRoute = str_contains($_SERVER['REQUEST_URI'], '/install');
-
-        if (session_status() === PHP_SESSION_NONE) {
-            try {
-                if ($isInstallRoute) {
-                    session_start();
-                } else {
-                    $handler = new DatabaseSessionHandler();
-                    session_set_save_handler($handler, true);
-                    session_start();
-                }
-            } catch (\Exception $e) {
-                if (!$isInstallRoute) {
-                    $this->renderDatabaseError();
-                }
-            }
-        }
-    }
-
-    private function renderDatabaseError(): void
-    {
-        $currentUri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-        if (str_contains($currentUri, '/install')) {
+        if (session_status() !== PHP_SESSION_NONE) {
             return;
         }
 
-        if (ob_get_level() > 0) ob_end_clean();
-
-        Redirect::to('/install');
+        session_start();
     }
 
     public function initLanguage(): string

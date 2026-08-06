@@ -231,6 +231,7 @@ final class MobileAuthController extends BaseController
             'email' => $user->email,
             'role' => $user->role,
             'avatar' => $user->avatar_url ?? null,
+            'is_active' => $user->is_active,
         ];
     }
 }
