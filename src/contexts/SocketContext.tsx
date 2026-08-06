@@ -3,6 +3,7 @@ import {
   connectSocket,
   disconnectSocket,
   MessageReadPayload,
+  TypingPayload,
   type AppSocket,
 } from "@/services/socket";
 import type { AuthUser } from "@/types/auth";
@@ -27,6 +28,7 @@ interface SocketContextValue {
   connectionError: string | null;
   lastReceivedMessage: ChatMessage | null;
   lastReadReceipt: MessageReadPayload | null;
+  lastTypingUpdate: TypingPayload | null;
 }
 
 export const SocketContext = createContext<SocketContextValue | undefined>(
@@ -44,6 +46,8 @@ export function SocketProvider({ children }: PropsWithChildren) {
     useState<ChatMessage | null>(null);
   const [lastReadReceipt, setLastReadReceipt] =
     useState<MessageReadPayload | null>(null);
+  const [lastTypingUpdate, setLastTypingUpdate] =
+    useState<TypingPayload | null>(null);
 
   useEffect(() => {
     if (isLoading) {
@@ -81,6 +85,11 @@ export function SocketProvider({ children }: PropsWithChildren) {
       console.log("Получено connection:ready:", payload);
     };
 
+    const handleTypingUpdate = (payload: TypingPayload) => {
+      console.log("Получено typing:update:", payload);
+      setLastTypingUpdate(payload);
+    };
+
     const handleNewMessage = (message: ChatMessage) => {
       setLastReceivedMessage(message);
 
@@ -116,6 +125,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
     currentSocket.on("connection:ready", handleConnectionReady);
     currentSocket.on("message:new", handleNewMessage);
     currentSocket.on("message:read", handleMessageRead);
+    currentSocket.on("typing:update", handleTypingUpdate);
     currentSocket.on("connect_error", handleConnectError);
     currentSocket.on("disconnect", handleDisconnect);
 
@@ -125,6 +135,8 @@ export function SocketProvider({ children }: PropsWithChildren) {
       currentSocket.off("connect", handleConnect);
       currentSocket.off("connection:ready", handleConnectionReady);
       currentSocket.off("message:new", handleNewMessage);
+      currentSocket.off("message:read", handleMessageRead);
+      currentSocket.off("typing:update", handleTypingUpdate);
       currentSocket.off("connect_error", handleConnectError);
       currentSocket.off("disconnect", handleDisconnect);
 
@@ -140,6 +152,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
       connectionError,
       lastReceivedMessage,
       lastReadReceipt,
+      lastTypingUpdate,
     }),
     [
       socket,
@@ -148,6 +161,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
       connectionError,
       lastReceivedMessage,
       lastReadReceipt,
+      lastTypingUpdate,
     ],
   );
 

@@ -21,13 +21,28 @@ export interface MessageReadPayload {
   read_at: string;
 }
 
+export interface TypingPayload {
+  conversation_id: number;
+  user_id: number;
+  is_typing: boolean;
+}
+
+export interface TypingClientPayload {
+  conversation_id: number;
+  recipient_ids: number[];
+}
+
 interface ServerToClientEvents {
   "connection:ready": (payload: ConnectionReadyPayload) => void;
   "message:new": (message: ChatMessage) => void;
   "message:read": (payload: MessageReadPayload) => void;
+  "typing:update": (payload: TypingPayload) => void;
 }
 
-interface ClientToServerEvents {}
+interface ClientToServerEvents {
+  "typing:start": (payload: TypingClientPayload) => void;
+  "typing:stop": (payload: TypingClientPayload) => void;
+}
 
 export type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 

@@ -31,8 +31,12 @@ export default function ChatRoom() {
   const { token, user } = useAuth();
   const router = useRouter();
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
-  const { lastReceivedMessage, lastReadReceipt } = useSocket();
+  const { socket, lastReceivedMessage, lastReadReceipt, lastTypingUpdate } =
+    useSocket();
   const lastReadReceiptRef = useRef(lastReadReceipt);
+  const [isOtherUserTyping, setIsOtherUserTyping] = useState(false);
+
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const params = useLocalSearchParams<{
     id?: string | string[];
@@ -129,6 +133,25 @@ export default function ChatRoom() {
   }, [lastReadReceipt]);
 
   useEffect(() => {
+    console.log("lastTypingUpdate:", lastTypingUpdate);
+    console.log("conversationId:", conversationId);
+    console.log("currentUser:", user?.id);
+
+    if (
+      !lastTypingUpdate ||
+      Number(lastTypingUpdate.conversation_id) !== Number(conversationId) ||
+      Number(lastTypingUpdate.user_id) === Number(user?.id)
+    ) {
+      console.log("Typing ignored");
+      return;
+    }
+
+    console.log("Typing accepted:", lastTypingUpdate.is_typing);
+
+    setIsOtherUserTyping(lastTypingUpdate.is_typing);
+  }, [lastTypingUpdate, conversationId, user?.id]);
+
+  useEffect(() => {
     if (
       !lastReceivedMessage ||
       lastReceivedMessage.conversation_id !== conversationId
@@ -210,11 +233,79 @@ export default function ChatRoom() {
     };
   }, [scrollToBottom]);
 
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      if (
+        socket?.connected &&
+        otherUser?.id &&
+        Number.isInteger(conversationId)
+      ) {
+        socket.emit("typing:stop", {
+          conversation_id: conversationId,
+          recipient_ids: [Number(otherUser.id)],
+        });
+      }
+    };
+  }, [socket, otherUser?.id, conversationId]);
+
+  const handleInputChange = useCallback(
+    (value: string) => {
+      setInputMessage(value);
+
+      if (
+        !socket?.connected ||
+        !otherUser?.id ||
+        !Number.isInteger(conversationId)
+      ) {
+        return;
+      }
+
+      const payload = {
+        conversation_id: conversationId,
+        recipient_ids: [Number(otherUser.id)],
+      };
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+
+      if (!value.trim()) {
+        socket.emit("typing:stop", payload);
+        return;
+      }
+
+      socket.emit("typing:start", payload);
+
+      typingTimeoutRef.current = setTimeout(() => {
+        socket.emit("typing:stop", payload);
+        typingTimeoutRef.current = null;
+      }, 3000);
+    },
+    [socket, otherUser?.id, conversationId],
+  );
+
   const handleSendMessage = async () => {
     const content = inputMessage.trim();
 
     if (!content || !token || !Number.isInteger(conversationId) || isSending) {
       return;
+    }
+
+    if (socket?.connected && otherUser?.id) {
+      socket.emit("typing:stop", {
+        conversation_id: conversationId,
+        recipient_ids: [Number(otherUser.id)],
+      });
+    }
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
     }
 
     setInputMessage("");
@@ -411,10 +502,16 @@ export default function ChatRoom() {
           <Text
             style={[
               styles.headerStatus,
-              isUserActive ? styles.statusOnline : styles.statusOffline,
+              isOtherUserTyping || isUserActive
+                ? styles.statusOnline
+                : styles.statusOffline,
             ]}
           >
-            {isUserActive ? "на линия" : "неактивен"}
+            {isOtherUserTyping
+              ? "пише..."
+              : isUserActive
+                ? "на линия"
+                : "неактивен"}
           </Text>
         </View>
 
@@ -486,7 +583,7 @@ export default function ChatRoom() {
           placeholder="Напиши съобщение..."
           placeholderTextColor={theme.colors.placeholder}
           value={inputMessage}
-          onChangeText={setInputMessage}
+          onChangeText={handleInputChange}
           multiline
           maxLength={10000}
           editable={!isSending}
