@@ -1,5 +1,6 @@
 import { darkTheme, lightTheme, type AppTheme } from "@/constants/theme";
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { SocketProvider } from "@/contexts/SocketContext";
 import { Stack } from "expo-router";
 import {
   createContext,
@@ -69,12 +70,14 @@ export default function Layout() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            animation: "slide_from_right",
-          }}
-        />
+        <SocketProvider>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              animation: "slide_from_right",
+            }}
+          />
+        </SocketProvider>
       </AuthProvider>
     </ThemeProvider>
   );

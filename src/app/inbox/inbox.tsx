@@ -1,10 +1,11 @@
 import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
 import { useAuth } from "@/hooks/useAuth";
+import { useSocket } from "@/hooks/useSocket";
 import { getConversations } from "@/services/chat";
 import type { Conversation } from "@/types/chat";
 import { FontAwesome } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -18,9 +19,12 @@ import {
   View,
 } from "react-native";
 
+type LoadMode = "initial" | "refresh" | "silent";
+
 export default function InboxScreen() {
   const { theme } = useAppTheme();
   const { token } = useAuth();
+  const { lastReceivedMessage } = useSocket();
   const router = useRouter();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -28,7 +32,7 @@ export default function InboxScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadConversations = useCallback(
-    async (refreshing = false) => {
+    async (mode: LoadMode = "initial") => {
       if (!token) {
         setConversations([]);
         setIsLoading(false);
@@ -37,9 +41,9 @@ export default function InboxScreen() {
       }
 
       try {
-        if (refreshing) {
+        if (mode === "refresh") {
           setIsRefreshing(true);
-        } else {
+        } else if (mode === "initial") {
           setIsLoading(true);
         }
 
@@ -61,12 +65,49 @@ export default function InboxScreen() {
     [token],
   );
 
+  useFocusEffect(
+    useCallback(() => {
+      void loadConversations("refresh");
+    }, [loadConversations]),
+  );
+
   useEffect(() => {
-    void loadConversations();
-  }, [loadConversations]);
+    if (!lastReceivedMessage) {
+      return;
+    }
+
+    setConversations((currentConversations) => {
+      const conversationIndex = currentConversations.findIndex(
+        (conversation) =>
+          Number(conversation.id) ===
+          Number(lastReceivedMessage.conversation_id),
+      );
+
+      if (conversationIndex === -1) {
+        void loadConversations("silent");
+        return currentConversations;
+      }
+
+      const currentConversation = currentConversations[conversationIndex];
+
+      const updatedConversation: Conversation = {
+        ...currentConversation,
+        last_message: lastReceivedMessage,
+        updated_at:
+          lastReceivedMessage.created_at ?? currentConversation.updated_at,
+      };
+
+      return [
+        updatedConversation,
+        ...currentConversations.filter(
+          (_, index) => index !== conversationIndex,
+        ),
+      ];
+    });
+  }, [lastReceivedMessage, loadConversations]);
 
   const handleRefresh = () => {
-    void loadConversations(true);
+    void loadConversations("refresh");
   };
 
   const formatMessageTime = (date: string | null): string => {

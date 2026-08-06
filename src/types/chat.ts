@@ -15,6 +15,7 @@ export interface ChatMessage {
   content: string | null;
   metadata: Record<string, unknown> | null;
   status: "sent" | "delivered" | "read";
+  is_read?: boolean;
   delivered_at: string | null;
   read_at: string | null;
   edited_at: string | null;

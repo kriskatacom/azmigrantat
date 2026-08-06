@@ -1,5 +1,6 @@
 import { useAppTheme } from "@/app/_layout";
 import { useAuth } from "@/hooks/useAuth";
+import { useSocket } from "@/hooks/useSocket";
 import {
   getMessages,
   markConversationAsRead,
@@ -30,6 +31,8 @@ export default function ChatRoom() {
   const { token, user } = useAuth();
   const router = useRouter();
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
+  const { lastReceivedMessage, lastReadReceipt } = useSocket();
+  const lastReadReceiptRef = useRef(lastReadReceipt);
 
   const params = useLocalSearchParams<{
     id?: string | string[];
@@ -122,6 +125,72 @@ export default function ChatRoom() {
   }, [token, conversationId, user?.id, resolveOtherUser, scrollToBottom]);
 
   useEffect(() => {
+    lastReadReceiptRef.current = lastReadReceipt;
+  }, [lastReadReceipt]);
+
+  useEffect(() => {
+    if (
+      !lastReceivedMessage ||
+      lastReceivedMessage.conversation_id !== conversationId
+    ) {
+      return;
+    }
+
+    setMessages((currentMessages) => {
+      const alreadyExists = currentMessages.some(
+        (message) => message.id === lastReceivedMessage.id,
+      );
+
+      if (alreadyExists) {
+        return currentMessages;
+      }
+
+      return [...currentMessages, lastReceivedMessage];
+    });
+
+    if (token && lastReceivedMessage.sender_id !== user?.id) {
+      void markConversationAsRead(
+        token,
+        conversationId,
+        lastReceivedMessage.id,
+      );
+    }
+
+    scrollToBottom();
+  }, [lastReceivedMessage, conversationId, token, user?.id, scrollToBottom]);
+
+  useEffect(() => {
+    console.log("ChatRoom lastReadReceipt:", lastReadReceipt);
+    console.log("ChatRoom conversationId:", conversationId);
+
+    if (
+      !lastReadReceipt ||
+      lastReadReceipt.conversation_id !== conversationId
+    ) {
+      return;
+    }
+
+    setMessages((currentMessages) =>
+      currentMessages.map((message) => {
+        const shouldMarkAsRead =
+          Number(message.sender_id) === Number(user?.id) &&
+          Number(message.id) <= Number(lastReadReceipt.last_read_message_id);
+
+        if (!shouldMarkAsRead) {
+          return message;
+        }
+
+        return {
+          ...message,
+          status: "read",
+          is_read: true,
+          read_at: lastReadReceipt.read_at,
+        };
+      }),
+    );
+  }, [lastReadReceipt, conversationId, user?.id]);
+
+  useEffect(() => {
     void loadMessages();
   }, [loadMessages]);
 
@@ -167,7 +236,22 @@ export default function ChatRoom() {
           return currentMessages;
         }
 
-        return [...currentMessages, message];
+        const latestReadReceipt = lastReadReceiptRef.current;
+
+        const wasAlreadyRead =
+          latestReadReceipt?.conversation_id === conversationId &&
+          Number(message.id) <= Number(latestReadReceipt.last_read_message_id);
+
+        const normalizedMessage: ChatMessage = wasAlreadyRead
+          ? {
+              ...message,
+              status: "read",
+              is_read: true,
+              read_at: latestReadReceipt.read_at,
+            }
+          : message;
+
+        return [...currentMessages, normalizedMessage];
       });
 
       scrollToBottom();
@@ -209,23 +293,41 @@ export default function ChatRoom() {
             {item.content}
           </Text>
 
-          <Text
-            style={[
-              styles.messageTime,
-              {
-                color: isMe
-                  ? "rgba(255, 255, 255, 0.7)"
-                  : theme.colors.textSecondary,
-              },
-            ]}
-          >
-            {item.created_at
-              ? new Date(item.created_at).toLocaleTimeString("bg-BG", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })
-              : ""}
-          </Text>
+          <View style={styles.messageMeta}>
+            <Text
+              style={[
+                styles.messageTime,
+                {
+                  color: isMe
+                    ? "rgba(255, 255, 255, 0.7)"
+                    : theme.colors.textSecondary,
+                },
+              ]}
+            >
+              {item.created_at
+                ? new Date(item.created_at).toLocaleTimeString("bg-BG", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })
+                : ""}
+            </Text>
+
+            {isMe && (
+              <Text
+                style={[
+                  styles.readIndicator,
+                  {
+                    color:
+                      item.is_read || item.status === "read"
+                        ? "#60a5fa"
+                        : "rgba(255, 255, 255, 0.7)",
+                  },
+                ]}
+              >
+                {item.is_read || item.status === "read" ? "✓✓" : "✓"}
+              </Text>
+            )}
+          </View>
         </View>
       </View>
     );
@@ -476,6 +578,18 @@ const styles = StyleSheet.create({
   messagesList: {
     padding: 16,
     paddingBottom: 24,
+  },
+  messageMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 4,
+    marginTop: 4,
+  },
+  readIndicator: {
+    fontSize: 12,
+    fontWeight: "700",
+    lineHeight: 14,
   },
   messageRow: {
     flexDirection: "row",

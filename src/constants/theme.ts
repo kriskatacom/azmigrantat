@@ -3,14 +3,14 @@ export const lightTheme = {
     primary: "#2563eb",
     secondary: "#3b82f6",
 
-    background: "#ffffff",
-    surface: "#f8fafc",
+    background: "#f9f9f9",
+    surface: "#efefef",
     card: "#ffffff",
 
     text: "#18181b",
     textSecondary: "#71717a",
 
-    border: "#e4e4e7",
+    border: "#efefef",
 
     success: "#16a34a",
     warning: "#f59e0b",
