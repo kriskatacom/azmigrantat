@@ -150,4 +150,12 @@ class User extends Model
     {
         return isset($_SESSION['2fa_verified']) && $_SESSION['2fa_verified'] === true;
     }
+    
+    public function pushTokens()
+    {
+        return $this->hasMany(
+            PushToken::class,
+            'user_id'
+        );
+    }
 }

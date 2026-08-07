@@ -7,6 +7,7 @@ use App\Models\Message;
 use App\Models\OauthAccessToken;
 use App\Models\User;
 use App\Services\ConversationService;
+use App\Services\PushNotificationService;
 use App\Services\RealtimeNotifier;
 use Carbon\Carbon;
 use Exception;
@@ -16,11 +17,13 @@ final class MessageController extends BaseController
 {
     private ConversationService $conversationService;
     private RealtimeNotifier $realtimeNotifier;
+    private PushNotificationService $pushNotificationService;
 
     public function __construct()
     {
         $this->conversationService = new ConversationService();
         $this->realtimeNotifier = new RealtimeNotifier();
+        $this->pushNotificationService = new PushNotificationService();
     }
 
     public function index($conversationId)
@@ -94,20 +97,24 @@ final class MessageController extends BaseController
             [
                 'client_message_id' =>
                     'required|string|max:36',
+
                 'content' =>
                     'required|string|max:10000',
             ],
             [
                 'required' =>
                     'Полето :attribute е задължително.',
+
                 'string' =>
                     'Полето :attribute трябва да бъде текст.',
+
                 'max' =>
                     'Полето :attribute не може да съдържа повече от :max символа.',
             ],
             [
                 'client_message_id' =>
                     'идентификатор на съобщението',
+
                 'content' =>
                     'съобщение',
             ]
@@ -134,6 +141,20 @@ final class MessageController extends BaseController
                     $input['client_message_id'],
                     $content
                 );
+
+            try {
+                $this->pushNotificationService
+                    ->sendMessageNotification(
+                        $conversation,
+                        $message,
+                        $user
+                    );
+            } catch (Exception $exception) {
+                error_log(
+                    'Push notification error: '
+                    . $exception->getMessage()
+                );
+            }
 
             return $this->json([
                 'success' => true,

@@ -3,6 +3,7 @@
 use App\Controllers\Api\ConversationController;
 use App\Controllers\Api\MessageController;
 use App\Controllers\Api\MobileAuthController;
+use App\Controllers\Api\PushTokenController;
 use App\Controllers\Api\TwoFAuthController;
 use App\Controllers\CategoryController;
 use App\Controllers\PhinxController;
@@ -61,6 +62,10 @@ $router->get('/api/mobile/conversations/{id}', [ConversationController::class, '
 $router->get('/api/mobile/conversations/{id}/messages', [MessageController::class, 'index']);
 $router->post('/api/mobile/conversations/{id}/messages', [MessageController::class, 'store']);
 $router->post('/api/mobile/conversations/{id}/read', [MessageController::class, 'markAsRead']);
+
+$router->post('/api/mobile/push-tokens', [PushTokenController::class, 'store']);
+$router->post('/api/mobile/push-tokens/delete', [PushTokenController::class, 'destroy']);
+$router->post('/api/mobile/push-tokens/delete-all',[PushTokenController::class, 'destroyAll']);
 
 $router->get('/api/users', [UserController::class, 'getUsers']);
 $router->get('/api/users/account', [UserController::class, 'getAccount']);
