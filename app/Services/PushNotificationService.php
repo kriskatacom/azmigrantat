@@ -97,7 +97,8 @@ final class PushNotificationService
                 'body' => $body,
                 'data' => $data,
                 'priority' => 'high',
-                'channelId' => 'chat-messages-v2',
+                'channelId' => 'chat-messages-v3',
+                'categoryId' => 'chat_message',
             ];
         }
 
