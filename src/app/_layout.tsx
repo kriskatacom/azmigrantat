@@ -1,6 +1,9 @@
 import { darkTheme, lightTheme, type AppTheme } from "@/constants/theme";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SocketProvider } from "@/contexts/SocketContext";
+import { useAuth } from "@/hooks/useAuth";
+import { markConversationAsRead } from "@/services/chat";
+import "@/services/notificationBackgroundTask";
 import { getActiveConversationId } from "@/services/notificationState";
 import * as Notifications from "expo-notifications";
 import { Stack, useRouter } from "expo-router";
@@ -96,20 +99,17 @@ function ThemeProvider({ children }: PropsWithChildren) {
 
 function NotificationNavigationHandler() {
   const router = useRouter();
+  const { token } = useAuth();
 
-  const lastHandledNotificationIdRef = useRef<string | null>(null);
+  const lastHandledResponseRef = useRef<string | null>(null);
 
   const handleNotificationResponse = useCallback(
-    (response: Notifications.NotificationResponse) => {
+    async (response: Notifications.NotificationResponse) => {
       const notification = response.notification;
-
-      const notificationId = notification.request.identifier;
-
-      if (lastHandledNotificationIdRef.current === notificationId) {
-        return;
-      }
-
       const data = notification.request.content.data;
+      const actionIdentifier = response.actionIdentifier;
+
+      console.log("Notification action:", actionIdentifier);
 
       if (
         data?.type !== "chat_message" ||
@@ -120,21 +120,118 @@ function NotificationNavigationHandler() {
 
       const conversationId = Number(data.conversation_id);
 
+      const messageId =
+        data.message_id !== undefined ? Number(data.message_id) : null;
+
       if (!Number.isInteger(conversationId) || conversationId <= 0) {
         return;
       }
 
-      lastHandledNotificationIdRef.current = notificationId;
+      /*
+       * Използваме notification + action,
+       * защото различни actions могат да са
+       * върху една и съща notification.
+       */
+      const responseKey = `${notification.request.identifier}:${actionIdentifier}`;
 
-      router.push({
-        pathname: "/chat/[id]",
-        params: {
-          id: String(conversationId),
-        },
-      });
+      if (lastHandledResponseRef.current === responseKey) {
+        return;
+      }
+
+      lastHandledResponseRef.current = responseKey;
+
+      /*
+       * MARK AS READ
+       *
+       * НЕ навигираме никъде.
+       */
+      if (
+        actionIdentifier === "mark_read" ||
+        actionIdentifier === "mark-read"
+      ) {
+        console.log("Избрано mark_read");
+
+        if (!token) {
+          console.log("Няма access token за mark_read.");
+          return;
+        }
+
+        try {
+          await markConversationAsRead(
+            token,
+            conversationId,
+            messageId ?? undefined,
+          );
+
+          await Notifications.dismissNotificationAsync(
+            notification.request.identifier,
+          );
+
+          console.log("Маркирано като прочетено.");
+        } catch (error) {
+          console.error("Грешка при маркиране като прочетено:", error);
+        }
+
+        return;
+      }
+
+      /*
+       * REPLY
+       */
+      if (actionIdentifier === "reply") {
+        router.push({
+          pathname: "/chat/[id]",
+          params: {
+            id: String(conversationId),
+          },
+        });
+
+        return;
+      }
+
+      /*
+       * Натискане върху самата notification.
+       */
+      if (actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+        router.push({
+          pathname: "/chat/[id]",
+          params: {
+            id: String(conversationId),
+          },
+        });
+
+        return;
+      }
+
+      /*
+       * МНОГО ВАЖНО:
+       *
+       * При неизвестен action НЕ правим нищо.
+       * Няма fallback router.push().
+       */
+      console.log("Непознат notification action:", actionIdentifier);
     },
-    [router],
+    [router, token],
   );
+
+  useEffect(() => {
+    void Notifications.setNotificationCategoryAsync("chat_message", [
+      {
+        identifier: "reply",
+        buttonTitle: "Отговор",
+        options: {
+          opensAppToForeground: true,
+        },
+      },
+      {
+        identifier: "mark_read",
+        buttonTitle: "Маркирай като прочетено",
+        options: {
+          opensAppToForeground: false,
+        },
+      },
+    ]);
+  }, []);
 
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(
@@ -142,12 +239,18 @@ function NotificationNavigationHandler() {
     );
 
     void Notifications.getLastNotificationResponseAsync()
-      .then((response) => {
+      .then(async (response) => {
         if (!response) {
           return;
         }
 
-        handleNotificationResponse(response);
+        await handleNotificationResponse(response);
+
+        /*
+         * Изчистваме последната response,
+         * за да не бъде обработена отново.
+         */
+        await Notifications.clearLastNotificationResponseAsync();
       })
       .catch((error) => {
         console.error("Грешка при прочитане на последната нотификация:", error);
