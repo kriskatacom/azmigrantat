@@ -29,6 +29,8 @@ npm-debug.*
 yarn-debug.*
 yarn-error.*
 
+etome-realtime-application-firebase-adminsdk-fbsvc-30dce0b418.json
+
 # macOS
 .DS_Store
 *.pem

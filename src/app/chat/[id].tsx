@@ -6,6 +6,7 @@ import {
   markConversationAsRead,
   sendMessage,
 } from "@/services/chat";
+import { setActiveConversationId } from "@/services/notificationState";
 import type { ChatMessage, ChatUser } from "@/types/chat";
 import { FontAwesome } from "@expo/vector-icons";
 import * as Crypto from "expo-crypto";
@@ -68,6 +69,7 @@ export default function ChatRoom() {
   const [otherUser, setOtherUser] = useState<ChatUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const inputRef = useRef<TextInput>(null);
 
   const resolveOtherUser = useCallback(
     (items: ChatMessage[]) => {
@@ -131,6 +133,18 @@ export default function ChatRoom() {
   useEffect(() => {
     lastReadReceiptRef.current = lastReadReceipt;
   }, [lastReadReceipt]);
+
+  useEffect(() => {
+    if (!Number.isInteger(conversationId)) {
+      return;
+    }
+
+    setActiveConversationId(conversationId);
+
+    return () => {
+      setActiveConversationId(null);
+    };
+  }, [conversationId]);
 
   useEffect(() => {
     console.log("lastTypingUpdate:", lastTypingUpdate);
@@ -220,7 +234,6 @@ export default function ChatRoom() {
   useEffect(() => {
     const showSubscription = Keyboard.addListener("keyboardDidShow", () => {
       setKeyboardVisible(true);
-      scrollToBottom();
     });
 
     const hideSubscription = Keyboard.addListener("keyboardDidHide", () => {
@@ -231,7 +244,21 @@ export default function ChatRoom() {
       showSubscription.remove();
       hideSubscription.remove();
     };
-  }, [scrollToBottom]);
+  }, []);
+
+  useEffect(() => {
+    if (!keyboardVisible) {
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      scrollToBottom();
+    }, 150);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [keyboardVisible, scrollToBottom]);
 
   useEffect(() => {
     return () => {
@@ -346,6 +373,10 @@ export default function ChatRoom() {
       });
 
       scrollToBottom();
+
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
     } catch (error) {
       setInputMessage(content);
 
@@ -553,10 +584,8 @@ export default function ChatRoom() {
             </Text>
           }
           showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          keyboardDismissMode={
-            Platform.OS === "ios" ? "interactive" : "on-drag"
-          }
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode="none"
           onContentSizeChange={scrollToBottom}
         />
       )}
@@ -573,6 +602,7 @@ export default function ChatRoom() {
         ]}
       >
         <TextInput
+          ref={inputRef}
           style={[
             styles.input,
             {
@@ -586,7 +616,7 @@ export default function ChatRoom() {
           onChangeText={handleInputChange}
           multiline
           maxLength={10000}
-          editable={!isSending}
+          editable
         />
 
         <TouchableOpacity

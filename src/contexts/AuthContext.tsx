@@ -10,6 +10,7 @@ import {
 
 import { loginRequest, logoutRequest, registerRequest } from "@/services/auth";
 
+import { registerForPushNotifications } from "@/services/notifications";
 import type { AuthUser, LoginPayload, RegisterPayload } from "@/types/auth";
 
 const TOKEN_KEY = "auth_token";
@@ -131,6 +132,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
       const response = await loginRequest(payload);
 
       await saveSession(response.token, response.user, response.expiresIn);
+
+      try {
+        await registerForPushNotifications(response.token);
+      } catch (error) {
+        console.error("Неуспешна регистрация на push notifications:", error);
+      }
     },
     [saveSession],
   );

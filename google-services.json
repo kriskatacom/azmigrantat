@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "149310026747",
+    "project_id": "etome-realtime-application",
+    "storage_bucket": "etome-realtime-application.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:149310026747:android:dd5b2e62a2f9af00ab915e",
+        "android_client_info": {
+          "package_name": "com.anonymous.chatapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJqLmOlqCP_LVGmwV6oQ8mK4dxl6dEHn0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

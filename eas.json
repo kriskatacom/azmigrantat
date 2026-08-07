@@ -6,16 +6,31 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://users.azmigrantat.com",
+        "EXPO_PUBLIC_SOCKET_URL": "https://realtime.azmigrantat.com",
+        "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63"
+      }
     },
     "preview": {
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://users.azmigrantat.com",
+        "EXPO_PUBLIC_SOCKET_URL": "https://realtime.azmigrantat.com",
+        "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63"
       }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://users.azmigrantat.com",
+        "EXPO_PUBLIC_SOCKET_URL": "https://realtime.azmigrantat.com",
+        "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63"
+      }
     }
   },
   "submit": {
