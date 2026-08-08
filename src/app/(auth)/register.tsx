@@ -2,10 +2,11 @@ import { useAppTheme } from "@/app/_layout";
 import AppButton from "@/components/ui/AppButton";
 import AppInput from "@/components/ui/AppInput";
 import { useAuth } from "@/hooks/useAuth";
-import { Link, useRouter } from "expo-router";
+import { Link } from "expo-router";
 import { useRef, useState } from "react";
 import {
   Alert,
+  Animated,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -19,7 +20,6 @@ import {
 
 export default function RegisterScreen() {
   const { theme } = useAppTheme();
-  const router = useRouter();
   const { register } = useAuth();
 
   const [firstName, setFirstName] = useState("");
@@ -33,6 +33,20 @@ export default function RegisterScreen() {
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const passwordConfirmationRef = useRef<TextInput>(null);
+
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const fadeOut = () => {
+    return new Promise<void>((resolve) => {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        resolve();
+      });
+    });
+  };
 
   const handleRegister = async () => {
     const normalizedEmail = email.trim().toLowerCase();
@@ -61,6 +75,8 @@ export default function RegisterScreen() {
     try {
       setIsSubmitting(true);
 
+      await fadeOut();
+
       await register({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -68,8 +84,6 @@ export default function RegisterScreen() {
         password,
         passwordConfirmation,
       });
-
-      router.replace("/(protected)");
     } catch (error) {
       Alert.alert(
         "Неуспешна регистрация",
@@ -86,116 +100,128 @@ export default function RegisterScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={0}
     >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        automaticallyAdjustKeyboardInsets
+      <Animated.View
+        style={[
+          styles.animatedContent,
+          {
+            opacity: fadeAnim,
+          },
+        ]}
       >
-        <Image
-          source={require("../../../assets/images/azmigrantat-logo.webp")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-
-        <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>
-            Регистрация
-          </Text>
-
-          <Text
-            style={[styles.subtitle, { color: theme.colors.textSecondary }]}
-          >
-            Създайте своя профил в приложението.
-          </Text>
-
-          <AppInput
-            label="Име"
-            placeholder="Вашето име"
-            value={firstName}
-            onChangeText={setFirstName}
-            autoCapitalize="words"
-            returnKeyType="next"
-            onSubmitEditing={() => lastNameRef.current?.focus()}
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          automaticallyAdjustKeyboardInsets
+        >
+          <Image
+            source={require("../../../assets/images/azmigrantat-logo.webp")}
+            style={styles.logo}
+            resizeMode="contain"
           />
 
-          <AppInput
-            ref={lastNameRef}
-            label="Фамилия"
-            placeholder="Вашата фамилия"
-            value={lastName}
-            onChangeText={setLastName}
-            autoCapitalize="words"
-            textContentType="familyName"
-            returnKeyType="next"
-            onSubmitEditing={() => emailRef.current?.focus()}
-          />
-
-          <AppInput
-            ref={emailRef}
-            label="Имейл"
-            placeholder="например: name@example.com"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            textContentType="emailAddress"
-            returnKeyType="next"
-            onSubmitEditing={() => passwordRef.current?.focus()}
-          />
-
-          <AppInput
-            ref={passwordRef}
-            label="Парола"
-            placeholder="Поне 6 символа"
-            value={password}
-            onChangeText={setPassword}
-            isPassword
-            textContentType="newPassword"
-            returnKeyType="next"
-            onSubmitEditing={() => passwordConfirmationRef.current?.focus()}
-          />
-
-          <AppInput
-            ref={passwordConfirmationRef}
-            label="Потвърди паролата"
-            placeholder="Въведете паролата отново"
-            value={passwordConfirmation}
-            onChangeText={setPasswordConfirmation}
-            isPassword
-            returnKeyType="done"
-            onSubmitEditing={handleRegister}
-          />
-
-          <AppButton
-            title="Създай профил"
-            loading={isSubmitting}
-            onPress={handleRegister}
-          />
-
-          <View style={styles.footer}>
-            <Text style={{ color: theme.colors.textSecondary }}>
-              Вече имате профил?{" "}
+          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.title, { color: theme.colors.text }]}>
+              Регистрация
             </Text>
 
-            <Link href="/(auth)/login" asChild>
-              <TouchableOpacity>
-                <Text
-                  style={[styles.footerLink, { color: theme.colors.primary }]}
-                >
-                  Вход
-                </Text>
-              </TouchableOpacity>
-            </Link>
+            <Text
+              style={[styles.subtitle, { color: theme.colors.textSecondary }]}
+            >
+              Създайте своя профил в приложението.
+            </Text>
+
+            <AppInput
+              label="Име"
+              placeholder="Вашето име"
+              value={firstName}
+              onChangeText={setFirstName}
+              autoCapitalize="words"
+              returnKeyType="next"
+              onSubmitEditing={() => lastNameRef.current?.focus()}
+            />
+
+            <AppInput
+              ref={lastNameRef}
+              label="Фамилия"
+              placeholder="Вашата фамилия"
+              value={lastName}
+              onChangeText={setLastName}
+              autoCapitalize="words"
+              textContentType="familyName"
+              returnKeyType="next"
+              onSubmitEditing={() => emailRef.current?.focus()}
+            />
+
+            <AppInput
+              ref={emailRef}
+              label="Имейл"
+              placeholder="например: name@example.com"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              textContentType="emailAddress"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+            />
+
+            <AppInput
+              ref={passwordRef}
+              label="Парола"
+              placeholder="Поне 6 символа"
+              value={password}
+              onChangeText={setPassword}
+              isPassword
+              textContentType="newPassword"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordConfirmationRef.current?.focus()}
+            />
+
+            <AppInput
+              ref={passwordConfirmationRef}
+              label="Потвърди паролата"
+              placeholder="Въведете паролата отново"
+              value={passwordConfirmation}
+              onChangeText={setPasswordConfirmation}
+              isPassword
+              returnKeyType="done"
+              onSubmitEditing={handleRegister}
+            />
+
+            <AppButton
+              title="Създай профил"
+              loading={isSubmitting}
+              onPress={handleRegister}
+            />
+
+            <View style={styles.footer}>
+              <Text style={{ color: theme.colors.textSecondary }}>
+                Вече имате профил?{" "}
+              </Text>
+
+              <Link href="/(auth)/login" asChild>
+                <TouchableOpacity>
+                  <Text
+                    style={[styles.footerLink, { color: theme.colors.primary }]}
+                  >
+                    Вход
+                  </Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </Animated.View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  animatedContent: {
+    flex: 1,
+  },
   screen: {
     flex: 1,
   },

@@ -2,10 +2,11 @@ import { useAppTheme } from "@/app/_layout";
 import AppButton from "@/components/ui/AppButton";
 import AppInput from "@/components/ui/AppInput";
 import { useAuth } from "@/hooks/useAuth";
-import { Link, useRouter } from "expo-router";
+import { Link } from "expo-router";
 import { useRef, useState } from "react";
 import {
   Alert,
+  Animated,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -19,15 +20,26 @@ import {
 
 export default function LoginScreen() {
   const { theme } = useAppTheme();
-  const router = useRouter();
   const { login } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const fadeOut = () => {
+    return new Promise<void>((resolve) => {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => {
+        resolve();
+      });
+    });
+  };
 
   const handleLogin = async () => {
     const normalizedEmail = email.trim().toLowerCase();
@@ -40,13 +52,19 @@ export default function LoginScreen() {
     try {
       setIsSubmitting(true);
 
+      await fadeOut();
+
       await login({
         email: normalizedEmail,
         password,
       });
-
-      router.replace("/(protected)");
     } catch (error) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+
       Alert.alert(
         "Неуспешен вход",
         error instanceof Error ? error.message : "Възникна неочаквана грешка.",
@@ -64,86 +82,102 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={0}
     >
-      <ScrollView
-        contentContainerStyle={styles.content}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        automaticallyAdjustKeyboardInsets
+      <Animated.View
+        style={[
+          styles.animatedContent,
+          {
+            opacity: fadeAnim,
+          },
+        ]}
       >
-        <Image
-          source={require("../../../assets/images/azmigrantat-logo.webp")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-
-        <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>Вход</Text>
-
-          <Text
-            style={[styles.subtitle, { color: theme.colors.textSecondary }]}
-          >
-            Влезте в своя профил, за да продължите.
-          </Text>
-
-          <AppInput
-            label="Имейл"
-            placeholder="например: name@example.com"
-            value={email}
-            onChangeText={setEmail}
-            autoCapitalize="none"
-            autoCorrect={false}
-            keyboardType="email-address"
-            textContentType="emailAddress"
-            returnKeyType="next"
-            onSubmitEditing={() => passwordRef.current?.focus()}
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          automaticallyAdjustKeyboardInsets
+        >
+          <Image
+            source={require("../../../assets/images/azmigrantat-logo.webp")}
+            style={styles.logo}
+            resizeMode="contain"
           />
 
-          <AppInput
-            ref={passwordRef}
-            label="Парола"
-            placeholder="Въведете паролата си"
-            value={password}
-            onChangeText={setPassword}
-            isPassword
-            textContentType="password"
-            returnKeyType="done"
-            onSubmitEditing={handleLogin}
-          />
-
-          <TouchableOpacity style={styles.forgotButton}>
-            <Text style={[styles.forgotText, { color: theme.colors.primary }]}>
-              Забравена парола?
-            </Text>
-          </TouchableOpacity>
-
-          <AppButton
-            title="Вход"
-            loading={isSubmitting}
-            onPress={handleLogin}
-          />
-
-          <View style={styles.footer}>
-            <Text style={{ color: theme.colors.textSecondary }}>
-              Нямате профил?{" "}
+          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
+            <Text style={[styles.title, { color: theme.colors.text }]}>
+              Вход
             </Text>
 
-            <Link href="/(auth)/register" asChild>
-              <TouchableOpacity>
-                <Text
-                  style={[styles.footerLink, { color: theme.colors.primary }]}
-                >
-                  Регистрация
-                </Text>
-              </TouchableOpacity>
-            </Link>
+            <Text
+              style={[styles.subtitle, { color: theme.colors.textSecondary }]}
+            >
+              Влезте в своя профил, за да продължите.
+            </Text>
+
+            <AppInput
+              label="Имейл"
+              placeholder="например: name@example.com"
+              value={email}
+              onChangeText={setEmail}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="email-address"
+              textContentType="emailAddress"
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current?.focus()}
+            />
+
+            <AppInput
+              ref={passwordRef}
+              label="Парола"
+              placeholder="Въведете паролата си"
+              value={password}
+              onChangeText={setPassword}
+              isPassword
+              textContentType="password"
+              returnKeyType="done"
+              onSubmitEditing={handleLogin}
+            />
+
+            <TouchableOpacity style={styles.forgotButton}>
+              <Text
+                style={[styles.forgotText, { color: theme.colors.primary }]}
+              >
+                Забравена парола?
+              </Text>
+            </TouchableOpacity>
+
+            <AppButton
+              title="Вход"
+              loading={isSubmitting}
+              onPress={handleLogin}
+            />
+
+            <View style={styles.footer}>
+              <Text style={{ color: theme.colors.textSecondary }}>
+                Нямате профил?{" "}
+              </Text>
+
+              <Link href="/(auth)/register" asChild>
+                <TouchableOpacity>
+                  <Text
+                    style={[styles.footerLink, { color: theme.colors.primary }]}
+                  >
+                    Регистрация
+                  </Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </Animated.View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
+  animatedContent: {
+    flex: 1,
+  },
   screen: {
     flex: 1,
   },

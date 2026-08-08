@@ -32,16 +32,30 @@ export interface TypingClientPayload {
   recipient_ids: number[];
 }
 
+export type PresencePayload = {
+  user_id: number;
+  is_online: boolean;
+};
+
+export interface PresenceCheckPayload {
+  user_id: number;
+}
+
 interface ServerToClientEvents {
   "connection:ready": (payload: ConnectionReadyPayload) => void;
   "message:new": (message: ChatMessage) => void;
   "message:read": (payload: MessageReadPayload) => void;
   "typing:update": (payload: TypingPayload) => void;
+
+  "presence:update": (payload: PresencePayload) => void;
+  "presence:status": (payload: PresencePayload) => void;
 }
 
 interface ClientToServerEvents {
   "typing:start": (payload: TypingClientPayload) => void;
   "typing:stop": (payload: TypingClientPayload) => void;
+
+  "presence:check": (payload: PresenceCheckPayload) => void;
 }
 
 export type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;

@@ -7,6 +7,7 @@ import "@/services/notificationBackgroundTask";
 import { getActiveConversationId } from "@/services/notificationState";
 import * as Notifications from "expo-notifications";
 import { Stack, useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import {
   createContext,
   PropsWithChildren,
@@ -99,7 +100,7 @@ function ThemeProvider({ children }: PropsWithChildren) {
 
 function NotificationNavigationHandler() {
   const router = useRouter();
-  const { token } = useAuth();
+  const { token, isAuthenticated } = useAuth();
 
   const lastHandledResponseRef = useRef<string | null>(null);
 
@@ -127,11 +128,6 @@ function NotificationNavigationHandler() {
         return;
       }
 
-      /*
-       * Използваме notification + action,
-       * защото различни actions могат да са
-       * върху една и съща notification.
-       */
       const responseKey = `${notification.request.identifier}:${actionIdentifier}`;
 
       if (lastHandledResponseRef.current === responseKey) {
@@ -140,11 +136,6 @@ function NotificationNavigationHandler() {
 
       lastHandledResponseRef.current = responseKey;
 
-      /*
-       * MARK AS READ
-       *
-       * НЕ навигираме никъде.
-       */
       if (
         actionIdentifier === "mark_read" ||
         actionIdentifier === "mark-read"
@@ -175,9 +166,6 @@ function NotificationNavigationHandler() {
         return;
       }
 
-      /*
-       * REPLY
-       */
       if (actionIdentifier === "reply") {
         router.push({
           pathname: "/chat/[id]",
@@ -189,9 +177,6 @@ function NotificationNavigationHandler() {
         return;
       }
 
-      /*
-       * Натискане върху самата notification.
-       */
       if (actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
         router.push({
           pathname: "/chat/[id]",
@@ -203,18 +188,16 @@ function NotificationNavigationHandler() {
         return;
       }
 
-      /*
-       * МНОГО ВАЖНО:
-       *
-       * При неизвестен action НЕ правим нищо.
-       * Няма fallback router.push().
-       */
       console.log("Непознат notification action:", actionIdentifier);
     },
     [router, token],
   );
 
   useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
     void Notifications.setNotificationCategoryAsync("chat_message", [
       {
         identifier: "reply",
@@ -231,7 +214,7 @@ function NotificationNavigationHandler() {
         },
       },
     ]);
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(
@@ -246,10 +229,6 @@ function NotificationNavigationHandler() {
 
         await handleNotificationResponse(response);
 
-        /*
-         * Изчистваме последната response,
-         * за да не бъде обработена отново.
-         */
         await Notifications.clearLastNotificationResponseAsync();
       })
       .catch((error) => {
@@ -264,19 +243,34 @@ function NotificationNavigationHandler() {
   return null;
 }
 
+function RootNavigator() {
+  const { theme, colorScheme } = useAppTheme();
+
+  return (
+    <>
+      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+
+      <NotificationNavigationHandler />
+
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: "fade",
+          contentStyle: {
+            backgroundColor: theme.colors.background,
+          },
+        }}
+      />
+    </>
+  );
+}
+
 export default function Layout() {
   return (
     <ThemeProvider>
       <AuthProvider>
         <SocketProvider>
-          <NotificationNavigationHandler />
-
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              animation: "slide_from_right",
-            }}
-          />
+          <RootNavigator />
         </SocketProvider>
       </AuthProvider>
     </ThemeProvider>

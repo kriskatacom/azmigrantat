@@ -1,12 +1,13 @@
 import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
+import { useInboxPresence } from "@/hooks/chat/useInboxPresence";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
 import { getConversations } from "@/services/chat";
 import type { Conversation } from "@/types/chat";
 import { FontAwesome } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -24,7 +25,13 @@ type LoadMode = "initial" | "refresh" | "silent";
 export default function InboxScreen() {
   const { theme } = useAppTheme();
   const { token } = useAuth();
-  const { lastReceivedMessage } = useSocket();
+  const {
+    socket,
+    isConnected,
+    lastReceivedMessage,
+    lastPresenceUpdate,
+    lastPresenceStatus,
+  } = useSocket();
   const router = useRouter();
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -64,6 +71,22 @@ export default function InboxScreen() {
     },
     [token],
   );
+
+  const conversationUserIds = useMemo(
+    () =>
+      conversations
+        .map((conversation) => Number(conversation.other_user?.id))
+        .filter((id) => Number.isInteger(id) && id > 0),
+    [conversations],
+  );
+
+  const { isUserOnline } = useInboxPresence({
+    socket,
+    isConnected,
+    userIds: conversationUserIds,
+    lastPresenceUpdate,
+    lastPresenceStatus,
+  });
 
   useFocusEffect(
     useCallback(() => {
@@ -155,7 +178,7 @@ export default function InboxScreen() {
       item.last_message?.created_at ?? item.updated_at,
     );
 
-    const isActive = otherUser?.is_active ?? false;
+    const isOnline = isUserOnline(otherUser?.id);
 
     return (
       <TouchableOpacity
@@ -167,7 +190,6 @@ export default function InboxScreen() {
               id: item.id.toString(),
               title: displayName,
               image: profileImage ?? "",
-              isActive: isActive.toString(),
             },
           })
         }
@@ -202,8 +224,8 @@ export default function InboxScreen() {
             style={[
               styles.statusIndicator,
               {
-                backgroundColor: isActive
-                  ? theme.colors.primary
+                backgroundColor: isOnline
+                  ? "#22c55e"
                   : theme.colors.textSecondary,
                 borderColor: theme.colors.background,
               },
