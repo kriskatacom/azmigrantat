@@ -35,6 +35,7 @@ export interface TypingClientPayload {
 export type PresencePayload = {
   user_id: number;
   is_online: boolean;
+  last_seen_at: string | null;
 };
 
 export interface PresenceCheckPayload {

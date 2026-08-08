@@ -24,7 +24,7 @@ type LoadMode = "initial" | "refresh" | "silent";
 
 export default function InboxScreen() {
   const { theme } = useAppTheme();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const {
     socket,
     isConnected,
@@ -113,11 +113,20 @@ export default function InboxScreen() {
 
       const currentConversation = currentConversations[conversationIndex];
 
+      const isIncoming =
+        Number(lastReceivedMessage.sender_id) !== Number(user?.id);
+
       const updatedConversation: Conversation = {
         ...currentConversation,
+
         last_message: lastReceivedMessage,
+
         updated_at:
           lastReceivedMessage.created_at ?? currentConversation.updated_at,
+
+        unread_count: isIncoming
+          ? currentConversation.unread_count + 1
+          : currentConversation.unread_count,
       };
 
       return [
@@ -254,6 +263,28 @@ export default function InboxScreen() {
               >
                 {displayName}
               </Text>
+
+              {item.unread_count > 0 && (
+                <View
+                  style={[
+                    styles.unreadBadge,
+                    {
+                      backgroundColor: theme.colors.primary,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.unreadBadgeText,
+                      {
+                        color: theme.colors.buttonText,
+                      },
+                    ]}
+                  >
+                    {item.unread_count > 99 ? "99+" : item.unread_count}
+                  </Text>
+                </View>
+              )}
             </View>
 
             <Text
@@ -447,5 +478,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 4,
     paddingRight: 10,
+  },
+  unreadBadge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 6,
+  },
+
+  unreadBadgeText: {
+    fontSize: 11,
+    fontWeight: "800",
   },
 });

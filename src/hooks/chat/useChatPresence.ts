@@ -21,6 +21,13 @@ export function useChatPresence({
 }: UseChatPresenceParams) {
   const [isOtherUserOnline, setIsOtherUserOnline] = useState(false);
 
+  const [lastSeenAt, setLastSeenAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    setIsOtherUserOnline(false);
+    setLastSeenAt(null);
+  }, [otherUserId]);
+
   useEffect(() => {
     if (!socket || !isConnected || !otherUserId) {
       return;
@@ -31,8 +38,6 @@ export function useChatPresence({
     if (!Number.isInteger(userId) || userId <= 0) {
       return;
     }
-
-    console.log("Изпращаме presence:check за:", userId);
 
     socket.emit("presence:check", {
       user_id: userId,
@@ -47,9 +52,9 @@ export function useChatPresence({
       return;
     }
 
-    console.log("Presence status:", lastPresenceStatus);
-
     setIsOtherUserOnline(lastPresenceStatus.is_online);
+
+    setLastSeenAt(lastPresenceStatus.last_seen_at);
   }, [lastPresenceStatus, otherUserId]);
 
   useEffect(() => {
@@ -60,16 +65,13 @@ export function useChatPresence({
       return;
     }
 
-    console.log("Presence update:", lastPresenceUpdate);
-
     setIsOtherUserOnline(lastPresenceUpdate.is_online);
-  }, [lastPresenceUpdate, otherUserId]);
 
-  useEffect(() => {
-    setIsOtherUserOnline(false);
-  }, [otherUserId]);
+    setLastSeenAt(lastPresenceUpdate.last_seen_at);
+  }, [lastPresenceUpdate, otherUserId]);
 
   return {
     isOtherUserOnline,
+    lastSeenAt,
   };
 }

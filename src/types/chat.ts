@@ -25,12 +25,17 @@ export interface ChatMessage {
 
 export interface Conversation {
   id: number;
-  type: "direct" | "group";
+  type: string;
   title: string | null;
   image: string | null;
+
   other_user: ChatUser | null;
+
   last_message: ChatMessage | null;
   last_read_message_id: number | null;
+
+  unread_count: number;
+
   is_muted: boolean;
   is_archived: boolean;
   updated_at: string | null;

@@ -56,7 +56,6 @@ export default function ChatRoom() {
     id?: string | string[];
     title?: string | string[];
     image?: string | string[];
-    isActive?: string | string[];
   }>();
 
   const conversationId = useMemo(() => {
@@ -103,7 +102,7 @@ export default function ChatRoom() {
     lastTypingUpdate,
   });
 
-  const { isOtherUserOnline } = useChatPresence({
+  const { isOtherUserOnline, lastSeenAt } = useChatPresence({
     socket,
     isConnected,
     otherUserId: otherUser?.id,
@@ -205,6 +204,7 @@ export default function ChatRoom() {
         name={displayedName}
         image={displayedImage}
         isOnline={isOtherUserOnline}
+        lastSeenAt={lastSeenAt}
         isTyping={isOtherUserTyping}
         onBack={() => router.back()}
         colors={theme.colors}

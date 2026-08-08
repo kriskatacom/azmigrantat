@@ -5,6 +5,7 @@ type ChatHeaderProps = {
   name: string;
   image?: string | null;
   isOnline: boolean;
+  lastSeenAt?: string | null;
   isTyping: boolean;
   onBack: () => void;
 
@@ -21,10 +22,48 @@ export default function ChatHeader({
   name,
   image,
   isOnline,
+  lastSeenAt,
   isTyping,
   onBack,
   colors,
 }: ChatHeaderProps) {
+  const formatLastSeen = (value?: string | null): string => {
+    if (!value) {
+      return "неактивен";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "неактивен";
+    }
+
+    const now = new Date();
+
+    const diffMs = now.getTime() - date.getTime();
+
+    const diffMinutes = Math.floor(diffMs / 60000);
+
+    if (diffMinutes < 1) {
+      return "последно на линия преди малко";
+    }
+
+    if (diffMinutes < 60) {
+      return `последно на линия преди ${diffMinutes} мин.`;
+    }
+
+    const diffHours = Math.floor(diffMinutes / 60);
+
+    if (diffHours < 24) {
+      return `последно на линия преди ${diffHours} ч.`;
+    }
+
+    return `последно на линия ${date.toLocaleDateString("bg-BG", {
+      day: "2-digit",
+      month: "2-digit",
+    })}`;
+  };
+
   return (
     <View
       style={[
@@ -78,7 +117,11 @@ export default function ChatHeader({
             isTyping || isOnline ? styles.statusOnline : styles.statusOffline,
           ]}
         >
-          {isTyping ? "пише..." : isOnline ? "на линия" : "неактивен"}
+          {isTyping
+            ? "пише..."
+            : isOnline
+              ? "на линия"
+              : formatLastSeen(lastSeenAt)}
         </Text>
       </View>
 
