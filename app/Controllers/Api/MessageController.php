@@ -261,7 +261,7 @@ final class MessageController extends BaseController
             'id' => $user->id,
             'name' => $user->name,
             'username' => $user->username,
-            'profile_image' => $user->profile_image,
+            'profile_image' => $user->profile_image_url,
             'is_active' => (bool) $user->is_active,
         ];
     }

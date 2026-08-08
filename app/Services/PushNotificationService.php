@@ -41,21 +41,20 @@ final class PushNotificationService
             $body = 'Ново съобщение';
         }
 
+        $senderImage = $sender->options['profile_image'] ?? null;
+
         return $this->sendToUser(
             $recipient,
             (string) $sender->name,
             $body,
             [
                 'type' => 'chat_message',
-                'conversation_id' =>
-                    (int) $conversation->id,
-
-                'message_id' =>
-                    (int) $message->id,
-
-                'sender_id' =>
-                    (int) $sender->id,
-            ]
+                'conversation_id' => (int) $conversation->id,
+                'message_id' => (int) $message->id,
+                'sender_id' => (int) $sender->id,
+                'sender_image' => $senderImage,
+            ],
+            $senderImage
         );
     }
 
@@ -63,7 +62,8 @@ final class PushNotificationService
         User $user,
         string $title,
         string $body,
-        array $data = []
+        array $data = [],
+        ?string $imageUrl = null
     ): bool {
         $tokens = PushToken::query()
             ->where(
@@ -91,7 +91,7 @@ final class PushNotificationService
         $messages = [];
 
         foreach ($tokens as $token) {
-            $messages[] = [
+            $notification = [
                 'to' => $token,
                 'title' => $title,
                 'body' => $body,
@@ -100,6 +100,17 @@ final class PushNotificationService
                 'channelId' => 'chat-messages-v3',
                 'categoryId' => 'chat_message',
             ];
+
+            if (
+                is_string($imageUrl)
+                && trim($imageUrl) !== ''
+            ) {
+                $notification['richContent'] = [
+                    'image' => trim($imageUrl),
+                ];
+            }
+
+            $messages[] = $notification;
         }
 
         return $this->send($messages);

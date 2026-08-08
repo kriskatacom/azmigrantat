@@ -150,12 +150,27 @@ class User extends Model
     {
         return isset($_SESSION['2fa_verified']) && $_SESSION['2fa_verified'] === true;
     }
-    
+
     public function pushTokens()
     {
         return $this->hasMany(
             PushToken::class,
             'user_id'
         );
+    }
+
+    public function getProfileImageUrlAttribute(): ?string
+    {
+        $options = $this->options;
+
+        if (!is_array($options)) {
+            return null;
+        }
+
+        $image = $options['profile_image'] ?? null;
+
+        return is_string($image) && trim($image) !== ''
+            ? trim($image)
+            : null;
     }
 }

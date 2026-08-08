@@ -305,12 +305,6 @@ class UserController extends BaseController
 
         unset($data['password'], $data['password_confirmation'], $data['is_active']);
 
-        if (isset($data['options']) && is_array($data['options'])) {
-            $data['options'] = json_encode($data['options'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-        } else {
-            $data['options'] = json_encode([], JSON_UNESCAPED_SLASHES);
-        }
-
         $user->update($data);
 
         $this->flash('success', 'Профилът е обновен успешно!');

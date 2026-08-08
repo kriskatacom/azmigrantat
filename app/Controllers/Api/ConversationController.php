@@ -159,6 +159,16 @@ final class ConversationController extends BaseController
         $currentParticipant = $participants
             ->firstWhere('user_id', $currentUserId);
 
+        $lastReadMessageId = (int) (
+            $currentParticipant?->last_read_message_id ?? 0
+        );
+
+        $unreadCount = $conversation
+            ->messages()
+            ->where('id', '>', $lastReadMessageId)
+            ->where('sender_id', '!=', $currentUserId)
+            ->count();
+
         return [
             'id' => $conversation->id,
             'type' => $conversation->type,
@@ -166,7 +176,7 @@ final class ConversationController extends BaseController
                 ? $otherParticipant?->user?->name
                 : $conversation->title,
             'image' => $conversation->isDirect()
-                ? $otherParticipant?->user?->profile_image
+                ? $otherParticipant?->user?->profile_image_url
                 : $conversation->image,
             'other_user' => $conversation->isDirect()
                 ? $this->serializeUser($otherParticipant?->user)
@@ -178,6 +188,8 @@ final class ConversationController extends BaseController
                 : null,
             'last_read_message_id' =>
                 $currentParticipant?->last_read_message_id,
+
+            'unread_count' => $unreadCount,
             'is_muted' => (bool) (
                 $currentParticipant?->is_muted ?? false
             ),
@@ -199,7 +211,7 @@ final class ConversationController extends BaseController
             'id' => $user->id,
             'name' => $user->name,
             'username' => $user->username,
-            'profile_image' => $user->profile_image,
+            'profile_image' => $user->profile_image_url,
             'is_active' => (bool) $user->is_active,
         ];
     }
