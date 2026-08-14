@@ -74,3 +74,16 @@ export interface SendMessagePayload {
   client_message_id: string;
   content: string;
 }
+
+export interface LinkPreview {
+  url: string;
+  title: string | null;
+  description: string | null;
+  image: string | null;
+  site_name: string | null;
+}
+
+export interface LinkPreviewResponse {
+  success: true;
+  data: LinkPreview | null;
+}

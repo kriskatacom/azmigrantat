@@ -1,10 +1,14 @@
 import type { ChatMessage as ChatMessageType } from "@/types/chat";
 import { formatMessageTime } from "@/utils/chat/formatMessageTime";
+import { getFirstMessageUrl } from "@/utils/chat/message-links";
 import { StyleSheet, Text, View } from "react-native";
+import LinkifiedMessageText from "./LinkifiedMessageText";
+import LinkPreviewCard from "./LinkPreviewCard";
 
 type ChatMessageProps = {
   message: ChatMessageType;
   isMe: boolean;
+  token?: string | null;
 
   colors: {
     button: string;
@@ -12,6 +16,7 @@ type ChatMessageProps = {
     card: string;
     text: string;
     textSecondary: string;
+    primary: string;
   };
 };
 
@@ -19,10 +24,12 @@ export default function ChatMessage({
   message,
   isMe,
   colors,
+  token,
 }: ChatMessageProps) {
   const isRead = message.is_read || message.status === "read";
 
   const formattedTime = formatMessageTime(message.created_at);
+  const previewUrl = getFirstMessageUrl(message.content);
 
   return (
     <View style={[styles.messageRow, isMe ? styles.rowMe : styles.rowThem]}>
@@ -44,16 +51,16 @@ export default function ChatMessage({
               ],
         ]}
       >
-        <Text
-          style={[
-            styles.messageText,
-            {
-              color: isMe ? colors.buttonText : colors.text,
-            },
-          ]}
-        >
-          {message.content}
-        </Text>
+        <LinkifiedMessageText
+          content={message.content ?? ""}
+          color={isMe ? colors.buttonText : colors.text}
+          linkColor={isMe ? "#dbeafe" : colors.primary}
+          style={styles.messageText}
+        />
+
+        {previewUrl ? (
+          <LinkPreviewCard token={token} url={previewUrl} colors={colors} isMe={isMe} />
+        ) : null}
 
         <View style={styles.messageMeta}>
           <Text

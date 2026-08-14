@@ -13,6 +13,7 @@ import ChatMessage from "./ChatMessage";
 type ChatMessageListProps = {
   messages: ChatMessageType[];
   currentUserId?: number | string;
+  token?: string | null;
   isLoading: boolean;
   listRef: RefObject<FlatList<ChatMessageType> | null>;
   onContentSizeChange: () => void;
@@ -34,6 +35,7 @@ export default function ChatMessageList({
   listRef,
   onContentSizeChange,
   colors,
+  token,
 }: ChatMessageListProps) {
   if (isLoading) {
     return (
@@ -53,6 +55,7 @@ export default function ChatMessageList({
           message={item}
           isMe={Number(item.sender_id) === Number(currentUserId)}
           colors={colors}
+          token={token}
         />
       )}
       contentContainerStyle={[

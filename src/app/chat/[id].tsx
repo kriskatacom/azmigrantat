@@ -212,6 +212,7 @@ export default function ChatRoom() {
 
       <ChatMessageList
         messages={messages}
+        token={token}
         currentUserId={user?.id}
         isLoading={isLoading}
         listRef={flatListRef}

@@ -7,6 +7,8 @@ import type {
     SendMessagePayload,
     ChatUser,
     UserSearchResponse,
+    LinkPreview,
+    LinkPreviewResponse,
 } from "@/types/chat";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -165,4 +167,19 @@ export async function markConversationAsRead(
         : {},
     ),
   });
+}
+
+export async function getLinkPreview(
+  token: string,
+  url: string,
+  signal?: AbortSignal,
+): Promise<LinkPreview | null> {
+  const params = new URLSearchParams({ url });
+  const response = await request<LinkPreviewResponse>(
+    `/api/mobile/link-preview?${params.toString()}`,
+    token,
+    { signal },
+  );
+
+  return response.data;
 }
