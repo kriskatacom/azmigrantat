@@ -1,6 +1,7 @@
 <?php
 
 use App\Controllers\Api\ConversationController;
+use App\Controllers\Api\LinkPreviewController;
 use App\Controllers\Api\MessageController;
 use App\Controllers\Api\MobileAuthController;
 use App\Controllers\Api\PushTokenController;
@@ -59,6 +60,7 @@ $router->get('/api/mobile/me', [MobileAuthController::class, 'me']);
 $router->get('/api/mobile/users', [UserController::class, 'search']);
 $router->post('/api/mobile/profile', [UserController::class, 'updateProfile']);
 $router->post('/api/mobile/profile/password', [UserController::class, 'updatePassword']);
+$router->get('/api/mobile/link-preview', [LinkPreviewController::class, 'show']);
 
 $router->get('/api/mobile/conversations', [ConversationController::class, 'index']);
 $router->post('/api/mobile/conversations/direct', [ConversationController::class, 'createDirect']);
