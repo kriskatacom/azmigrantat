@@ -56,6 +56,8 @@ $router->post('/api/mobile/register', [MobileAuthController::class, 'register'])
 $router->post('/api/mobile/logout', [MobileAuthController::class, 'logout']);
 $router->get('/api/mobile/me', [MobileAuthController::class, 'me']);
 
+$router->get('/api/mobile/users', [UserController::class, 'search']);
+
 $router->get('/api/mobile/conversations', [ConversationController::class, 'index']);
 $router->post('/api/mobile/conversations/direct', [ConversationController::class, 'createDirect']);
 $router->get('/api/mobile/conversations/{id}', [ConversationController::class, 'show']);

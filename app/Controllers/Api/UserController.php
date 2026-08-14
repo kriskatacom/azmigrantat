@@ -4,6 +4,7 @@ namespace App\Controllers\Api;
 
 use App\Models\Post;
 use App\Models\User;
+use App\Models\OauthAccessToken;
 
 class UserController extends BaseApiController
 {
@@ -63,5 +64,78 @@ class UserController extends BaseApiController
             'user' => $user,
             'posts' => $postsArray
         ]);
+    }
+
+    public function search()
+    {
+        $user = $this->authenticatedUser();
+
+        if (!$user) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Необходима е автентикация.',
+            ], 401);
+        }
+
+        $search = trim($_GET['search'] ?? '');
+
+        if ($search === '') {
+            return $this->json([
+                'success' => true,
+                'data' => [],
+            ]);
+        }
+
+        $users = User::query()
+            ->where('is_active', true)
+            ->where(function ($query) use ($search) {
+                $query
+                    ->where('name', 'LIKE', '%' . $search . '%')
+                    ->orWhere('username', 'LIKE', '%' . $search . '%');
+            })
+            ->orderBy('name')
+            ->limit(20)
+            ->get();
+
+        return $this->json([
+            'success' => true,
+            'data' => $users
+                ->map(fn(User $user) => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'username' => $user->username,
+                    'profile_image' => $user->profile_image_url,
+                    'is_active' => (bool) $user->is_active,
+                ])
+                ->values(),
+        ]);
+    }
+
+    private function authenticatedUser(): ?User
+    {
+        $authorization =
+            $_SERVER['HTTP_AUTHORIZATION']
+            ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
+            ?? '';
+
+        if (!preg_match('/Bearer\s+(\S+)/i', $authorization, $matches)) {
+            return null;
+        }
+
+        $accessToken = OauthAccessToken::query()
+            ->where('token', $matches[1])
+            ->with('user')
+            ->first();
+
+        if (
+            !$accessToken ||
+            $accessToken->isExpired() ||
+            !$accessToken->user ||
+            !$accessToken->user->is_active
+        ) {
+            return null;
+        }
+
+        return $accessToken->user;
     }
 }
