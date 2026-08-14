@@ -17,6 +17,7 @@ type ChatInputProps = {
 
   onChangeText: (value: string) => void;
   onSend: () => void;
+  onAttach: () => void;
 
   colors: {
     card: string;
@@ -37,6 +38,7 @@ export default function ChatInput({
   inputRef,
   onChangeText,
   onSend,
+  onAttach,
   colors,
 }: ChatInputProps) {
   const canSend = Boolean(value.trim()) && !isSending;
@@ -52,6 +54,16 @@ export default function ChatInput({
         },
       ]}
     >
+      <TouchableOpacity
+        onPress={onAttach}
+        disabled={isSending}
+        style={[styles.attachButton, { backgroundColor: colors.background }]}
+        accessibilityRole="button"
+        accessibilityLabel="Добави снимка или файл"
+      >
+        <FontAwesome name="paperclip" size={20} color={colors.button} />
+      </TouchableOpacity>
+
       <TextInput
         ref={inputRef}
         style={[
@@ -110,6 +122,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     fontSize: 15,
     marginRight: 10,
+  },
+
+  attachButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 8,
   },
 
   sendButton: {

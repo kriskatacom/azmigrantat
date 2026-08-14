@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
 
 import { useChatKeyboard } from "@/hooks/chat/useChatKeyboard";
+import { useChatAttachments } from "@/hooks/chat/useChatAttachments";
 import { useChatMessages } from "@/hooks/chat/useChatMessages";
 import { useChatTyping } from "@/hooks/chat/useChatTyping";
 
@@ -81,7 +82,9 @@ export default function ChatRoom() {
     otherUser,
     isLoading,
     isSending,
+    isUploading,
     sendChatMessage,
+    sendChatAttachments,
     scrollToBottom,
   } = useChatMessages({
     token,
@@ -92,6 +95,11 @@ export default function ChatRoom() {
     inputRef,
     flatListRef,
     isAppActive,
+  });
+
+  const { openAttachmentMenu } = useChatAttachments({
+    disabled: isSending || isUploading,
+    onSend: sendChatAttachments,
   });
 
   const { isOtherUserTyping, handleTyping, stopTyping } = useChatTyping({
@@ -222,10 +230,11 @@ export default function ChatRoom() {
 
       <ChatInput
         value={inputMessage}
-        isSending={isSending}
+        isSending={isSending || isUploading}
         keyboardVisible={keyboardVisible}
         inputRef={inputRef}
         onChangeText={handleInputChange}
+        onAttach={openAttachmentMenu}
         onSend={() => {
           void handleSendMessage();
         }}

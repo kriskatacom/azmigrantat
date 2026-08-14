@@ -4,6 +4,7 @@ import { getFirstMessageUrl } from "@/utils/chat/message-links";
 import { StyleSheet, Text, View } from "react-native";
 import LinkifiedMessageText from "./LinkifiedMessageText";
 import LinkPreviewCard from "./LinkPreviewCard";
+import MessageAttachment, { getMessageAttachment } from "./MessageAttachment";
 
 type ChatMessageProps = {
   message: ChatMessageType;
@@ -30,6 +31,7 @@ export default function ChatMessage({
 
   const formattedTime = formatMessageTime(message.created_at);
   const previewUrl = getFirstMessageUrl(message.content);
+  const attachment = getMessageAttachment(message);
 
   return (
     <View style={[styles.messageRow, isMe ? styles.rowMe : styles.rowThem]}>
@@ -51,14 +53,18 @@ export default function ChatMessage({
               ],
         ]}
       >
-        <LinkifiedMessageText
-          content={message.content ?? ""}
-          color={isMe ? colors.buttonText : colors.text}
-          linkColor={isMe ? "#dbeafe" : colors.primary}
-          style={styles.messageText}
-        />
+        {attachment ? <MessageAttachment message={message} isMe={isMe} colors={colors} /> : null}
 
-        {previewUrl ? (
+        {message.content && !attachment ? (
+          <LinkifiedMessageText
+            content={message.content}
+            color={isMe ? colors.buttonText : colors.text}
+            linkColor={isMe ? "#dbeafe" : colors.primary}
+            style={styles.messageText}
+          />
+        ) : null}
+
+        {previewUrl && !attachment ? (
           <LinkPreviewCard token={token} url={previewUrl} colors={colors} isMe={isMe} />
         ) : null}
 

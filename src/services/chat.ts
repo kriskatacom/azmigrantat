@@ -1,15 +1,19 @@
 import type {
-    Conversation,
-    ConversationResponse,
-    ConversationsResponse,
-    MessageResponse,
-    MessagesResponse,
-    SendMessagePayload,
-    ChatUser,
-    UserSearchResponse,
-    LinkPreview,
-    LinkPreviewResponse,
+  ChatAttachmentUpload,
+  ChatUser,
+  Conversation,
+  ConversationResponse,
+  ConversationsResponse,
+  LinkPreview,
+  LinkPreviewResponse,
+  MessageResponse,
+  MessagesResponse,
+  SendMessagePayload,
+  UserSearchResponse,
 } from "@/types/chat";
+import * as Crypto from "expo-crypto";
+import { File } from "expo-file-system";
+import { fetch } from "expo/fetch";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -167,6 +171,57 @@ export async function markConversationAsRead(
         : {},
     ),
   });
+}
+
+export async function sendAttachment(
+  token: string,
+  conversationId: number,
+  attachment: ChatAttachmentUpload,
+): Promise<MessageResponse["data"]> {
+  const file = new File(attachment.uri);
+
+  const formData = new FormData();
+
+  formData.append("client_message_id", Crypto.randomUUID());
+
+  formData.append(
+    "type",
+    attachment.mimeType.startsWith("image/") ? "image" : "file",
+  );
+
+  formData.append("file", file);
+
+  const response = await fetch(
+    `${API_URL}/api/mobile/conversations/${conversationId}/attachments`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    },
+  );
+
+  const rawResponse = await response.text();
+
+  let data: MessageResponse | ApiErrorResponse;
+
+  try {
+    data = JSON.parse(rawResponse);
+  } catch {
+    throw new Error(
+      `Сървърът върна невалиден JSON. Status: ${response.status}. Body: ${rawResponse.slice(0, 2000)}`,
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      (data as ApiErrorResponse).message ?? "Файлът не можа да бъде изпратен.",
+    );
+  }
+
+  return (data as MessageResponse).data;
 }
 
 export async function getLinkPreview(

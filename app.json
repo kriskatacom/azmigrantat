@@ -37,7 +37,16 @@
           "imageWidth": 76
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Разрешете достъп до снимките, за да можете да ги изпращате в чата.",
+          "cameraPermission": "Разрешете достъп до камерата, за да можете да снимате и изпращате в чата.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-document-picker"
     ],
     "experiments": {
       "typedRoutes": true,

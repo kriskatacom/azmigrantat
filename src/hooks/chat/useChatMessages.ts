@@ -2,8 +2,9 @@ import {
   getMessages,
   markConversationAsRead,
   sendMessage,
+  sendAttachment,
 } from "@/services/chat";
-import type { ChatMessage, ChatUser } from "@/types/chat";
+import type { ChatAttachmentUpload, ChatMessage, ChatUser } from "@/types/chat";
 import * as Crypto from "expo-crypto";
 import {
   type RefObject,
@@ -49,6 +50,7 @@ export function useChatMessages({
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const lastReadReceiptRef = useRef(lastReadReceipt);
 
@@ -277,14 +279,45 @@ export function useChatMessages({
     [token, conversationId, isSending, scrollToBottom, inputRef],
   );
 
+  const sendChatAttachments = useCallback(
+    async (attachments: ChatAttachmentUpload[]) => {
+      if (!token || !Number.isInteger(conversationId) || isUploading || attachments.length === 0) return false;
+
+      try {
+        setIsUploading(true);
+        for (const attachment of attachments) {
+          const message = await sendAttachment(token, conversationId, attachment);
+          setMessages((currentMessages) =>
+            currentMessages.some((item) => Number(item.id) === Number(message.id))
+              ? currentMessages
+              : [...currentMessages, message],
+          );
+        }
+        scrollToBottom();
+        return true;
+      } catch (error) {
+        Alert.alert(
+          "Неуспешно изпращане",
+          error instanceof Error ? error.message : "Файлът не можа да бъде изпратен.",
+        );
+        return false;
+      } finally {
+        setIsUploading(false);
+      }
+    },
+    [token, conversationId, isUploading, scrollToBottom],
+  );
+
   return {
     messages,
     otherUser,
     isLoading,
     isSending,
+    isUploading,
 
     loadMessages,
     sendChatMessage,
+    sendChatAttachments,
     scrollToBottom,
   };
 }

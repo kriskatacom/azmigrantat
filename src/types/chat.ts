@@ -75,6 +75,13 @@ export interface SendMessagePayload {
   content: string;
 }
 
+export interface ChatAttachmentUpload {
+  uri: string;
+  name: string;
+  mimeType: string;
+  size?: number | null;
+}
+
 export interface LinkPreview {
   url: string;
   title: string | null;
