@@ -5,6 +5,8 @@ import type {
     MessageResponse,
     MessagesResponse,
     SendMessagePayload,
+    ChatUser,
+    UserSearchResponse,
 } from "@/types/chat";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
@@ -79,6 +81,21 @@ export async function createDirectConversation(
         recipient_id: recipientId,
       }),
     },
+  );
+
+  return response.data;
+}
+
+export async function searchUsers(
+  token: string,
+  query: string,
+  signal?: AbortSignal,
+): Promise<ChatUser[]> {
+  const params = new URLSearchParams({ search: query });
+  const response = await request<UserSearchResponse>(
+    `/api/mobile/users?${params.toString()}`,
+    token,
+    { signal },
   );
 
   return response.data;

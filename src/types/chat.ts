@@ -6,6 +6,11 @@ export interface ChatUser {
   is_active: boolean;
 }
 
+export interface UserSearchResponse {
+  success: true;
+  data: ChatUser[];
+}
+
 export interface ChatMessage {
   id: number;
   conversation_id: number;
