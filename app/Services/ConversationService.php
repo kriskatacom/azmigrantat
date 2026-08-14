@@ -98,7 +98,9 @@ final class ConversationService
         Conversation $conversation,
         User $sender,
         string $clientMessageId,
-        string $content
+        ?string $content,
+        string $type = 'text',
+        ?array $metadata = null
     ): Message {
         $existingMessage =
             $this->messageRepository->findByClientMessageId(
@@ -110,25 +112,40 @@ final class ConversationService
             return $existingMessage;
         }
 
-        $normalizedContent = trim($content);
+        $normalizedContent = $content !== null
+            ? trim($content)
+            : null;
 
-        if ($normalizedContent === '') {
+        if (
+            $type === 'text' &&
+            ($normalizedContent === null || $normalizedContent === '')
+        ) {
             throw new \InvalidArgumentException(
                 'Съобщението не може да бъде празно.'
+            );
+        }
+
+        if (
+            $type !== 'text' &&
+            ($metadata === null || empty($metadata['url']))
+        ) {
+            throw new \InvalidArgumentException(
+                'Липсват данни за прикачения файл.'
             );
         }
 
         $connection = (new Message())->getConnection();
 
         $message = $connection->transaction(
-            function () use ($conversation, $sender, $clientMessageId, $normalizedContent) {
-                $message =
-                    $this->messageRepository->createTextMessage(
-                        $conversation,
-                        $sender,
-                        $clientMessageId,
-                        $normalizedContent
-                    );
+            function () use ($conversation, $sender, $clientMessageId, $normalizedContent, $type, $metadata) {
+                $message = $this->messageRepository->createMessage(
+                    $conversation,
+                    $sender,
+                    $clientMessageId,
+                    $normalizedContent,
+                    $type,
+                    $metadata
+                );
 
                 $this->conversationRepository->updateLastMessage(
                     $conversation,

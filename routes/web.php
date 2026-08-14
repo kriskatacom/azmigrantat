@@ -67,6 +67,7 @@ $router->post('/api/mobile/conversations/direct', [ConversationController::class
 $router->get('/api/mobile/conversations/{id}', [ConversationController::class, 'show']);
 $router->get('/api/mobile/conversations/{id}/messages', [MessageController::class, 'index']);
 $router->post('/api/mobile/conversations/{id}/messages', [MessageController::class, 'store']);
+$router->post('/api/mobile/conversations/{id}/attachments', [MessageController::class, 'storeAttachment']);
 $router->post('/api/mobile/conversations/{id}/read', [MessageController::class, 'markAsRead']);
 
 $router->post('/api/mobile/push-tokens', [PushTokenController::class, 'store']);

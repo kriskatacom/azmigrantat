@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\Message;
 use App\Models\OauthAccessToken;
 use App\Models\User;
+use App\Services\BackblazeB2Service;
 use App\Services\ConversationService;
 use App\Services\PushNotificationService;
 use App\Services\RealtimeNotifier;
@@ -248,6 +249,328 @@ final class MessageController extends BaseController
                 $message->sender
             ),
         ];
+    }
+
+    public function storeAttachment($conversationId)
+    {
+        $user = $this->authenticatedUser();
+
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $conversation = $this->conversationService
+            ->findUserConversation(
+                (int) $conversationId,
+                (int) $user->id
+            );
+
+        if (!$conversation) {
+            return $this->conversationNotFound();
+        }
+
+        $clientMessageId = trim(
+            (string) ($_POST['client_message_id'] ?? '')
+        );
+
+        $type = trim(
+            (string) ($_POST['type'] ?? '')
+        );
+
+        if ($clientMessageId === '') {
+            return $this->json([
+                'success' => false,
+                'message' => 'Липсва client_message_id.',
+                'errors' => [
+                    'client_message_id' => [
+                        'Полето client_message_id е задължително.',
+                    ],
+                ],
+            ], 422);
+        }
+
+        if (!in_array($type, ['image', 'file'], true)) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Невалиден тип на файла.',
+                'errors' => [
+                    'type' => [
+                        'Типът трябва да бъде image или file.',
+                    ],
+                ],
+            ], 422);
+        }
+
+        if (!isset($_FILES['file'])) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Необходимо е да изпратите файл.',
+            ], 422);
+        }
+
+        $file = $_FILES['file'];
+
+        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            return $this->json([
+                'success' => false,
+                'message' => $this->uploadErrorMessage(
+                    (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE)
+                ),
+            ], 422);
+        }
+
+        if (($file['size'] ?? 0) <= 0) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Файлът е празен.',
+            ], 422);
+        }
+
+        $maxSize = $type === 'image'
+            ? 10 * 1024 * 1024
+            : 25 * 1024 * 1024;
+
+        if ((int) $file['size'] > $maxSize) {
+            return $this->json([
+                'success' => false,
+                'message' => $type === 'image'
+                    ? 'Изображението не може да бъде по-голямо от 10 MB.'
+                    : 'Файлът не може да бъде по-голям от 25 MB.',
+            ], 422);
+        }
+
+        $mimeType = $this->detectMimeType(
+            (string) $file['tmp_name']
+        );
+
+        if (!$mimeType) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Типът на файла не може да бъде определен.',
+            ], 422);
+        }
+
+        if (
+            $type === 'image' &&
+            !in_array(
+                $mimeType,
+                [
+                    'image/jpeg',
+                    'image/png',
+                    'image/webp',
+                    'image/gif',
+                ],
+                true
+            )
+        ) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Неподдържан формат на изображението.',
+            ], 422);
+        }
+
+        try {
+            $attachment = $this->uploadAttachmentToB2(
+                $file,
+                $mimeType
+            );
+
+            $message = Message::create([
+                'conversation_id' => $conversation->id,
+                'sender_id' => $user->id,
+                'client_message_id' => $clientMessageId,
+                'type' => $type,
+                'content' => null,
+                'metadata' => $attachment,
+                'status' => 'sent',
+            ])->load('sender');
+
+            $conversation->last_message_id = $message->id;
+            $conversation->save();
+
+            $this->realtimeNotifier->notifyNewMessage(
+                $message,
+                $conversation
+            );
+
+            try {
+                $this->pushNotificationService
+                    ->sendMessageNotification(
+                        $conversation,
+                        $message,
+                        $user
+                    );
+            } catch (\Throwable $exception) {
+                error_log(
+                    'Push notification error: '
+                    . $exception->getMessage()
+                );
+            }
+
+            return $this->json([
+                'success' => true,
+                'data' => self::serializeMessage($message),
+            ], 201);
+        } catch (\Throwable $exception) {
+            error_log(
+                'Attachment upload error: '
+                . $exception->getMessage()
+                . PHP_EOL
+                . $exception->getTraceAsString()
+            );
+
+            return $this->json([
+                'success' => false,
+                'message' => 'Файлът не можа да бъде изпратен.',
+            ], 500);
+        }
+    }
+
+    private function uploadAttachmentToB2(
+        array $file,
+        string $mimeType
+    ): array {
+        $storage = $this->createBackblazeStorage();
+
+        $extension = $this->extensionForMimeType(
+            $mimeType,
+            (string) ($file['name'] ?? '')
+        );
+
+        $remotePath = sprintf(
+            'chat/%s/%s.%s',
+            date('Y/m'),
+            bin2hex(random_bytes(16)),
+            $extension
+        );
+
+        $result = $storage->upload(
+            (string) $file['tmp_name'],
+            $remotePath,
+            $mimeType
+        );
+
+        return [
+            'key' => $result['key'],
+            'url' => $storage->url($result['key']),
+            'name' => $file['name'] ?? basename($remotePath),
+            'mime_type' => $mimeType,
+            'size' => (int) $file['size'],
+            'etag' => $result['etag'] ?? null,
+        ];
+    }
+
+    private function createBackblazeStorage(): BackblazeB2Service
+    {
+        $keyId = (string) ($_ENV['B2_KEY_ID'] ?? '');
+        $applicationKey = (string) ($_ENV['B2_APPLICATION_KEY'] ?? '');
+        $bucket = (string) ($_ENV['B2_BUCKET'] ?? '');
+        $endpoint = (string) ($_ENV['B2_ENDPOINT'] ?? '');
+        $region = (string) ($_ENV['B2_REGION'] ?? '');
+
+        if (
+            $keyId === '' ||
+            $applicationKey === '' ||
+            $bucket === '' ||
+            $endpoint === '' ||
+            $region === ''
+        ) {
+            throw new \RuntimeException(
+                'Липсва конфигурация за Backblaze B2.'
+            );
+        }
+
+        $storage = new BackblazeB2Service(
+            $keyId,
+            $applicationKey,
+            $bucket,
+            $endpoint,
+            $region
+        );
+
+        $useProxy = filter_var(
+            $_ENV['B2_USE_PROXY'] ?? 'false',
+            FILTER_VALIDATE_BOOLEAN
+        );
+
+        $storage->setUseProxy($useProxy);
+
+        return $storage;
+    }
+
+    private function detectMimeType(
+        string $path
+    ): ?string {
+        if (!is_file($path)) {
+            return null;
+        }
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($path);
+
+        return is_string($mimeType)
+            ? $mimeType
+            : null;
+    }
+
+    private function extensionForMimeType(
+        string $mimeType,
+        string $originalName
+    ): string {
+        $extensions = [
+            'image/jpeg' => 'jpg',
+            'image/png' => 'png',
+            'image/webp' => 'webp',
+            'image/gif' => 'gif',
+            'application/pdf' => 'pdf',
+            'text/plain' => 'txt',
+            'application/zip' => 'zip',
+        ];
+
+        if (isset($extensions[$mimeType])) {
+            return $extensions[$mimeType];
+        }
+
+        $extension = strtolower(
+            pathinfo(
+                $originalName,
+                PATHINFO_EXTENSION
+            )
+        );
+
+        return preg_match(
+            '/^[a-z0-9]{1,10}$/',
+            $extension
+        )
+            ? $extension
+            : 'bin';
+    }
+
+    private function uploadErrorMessage(int $error): string
+    {
+        return match ($error) {
+            UPLOAD_ERR_INI_SIZE,
+            UPLOAD_ERR_FORM_SIZE =>
+            'Файлът надвишава позволения размер за качване.',
+
+            UPLOAD_ERR_PARTIAL =>
+            'Файлът беше качен само частично.',
+
+            UPLOAD_ERR_NO_FILE =>
+            'Необходимо е да изпратите файл.',
+
+            UPLOAD_ERR_NO_TMP_DIR =>
+            'Липсва временна директория на сървъра.',
+
+            UPLOAD_ERR_CANT_WRITE =>
+            'Файлът не можа да бъде записан на сървъра.',
+
+            UPLOAD_ERR_EXTENSION =>
+            'Качването беше прекъснато от PHP разширение.',
+
+            default =>
+            'Файлът не беше качен успешно.',
+        };
     }
 
     private static function serializeUser(

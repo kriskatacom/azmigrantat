@@ -60,19 +60,22 @@ final class MessageRepository
             ->first();
     }
 
-    public function createTextMessage(
+    public function createMessage(
         Conversation $conversation,
         User $sender,
         string $clientMessageId,
-        string $content
+        ?string $content,
+        string $type = 'text',
+        ?array $metadata = null
     ): Message {
         $message = Message::create([
             'conversation_id' => $conversation->id,
             'sender_id' => $sender->id,
             'client_message_id' => $clientMessageId,
-            'type' => Message::TYPE_TEXT,
-            'content' => trim($content),
-            'status' => Message::STATUS_SENT,
+            'type' => $type,
+            'content' => $content,
+            'metadata' => $metadata,
+            'status' => 'sent',
         ]);
 
         return $message->load('sender');
