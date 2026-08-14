@@ -119,8 +119,14 @@ final class MobileAuthController extends BaseController
             ], 401);
         }
 
+        $firstName = trim($input['firstName']);
+        $lastName = trim($input['lastName']);
+
         $user = User::create([
-            'name' => trim($input['firstName']) . ' ' . trim($input['lastName']),
+            'name' => $firstName . ' ' . $lastName,
+            'first_name' => $firstName,
+            'last_name' => $lastName,
+
             'email' => strtolower(trim($input['email'])),
             'password_hash' => $input['password'],
             'role' => 'user',
@@ -228,10 +234,21 @@ final class MobileAuthController extends BaseController
         return [
             'id' => $user->id,
             'name' => $user->name,
+
+            'firstName' => $user->first_name,
+            'lastName' => $user->last_name,
+
             'email' => $user->email,
             'role' => $user->role,
+
+            'gender' => $user->gender,
+            'phone' => $user->phone,
+            'country' => $user->country,
+            'city' => $user->city,
+            'address' => $user->address,
+
             'avatar' => $user->avatar_url ?? null,
-            'is_active' => $user->is_active,
+            'is_active' => (bool) $user->is_active,
         ];
     }
 }

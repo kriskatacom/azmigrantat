@@ -5,6 +5,7 @@ namespace App\Controllers\Api;
 use App\Models\Post;
 use App\Models\User;
 use App\Models\OauthAccessToken;
+use Illuminate\Support\Facades\Validator;
 
 class UserController extends BaseApiController
 {
@@ -137,5 +138,234 @@ class UserController extends BaseApiController
         }
 
         return $accessToken->user;
+    }
+
+    public function updateProfile()
+    {
+        try {
+            $user = $this->authenticatedUser();
+
+            if (!$user) {
+                return $this->unauthorized();
+            }
+
+            $input = $this->jsonInput();
+
+            $validator = Validator::make(
+                $input,
+                [
+                    'firstName' => 'required|string|min:2|max:100',
+                    'lastName' => 'required|string|min:2|max:100',
+                    'gender' => 'nullable|in:male,female',
+                    'phone' => 'nullable|string|max:30',
+                    'country' => 'nullable|string|max:100',
+                    'city' => 'nullable|string|max:100',
+                    'address' => 'nullable|string|max:255',
+                ],
+                [
+                    'required' => 'Полето :attribute е задължително.',
+                    'string' => 'Полето :attribute трябва да бъде текст.',
+                    'min' => 'Полето :attribute трябва да съдържа поне :min символа.',
+                    'max' => 'Полето :attribute не може да съдържа повече от :max символа.',
+                    'in' => 'Полето :attribute съдържа невалидна стойност.',
+                ],
+                [
+                    'firstName' => 'име',
+                    'lastName' => 'фамилия',
+                    'gender' => 'пол',
+                    'phone' => 'телефон',
+                    'country' => 'държава',
+                    'city' => 'град',
+                    'address' => 'адрес',
+                ]
+            );
+
+            if ($validator->fails()) {
+                return $this->validationError($validator);
+            }
+
+            $firstName = trim($input['firstName']);
+            $lastName = trim($input['lastName']);
+
+            $user->name = $firstName . ' ' . $lastName;
+            $user->first_name = $firstName;
+            $user->last_name = $lastName;
+
+            $user->gender = !empty($input['gender'])
+                ? trim($input['gender'])
+                : null;
+
+            $user->phone = !empty($input['phone'])
+                ? trim($input['phone'])
+                : null;
+
+            $user->country = !empty($input['country'])
+                ? trim($input['country'])
+                : null;
+
+            $user->city = !empty($input['city'])
+                ? trim($input['city'])
+                : null;
+
+            $user->address = !empty($input['address'])
+                ? trim($input['address'])
+                : null;
+
+            $user->save();
+
+            return $this->json([
+                'success' => true,
+                'message' => 'Профилът беше обновен успешно.',
+                'user' => $this->serializeMobileUser($user),
+            ]);
+        } catch (\Throwable $exception) {
+            error_log(
+                'Update profile error: '
+                . $exception->getMessage()
+                . PHP_EOL
+                . $exception->getTraceAsString()
+            );
+
+            return $this->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function updatePassword()
+    {
+        $user = $this->authenticatedUser();
+
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $input = $this->jsonInput();
+
+        $validator = Validator::make(
+            $input,
+            [
+                'currentPassword' => 'required|string',
+                'password' => 'required|string|min:6',
+                'passwordConfirmation' => 'required|string',
+            ],
+            [
+                'required' => 'Полето :attribute е задължително.',
+                'string' => 'Полето :attribute трябва да бъде текст.',
+                'min' => 'Полето :attribute трябва да съдържа поне :min символа.',
+            ],
+            [
+                'currentPassword' => 'текуща парола',
+                'password' => 'нова парола',
+                'passwordConfirmation' => 'потвърждение на паролата',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return $this->validationError($validator);
+        }
+
+        if (
+            !isset($user->password_hash) ||
+            !password_verify(
+                $input['currentPassword'],
+                $user->password_hash
+            )
+        ) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Текущата парола е грешна.',
+                'errors' => [
+                    'currentPassword' => [
+                        'Текущата парола е грешна.',
+                    ],
+                ],
+            ], 422);
+        }
+
+        if ($input['password'] !== $input['passwordConfirmation']) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Паролите не съвпадат.',
+                'errors' => [
+                    'passwordConfirmation' => [
+                        'Паролите не съвпадат.',
+                    ],
+                ],
+            ], 422);
+        }
+
+        if (
+            password_verify(
+                $input['password'],
+                $user->password_hash
+            )
+        ) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Новата парола трябва да бъде различна от текущата.',
+                'errors' => [
+                    'password' => [
+                        'Новата парола трябва да бъде различна от текущата.',
+                    ],
+                ],
+            ], 422);
+        }
+
+        $user->password_hash = $input['password'];
+
+        $user->save();
+
+        return $this->json([
+            'success' => true,
+            'message' => 'Паролата беше променена успешно.',
+        ]);
+    }
+
+    private function validationError($validator)
+    {
+        return $this->json([
+            'success' => false,
+            'message' => $validator->errors()->first(),
+            'errors' => $validator->errors()->toArray(),
+        ], 422);
+    }
+
+    private function unauthorized()
+    {
+        return $this->json([
+            'success' => false,
+            'message' => 'Необходима е автентикация.',
+        ], 401);
+    }
+
+    private function serializeMobileUser(User $user): array
+    {
+        return [
+            'id' => $user->id,
+            'name' => $user->name,
+            'firstName' => $user->first_name,
+            'lastName' => $user->last_name,
+            'username' => $user->username,
+            'email' => $user->email,
+            'gender' => $user->gender,
+            'phone' => $user->phone,
+            'country' => $user->country,
+            'city' => $user->city,
+            'address' => $user->address,
+            'profile_image' => $user->profile_image_url,
+            'is_active' => (bool) $user->is_active,
+        ];
+    }
+
+    private function jsonInput(): array
+    {
+        $input = json_decode(
+            file_get_contents('php://input'),
+            true
+        );
+
+        return is_array($input) ? $input : [];
     }
 }
