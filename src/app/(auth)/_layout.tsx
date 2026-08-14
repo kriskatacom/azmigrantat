@@ -23,7 +23,7 @@ export default function AuthLayout() {
   }
 
   if (isAuthenticated) {
-    return <Redirect href="/(protected)" />;
+    return <Redirect href="/(profile)" />;
   }
 
   return (

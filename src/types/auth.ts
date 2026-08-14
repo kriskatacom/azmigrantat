@@ -3,6 +3,29 @@ export interface AuthUser {
   firstName: string;
   lastName: string;
   email: string;
+  gender?: Gender | null;
+  phone?: string | null;
+  country?: string | null;
+  city?: string | null;
+  address?: string | null;
+}
+
+export type Gender = "male" | "female" | "other" | "prefer_not_to_say";
+
+export interface UpdateProfilePayload {
+  firstName: string;
+  lastName: string;
+  gender: Gender | null;
+  phone: string;
+  country: string;
+  city: string;
+  address: string;
+}
+
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  password: string;
+  passwordConfirmation: string;
 }
 
 export interface LoginPayload {

@@ -1,0 +1,173 @@
+import { useAppTheme } from "@/app/_layout";
+import Header from "@/components/Header";
+import PasswordForm from "@/components/profile/password-form";
+import ProfileDetailsForm from "@/components/profile/profile-details-form";
+import { useAuth } from "@/hooks/useAuth";
+import { changePasswordRequest, updateProfileRequest } from "@/services/auth";
+import type { UpdateProfilePayload } from "@/types/auth";
+import { useState } from "react";
+import {
+  Alert,
+  KeyboardAvoidingView,
+  Linking,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+export default function ProfileHomeScreen() {
+  const { theme } = useAppTheme();
+  const { user, token, updateUser, logout } = useAuth();
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingPassword, setIsSavingPassword] = useState(false);
+
+  if (!user || !token) return null;
+
+  const handleSaveProfile = async (payload: UpdateProfilePayload) => {
+    setIsSavingProfile(true);
+    try {
+      const updatedUser = await updateProfileRequest(token, payload);
+      await updateUser(updatedUser);
+      Alert.alert("Готово", "Профилът беше обновен успешно.");
+    } catch (error) {
+      console.log(error);
+
+      Alert.alert(
+        "Грешка",
+        error instanceof Error
+          ? error.message
+          : "Профилът не можа да бъде обновен.",
+      );
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
+  const handleChangePassword = async (
+    currentPassword: string,
+    password: string,
+    passwordConfirmation: string,
+  ) => {
+    setIsSavingPassword(true);
+    try {
+      await changePasswordRequest(token, {
+        currentPassword,
+        password,
+        passwordConfirmation,
+      });
+      Alert.alert("Готово", "Паролата беше сменена успешно.");
+      return true;
+    } catch (error) {
+      Alert.alert(
+        "Грешка",
+        error instanceof Error
+          ? error.message
+          : "Паролата не можа да бъде сменена.",
+      );
+      return false;
+    } finally {
+      setIsSavingPassword(false);
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+    >
+      <Header title="Моят профил" hideSearchButton hideAuthButton />
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={styles.content}
+      >
+        <View style={styles.intro}>
+          <Text style={[styles.title, { color: theme.colors.text }]}>
+            Лични данни
+          </Text>
+          <Text
+            style={[styles.description, { color: theme.colors.textSecondary }]}
+          >
+            Прегледайте и актуализирайте информацията в профила си.
+          </Text>
+        </View>
+        <ProfileDetailsForm
+          user={user}
+          isSaving={isSavingProfile}
+          onSave={handleSaveProfile}
+        />
+
+        <View
+          style={[styles.divider, { backgroundColor: theme.colors.border }]}
+        />
+        <View style={styles.intro}>
+          <Text style={[styles.title, { color: theme.colors.text }]}>
+            Сигурност
+          </Text>
+          <Text
+            style={[styles.description, { color: theme.colors.textSecondary }]}
+          >
+            Новата парола трябва да съдържа поне 8 символа.
+          </Text>
+        </View>
+        <PasswordForm
+          isSaving={isSavingPassword}
+          onSave={handleChangePassword}
+        />
+
+        <Text
+          style={[styles.attribution, { color: theme.colors.textSecondary }]}
+        >
+          Данни за местоположенията © OpenStreetMap contributors
+        </Text>
+        <TouchableOpacity
+          onPress={() =>
+            void Linking.openURL("https://www.openstreetmap.org/copyright")
+          }
+        >
+          <Text style={[styles.link, { color: theme.colors.primary }]}>
+            Лиценз и авторство
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => void logout()}
+          style={[styles.logout, { borderColor: theme.colors.danger }]}
+        >
+          <Text
+            style={{
+              color: theme.colors.danger,
+              fontSize: 16,
+              fontWeight: "700",
+            }}
+          >
+            Изход
+          </Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  screen: { flex: 1 },
+  content: { padding: 20, paddingBottom: 44, gap: 18 },
+  intro: { gap: 5 },
+  title: { fontSize: 22, fontWeight: "800" },
+  description: { fontSize: 14, lineHeight: 20 },
+  divider: { height: 1, marginVertical: 10 },
+  attribution: { fontSize: 12, textAlign: "center", marginTop: 10 },
+  link: { fontSize: 12, fontWeight: "600", textAlign: "center" },
+  logout: {
+    minHeight: 50,
+    borderWidth: 1,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 8,
+  },
+});

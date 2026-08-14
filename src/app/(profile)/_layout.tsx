@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Redirect, Stack } from "expo-router";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
-export default function ProtectedLayout() {
+export default function ProfileLayout() {
   const { theme } = useAppTheme();
   const { isAuthenticated, isLoading } = useAuth();
 

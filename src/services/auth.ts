@@ -1,8 +1,10 @@
 import type {
   AuthResponse,
   AuthUser,
+  ChangePasswordPayload,
   LoginPayload,
   RegisterPayload,
+  UpdateProfilePayload,
 } from "@/types/auth";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL!;
@@ -31,6 +33,12 @@ interface MeResponse {
 interface LogoutResponse {
   success: true;
   message: string;
+}
+
+interface ProfileResponse {
+  success: true;
+  user: AuthUser;
+  message?: string;
 }
 
 async function request<T>(
@@ -131,4 +139,31 @@ export async function logoutRequest(token: string): Promise<void> {
       Authorization: `Bearer ${token}`,
     },
   });
+}
+
+export async function updateProfileRequest(
+  token: string,
+  payload: UpdateProfilePayload,
+): Promise<AuthUser> {
+  const response = await request<ProfileResponse>("/api/mobile/profile", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+
+  return response.user;
+}
+
+export async function changePasswordRequest(
+  token: string,
+  payload: ChangePasswordPayload,
+): Promise<void> {
+  await request<{ success: true; message?: string }>(
+    "/api/mobile/profile/password",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    },
+  );
 }
