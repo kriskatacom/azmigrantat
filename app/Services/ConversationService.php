@@ -211,4 +211,26 @@ final class ConversationService
         return $this->conversationRepository
             ->loadDetails($conversation);
     }
+
+    public function getUnreadCount(
+        User $user
+    ): int {
+        $conversations =
+            $this->conversationRepository
+                ->getForUser($user);
+
+        $conversationIds = $conversations
+            ->pluck('id')
+            ->map(
+                fn($id) => (int) $id
+            )
+            ->values()
+            ->all();
+
+        return $this->messageRepository
+            ->countUnreadForUser(
+                $user,
+                $conversationIds
+            );
+    }
 }

@@ -114,4 +114,30 @@ final class MessageRepository
                 'delivered_at' => $readAt,
             ]);
     }
+
+    public function countUnreadForUser(
+        User $user,
+        array $conversationIds
+    ): int {
+        if ($conversationIds === []) {
+            return 0;
+        }
+
+        return Message::query()
+            ->whereIn(
+                'conversation_id',
+                $conversationIds
+            )
+            ->where(
+                'sender_id',
+                '!=',
+                (int) $user->id
+            )
+            ->where(
+                'status',
+                '!=',
+                Message::STATUS_READ
+            )
+            ->count();
+    }
 }

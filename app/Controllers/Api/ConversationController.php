@@ -146,6 +146,26 @@ final class ConversationController extends BaseController
         }
     }
 
+    public function unreadCount()
+    {
+        $user = $this->authenticatedUser();
+
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $unreadCount =
+            $this->conversationService
+                ->getUnreadCount($user);
+
+        return $this->json([
+            'success' => true,
+            'data' => [
+                'unread_count' => $unreadCount,
+            ],
+        ]);
+    }
+
     private function serializeConversation(
         Conversation $conversation,
         int $currentUserId
