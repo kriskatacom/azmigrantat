@@ -10,6 +10,7 @@ import type {
   MessagesResponse,
   SendMessagePayload,
   UserSearchResponse,
+  UnreadCountResponse,
 } from "@/types/chat";
 import * as Crypto from "expo-crypto";
 import { File } from "expo-file-system";
@@ -72,6 +73,15 @@ export async function getConversations(token: string): Promise<Conversation[]> {
   );
 
   return response.data;
+}
+
+export async function getUnreadMessageCount(token: string): Promise<number> {
+  const response = await request<UnreadCountResponse>(
+    "/api/mobile/conversations/unread-count",
+    token,
+  );
+
+  return Math.max(0, Number(response.data.unread_count) || 0);
 }
 
 export async function createDirectConversation(

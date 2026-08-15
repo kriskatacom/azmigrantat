@@ -1,4 +1,6 @@
 import { useAppTheme } from "@/app/_layout";
+import { useAuth } from "@/hooks/useAuth";
+import { useUnreadMessageCount } from "@/hooks/chat/useUnreadMessageCount";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
@@ -13,6 +15,8 @@ import {
 export default function HomeScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
+  const { isAuthenticated } = useAuth();
+  const unreadMessageCount = useUnreadMessageCount();
 
   return (
     <View style={styles.screen}>
@@ -92,6 +96,7 @@ export default function HomeScreen() {
           <NavigationItem
             icon="chatbubble-ellipses-outline"
             label="Входящи"
+            badgeCount={isAuthenticated ? unreadMessageCount : 0}
             onPress={() => router.push("/inbox/inbox")}
           />
 
@@ -110,6 +115,7 @@ type NavigationItemProps = {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   active?: boolean;
+  badgeCount?: number;
   onPress: () => void;
 };
 
@@ -117,11 +123,28 @@ function NavigationItem({
   icon,
   label,
   active = false,
+  badgeCount = 0,
   onPress,
 }: NavigationItemProps) {
   return (
-    <TouchableOpacity style={styles.navigationItem} onPress={onPress}>
-      <Ionicons name={icon} size={29} color={active ? "#E8E296" : "#a1a1aa"} />
+    <TouchableOpacity
+      style={styles.navigationItem}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={
+        badgeCount > 0 ? `${label}, ${badgeCount} непрочетени съобщения` : label
+      }
+    >
+      <View style={styles.navigationIcon}>
+        <Ionicons name={icon} size={29} color={active ? "#E8E296" : "#a1a1aa"} />
+        {badgeCount > 0 ? (
+          <View style={styles.unreadBadge}>
+            <Text style={styles.unreadBadgeText}>
+              {badgeCount > 99 ? "99+" : badgeCount}
+            </Text>
+          </View>
+        ) : null}
+      </View>
       <Text
         style={[styles.navigationLabel, active && styles.navigationLabelActive]}
       >
@@ -254,6 +277,29 @@ const styles = StyleSheet.create({
   },
   navigationLabelActive: {
     color: "#E8E296",
+  },
+  navigationIcon: {
+    position: "relative",
+  },
+  unreadBadge: {
+    position: "absolute",
+    top: -9,
+    right: -16,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 5,
+    borderRadius: 10,
+    backgroundColor: "#2563eb",
+    borderWidth: 2,
+    borderColor: "#030718",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  unreadBadgeText: {
+    color: "#ffffff",
+    fontSize: 10,
+    fontWeight: "800",
+    fontVariant: ["tabular-nums"],
   },
   uploadItem: {
     width: "20%",

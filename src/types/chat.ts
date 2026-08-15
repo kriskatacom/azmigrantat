@@ -75,6 +75,13 @@ export interface SendMessagePayload {
   content: string;
 }
 
+export interface UnreadCountResponse {
+  success: true;
+  data: {
+    unread_count: number;
+  };
+}
+
 export interface ChatAttachmentUpload {
   uri: string;
   name: string;
