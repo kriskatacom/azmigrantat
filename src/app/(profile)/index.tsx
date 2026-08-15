@@ -1,9 +1,14 @@
 import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
+import DeleteChatMessagesForm from "@/components/profile/delete-chat-messages-form";
 import PasswordForm from "@/components/profile/password-form";
 import ProfileDetailsForm from "@/components/profile/profile-details-form";
 import { useAuth } from "@/hooks/useAuth";
-import { changePasswordRequest, updateProfileRequest } from "@/services/auth";
+import {
+  changePasswordRequest,
+  deleteChatMessagesRequest,
+  updateProfileRequest,
+} from "@/services/auth";
 import type { UpdateProfilePayload } from "@/types/auth";
 import { useState } from "react";
 import {
@@ -23,6 +28,7 @@ export default function ProfileHomeScreen() {
   const { user, token, updateUser, logout } = useAuth();
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [isDeletingChatMessages, setIsDeletingChatMessages] = useState(false);
 
   if (!user || !token) return null;
 
@@ -73,6 +79,36 @@ export default function ProfileHomeScreen() {
     }
   };
 
+  const handleDeleteChatMessages = async (
+    currentPassword: string,
+    confirmation: "delete chat",
+  ) => {
+    setIsDeletingChatMessages(true);
+    try {
+      const deletedCount = await deleteChatMessagesRequest(token, {
+        currentPassword,
+        confirmation,
+      });
+      Alert.alert(
+        "Готово",
+        deletedCount === undefined
+          ? "Чат съобщенията бяха изтрити завинаги."
+          : `Изтрити чат съобщения: ${deletedCount}.`,
+      );
+      return true;
+    } catch (error) {
+      Alert.alert(
+        "Грешка",
+        error instanceof Error
+          ? error.message
+          : "Чат съобщенията не могат да бъдат изтрити.",
+      );
+      return false;
+    } finally {
+      setIsDeletingChatMessages(false);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
@@ -117,6 +153,14 @@ export default function ProfileHomeScreen() {
         <PasswordForm
           isSaving={isSavingPassword}
           onSave={handleChangePassword}
+        />
+
+        <View
+          style={[styles.divider, { backgroundColor: theme.colors.border }]}
+        />
+        <DeleteChatMessagesForm
+          isDeleting={isDeletingChatMessages}
+          onDelete={handleDeleteChatMessages}
         />
 
         <Text

@@ -2,6 +2,7 @@ import type {
   AuthResponse,
   AuthUser,
   ChangePasswordPayload,
+  DeleteChatMessagesPayload,
   LoginPayload,
   RegisterPayload,
   UpdateProfilePayload,
@@ -166,4 +167,21 @@ export async function changePasswordRequest(
       body: JSON.stringify(payload),
     },
   );
+}
+
+export async function deleteChatMessagesRequest(
+  token: string,
+  payload: DeleteChatMessagesPayload,
+): Promise<number | undefined> {
+  const response = await request<{
+    success: true;
+    message?: string;
+    deleted_messages_count?: number;
+  }>("/api/mobile/profile/chat-messages", {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+
+  return response.deleted_messages_count;
 }

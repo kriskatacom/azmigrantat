@@ -28,6 +28,11 @@ export interface ChangePasswordPayload {
   passwordConfirmation: string;
 }
 
+export interface DeleteChatMessagesPayload {
+  currentPassword: string;
+  confirmation: "delete chat";
+}
+
 export interface LoginPayload {
   email: string;
   password: string;
