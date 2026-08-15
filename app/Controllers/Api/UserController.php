@@ -2,9 +2,12 @@
 
 namespace App\Controllers\Api;
 
+use App\Models\Conversation;
+use App\Models\Message;
 use App\Models\Post;
 use App\Models\User;
 use App\Models\OauthAccessToken;
+use App\Services\BackblazeB2Service;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends BaseApiController
@@ -321,6 +324,225 @@ class UserController extends BaseApiController
             'success' => true,
             'message' => 'Паролата беше променена успешно.',
         ]);
+    }
+
+    public function deleteChatMessages()
+    {
+        $user = $this->authenticatedUser();
+
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $input = $this->jsonInput();
+
+        $validator = Validator::make(
+            $input,
+            [
+                'currentPassword' => 'required|string',
+                'confirmation' => 'required|string',
+            ],
+            [
+                'required' => 'Полето :attribute е задължително.',
+                'string' => 'Полето :attribute трябва да бъде текст.',
+            ],
+            [
+                'currentPassword' => 'текуща парола',
+                'confirmation' => 'потвърждение',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return $this->validationError($validator);
+        }
+
+        if (
+            !password_verify(
+                $input['currentPassword'],
+                $user->password_hash
+            )
+        ) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Текущата парола е грешна.',
+                'errors' => [
+                    'currentPassword' => [
+                        'Текущата парола е грешна.',
+                    ],
+                ],
+            ], 422);
+        }
+
+        if (trim($input['confirmation']) !== 'delete chat') {
+            return $this->json([
+                'success' => false,
+                'message' =>
+                    'Въведете "delete chat", за да потвърдите изтриването.',
+                'errors' => [
+                    'confirmation' => [
+                        'Потвърждението трябва да бъде "delete chat".',
+                    ],
+                ],
+            ], 422);
+        }
+
+        try {
+            $messages = Message::query()
+                ->where(
+                    'sender_id',
+                    (int) $user->id
+                )
+                ->get();
+
+            $deletedMessagesCount = $messages->count();
+
+            if ($deletedMessagesCount === 0) {
+                return $this->json([
+                    'success' => true,
+                    'deleted_messages_count' => 0,
+                ]);
+            }
+
+            $storage = $this->createBackblazeStorage();
+
+            foreach ($messages as $message) {
+                if (
+                    !in_array(
+                        $message->type,
+                        ['image', 'file', 'video', 'audio'],
+                        true
+                    )
+                ) {
+                    continue;
+                }
+
+                $metadata = $message->metadata;
+
+                if (is_string($metadata)) {
+                    $metadata = json_decode(
+                        $metadata,
+                        true
+                    );
+                }
+
+                if (
+                    !is_array($metadata) ||
+                    empty($metadata['key'])
+                ) {
+                    continue;
+                }
+
+                $deleted = $storage->delete(
+                    $metadata['key']
+                );
+
+                if (!$deleted) {
+                    throw new \RuntimeException(
+                        sprintf(
+                            'Backblaze файлът [%s] не можа да бъде изтрит.',
+                            $metadata['key']
+                        )
+                    );
+                }
+            }
+
+            $conversationIds = $messages
+                ->pluck('conversation_id')
+                ->unique()
+                ->map(fn($id) => (int) $id)
+                ->values()
+                ->all();
+
+            Message::query()
+                ->where(
+                    'sender_id',
+                    (int) $user->id
+                )
+                ->delete();
+
+            foreach ($conversationIds as $conversationId) {
+                $lastMessage = Message::query()
+                    ->where(
+                        'conversation_id',
+                        $conversationId
+                    )
+                    ->orderByDesc('id')
+                    ->first();
+
+                Conversation::query()
+                    ->where('id', $conversationId)
+                    ->update([
+                        'last_message_id' =>
+                            $lastMessage?->id,
+                    ]);
+            }
+
+            return $this->json([
+                'success' => true,
+                'deleted_messages_count' =>
+                    $deletedMessagesCount,
+            ]);
+        } catch (\Throwable $exception) {
+            error_log(
+                'Delete chat messages error: '
+                . get_class($exception)
+                . ': '
+                . $exception->getMessage()
+                . PHP_EOL
+                . 'File: '
+                . $exception->getFile()
+                . ':'
+                . $exception->getLine()
+                . PHP_EOL
+                . $exception->getTraceAsString()
+            );
+
+            return $this->json([
+                'success' => false,
+                'message' =>
+                    'Съобщенията не можаха да бъдат изтрити.',
+            ], 500);
+        }
+    }
+
+    private function createBackblazeStorage(): BackblazeB2Service
+    {
+        $keyId = (string) ($_ENV['B2_KEY_ID'] ?? '');
+        $applicationKey = (string) (
+            $_ENV['B2_APPLICATION_KEY'] ?? ''
+        );
+        $bucket = (string) ($_ENV['B2_BUCKET'] ?? '');
+        $endpoint = (string) ($_ENV['B2_ENDPOINT'] ?? '');
+        $region = (string) ($_ENV['B2_REGION'] ?? '');
+
+        if (
+            $keyId === '' ||
+            $applicationKey === '' ||
+            $bucket === '' ||
+            $endpoint === '' ||
+            $region === ''
+        ) {
+            throw new \RuntimeException(
+                'Липсва конфигурация за Backblaze B2.'
+            );
+        }
+
+        $storage = new BackblazeB2Service(
+            $keyId,
+            $applicationKey,
+            $bucket,
+            $endpoint,
+            $region
+        );
+
+        $storage->setUseProxy(
+            filter_var(
+                $_ENV['B2_USE_PROXY'] ?? 'false',
+                FILTER_VALIDATE_BOOLEAN
+            )
+        );
+
+        return $storage;
     }
 
     private function validationError($validator)

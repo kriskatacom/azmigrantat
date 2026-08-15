@@ -65,6 +65,7 @@ $router->get('/api/mobile/link-preview', [LinkPreviewController::class, 'show'])
 $router->get('/api/mobile/conversations', [ConversationController::class, 'index']);
 $router->post('/api/mobile/conversations/direct', [ConversationController::class, 'createDirect']);
 $router->get('/api/mobile/conversations/unread-count', [ConversationController::class, 'unreadCount']);
+$router->delete('/api/mobile/profile/chat-messages', [UserController::class, 'deleteChatMessages']);
 $router->get('/api/mobile/conversations/{id}', [ConversationController::class, 'show']);
 $router->get('/api/mobile/conversations/{id}/messages', [MessageController::class, 'index']);
 $router->post('/api/mobile/conversations/{id}/messages', [MessageController::class, 'store']);
