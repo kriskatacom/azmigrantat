@@ -23,6 +23,9 @@ import {
   View,
 } from "react-native";
 
+const TERMS_URL = "https://example.com/terms";
+const PRIVACY_URL = "https://example.com/privacy";
+
 export default function ProfileHomeScreen() {
   const { theme } = useAppTheme();
   const { user, token, updateUser, logout } = useAuth();
@@ -163,20 +166,22 @@ export default function ProfileHomeScreen() {
           onDelete={handleDeleteChatMessages}
         />
 
-        <Text
-          style={[styles.attribution, { color: theme.colors.textSecondary }]}
-        >
-          Данни за местоположенията © OpenStreetMap contributors
-        </Text>
-        <TouchableOpacity
-          onPress={() =>
-            void Linking.openURL("https://www.openstreetmap.org/copyright")
-          }
-        >
-          <Text style={[styles.link, { color: theme.colors.primary }]}>
-            Лиценз и авторство
-          </Text>
-        </TouchableOpacity>
+        <View style={styles.legalLinks}>
+          <TouchableOpacity onPress={() => void Linking.openURL(TERMS_URL)}>
+            <Text
+              style={[styles.link, { color: theme.colors.primary }]}
+            >
+              Общи условия
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => void Linking.openURL(PRIVACY_URL)}>
+            <Text
+              style={[styles.link, { color: theme.colors.primary }]}
+            >
+              Политика за поверителност
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
           onPress={() => void logout()}
@@ -204,7 +209,13 @@ const styles = StyleSheet.create({
   title: { fontSize: 22, fontWeight: "800" },
   description: { fontSize: 14, lineHeight: 20 },
   divider: { height: 1, marginVertical: 10 },
-  attribution: { fontSize: 12, textAlign: "center", marginTop: 10 },
+  legalLinks: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 16,
+    marginTop: 10,
+  },
   link: { fontSize: 12, fontWeight: "600", textAlign: "center" },
   logout: {
     minHeight: 50,

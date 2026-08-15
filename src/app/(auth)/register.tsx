@@ -85,10 +85,18 @@ export default function RegisterScreen() {
         passwordConfirmation,
       });
     } catch (error) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 250,
+        useNativeDriver: true,
+      }).start();
+
       Alert.alert(
         "Неуспешна регистрация",
         error instanceof Error ? error.message : "Възникна неочаквана грешка.",
       );
+
+      console.log(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -240,11 +248,6 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 22,
     padding: 22,
-    shadowColor: "#000000",
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 7 },
-    elevation: 4,
   },
   title: {
     fontSize: 28,

@@ -148,6 +148,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
       const response = await registerRequest(payload);
 
       await saveSession(response.token, response.user, response.expiresIn);
+
+      try {
+        await registerForPushNotifications(response.token);
+      } catch (error) {
+        console.error("Неуспешна регистрация на push notifications:", error);
+      }
     },
     [saveSession],
   );

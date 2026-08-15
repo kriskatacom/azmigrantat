@@ -2,8 +2,8 @@ import AppButton from "@/components/ui/AppButton";
 import type { AuthUser, Gender, UpdateProfilePayload } from "@/types/auth";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import CountryField from "./country-field";
 import GenderField from "./gender-field";
-import LocationSearchField from "./location-search-field";
 import ProfileField from "./profile-field";
 
 interface ProfileDetailsFormProps {
@@ -22,7 +22,6 @@ export default function ProfileDetailsForm({
   const [gender, setGender] = useState<Gender | null>(user.gender ?? null);
   const [phone, setPhone] = useState(user.phone ?? "");
   const [country, setCountry] = useState(user.country ?? "");
-  const [countryCode, setCountryCode] = useState<string>();
   const [city, setCity] = useState(user.city ?? "");
   const [address, setAddress] = useState(user.address ?? "");
 
@@ -67,22 +66,13 @@ export default function ProfileDetailsForm({
         autoComplete="tel"
         placeholder="Например: +359 88 123 4567"
       />
-      <LocationSearchField
-        label="Държава"
-        value={country}
-        kind="country"
-        onChange={(nextCountry, suggestion) => {
-          setCountry(nextCountry);
-          setCountryCode(suggestion?.countryCode);
-          if (suggestion) setCity("");
-        }}
-      />
-      <LocationSearchField
+      <CountryField value={country} onChange={setCountry} />
+      <ProfileField
         label="Град"
         value={city}
-        kind="city"
-        countryCode={countryCode}
-        onChange={setCity}
+        onChangeText={setCity}
+        autoCapitalize="words"
+        placeholder="Въведете град"
       />
       <ProfileField
         label="Физически адрес"
