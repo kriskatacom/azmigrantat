@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Redirect, Stack } from "expo-router";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
-const INBOX_ROUTE = "/inbox/inbox";
+const INBOX_ROUTE = "/inbox";
 
 export default function InboxLayout() {
   const { theme } = useAppTheme();

@@ -1,6 +1,6 @@
 import { useAppTheme } from "@/app/_layout";
-import { useAuth } from "@/hooks/useAuth";
 import { useUnreadMessageCount } from "@/hooks/chat/useUnreadMessageCount";
+import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
@@ -51,7 +51,7 @@ export default function HomeScreen() {
         <View style={styles.quickActions}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => router.push("/inbox/inbox")}
+            onPress={() => router.push("/inbox")}
           >
             <Ionicons
               name="chatbubble-ellipses-outline"
@@ -66,7 +66,10 @@ export default function HomeScreen() {
             <Text style={styles.actionLabel}>Аудио</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => router.push("/video-test")}
+          >
             <Ionicons name="videocam-outline" size={30} color="#ffffff" />
             <Text style={styles.actionLabel}>Видео</Text>
           </TouchableOpacity>
@@ -97,7 +100,7 @@ export default function HomeScreen() {
             icon="chatbubble-ellipses-outline"
             label="Входящи"
             badgeCount={isAuthenticated ? unreadMessageCount : 0}
-            onPress={() => router.push("/inbox/inbox")}
+            onPress={() => router.push("/inbox")}
           />
 
           <NavigationItem
@@ -136,7 +139,11 @@ function NavigationItem({
       }
     >
       <View style={styles.navigationIcon}>
-        <Ionicons name={icon} size={29} color={active ? "#E8E296" : "#a1a1aa"} />
+        <Ionicons
+          name={icon}
+          size={29}
+          color={active ? "#E8E296" : "#a1a1aa"}
+        />
         {badgeCount > 0 ? (
           <View style={styles.unreadBadge}>
             <Text style={styles.unreadBadgeText}>

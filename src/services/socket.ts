@@ -1,5 +1,6 @@
 import { io, type Socket } from "socket.io-client";
 
+import { CallClientPayload, CallServerPayload } from "@/app/video-test";
 import type { AuthUser } from "@/types/auth";
 import type { ChatMessage } from "@/types/chat";
 
@@ -50,6 +51,11 @@ interface ServerToClientEvents {
 
   "presence:update": (payload: PresencePayload) => void;
   "presence:status": (payload: PresencePayload) => void;
+
+  "call:offer": (payload: CallServerPayload) => void;
+  "call:answer": (payload: CallServerPayload) => void;
+  "call:ice-candidate": (payload: CallServerPayload) => void;
+  "call:end": (payload: CallServerPayload) => void;
 }
 
 interface ClientToServerEvents {
@@ -57,6 +63,11 @@ interface ClientToServerEvents {
   "typing:stop": (payload: TypingClientPayload) => void;
 
   "presence:check": (payload: PresenceCheckPayload) => void;
+
+  "call:offer": (payload: CallClientPayload) => void;
+  "call:answer": (payload: CallClientPayload) => void;
+  "call:ice-candidate": (payload: CallClientPayload) => void;
+  "call:end": (payload: CallClientPayload) => void;
 }
 
 export type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
