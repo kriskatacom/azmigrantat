@@ -1,6 +1,7 @@
 import { darkTheme, lightTheme, type AppTheme } from "@/constants/theme";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SocketProvider } from "@/contexts/SocketContext";
+import { VideoCallProvider } from "@/contexts/VideoCallContext";
 import { useAuth } from "@/hooks/useAuth";
 import { markConversationAsRead } from "@/services/chat";
 import "@/services/notificationBackgroundTask";
@@ -270,7 +271,9 @@ export default function Layout() {
     <ThemeProvider>
       <AuthProvider>
         <SocketProvider>
-          <RootNavigator />
+          <VideoCallProvider>
+            <RootNavigator />
+          </VideoCallProvider>
         </SocketProvider>
       </AuthProvider>
     </ThemeProvider>

@@ -10,7 +10,10 @@ import {
 
 import { useLocalMedia } from "@/hooks/video/useLocalMedia";
 import { getSocket } from "@/services/socket";
-import type { CallServerPayload } from "@/services/video-call";
+import type {
+  CallIceCandidate,
+  CallServerPayload,
+} from "@/services/video-call";
 
 export type CallState =
   | "idle"
@@ -22,7 +25,12 @@ export type CallState =
   | "ended"
   | "failed";
 
-type UseVideoCallOptions = { recipientId: number };
+type UseVideoCallOptions = {
+  recipientId: number;
+  acceptedIncomingCall?: CallServerPayload | null;
+  pendingIncomingIceCandidates?: CallIceCandidate[];
+  onIncomingCallAccepted?: (callId: string) => void;
+};
 
 type SwitchableVideoTrack = MediaStreamTrack & {
   _switchCamera?: () => void;
@@ -40,7 +48,16 @@ const PEER_CONFIG = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
 
-export function useVideoCall({ recipientId }: UseVideoCallOptions) {
+function getCandidateKey(candidate: CallIceCandidate) {
+  return `${candidate.candidate}:${candidate.sdpMid ?? ""}:${candidate.sdpMLineIndex ?? ""}`;
+}
+
+export function useVideoCall({
+  recipientId,
+  acceptedIncomingCall,
+  pendingIncomingIceCandidates = [],
+  onIncomingCallAccepted,
+}: UseVideoCallOptions) {
   const [callState, setCallState] = useState<CallState>("idle");
   const { localStream, startCamera, stopCamera } = useLocalMedia();
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -59,6 +76,8 @@ export function useVideoCall({ recipientId }: UseVideoCallOptions) {
   const incomingCallRef = useRef<CallServerPayload | null>(null);
   const remoteDescriptionSetRef = useRef(false);
   const pendingIceCandidatesRef = useRef<RTCIceCandidate[]>([]);
+  const acceptedCallIdRef = useRef<string | null>(null);
+  const bufferedCandidateKeysRef = useRef<Set<string>>(new Set());
 
   const updateIncomingCall = useCallback((call: CallServerPayload | null) => {
     incomingCallRef.current = call;
@@ -74,6 +93,7 @@ export function useVideoCall({ recipientId }: UseVideoCallOptions) {
 
     remoteDescriptionSetRef.current = false;
     pendingIceCandidatesRef.current = [];
+    bufferedCandidateKeysRef.current.clear();
 
     updateIncomingCall(null);
 
@@ -185,6 +205,9 @@ export function useVideoCall({ recipientId }: UseVideoCallOptions) {
   const startCall = useCallback(async () => {
     const socket = getSocket();
     if (!socket) throw new Error("Socket връзката не е налична.");
+    if (!Number.isInteger(recipientId) || recipientId <= 0) {
+      throw new Error("Получателят на видео обаждането е невалиден.");
+    }
     if (isCalling || isInCall || incomingCallRef.current) return;
 
     const callId = Crypto.randomUUID();
@@ -254,9 +277,49 @@ export function useVideoCall({ recipientId }: UseVideoCallOptions) {
     }
   }, [
     closePeerConnection,
+    createPeerConnection,
     flushPendingIceCandidates,
     updateIncomingCall,
-    stopCamera,
+  ]);
+
+  useEffect(() => {
+    if (!acceptedIncomingCall) return;
+
+    for (const candidatePayload of pendingIncomingIceCandidates) {
+      const key = getCandidateKey(candidatePayload);
+      if (bufferedCandidateKeysRef.current.has(key)) continue;
+      bufferedCandidateKeysRef.current.add(key);
+      pendingIceCandidatesRef.current.push(new RTCIceCandidate(candidatePayload));
+    }
+  }, [acceptedIncomingCall, pendingIncomingIceCandidates]);
+
+  useEffect(() => {
+    if (
+      !acceptedIncomingCall ||
+      acceptedIncomingCall.description?.type !== "offer" ||
+      acceptedCallIdRef.current === acceptedIncomingCall.call_id
+    ) {
+      return;
+    }
+
+    acceptedCallIdRef.current = acceptedIncomingCall.call_id;
+    callIdRef.current = acceptedIncomingCall.call_id;
+    recipientIdRef.current = acceptedIncomingCall.sender_id;
+    remoteDescriptionSetRef.current = false;
+    updateIncomingCall(acceptedIncomingCall);
+    setCallState("connecting");
+
+    void acceptCall()
+      .then(() => onIncomingCallAccepted?.(acceptedIncomingCall.call_id))
+      .catch((error: unknown) => {
+        console.error("Неуспешно приемане на входящото обаждане:", error);
+        setCallState("failed");
+      });
+  }, [
+    acceptCall,
+    acceptedIncomingCall,
+    onIncomingCallAccepted,
+    updateIncomingCall,
   ]);
 
   const rejectCall = useCallback(() => {
@@ -317,9 +380,7 @@ export function useVideoCall({ recipientId }: UseVideoCallOptions) {
       updateIncomingCall(payload);
 
       setIsCalling(false);
-      setIsInCall(true);
-      setCallState("connected");
-
+      setIsInCall(false);
       setCallState("ringing");
     };
 
@@ -351,6 +412,10 @@ export function useVideoCall({ recipientId }: UseVideoCallOptions) {
 
     const handleIceCandidate = async (payload: CallServerPayload) => {
       if (!payload.candidate || payload.call_id !== callIdRef.current) return;
+
+      const candidateKey = getCandidateKey(payload.candidate);
+      if (bufferedCandidateKeysRef.current.has(candidateKey)) return;
+      bufferedCandidateKeysRef.current.add(candidateKey);
 
       const candidate = new RTCIceCandidate(payload.candidate);
       const peerConnection = peerConnectionRef.current;

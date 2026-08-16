@@ -55,6 +55,7 @@ export default function ChatRoom() {
 
   const params = useLocalSearchParams<{
     id?: string | string[];
+    userId?: string | string[];
     title?: string | string[];
     image?: string | string[];
   }>();
@@ -72,6 +73,16 @@ export default function ChatRoom() {
   const routeImage = Array.isArray(params.image)
     ? params.image[0]
     : params.image;
+
+  const routeUserId = useMemo(() => {
+    const rawUserId = Array.isArray(params.userId)
+      ? params.userId[0]
+      : params.userId;
+    const parsedUserId = rawUserId ? Number(rawUserId) : NaN;
+    return Number.isInteger(parsedUserId) && parsedUserId > 0
+      ? parsedUserId
+      : null;
+  }, [params.userId]);
 
   const [inputMessage, setInputMessage] = useState("");
 
@@ -197,6 +208,20 @@ export default function ChatRoom() {
 
   const displayedImage = otherUser?.profile_image ?? routeImage ?? null;
 
+  const recipientUserId = otherUser?.id ?? routeUserId;
+
+  const openVideoCall = () => {
+    if (!recipientUserId || Number(recipientUserId) === Number(user?.id)) return;
+
+    router.push({
+      pathname: "/video-call/[userId]",
+      params: {
+        userId: String(recipientUserId),
+        name: displayedName,
+      },
+    });
+  };
+
   return (
     <KeyboardAvoidingView
       style={[
@@ -215,6 +240,7 @@ export default function ChatRoom() {
         lastSeenAt={lastSeenAt}
         isTyping={isOtherUserTyping}
         onBack={() => router.back()}
+        onVideoCall={recipientUserId ? openVideoCall : undefined}
         colors={theme.colors}
       />
 

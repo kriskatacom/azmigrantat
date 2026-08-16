@@ -8,6 +8,7 @@ type ChatHeaderProps = {
   lastSeenAt?: string | null;
   isTyping: boolean;
   onBack: () => void;
+  onVideoCall?: () => void;
 
   colors: {
     card: string;
@@ -25,6 +26,7 @@ export default function ChatHeader({
   lastSeenAt,
   isTyping,
   onBack,
+  onVideoCall,
   colors,
 }: ChatHeaderProps) {
   const formatLastSeen = (value?: string | null): string => {
@@ -125,6 +127,17 @@ export default function ChatHeader({
         </Text>
       </View>
 
+      {onVideoCall ? (
+        <TouchableOpacity
+          onPress={onVideoCall}
+          style={styles.videoButton}
+          accessibilityRole="button"
+          accessibilityLabel={`Видео обаждане с ${name}`}
+        >
+          <FontAwesome name="video-camera" size={22} color={colors.text} />
+        </TouchableOpacity>
+      ) : null}
+
       <TouchableOpacity
         style={styles.infoButton}
         accessibilityRole="button"
@@ -193,6 +206,10 @@ const styles = StyleSheet.create({
   },
 
   infoButton: {
+    padding: 8,
+  },
+
+  videoButton: {
     padding: 8,
   },
 });

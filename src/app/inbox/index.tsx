@@ -71,7 +71,7 @@ export default function InboxScreen() {
 
   const openConversation = (conversation: Conversation) => {
     const otherUser = conversation.other_user;
-    router.push({ pathname: "/chat/[id]", params: { id: conversation.id.toString(), title: otherUser?.name ?? conversation.title ?? "Неизвестен потребител", image: otherUser?.profile_image ?? conversation.image ?? "" } });
+    router.push({ pathname: "/chat/[id]", params: { id: conversation.id.toString(), userId: otherUser?.id?.toString() ?? "", title: otherUser?.name ?? conversation.title ?? "Неизвестен потребител", image: otherUser?.profile_image ?? conversation.image ?? "" } });
   };
 
   const handleSelectUser = async (selectedUser: ChatUser) => {

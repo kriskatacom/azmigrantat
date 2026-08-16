@@ -66,13 +66,6 @@ export default function HomeScreen() {
             <Text style={styles.actionLabel}>Аудио</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => router.push("/video-test")}
-          >
-            <Ionicons name="videocam-outline" size={30} color="#ffffff" />
-            <Text style={styles.actionLabel}>Видео</Text>
-          </TouchableOpacity>
         </View>
 
         <View style={styles.bottomNavigation}>
