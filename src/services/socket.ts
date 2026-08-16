@@ -1,6 +1,9 @@
 import { io, type Socket } from "socket.io-client";
 
-import { CallClientPayload, CallServerPayload } from "@/app/video-test";
+import type {
+  CallClientPayload,
+  CallServerPayload,
+} from "@/services/video-call";
 import type { AuthUser } from "@/types/auth";
 import type { ChatMessage } from "@/types/chat";
 

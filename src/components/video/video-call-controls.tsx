@@ -3,42 +3,85 @@ import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 type VideoCallControlsProps = {
   isInCall: boolean;
+
+  isMicrophoneEnabled: boolean;
+  isCameraEnabled: boolean;
+
   onStartCamera: () => void | Promise<unknown>;
   onStopCamera: () => void;
+
   onStartCall: () => void | Promise<void>;
   onEndCall: () => void;
+
+  onToggleMicrophone: () => void;
+  onToggleCamera: () => void;
+  onSwitchCamera: () => void;
 };
 
 export default function VideoCallControls({
   isInCall,
+  isMicrophoneEnabled,
+  isCameraEnabled,
+  onStartCamera,
+  onStopCamera,
   onStartCall,
   onEndCall,
-  onStopCamera,
+  onToggleMicrophone,
+  onToggleCamera,
+  onSwitchCamera,
 }: VideoCallControlsProps) {
   return (
     <View style={styles.container}>
-      {!isInCall ? (
-        <TouchableOpacity
-          style={[styles.button, styles.callButton]}
-          onPress={onStartCall}
-        >
-          <Ionicons name="videocam" size={26} color="#ffffff" />
-        </TouchableOpacity>
-      ) : (
-        <TouchableOpacity
-          style={[styles.button, styles.endButton]}
-          onPress={onEndCall}
-        >
-          <Ionicons name="call" size={26} color="#ffffff" />
-        </TouchableOpacity>
+      {!isInCall && (
+        <>
+          <TouchableOpacity
+            style={[styles.button, styles.callButton]}
+            onPress={() => void onStartCall()}
+          >
+            <Ionicons name="videocam" size={26} color="#fff" />
+          </TouchableOpacity>
+        </>
       )}
 
-      <TouchableOpacity
-        style={[styles.button, styles.secondaryButton]}
-        onPress={onStopCamera}
-      >
-        <Ionicons name="videocam-off" size={26} color="#ffffff" />
-      </TouchableOpacity>
+      {isInCall && (
+        <>
+          <TouchableOpacity
+            style={[styles.button, styles.secondaryButton]}
+            onPress={onToggleMicrophone}
+          >
+            <Ionicons
+              name={isMicrophoneEnabled ? "mic" : "mic-off"}
+              size={26}
+              color="#fff"
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, styles.secondaryButton]}
+            onPress={onToggleCamera}
+          >
+            <Ionicons
+              name={isCameraEnabled ? "videocam" : "videocam-off"}
+              size={26}
+              color="#fff"
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, styles.secondaryButton]}
+            onPress={onSwitchCamera}
+          >
+            <Ionicons name="camera-reverse" size={26} color="#fff" />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.button, styles.endButton]}
+            onPress={onEndCall}
+          >
+            <Ionicons name="call" size={26} color="#fff" />
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 }
