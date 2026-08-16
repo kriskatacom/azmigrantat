@@ -18,7 +18,8 @@
         "illuminate/validation": "^12.56",
         "illuminate/config": "^12.56",
         "twilio/sdk": "^8.11",
-        "aws/aws-sdk-php": "^3.387"
+        "aws/aws-sdk-php": "^3.387",
+        "google/apiclient": "^2.19"
     },
     "scripts": {
         "migrate": "phinx migrate",

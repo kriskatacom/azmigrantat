@@ -289,13 +289,13 @@ final class MessageController extends BaseController
             ], 422);
         }
 
-        if (!in_array($type, ['image', 'file'], true)) {
+        if (!in_array($type, ['image', 'audio', 'file'], true)) {
             return $this->json([
                 'success' => false,
                 'message' => 'Невалиден тип на файла.',
                 'errors' => [
                     'type' => [
-                        'Типът трябва да бъде image или file.',
+                        'Типът трябва да бъде image, audio или file.',
                     ],
                 ],
             ], 422);
@@ -522,6 +522,13 @@ final class MessageController extends BaseController
             'image/png' => 'png',
             'image/webp' => 'webp',
             'image/gif' => 'gif',
+
+            'audio/mp4' => 'm4a',
+            'audio/x-m4a' => 'm4a',
+            'audio/aac' => 'aac',
+            'audio/mpeg' => 'mp3',
+            'audio/webm' => 'webm',
+
             'application/pdf' => 'pdf',
             'text/plain' => 'txt',
             'application/zip' => 'zip',

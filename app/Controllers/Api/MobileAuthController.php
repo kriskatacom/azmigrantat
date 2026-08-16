@@ -6,7 +6,9 @@ use App\Controllers\BaseController;
 use App\Models\OauthAccessToken;
 use App\Models\OauthApp;
 use App\Models\User;
+use App\Models\UserSocialAccount;
 use Illuminate\Support\Facades\Validator;
+use Google\Client as GoogleClient;
 
 final class MobileAuthController extends BaseController
 {
@@ -174,6 +176,198 @@ final class MobileAuthController extends BaseController
             'success' => true,
             'message' => 'Излязохте успешно.',
         ]);
+    }
+
+    public function google()
+    {
+        $input = $this->jsonInput();
+
+        $validator = Validator::make(
+            $input,
+            [
+                'client_id' => 'required|string',
+                'id_token' => 'required|string',
+            ],
+            [
+                'required' => 'Полето :attribute е задължително.',
+                'string' => 'Полето :attribute трябва да бъде текст.',
+            ],
+            [
+                'client_id' => 'client_id',
+                'id_token' => 'Google ID token',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return $this->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors()->toArray(),
+            ], 422);
+        }
+
+        $oauthApp = OauthApp::query()
+            ->where('client_id', $input['client_id'])
+            ->where('is_active', true)
+            ->first();
+
+        if (
+            !$oauthApp ||
+            ($oauthApp->options['client_type'] ?? null) !== 'public'
+        ) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Невалидно приложение.',
+            ], 401);
+        }
+
+        $googleClientId = (string) (
+            $_ENV['GOOGLE_WEB_CLIENT_ID'] ?? ''
+        );
+
+        if ($googleClientId === '') {
+            return $this->json([
+                'success' => false,
+                'message' => 'Google authentication не е конфигурирана.',
+            ], 500);
+        }
+
+        try {
+            $google = new GoogleClient([
+                'client_id' => $googleClientId,
+            ]);
+
+            $payload = $google->verifyIdToken(
+                $input['id_token']
+            );
+
+            if (!$payload) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Невалиден Google ID token.',
+                ], 401);
+            }
+
+            if (
+                empty($payload['email']) ||
+                empty($payload['sub'])
+            ) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Google профилът няма необходимите данни.',
+                ], 422);
+            }
+
+            if (
+                isset($payload['email_verified']) &&
+                !$payload['email_verified']
+            ) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Google email адресът не е потвърден.',
+                ], 401);
+            }
+
+            $email = strtolower(
+                trim($payload['email'])
+            );
+
+            $socialAccount = UserSocialAccount::query()
+                ->where('provider', 'google')
+                ->where(
+                    'provider_user_id',
+                    (string) $payload['sub']
+                )
+                ->with('user')
+                ->first();
+
+            if ($socialAccount) {
+                $user = $socialAccount->user;
+            } else {
+                $user = User::query()
+                    ->where('email', $email)
+                    ->first();
+
+                if (!$user) {
+                    $firstName = trim(
+                        (string) ($payload['given_name'] ?? '')
+                    );
+
+                    $lastName = trim(
+                        (string) ($payload['family_name'] ?? '')
+                    );
+
+                    $name = trim(
+                        (string) ($payload['name'] ?? '')
+                    );
+
+                    if ($name === '') {
+                        $name = trim(
+                            $firstName . ' ' . $lastName
+                        );
+                    }
+
+                    if ($name === '') {
+                        $name = $email;
+                    }
+
+                    $user = User::create([
+                        'email' => $email,
+                        'name' => $name,
+                        'first_name' => $firstName !== ''
+                            ? $firstName
+                            : null,
+                        'last_name' => $lastName !== ''
+                            ? $lastName
+                            : null,
+                        'role' => User::ROLE_USER,
+                        'is_active' => true,
+                        'email_verified' => true,
+                    ]);
+                }
+
+                UserSocialAccount::create([
+                    'user_id' => $user->id,
+                    'provider' => 'google',
+                    'provider_user_id' => (string) $payload['sub'],
+                    'email' => $email,
+                ]);
+            }
+
+            if (!$user->is_active) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Потребителският профил е деактивиран.',
+                ], 403);
+            }
+
+            $accessToken = $this->issueAccessToken(
+                $user,
+                $oauthApp
+            );
+
+            return $this->json([
+                'success' => true,
+                'access_token' => $accessToken,
+                'token_type' => 'Bearer',
+                'expires_in' => 2592000,
+                'user' => $this->serializeUser($user),
+            ]);
+        } catch (\Throwable $exception) {
+            error_log(
+                'Google authentication error: '
+                . get_class($exception)
+                . ': '
+                . $exception->getMessage()
+                . PHP_EOL
+                . $exception->getTraceAsString()
+            );
+
+            return $this->json([
+                'success' => false,
+                'message' => 'Google входът не можа да бъде завършен.',
+            ], 500);
+        }
     }
 
     private function resolvePublicApplication(string $clientId): ?OauthApp

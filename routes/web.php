@@ -57,6 +57,8 @@ $router->post('/api/mobile/register', [MobileAuthController::class, 'register'])
 $router->post('/api/mobile/logout', [MobileAuthController::class, 'logout']);
 $router->get('/api/mobile/me', [MobileAuthController::class, 'me']);
 
+$router->post('/api/mobile/auth/google', [MobileAuthController::class, 'google']);
+
 $router->get('/api/mobile/users', [UserController::class, 'search']);
 $router->post('/api/mobile/profile', [UserController::class, 'updateProfile']);
 $router->post('/api/mobile/profile/password', [UserController::class, 'updatePassword']);
