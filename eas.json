@@ -10,7 +10,8 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://users.azmigrantat.com",
         "EXPO_PUBLIC_SOCKET_URL": "https://realtime.azmigrantat.com",
-        "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63"
+        "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "868706856080-so84saoje92mhc69sulunf93brt1ckbg.apps.googleusercontent.com"
       }
     },
     "preview": {
@@ -21,7 +22,8 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://users.azmigrantat.com",
         "EXPO_PUBLIC_SOCKET_URL": "https://realtime.azmigrantat.com",
-        "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63"
+        "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "868706856080-so84saoje92mhc69sulunf93brt1ckbg.apps.googleusercontent.com"
       }
     },
     "production": {
@@ -29,7 +31,8 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://users.azmigrantat.com",
         "EXPO_PUBLIC_SOCKET_URL": "https://realtime.azmigrantat.com",
-        "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63"
+        "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "868706856080-so84saoje92mhc69sulunf93brt1ckbg.apps.googleusercontent.com"
       }
     }
   },

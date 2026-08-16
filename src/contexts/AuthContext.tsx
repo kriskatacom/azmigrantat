@@ -8,7 +8,12 @@ import {
   useState,
 } from "react";
 
-import { loginRequest, logoutRequest, registerRequest } from "@/services/auth";
+import {
+  googleLoginRequest,
+  loginRequest,
+  logoutRequest,
+  registerRequest,
+} from "@/services/auth";
 
 import { registerForPushNotifications } from "@/services/notifications";
 import type { AuthUser, LoginPayload, RegisterPayload } from "@/types/auth";
@@ -24,6 +29,7 @@ interface AuthContextValue {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (payload: LoginPayload) => Promise<void>;
+  loginWithGoogle: (idToken: string) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (user: AuthUser) => Promise<void>;
@@ -158,6 +164,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [saveSession],
   );
 
+  const loginWithGoogle = useCallback(
+    async (idToken: string) => {
+      const response = await googleLoginRequest(idToken);
+
+      await saveSession(response.token, response.user, response.expiresIn);
+
+      try {
+        await registerForPushNotifications(response.token);
+      } catch (error) {
+        console.error("Неуспешна регистрация на push notifications:", error);
+      }
+    },
+    [saveSession],
+  );
+
   const logout = useCallback(async () => {
     const currentToken = token;
 
@@ -187,11 +208,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
         token && user && expiresAt && expiresAt > Date.now(),
       ),
       login,
+      loginWithGoogle,
       register,
       logout,
       updateUser,
     }),
-    [user, token, expiresAt, isLoading, login, register, logout, updateUser],
+    [
+      user,
+      token,
+      expiresAt,
+      isLoading,
+      login,
+      loginWithGoogle,
+      register,
+      logout,
+      updateUser,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -122,6 +122,27 @@ export async function registerRequest(
   };
 }
 
+export async function googleLoginRequest(
+  idToken: string,
+): Promise<AuthResponse> {
+  const response = await request<MobileAuthResponse>(
+    "/api/mobile/auth/google",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        client_id: CLIENT_ID,
+        id_token: idToken,
+      }),
+    },
+  );
+
+  return {
+    token: response.access_token,
+    expiresIn: response.expires_in,
+    user: response.user,
+  };
+}
+
 export async function getCurrentUserRequest(token: string): Promise<AuthUser> {
   const response = await request<MeResponse>("/api/mobile/me", {
     method: "GET",

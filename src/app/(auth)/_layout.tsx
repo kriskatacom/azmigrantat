@@ -1,11 +1,13 @@
 import { useAppTheme } from "@/app/_layout";
 import { useAuth } from "@/hooks/useAuth";
-import { Redirect, Stack } from "expo-router";
+import { getSafeReturnTo } from "@/utils/auth-navigation";
+import { Redirect, Stack, useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 export default function AuthLayout() {
   const { theme } = useAppTheme();
   const { isAuthenticated, isLoading } = useAuth();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string | string[] }>();
 
   if (isLoading) {
     return (
@@ -23,7 +25,7 @@ export default function AuthLayout() {
   }
 
   if (isAuthenticated) {
-    return <Redirect href="/(profile)" />;
+    return <Redirect href={getSafeReturnTo(returnTo)} />;
   }
 
   return (

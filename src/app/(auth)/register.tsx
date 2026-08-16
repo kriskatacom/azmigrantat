@@ -1,8 +1,9 @@
 import { useAppTheme } from "@/app/_layout";
+import GoogleLoginButton from "@/components/auth/google-login-button";
 import AppButton from "@/components/ui/AppButton";
 import AppInput from "@/components/ui/AppInput";
 import { useAuth } from "@/hooks/useAuth";
-import { Link } from "expo-router";
+import { Link, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
 import {
   Alert,
@@ -21,6 +22,7 @@ import {
 export default function RegisterScreen() {
   const { theme } = useAppTheme();
   const { register } = useAuth();
+  const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -204,12 +206,30 @@ export default function RegisterScreen() {
               onPress={handleRegister}
             />
 
+            <View style={styles.separator}>
+              <View
+                style={[styles.separatorLine, { backgroundColor: theme.colors.border }]}
+              />
+              <Text style={{ color: theme.colors.textSecondary }}>или</Text>
+              <View
+                style={[styles.separatorLine, { backgroundColor: theme.colors.border }]}
+              />
+            </View>
+
+            <GoogleLoginButton />
+
             <View style={styles.footer}>
               <Text style={{ color: theme.colors.textSecondary }}>
                 Вече имате профил?{" "}
               </Text>
 
-              <Link href="/(auth)/login" asChild>
+              <Link
+                href={{
+                  pathname: "/(auth)/login",
+                  params: returnTo ? { returnTo } : {},
+                }}
+                asChild
+              >
                 <TouchableOpacity>
                   <Text
                     style={[styles.footerLink, { color: theme.colors.primary }]}
@@ -266,6 +286,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 22,
   },
+  separator: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 18,
+  },
+  separatorLine: { flex: 1, height: StyleSheet.hairlineWidth },
   footerLink: {
     fontWeight: "700",
   },
