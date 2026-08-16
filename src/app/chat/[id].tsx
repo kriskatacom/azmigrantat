@@ -224,7 +224,6 @@ export default function ChatRoom() {
         currentUserId={user?.id}
         isLoading={isLoading}
         listRef={flatListRef}
-        onContentSizeChange={scrollToBottom}
         colors={theme.colors}
       />
 
@@ -235,6 +234,7 @@ export default function ChatRoom() {
         inputRef={inputRef}
         onChangeText={handleInputChange}
         onAttach={openAttachmentMenu}
+        onSendAudio={sendChatAttachments}
         onSend={() => {
           void handleSendMessage();
         }}

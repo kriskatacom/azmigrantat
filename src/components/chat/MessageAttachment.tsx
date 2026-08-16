@@ -4,6 +4,7 @@ import { FontAwesome } from "@expo/vector-icons";
 import { Image } from "expo-image";
 import * as WebBrowser from "expo-web-browser";
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import AudioMessagePlayer from "./audio-message-player";
 
 interface AttachmentData {
   url: string;
@@ -21,7 +22,7 @@ function metadataString(metadata: Record<string, unknown> | null, keys: string[]
 }
 
 export function getMessageAttachment(message: ChatMessage): AttachmentData | null {
-  if (message.type !== "image" && message.type !== "file") return null;
+  if (message.type !== "image" && message.type !== "audio" && message.type !== "file") return null;
   const url = metadataString(message.metadata, ["url", "file_url", "download_url"])
     ?? (message.content?.startsWith("http") ? message.content : null);
   if (!url) return null;
@@ -57,6 +58,11 @@ export default function MessageAttachment({ message, isMe, colors }: MessageAtta
   });
   if (!attachment) return null;
   const isImage = message.type === "image" || attachment.mimeType?.startsWith("image/");
+  const isAudio = message.type === "audio" || attachment.mimeType?.startsWith("audio/");
+
+  if (isAudio) {
+    return <AudioMessagePlayer url={attachment.url} isMe={isMe} colors={colors} />;
+  }
 
   if (isImage) {
     return (

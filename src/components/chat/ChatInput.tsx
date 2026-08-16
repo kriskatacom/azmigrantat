@@ -1,5 +1,6 @@
 import { FontAwesome } from "@expo/vector-icons";
-import type { RefObject } from "react";
+import type { ChatAttachmentUpload } from "@/types/chat";
+import { type RefObject, useState } from "react";
 import {
     ActivityIndicator,
     Platform,
@@ -8,6 +9,8 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
+import AudioMessageRecorder from "./audio-message-recorder";
+import ChatMoreOptionsModal from "./chat-more-options-modal";
 
 type ChatInputProps = {
   value: string;
@@ -18,6 +21,7 @@ type ChatInputProps = {
   onChangeText: (value: string) => void;
   onSend: () => void;
   onAttach: () => void;
+  onSendAudio: (attachments: ChatAttachmentUpload[]) => Promise<boolean>;
 
   colors: {
     card: string;
@@ -39,9 +43,18 @@ export default function ChatInput({
   onChangeText,
   onSend,
   onAttach,
+  onSendAudio,
   colors,
 }: ChatInputProps) {
   const canSend = Boolean(value.trim()) && !isSending;
+  const [isRecording, setIsRecording] = useState(false);
+  const [audioStartRequestId, setAudioStartRequestId] = useState(0);
+  const [isMoreMenuVisible, setIsMoreMenuVisible] = useState(false);
+
+  const openMoreMenu = () => {
+    if (isSending) return;
+    setIsMoreMenuVisible(true);
+  };
 
   return (
     <View
@@ -54,14 +67,14 @@ export default function ChatInput({
         },
       ]}
     >
-      <TouchableOpacity
-        onPress={onAttach}
+      {!isRecording ? <><TouchableOpacity
+        onPress={openMoreMenu}
         disabled={isSending}
         style={[styles.attachButton, { backgroundColor: colors.background }]}
         accessibilityRole="button"
-        accessibilityLabel="Добави снимка или файл"
+        accessibilityLabel="Покажи още опции за изпращане"
       >
-        <FontAwesome name="paperclip" size={20} color={colors.button} />
+        <FontAwesome name="ellipsis-h" size={21} color={colors.button} />
       </TouchableOpacity>
 
       <TextInput
@@ -99,7 +112,25 @@ export default function ChatInput({
         ) : (
           <FontAwesome name="send" size={18} color={colors.buttonText} />
         )}
-      </TouchableOpacity>
+      </TouchableOpacity></> : null}
+
+      <AudioMessageRecorder
+        disabled={isSending}
+        startRequestId={audioStartRequestId}
+        onRecordingChange={setIsRecording}
+        onSend={onSendAudio}
+        colors={colors}
+      />
+
+      <ChatMoreOptionsModal
+        visible={isMoreMenuVisible}
+        onClose={() => setIsMoreMenuVisible(false)}
+        onAudioPress={() =>
+          setAudioStartRequestId((current) => current + 1)
+        }
+        onAttachmentPress={onAttach}
+        colors={colors}
+      />
     </View>
   );
 }

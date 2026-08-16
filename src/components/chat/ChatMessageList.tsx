@@ -1,5 +1,5 @@
 import type { ChatMessage as ChatMessageType } from "@/types/chat";
-import type { RefObject } from "react";
+import { useMemo, type RefObject } from "react";
 import {
     ActivityIndicator,
     FlatList,
@@ -16,7 +16,6 @@ type ChatMessageListProps = {
   token?: string | null;
   isLoading: boolean;
   listRef: RefObject<FlatList<ChatMessageType> | null>;
-  onContentSizeChange: () => void;
 
   colors: {
     button: string;
@@ -33,10 +32,11 @@ export default function ChatMessageList({
   currentUserId,
   isLoading,
   listRef,
-  onContentSizeChange,
   colors,
   token,
 }: ChatMessageListProps) {
+  const invertedMessages = useMemo(() => [...messages].reverse(), [messages]);
+
   if (isLoading) {
     return (
       <View style={[styles.container, styles.center]}>
@@ -48,7 +48,8 @@ export default function ChatMessageList({
   return (
     <FlatList
       ref={listRef}
-      data={messages}
+      data={invertedMessages}
+      inverted
       keyExtractor={(item) => item.id.toString()}
       renderItem={({ item }) => (
         <ChatMessage
@@ -75,7 +76,6 @@ export default function ChatMessageList({
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="always"
       keyboardDismissMode="none"
-      onContentSizeChange={onContentSizeChange}
     />
   );
 }

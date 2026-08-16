@@ -42,8 +42,7 @@
         "expo-image-picker",
         {
           "photosPermission": "Разрешете достъп до снимките, за да можете да ги изпращате в чата.",
-          "cameraPermission": "Разрешете достъп до камерата, за да можете да снимате и изпращате в чата.",
-          "microphonePermission": false
+          "cameraPermission": "Разрешете достъп до камерата, за да можете да снимате и изпращате в чата."
         }
       ],
       "expo-document-picker",
@@ -56,7 +55,16 @@
         }
       ],
       "expo-sharing",
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Разрешете достъп до микрофона, за да записвате и изпращате аудио съобщения.",
+          "recordAudioAndroid": true,
+          "enableBackgroundPlayback": false,
+          "enableBackgroundRecording": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

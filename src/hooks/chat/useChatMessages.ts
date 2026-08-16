@@ -79,7 +79,8 @@ export function useChatMessages({
 
   const scrollToBottom = useCallback(() => {
     requestAnimationFrame(() => {
-      flatListRef.current?.scrollToEnd({
+      flatListRef.current?.scrollToOffset({
+        offset: 0,
         animated: true,
       });
     });
@@ -110,7 +111,6 @@ export function useChatMessages({
         await markConversationAsRead(token, conversationId, lastMessage.id);
       }
 
-      scrollToBottom();
     } catch (error) {
       Alert.alert(
         "Грешка",
@@ -126,7 +126,6 @@ export function useChatMessages({
     conversationId,
     currentUserId,
     resolveOtherUser,
-    scrollToBottom,
     isAppActive,
   ]);
 

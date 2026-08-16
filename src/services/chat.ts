@@ -196,7 +196,11 @@ export async function sendAttachment(
 
   formData.append(
     "type",
-    attachment.mimeType.startsWith("image/") ? "image" : "file",
+    attachment.mimeType.startsWith("image/")
+      ? "image"
+      : attachment.mimeType.startsWith("audio/")
+        ? "audio"
+        : "file",
   );
 
   formData.append("file", file);
