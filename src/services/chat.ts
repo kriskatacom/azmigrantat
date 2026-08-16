@@ -66,10 +66,14 @@ async function request<T>(
   return data as T;
 }
 
-export async function getConversations(token: string): Promise<Conversation[]> {
+export async function getConversations(
+  token: string,
+  signal?: AbortSignal,
+): Promise<Conversation[]> {
   const response = await request<ConversationsResponse>(
     "/api/mobile/conversations",
     token,
+    { signal },
   );
 
   return response.data;

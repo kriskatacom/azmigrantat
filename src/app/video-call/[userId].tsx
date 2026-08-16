@@ -18,6 +18,7 @@ export default function VideoCallScreen() {
     direction?: string | string[];
   }>();
   const hasStartedCallRef = useRef(false);
+  const hasLeftScreenRef = useRef(false);
 
   const recipientId = useMemo(() => {
     const rawUserId = Array.isArray(params.userId)
@@ -72,6 +73,18 @@ export default function VideoCallScreen() {
     onIncomingCallAccepted: clearAcceptedIncomingCall,
   });
 
+  const leaveVideoCallScreen = useCallback(() => {
+    if (hasLeftScreenRef.current) return;
+    hasLeftScreenRef.current = true;
+
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace("/inbox");
+  }, [router]);
+
   useEffect(() => {
     if (
       isAuthLoading ||
@@ -91,14 +104,13 @@ export default function VideoCallScreen() {
 
   useEffect(() => {
     if (callState === "ended" || callState === "rejected") {
-      router.back();
+      leaveVideoCallScreen();
     }
-  }, [callState, router]);
+  }, [callState, leaveVideoCallScreen]);
 
   const handleEndCall = useCallback(() => {
     endCall();
-    router.back();
-  }, [endCall, router]);
+  }, [endCall]);
 
   if (!isAuthLoading && !isValidRecipient) {
     return (
@@ -111,7 +123,7 @@ export default function VideoCallScreen() {
         </Text>
         <TouchableOpacity
           accessibilityRole="button"
-          onPress={() => router.back()}
+          onPress={leaveVideoCallScreen}
           style={styles.backButton}
         >
           <Text style={styles.backButtonText}>Назад</Text>

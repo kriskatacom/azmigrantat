@@ -1,9 +1,12 @@
 import IncomingCall from "@/components/video/incoming-call";
 import { useSocket } from "@/hooks/useSocket";
+import { useAuth } from "@/hooks/useAuth";
+import { getConversations } from "@/services/chat";
 import type {
   CallIceCandidate,
   CallServerPayload,
 } from "@/services/video-call";
+import type { ChatUser } from "@/types/chat";
 import { useRouter } from "expo-router";
 import {
   createContext,
@@ -33,16 +36,19 @@ const VideoCallContext = createContext<VideoCallContextValue | undefined>(
 export function VideoCallProvider({ children }: PropsWithChildren) {
   const router = useRouter();
   const { socket } = useSocket();
+  const { token } = useAuth();
   const [incomingCall, setIncomingCall] = useState<CallServerPayload | null>(
     null,
   );
   const [acceptedIncomingCall, setAcceptedIncomingCall] =
     useState<AcceptedIncomingCall | null>(null);
+  const [caller, setCaller] = useState<ChatUser | null>(null);
   const incomingCallRef = useRef<CallServerPayload | null>(null);
   const acceptedIncomingCallRef = useRef<AcceptedIncomingCall | null>(null);
   const pendingCandidatesRef = useRef<Map<string, CallIceCandidate[]>>(
     new Map(),
   );
+  const callerRequestRef = useRef<AbortController | null>(null);
 
   const updateIncomingCall = useCallback((call: CallServerPayload | null) => {
     incomingCallRef.current = call;
@@ -64,7 +70,32 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       if (payload.description?.type !== "offer") return;
 
       pendingCandidatesRef.current.set(payload.call_id, []);
+      callerRequestRef.current?.abort();
+      setCaller(null);
       updateIncomingCall(payload);
+
+      if (token) {
+        const controller = new AbortController();
+        callerRequestRef.current = controller;
+        void getConversations(token, controller.signal)
+          .then((conversations) => {
+            if (
+              controller.signal.aborted ||
+              incomingCallRef.current?.call_id !== payload.call_id
+            ) {
+              return;
+            }
+            const matchedCaller = conversations.find(
+              (conversation) =>
+                Number(conversation.other_user?.id) === payload.sender_id,
+            )?.other_user;
+            setCaller(matchedCaller ?? null);
+          })
+          .catch((error: unknown) => {
+            if (controller.signal.aborted) return;
+            console.error("Данните за повикващия не се заредиха:", error);
+          });
+      }
     };
 
     const handleIceCandidate = (payload: CallServerPayload) => {
@@ -94,6 +125,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     const handleEnd = (payload: CallServerPayload) => {
       if (payload.call_id === incomingCallRef.current?.call_id) {
         updateIncomingCall(null);
+        setCaller(null);
       }
       if (payload.call_id === acceptedIncomingCallRef.current?.call.call_id) {
         updateAcceptedIncomingCall(null);
@@ -106,11 +138,12 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     socket.on("call:end", handleEnd);
 
     return () => {
+      callerRequestRef.current?.abort();
       socket.off("call:offer", handleOffer);
       socket.off("call:ice-candidate", handleIceCandidate);
       socket.off("call:end", handleEnd);
     };
-  }, [socket, updateAcceptedIncomingCall, updateIncomingCall]);
+  }, [socket, token, updateAcceptedIncomingCall, updateIncomingCall]);
 
   const acceptIncomingCall = useCallback(() => {
     const call = incomingCallRef.current;
@@ -124,6 +157,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     };
     updateAcceptedIncomingCall(acceptedCall);
     updateIncomingCall(null);
+    setCaller(null);
 
     router.push({
       pathname: "/video-call/[userId]",
@@ -142,6 +176,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     });
     pendingCandidatesRef.current.delete(call.call_id);
     updateIncomingCall(null);
+    setCaller(null);
   }, [socket, updateIncomingCall]);
 
   const clearAcceptedIncomingCall = useCallback(
@@ -163,6 +198,8 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       {children}
       <IncomingCall
         visible={incomingCall !== null}
+        callerName={caller?.name}
+        callerImage={caller?.profile_image}
         onAccept={acceptIncomingCall}
         onReject={rejectIncomingCall}
       />
