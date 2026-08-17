@@ -38,6 +38,16 @@ export default function ChatRoom() {
   const isAppActive = useAppActive();
 
   const router = useRouter();
+  const videoNavigationLockedRef = useRef(false);
+  const videoNavigationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (videoNavigationTimerRef.current) {
+        clearTimeout(videoNavigationTimerRef.current);
+      }
+    };
+  }, []);
 
   const {
     socket,
@@ -211,7 +221,17 @@ export default function ChatRoom() {
   const recipientUserId = otherUser?.id ?? routeUserId;
 
   const openVideoCall = () => {
-    if (!recipientUserId || Number(recipientUserId) === Number(user?.id)) return;
+    if (
+      videoNavigationLockedRef.current ||
+      !recipientUserId ||
+      Number(recipientUserId) === Number(user?.id)
+    ) return;
+
+    videoNavigationLockedRef.current = true;
+    videoNavigationTimerRef.current = setTimeout(() => {
+      videoNavigationLockedRef.current = false;
+      videoNavigationTimerRef.current = null;
+    }, 1_000);
 
     router.push({
       pathname: "/video-call/[userId]",

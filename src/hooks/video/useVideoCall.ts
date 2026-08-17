@@ -11,32 +11,24 @@ import {
 import { useLocalMedia } from "@/hooks/video/useLocalMedia";
 import { getSocket } from "@/services/socket";
 import type {
+  CallEndReason,
   CallIceCandidate,
   CallServerPayload,
+  CallState,
 } from "@/services/video-call";
 
-export type CallState =
-  | "idle"
-  | "calling"
-  | "ringing"
-  | "connecting"
-  | "connected"
-  | "rejected"
-  | "ended"
-  | "failed";
+export type { CallState } from "@/services/video-call";
 
-type UseVideoCallOptions = {
+type Options = {
   recipientId: number;
   acceptedIncomingCall?: CallServerPayload | null;
   pendingIncomingIceCandidates?: CallIceCandidate[];
   onIncomingCallAccepted?: (callId: string) => void;
+  claimActiveCall?: (callId: string) => boolean;
+  releaseActiveCall?: (callId: string) => void;
 };
-
-type SwitchableVideoTrack = MediaStreamTrack & {
-  _switchCamera?: () => void;
-};
-
-type IceCandidateEvent = {
+type SwitchableTrack = MediaStreamTrack & { _switchCamera?: () => void };
+type IceEvent = {
   candidate: {
     candidate: string;
     sdpMid: string | null;
@@ -47,9 +39,41 @@ type IceCandidateEvent = {
 const PEER_CONFIG = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
+const NO_ANSWER_MS = 30_000;
+const CONNECTION_MS = 15_000;
+const RESET_MS = 2_000;
+const ACTIVE_STATES: CallState[] = [
+  "calling",
+  "ringing",
+  "connecting",
+  "connected",
+];
+const TERMINAL_STATES: CallState[] = [
+  "rejected",
+  "busy",
+  "timeout",
+  "cancelled",
+  "ended",
+  "failed",
+  "connection_timeout",
+];
 
-function getCandidateKey(candidate: CallIceCandidate) {
-  return `${candidate.candidate}:${candidate.sdpMid ?? ""}:${candidate.sdpMLineIndex ?? ""}`;
+function candidateKey(value: CallIceCandidate) {
+  return `${value.candidate}:${value.sdpMid ?? ""}:${value.sdpMLineIndex ?? ""}`;
+}
+
+function stateForReason(reason?: CallEndReason): CallState {
+  if (
+    reason === "rejected" ||
+    reason === "busy" ||
+    reason === "timeout" ||
+    reason === "cancelled" ||
+    reason === "failed" ||
+    reason === "connection_timeout"
+  ) {
+    return reason;
+  }
+  return "ended";
 }
 
 export function useVideoCall({
@@ -57,111 +81,186 @@ export function useVideoCall({
   acceptedIncomingCall,
   pendingIncomingIceCandidates = [],
   onIncomingCallAccepted,
-}: UseVideoCallOptions) {
-  const [callState, setCallState] = useState<CallState>("idle");
+  claimActiveCall,
+  releaseActiveCall,
+}: Options) {
   const { localStream, startCamera, stopCamera } = useLocalMedia();
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
-  const [incomingCall, setIncomingCall] = useState<CallServerPayload | null>(
-    null,
-  );
-  const [isCalling, setIsCalling] = useState(false);
-  const [isInCall, setIsInCall] = useState(false);
+  const [incomingCall, setIncomingCall] = useState<CallServerPayload | null>(null);
+  const [callState, setCallState] = useState<CallState>("idle");
+  const [callDurationSeconds, setCallDurationSeconds] = useState(0);
   const [isMicrophoneEnabled, setIsMicrophoneEnabled] = useState(true);
-
   const [isCameraEnabled, setIsCameraEnabled] = useState(true);
 
-  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const peerRef = useRef<RTCPeerConnection | null>(null);
+  const remoteStreamRef = useRef<MediaStream | null>(null);
   const callIdRef = useRef<string | null>(null);
-  const recipientIdRef = useRef<number | null>(null);
-  const incomingCallRef = useRef<CallServerPayload | null>(null);
-  const remoteDescriptionSetRef = useRef(false);
-  const pendingIceCandidatesRef = useRef<RTCIceCandidate[]>([]);
-  const acceptedCallIdRef = useRef<string | null>(null);
-  const bufferedCandidateKeysRef = useRef<Set<string>>(new Set());
+  const targetIdRef = useRef<number | null>(null);
+  const incomingRef = useRef<CallServerPayload | null>(null);
+  const stateRef = useRef<CallState>("idle");
+  const remoteSetRef = useRef(false);
+  const candidatesRef = useRef<RTCIceCandidate[]>([]);
+  const candidateKeysRef = useRef(new Set<string>());
+  const startingRef = useRef(false);
+  const acceptingRef = useRef(false);
+  const acceptedIdRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
+  const generationRef = useRef(0);
+  const noAnswerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connectionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const durationRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const updateIncomingCall = useCallback((call: CallServerPayload | null) => {
-    incomingCallRef.current = call;
-    setIncomingCall(call);
+  const changeState = useCallback((value: CallState) => {
+    stateRef.current = value;
+    if (mountedRef.current) setCallState(value);
   }, []);
-
-  const closePeerConnection = useCallback(() => {
-    peerConnectionRef.current?.close();
-
-    peerConnectionRef.current = null;
-    callIdRef.current = null;
-    recipientIdRef.current = null;
-
-    remoteDescriptionSetRef.current = false;
-    pendingIceCandidatesRef.current = [];
-    bufferedCandidateKeysRef.current.clear();
-
-    updateIncomingCall(null);
-
-    setRemoteStream(null);
-
-    setIsCalling(false);
-    setIsInCall(false);
-
-    setIsMicrophoneEnabled(true);
-    setIsCameraEnabled(true);
-  }, [updateIncomingCall]);
-
-  const flushPendingIceCandidates = useCallback(async () => {
-    const peerConnection = peerConnectionRef.current;
-    if (!peerConnection || !remoteDescriptionSetRef.current) return;
-
-    const candidates = pendingIceCandidatesRef.current;
-    pendingIceCandidatesRef.current = [];
-
-    for (const candidate of candidates) {
-      await peerConnection.addIceCandidate(candidate);
-    }
+  const changeIncoming = useCallback((value: CallServerPayload | null) => {
+    incomingRef.current = value;
+    if (mountedRef.current) setIncomingCall(value);
   }, []);
+  const clearNoAnswer = useCallback(() => {
+    if (noAnswerRef.current) clearTimeout(noAnswerRef.current);
+    noAnswerRef.current = null;
+  }, []);
+  const clearConnection = useCallback(() => {
+    if (connectionRef.current) clearTimeout(connectionRef.current);
+    connectionRef.current = null;
+  }, []);
+  const clearReset = useCallback(() => {
+    if (resetRef.current) clearTimeout(resetRef.current);
+    resetRef.current = null;
+  }, []);
+  const clearDuration = useCallback(() => {
+    if (durationRef.current) clearInterval(durationRef.current);
+    durationRef.current = null;
+  }, []);
+  const clearTimers = useCallback(() => {
+    clearNoAnswer();
+    clearConnection();
+    clearReset();
+    clearDuration();
+  }, [clearConnection, clearDuration, clearNoAnswer, clearReset]);
 
-  const createPeerConnection = useCallback(
-    async (
-      targetUserId: number,
-      callId: string,
-      preservePendingIceCandidates = false,
-    ) => {
-      peerConnectionRef.current?.close();
-      setRemoteStream(null);
-      remoteDescriptionSetRef.current = false;
-      if (!preservePendingIceCandidates) pendingIceCandidatesRef.current = [];
+  const cleanup = useCallback(
+    (expectedId?: string) => {
+      const currentId = callIdRef.current;
+      if (expectedId && currentId && currentId !== expectedId) return false;
+      clearTimers();
+      const peer = peerRef.current;
+      peerRef.current = null;
+      peer?.close();
+      stopCamera();
+      remoteStreamRef.current?.getTracks().forEach((track) => track.stop());
+      remoteStreamRef.current = null;
+      if (currentId) releaseActiveCall?.(currentId);
+      callIdRef.current = null;
+      targetIdRef.current = null;
+      remoteSetRef.current = false;
+      candidatesRef.current = [];
+      candidateKeysRef.current.clear();
+      startingRef.current = false;
+      acceptingRef.current = false;
+      acceptedIdRef.current = null;
+      changeIncoming(null);
+      if (mountedRef.current) {
+        setRemoteStream(null);
+        setCallDurationSeconds(0);
+        setIsMicrophoneEnabled(true);
+        setIsCameraEnabled(true);
+      }
+      return true;
+    },
+    [changeIncoming, clearTimers, releaseActiveCall, stopCamera],
+  );
 
-      const peerConnection = new RTCPeerConnection(PEER_CONFIG);
-      peerConnectionRef.current = peerConnection;
-      callIdRef.current = callId;
-      recipientIdRef.current = targetUserId;
+  const finish = useCallback(
+    (callId: string, state: CallState) => {
+      if (callIdRef.current !== callId) return false;
+      const generation = generationRef.current;
+      cleanup(callId);
+      changeState(state);
+      resetRef.current = setTimeout(() => {
+        resetRef.current = null;
+        if (
+          mountedRef.current &&
+          generationRef.current === generation &&
+          callIdRef.current === null &&
+          TERMINAL_STATES.includes(stateRef.current)
+        ) {
+          changeState("idle");
+        }
+      }, RESET_MS);
+      return true;
+    },
+    [changeState, cleanup],
+  );
 
-      const stream = await startCamera();
-      stream.getTracks().forEach((track) => {
-        peerConnection.addTrack(track, stream);
+  const emitEnd = useCallback(
+    (callId: string, targetId: number, reason: CallEndReason) => {
+      getSocket()?.emit("call:end", {
+        call_id: callId,
+        recipient_id: targetId,
+        reason,
       });
+    },
+    [],
+  );
 
-      peerConnection.ontrack = (event: { streams?: MediaStream[] }) => {
-        const stream = event.streams?.[0];
-        console.log("WebRTC ontrack:", stream?.id);
-        if (!stream) return;
+  const startConnectionTimeout = useCallback(
+    (callId: string, targetId: number) => {
+      clearConnection();
+      connectionRef.current = setTimeout(() => {
+        connectionRef.current = null;
+        if (callIdRef.current !== callId || stateRef.current !== "connecting") return;
+        emitEnd(callId, targetId, "connection_timeout");
+        finish(callId, "connection_timeout");
+      }, CONNECTION_MS);
+    },
+    [clearConnection, emitEnd, finish],
+  );
 
-        setRemoteStream((currentStream) => {
-          if (currentStream?.id === stream.id) return currentStream;
-          console.log("Задаване на нов remote stream:", stream.id);
-          return stream;
-        });
+  const flushCandidates = useCallback(async () => {
+    const peer = peerRef.current;
+    if (!peer || !remoteSetRef.current) return;
+    const candidates = candidatesRef.current;
+    candidatesRef.current = [];
+    for (const candidate of candidates) await peer.addIceCandidate(candidate);
+  }, []);
+
+  const createPeer = useCallback(
+    async (targetId: number, callId: string, preserveCandidates = false) => {
+      if (callIdRef.current !== callId) throw new Error("Разговорът вече не е активен.");
+      peerRef.current?.close();
+      remoteSetRef.current = false;
+      if (!preserveCandidates) {
+        candidatesRef.current = [];
+        candidateKeysRef.current.clear();
+      }
+      if (mountedRef.current) setRemoteStream(null);
+      const peer = new RTCPeerConnection(PEER_CONFIG);
+      peerRef.current = peer;
+      targetIdRef.current = targetId;
+      const stream = await startCamera();
+      if (!mountedRef.current || callIdRef.current !== callId || peerRef.current !== peer) {
+        stream.getTracks().forEach((track) => track.stop());
+        peer.close();
+        throw new Error("Разговорът беше прекратен.");
+      }
+      stream.getTracks().forEach((track) => peer.addTrack(track, stream));
+
+      peer.ontrack = (event: { streams?: MediaStream[] }) => {
+        if (peerRef.current !== peer || callIdRef.current !== callId) return;
+        const streamValue = event.streams?.[0];
+        if (!streamValue) return;
+        remoteStreamRef.current = streamValue;
+        setRemoteStream((current) => current?.id === streamValue.id ? current : streamValue);
       };
-
-      peerConnection.onicecandidate = (event: IceCandidateEvent) => {
-        if (!event.candidate) return;
-
-        const socket = getSocket();
-        const currentCallId = callIdRef.current;
-        const currentRecipientId = recipientIdRef.current;
-        if (!socket || !currentCallId || !currentRecipientId) return;
-
-        socket.emit("call:ice-candidate", {
-          call_id: currentCallId,
-          recipient_id: currentRecipientId,
+      peer.onicecandidate = (event: IceEvent) => {
+        if (!event.candidate || callIdRef.current !== callId) return;
+        getSocket()?.emit("call:ice-candidate", {
+          call_id: callId,
+          recipient_id: targetId,
           candidate: {
             candidate: event.candidate.candidate,
             sdpMid: event.candidate.sdpMid,
@@ -169,380 +268,276 @@ export function useVideoCall({
           },
         });
       };
-
-      peerConnection.onconnectionstatechange = () => {
-        console.log("WebRTC connection state:", peerConnection.connectionState);
-
-        if (peerConnection.connectionState === "connected") {
-          setIsCalling(false);
-          setIsInCall(true);
-          setCallState("connected");
-        }
-
-        if (peerConnection.connectionState === "failed") {
-          setIsCalling(false);
-          setIsInCall(false);
-          setRemoteStream(null);
-          setCallState("failed");
-        }
-
-        if (peerConnection.connectionState === "closed") {
-          setIsCalling(false);
-          setIsInCall(false);
-          setRemoteStream(null);
+      peer.onconnectionstatechange = () => {
+        if (peerRef.current !== peer || callIdRef.current !== callId) return;
+        if (peer.connectionState === "connected") {
+          clearConnection();
+          clearNoAnswer();
+          changeState("connected");
+          setCallDurationSeconds(0);
+          clearDuration();
+          durationRef.current = setInterval(() => {
+            if (callIdRef.current === callId && stateRef.current === "connected") {
+              setCallDurationSeconds((value) => value + 1);
+            }
+          }, 1_000);
+        } else if (peer.connectionState === "failed") {
+          emitEnd(callId, targetId, "failed");
+          finish(callId, "failed");
         }
       };
-
-      peerConnection.oniceconnectionstatechange = () => {
-        console.log("WebRTC ICE state:", peerConnection.iceConnectionState);
-      };
-
-      return peerConnection;
+      return peer;
     },
-    [startCamera],
+    [changeState, clearConnection, clearDuration, clearNoAnswer, emitEnd, finish, startCamera],
   );
 
   const startCall = useCallback(async () => {
     const socket = getSocket();
-    if (!socket) throw new Error("Socket връзката не е налична.");
+    if (!socket?.connected) throw new Error("Socket връзката не е налична.");
     if (!Number.isInteger(recipientId) || recipientId <= 0) {
       throw new Error("Получателят на видео обаждането е невалиден.");
     }
-    if (isCalling || isInCall || incomingCallRef.current) return;
+    if (
+      startingRef.current || acceptingRef.current || callIdRef.current ||
+      incomingRef.current || ACTIVE_STATES.includes(stateRef.current)
+    ) return;
 
+    startingRef.current = true;
+    clearReset();
+    generationRef.current += 1;
     const callId = Crypto.randomUUID();
-    setIsCalling(true);
-    setCallState("calling");
-
+    if (claimActiveCall && !claimActiveCall(callId)) {
+      startingRef.current = false;
+      return;
+    }
+    callIdRef.current = callId;
+    targetIdRef.current = recipientId;
+    changeState("calling");
     try {
-      const peerConnection = await createPeerConnection(recipientId, callId);
-      const offer = await peerConnection.createOffer({
-        offerToReceiveAudio: true,
-        offerToReceiveVideo: true,
-      });
-      await peerConnection.setLocalDescription(offer);
+      const peer = await createPeer(recipientId, callId);
+      if (callIdRef.current !== callId) return;
+      const offer = await peer.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+      if (callIdRef.current !== callId) return;
+      await peer.setLocalDescription(offer);
+      if (callIdRef.current !== callId) return;
       if (!offer.sdp) throw new Error("Неуспешно създаване на SDP offer.");
-
       socket.emit("call:offer", {
         call_id: callId,
         recipient_id: recipientId,
         description: { type: "offer", sdp: offer.sdp },
       });
+      startingRef.current = false;
+      noAnswerRef.current = setTimeout(() => {
+        noAnswerRef.current = null;
+        if (callIdRef.current === callId && stateRef.current === "calling") {
+          emitEnd(callId, recipientId, "timeout");
+          finish(callId, "timeout");
+        }
+      }, NO_ANSWER_MS);
     } catch (error) {
-      setCallState("failed");
-      closePeerConnection();
+      if (callIdRef.current !== callId) return;
+      if (callIdRef.current === callId) {
+        emitEnd(callId, recipientId, "failed");
+        finish(callId, "failed");
+      }
       throw error;
     }
-  }, [
-    closePeerConnection,
-    createPeerConnection,
-    isCalling,
-    isInCall,
-    recipientId,
-  ]);
+  }, [changeState, claimActiveCall, clearReset, createPeer, emitEnd, finish, recipientId]);
 
   const acceptCall = useCallback(async () => {
     const socket = getSocket();
-    const call = incomingCallRef.current;
-    if (!socket || !call?.description || call.description.type !== "offer")
-      return;
-
-    updateIncomingCall(null);
-
+    const call = incomingRef.current;
+    if (
+      !socket?.connected || !call?.description || call.description.type !== "offer" ||
+      acceptingRef.current || acceptedIdRef.current === call.call_id
+    ) return;
+    if (claimActiveCall && !claimActiveCall(call.call_id)) return;
+    acceptingRef.current = true;
+    acceptedIdRef.current = call.call_id;
+    clearReset();
+    generationRef.current += 1;
+    callIdRef.current = call.call_id;
+    targetIdRef.current = call.sender_id;
+    changeState("connecting");
+    changeIncoming(null);
     try {
-      const peerConnection = await createPeerConnection(
-        call.sender_id,
-        call.call_id,
-        true,
-      );
-      await peerConnection.setRemoteDescription(
-        new RTCSessionDescription(call.description),
-      );
-      remoteDescriptionSetRef.current = true;
-      await flushPendingIceCandidates();
-
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
+      const peer = await createPeer(call.sender_id, call.call_id, true);
+      if (callIdRef.current !== call.call_id) return;
+      await peer.setRemoteDescription(new RTCSessionDescription(call.description));
+      if (callIdRef.current !== call.call_id) return;
+      remoteSetRef.current = true;
+      await flushCandidates();
+      if (callIdRef.current !== call.call_id) return;
+      const answer = await peer.createAnswer();
+      await peer.setLocalDescription(answer);
+      if (callIdRef.current !== call.call_id) return;
       if (!answer.sdp) throw new Error("Неуспешно създаване на SDP answer.");
-
       socket.emit("call:answer", {
         call_id: call.call_id,
         recipient_id: call.sender_id,
         description: { type: "answer", sdp: answer.sdp },
       });
-      setIsInCall(true);
+      acceptingRef.current = false;
+      onIncomingCallAccepted?.(call.call_id);
+      startConnectionTimeout(call.call_id, call.sender_id);
     } catch (error) {
-      closePeerConnection();
+      if (callIdRef.current !== call.call_id) return;
+      if (callIdRef.current === call.call_id) {
+        emitEnd(call.call_id, call.sender_id, "failed");
+        finish(call.call_id, "failed");
+      }
       throw error;
     }
-  }, [
-    closePeerConnection,
-    createPeerConnection,
-    flushPendingIceCandidates,
-    updateIncomingCall,
-  ]);
+  }, [changeIncoming, changeState, claimActiveCall, clearReset, createPeer, emitEnd, finish, flushCandidates, onIncomingCallAccepted, startConnectionTimeout]);
+
+  const rejectCall = useCallback(() => {
+    const call = incomingRef.current;
+    if (!call) return;
+    emitEnd(call.call_id, call.sender_id, "rejected");
+    finish(call.call_id, "rejected");
+  }, [emitEnd, finish]);
+
+  const endCall = useCallback(() => {
+    const callId = callIdRef.current;
+    const targetId = targetIdRef.current;
+    if (!callId || !targetId) return;
+    const reason: CallEndReason = stateRef.current === "calling" ? "cancelled" : "hangup";
+    emitEnd(callId, targetId, reason);
+    finish(callId, reason === "cancelled" ? "cancelled" : "ended");
+  }, [emitEnd, finish]);
 
   useEffect(() => {
     if (!acceptedIncomingCall) return;
-
-    for (const candidatePayload of pendingIncomingIceCandidates) {
-      const key = getCandidateKey(candidatePayload);
-      if (bufferedCandidateKeysRef.current.has(key)) continue;
-      bufferedCandidateKeysRef.current.add(key);
-      pendingIceCandidatesRef.current.push(new RTCIceCandidate(candidatePayload));
+    for (const payload of pendingIncomingIceCandidates) {
+      const key = candidateKey(payload);
+      if (candidateKeysRef.current.has(key)) continue;
+      candidateKeysRef.current.add(key);
+      candidatesRef.current.push(new RTCIceCandidate(payload));
     }
   }, [acceptedIncomingCall, pendingIncomingIceCandidates]);
 
   useEffect(() => {
-    if (
-      !acceptedIncomingCall ||
-      acceptedIncomingCall.description?.type !== "offer" ||
-      acceptedCallIdRef.current === acceptedIncomingCall.call_id
-    ) {
-      return;
-    }
-
-    acceptedCallIdRef.current = acceptedIncomingCall.call_id;
-    callIdRef.current = acceptedIncomingCall.call_id;
-    recipientIdRef.current = acceptedIncomingCall.sender_id;
-    remoteDescriptionSetRef.current = false;
-    updateIncomingCall(acceptedIncomingCall);
-    setCallState("connecting");
-
-    void acceptCall()
-      .then(() => onIncomingCallAccepted?.(acceptedIncomingCall.call_id))
-      .catch((error: unknown) => {
-        console.error("Неуспешно приемане на входящото обаждане:", error);
-        setCallState("failed");
-      });
-  }, [
-    acceptCall,
-    acceptedIncomingCall,
-    onIncomingCallAccepted,
-    updateIncomingCall,
-  ]);
-
-  const rejectCall = useCallback(() => {
-    const socket = getSocket();
-    const call = incomingCallRef.current;
-
-    if (socket && call) {
-      socket.emit("call:end", {
-        call_id: call.call_id,
-        recipient_id: call.sender_id,
-        reason: "rejected",
-      });
-    }
-
-    setCallState("rejected");
-
-    closePeerConnection();
-    stopCamera();
-  }, [closePeerConnection, stopCamera]);
-
-  const endCall = useCallback(() => {
-    const socket = getSocket();
-
-    const callId = callIdRef.current;
-    const targetUserId = recipientIdRef.current;
-
-    if (socket && callId && targetUserId) {
-      socket.emit("call:end", {
-        call_id: callId,
-        recipient_id: targetUserId,
-        reason: "hangup",
-      });
-    }
-
-    setCallState("ended");
-
-    closePeerConnection();
-    stopCamera();
-  }, [closePeerConnection, stopCamera]);
+    if (!acceptedIncomingCall || acceptedIncomingCall.description?.type !== "offer" ||
+        acceptedIdRef.current === acceptedIncomingCall.call_id || acceptingRef.current) return;
+    incomingRef.current = acceptedIncomingCall;
+    void acceptCall().catch((error: unknown) => {
+      console.error("Неуспешно приемане на входящото обаждане:", error);
+    });
+  }, [acceptCall, acceptedIncomingCall]);
 
   useEffect(() => {
     const socket = getSocket();
     if (!socket) return;
-
-    const handleOffer = (payload: CallServerPayload) => {
-      if (!payload.description || payload.description.type !== "offer") {
-        return;
-      }
-
-      if (callIdRef.current !== payload.call_id) {
-        pendingIceCandidatesRef.current = [];
-      }
-
-      callIdRef.current = payload.call_id;
-      recipientIdRef.current = payload.sender_id;
-      remoteDescriptionSetRef.current = false;
-
-      updateIncomingCall(payload);
-
-      setIsCalling(false);
-      setIsInCall(false);
-      setCallState("ringing");
-    };
-
-    const handleAnswer = async (payload: CallServerPayload) => {
-      if (
-        !payload.description ||
-        payload.description.type !== "answer" ||
-        payload.call_id !== callIdRef.current
-      )
-        return;
-
-      const peerConnection = peerConnectionRef.current;
-      if (!peerConnection) return;
-
+    const onAnswer = async (payload: CallServerPayload) => {
+      const callId = callIdRef.current;
+      const peer = peerRef.current;
+      const targetId = targetIdRef.current;
+      if (!callId || !peer || !targetId || payload.call_id !== callId ||
+          payload.description?.type !== "answer" || stateRef.current !== "calling") return;
+      clearNoAnswer();
+      changeState("connecting");
       try {
-        await peerConnection.setRemoteDescription(
-          new RTCSessionDescription(payload.description),
-        );
-        remoteDescriptionSetRef.current = true;
-        await flushPendingIceCandidates();
-        setIsCalling(false);
-        setIsInCall(true);
-        setCallState("connected");
+        await peer.setRemoteDescription(new RTCSessionDescription(payload.description));
+        if (callIdRef.current !== callId || peerRef.current !== peer) return;
+        remoteSetRef.current = true;
+        await flushCandidates();
+        if (callIdRef.current === callId) startConnectionTimeout(callId, targetId);
       } catch (error) {
         console.error("Неуспешна обработка на call answer:", error);
-        closePeerConnection();
+        if (callIdRef.current === callId) {
+          emitEnd(callId, targetId, "failed");
+          finish(callId, "failed");
+        }
       }
     };
-
-    const handleIceCandidate = async (payload: CallServerPayload) => {
+    const onCandidate = async (payload: CallServerPayload) => {
       if (!payload.candidate || payload.call_id !== callIdRef.current) return;
-
-      const candidateKey = getCandidateKey(payload.candidate);
-      if (bufferedCandidateKeysRef.current.has(candidateKey)) return;
-      bufferedCandidateKeysRef.current.add(candidateKey);
-
+      const key = candidateKey(payload.candidate);
+      if (candidateKeysRef.current.has(key)) return;
+      candidateKeysRef.current.add(key);
       const candidate = new RTCIceCandidate(payload.candidate);
-      const peerConnection = peerConnectionRef.current;
-      if (!peerConnection || !remoteDescriptionSetRef.current) {
-        pendingIceCandidatesRef.current.push(candidate);
+      const peer = peerRef.current;
+      if (!peer || !remoteSetRef.current) {
+        candidatesRef.current.push(candidate);
         return;
       }
-
       try {
-        await peerConnection.addIceCandidate(candidate);
+        await peer.addIceCandidate(candidate);
       } catch (error) {
-        console.error("Неуспешно добавяне на ICE candidate:", error);
+        if (payload.call_id === callIdRef.current) console.error("ICE candidate грешка:", error);
       }
     };
-
-    const handleEnd = (payload: CallServerPayload) => {
-      if (
-        payload.call_id !== callIdRef.current &&
-        payload.call_id !== incomingCallRef.current?.call_id
-      ) {
-        return;
-      }
-
-      setCallState(payload.reason === "rejected" ? "rejected" : "ended");
-
-      closePeerConnection();
-      stopCamera();
+    const onEnd = (payload: CallServerPayload) => {
+      if (payload.call_id === callIdRef.current) finish(payload.call_id, stateForReason(payload.reason));
     };
-
-    socket.on("call:offer", handleOffer);
-    socket.on("call:answer", handleAnswer);
-    socket.on("call:ice-candidate", handleIceCandidate);
-    socket.on("call:end", handleEnd);
-
+    const onDisconnect = () => {
+      const callId = callIdRef.current;
+      if (callId && ACTIVE_STATES.includes(stateRef.current)) finish(callId, "failed");
+    };
+    socket.on("call:answer", onAnswer);
+    socket.on("call:ice-candidate", onCandidate);
+    socket.on("call:end", onEnd);
+    socket.on("disconnect", onDisconnect);
     return () => {
-      socket.off("call:offer", handleOffer);
-      socket.off("call:answer", handleAnswer);
-      socket.off("call:ice-candidate", handleIceCandidate);
-      socket.off("call:end", handleEnd);
+      socket.off("call:answer", onAnswer);
+      socket.off("call:ice-candidate", onCandidate);
+      socket.off("call:end", onEnd);
+      socket.off("disconnect", onDisconnect);
     };
-  }, [closePeerConnection, flushPendingIceCandidates, updateIncomingCall]);
+  }, [changeState, clearNoAnswer, emitEnd, finish, flushCandidates, startConnectionTimeout]);
 
-  useEffect(() => {
-    return () => {
-      peerConnectionRef.current?.close();
-      peerConnectionRef.current = null;
-    };
-  }, []);
+  useEffect(() => () => {
+    mountedRef.current = false;
+    const callId = callIdRef.current;
+    clearTimers();
+    peerRef.current?.close();
+    peerRef.current = null;
+    stopCamera();
+    remoteStreamRef.current?.getTracks().forEach((track) => track.stop());
+    remoteStreamRef.current = null;
+    if (callId) releaseActiveCall?.(callId);
+    callIdRef.current = null;
+    candidatesRef.current = [];
+    candidateKeysRef.current.clear();
+  }, [clearTimers, releaseActiveCall, stopCamera]);
 
   const toggleMicrophone = useCallback(() => {
-    const stream = localStream;
-
-    if (!stream) {
-      return;
-    }
-
-    const audioTracks = stream.getAudioTracks();
-
-    if (audioTracks.length === 0) {
-      return;
-    }
-
-    const nextEnabled = !audioTracks[0].enabled;
-
-    audioTracks.forEach((track) => {
-      track.enabled = nextEnabled;
-    });
-
-    setIsMicrophoneEnabled(nextEnabled);
+    if (stateRef.current !== "connected" || !localStream) return;
+    const tracks = localStream.getAudioTracks();
+    if (!tracks.length) return;
+    const enabled = !tracks[0].enabled;
+    tracks.forEach((track) => { track.enabled = enabled; });
+    setIsMicrophoneEnabled(enabled);
   }, [localStream]);
-
   const toggleCamera = useCallback(() => {
-    const stream = localStream;
-
-    if (!stream) {
-      return;
-    }
-
-    const videoTracks = stream.getVideoTracks();
-
-    if (videoTracks.length === 0) {
-      return;
-    }
-
-    const nextEnabled = !videoTracks[0].enabled;
-
-    videoTracks.forEach((track) => {
-      track.enabled = nextEnabled;
-    });
-
-    setIsCameraEnabled(nextEnabled);
+    if (stateRef.current !== "connected" || !localStream) return;
+    const tracks = localStream.getVideoTracks();
+    if (!tracks.length) return;
+    const enabled = !tracks[0].enabled;
+    tracks.forEach((track) => { track.enabled = enabled; });
+    setIsCameraEnabled(enabled);
   }, [localStream]);
-
   const switchCamera = useCallback(() => {
-    const stream = localStream;
-
-    if (!stream) {
-      return;
-    }
-
-    const videoTrack = stream.getVideoTracks()[0] as
-      | SwitchableVideoTrack
-      | undefined;
-
-    videoTrack?._switchCamera?.();
+    if (stateRef.current !== "connected" || !localStream) return;
+    (localStream.getVideoTracks()[0] as SwitchableTrack | undefined)?._switchCamera?.();
   }, [localStream]);
 
   return {
     localStream,
     remoteStream,
-
     incomingCall,
-    isCalling,
-    isInCall,
+    isCalling: callState === "calling",
+    isInCall: callState === "connected",
     callState,
-
+    callDurationSeconds,
     isMicrophoneEnabled,
     isCameraEnabled,
-
     startCamera,
     stopCamera,
-
     startCall,
     acceptCall,
     rejectCall,
     endCall,
-
     toggleMicrophone,
     toggleCamera,
     switchCamera,

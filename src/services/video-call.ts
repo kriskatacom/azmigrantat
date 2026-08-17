@@ -9,12 +9,35 @@ export type CallIceCandidate = {
   sdpMLineIndex?: number | null;
 };
 
+export type CallEndReason =
+  | "rejected"
+  | "timeout"
+  | "busy"
+  | "cancelled"
+  | "hangup"
+  | "failed"
+  | "connection_timeout";
+
+export type CallState =
+  | "idle"
+  | "calling"
+  | "ringing"
+  | "connecting"
+  | "connected"
+  | "rejected"
+  | "busy"
+  | "timeout"
+  | "cancelled"
+  | "ended"
+  | "failed"
+  | "connection_timeout";
+
 export type CallClientPayload = {
   call_id: string;
   recipient_id: number;
   description?: CallDescription;
   candidate?: CallIceCandidate;
-  reason?: string;
+  reason?: CallEndReason;
 };
 
 export type CallServerPayload = {
@@ -22,5 +45,5 @@ export type CallServerPayload = {
   sender_id: number;
   description?: CallDescription;
   candidate?: CallIceCandidate;
-  reason?: string;
+  reason?: CallEndReason;
 };

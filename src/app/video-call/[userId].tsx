@@ -38,7 +38,12 @@ export default function VideoCallScreen() {
   const direction = Array.isArray(params.direction)
     ? params.direction[0]
     : params.direction;
-  const { acceptedIncomingCall, clearAcceptedIncomingCall } =
+  const {
+    acceptedIncomingCall,
+    claimActiveCall,
+    clearAcceptedIncomingCall,
+    releaseActiveCall,
+  } =
     useIncomingVideoCall();
   const matchingIncomingCall =
     direction === "incoming" &&
@@ -56,6 +61,7 @@ export default function VideoCallScreen() {
     remoteStream,
     isInCall,
     callState,
+    callDurationSeconds,
     isMicrophoneEnabled,
     isCameraEnabled,
     startCamera,
@@ -71,7 +77,28 @@ export default function VideoCallScreen() {
     pendingIncomingIceCandidates:
       matchingIncomingCall?.pendingIceCandidates ?? [],
     onIncomingCallAccepted: clearAcceptedIncomingCall,
+    claimActiveCall,
+    releaseActiveCall,
   });
+
+  const terminalStatus = useMemo(() => {
+    switch (callState) {
+      case "busy": return "Потребителят е зает";
+      case "timeout": return "Няма отговор";
+      case "rejected": return "Обаждането е отказано";
+      case "failed": return "Неуспешно обаждане";
+      case "connection_timeout": return "Неуспешно свързване";
+      case "cancelled": return "Обаждането е прекратено";
+      case "ended": return "Разговорът приключи";
+      case "connecting": return "Свързване...";
+      default: return "Обаждане...";
+    }
+  }, [callState]);
+  const formattedDuration = `${Math.floor(callDurationSeconds / 60)
+    .toString()
+    .padStart(2, "0")}:${(callDurationSeconds % 60)
+    .toString()
+    .padStart(2, "0")}`;
 
   const leaveVideoCallScreen = useCallback(() => {
     if (hasLeftScreenRef.current) return;
@@ -103,9 +130,19 @@ export default function VideoCallScreen() {
   }, [direction, isAuthLoading, isValidRecipient, startCall]);
 
   useEffect(() => {
-    if (callState === "ended" || callState === "rejected") {
+    if (
+      direction === "incoming" &&
+      !matchingIncomingCall &&
+      callState === "idle"
+    ) {
       leaveVideoCallScreen();
     }
+  }, [callState, direction, leaveVideoCallScreen, matchingIncomingCall]);
+
+  useEffect(() => {
+    if (!["ended", "rejected", "busy", "timeout", "cancelled", "failed", "connection_timeout"].includes(callState)) return;
+    const timeout = setTimeout(leaveVideoCallScreen, 1_600);
+    return () => clearTimeout(timeout);
   }, [callState, leaveVideoCallScreen]);
 
   const handleEndCall = useCallback(() => {
@@ -137,12 +174,18 @@ export default function VideoCallScreen() {
       <VideoCallView localStream={localStream} remoteStream={remoteStream} />
 
       <OutgoingCall
-        visible={callState === "calling"}
+        visible={["calling", "connecting", "busy", "timeout", "rejected", "failed", "connection_timeout", "cancelled", "ended"].includes(callState)}
         name={recipientName ?? "Потребител"}
+        status={terminalStatus}
+        canCancel={callState === "calling" || callState === "connecting"}
         onCancel={handleEndCall}
       />
 
-      {callState !== "calling" && callState !== "ringing" ? (
+      {callState === "connected" ? (
+        <Text selectable style={styles.duration}>{formattedDuration}</Text>
+      ) : null}
+
+      {callState === "idle" || callState === "connected" ? (
         <VideoCallControls
           isInCall={isInCall}
           isMicrophoneEnabled={isMicrophoneEnabled}
@@ -197,5 +240,18 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 16,
     fontWeight: "700",
+  },
+  duration: {
+    position: "absolute",
+    top: 24,
+    alignSelf: "center",
+    color: "#ffffff",
+    fontSize: 17,
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
+    backgroundColor: "rgba(0,0,0,0.45)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
   },
 });

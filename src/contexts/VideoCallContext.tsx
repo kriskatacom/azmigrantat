@@ -27,6 +27,8 @@ export type AcceptedIncomingCall = {
 type VideoCallContextValue = {
   acceptedIncomingCall: AcceptedIncomingCall | null;
   clearAcceptedIncomingCall: (callId: string) => void;
+  claimActiveCall: (callId: string) => boolean;
+  releaseActiveCall: (callId: string) => void;
 };
 
 const VideoCallContext = createContext<VideoCallContextValue | undefined>(
@@ -49,6 +51,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     new Map(),
   );
   const callerRequestRef = useRef<AbortController | null>(null);
+  const activeCallIdRef = useRef<string | null>(null);
 
   const updateIncomingCall = useCallback((call: CallServerPayload | null) => {
     incomingCallRef.current = call;
@@ -68,6 +71,25 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
 
     const handleOffer = (payload: CallServerPayload) => {
       if (payload.description?.type !== "offer") return;
+
+      const knownCallIds = [
+        incomingCallRef.current?.call_id,
+        acceptedIncomingCallRef.current?.call.call_id,
+        activeCallIdRef.current,
+      ];
+      if (
+        knownCallIds.some(
+          (callId) => callId !== null && callId !== undefined && callId !== payload.call_id,
+        )
+      ) {
+        socket.emit("call:end", {
+          call_id: payload.call_id,
+          recipient_id: payload.sender_id,
+          reason: "busy",
+        });
+        return;
+      }
+      if (knownCallIds.includes(payload.call_id)) return;
 
       pendingCandidatesRef.current.set(payload.call_id, []);
       callerRequestRef.current?.abort();
@@ -130,18 +152,32 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       if (payload.call_id === acceptedIncomingCallRef.current?.call.call_id) {
         updateAcceptedIncomingCall(null);
       }
+      if (payload.call_id === activeCallIdRef.current) {
+        activeCallIdRef.current = null;
+      }
       pendingCandidatesRef.current.delete(payload.call_id);
+    };
+
+    const handleDisconnect = () => {
+      callerRequestRef.current?.abort();
+      pendingCandidatesRef.current.clear();
+      activeCallIdRef.current = null;
+      updateIncomingCall(null);
+      updateAcceptedIncomingCall(null);
+      setCaller(null);
     };
 
     socket.on("call:offer", handleOffer);
     socket.on("call:ice-candidate", handleIceCandidate);
     socket.on("call:end", handleEnd);
+    socket.on("disconnect", handleDisconnect);
 
     return () => {
       callerRequestRef.current?.abort();
       socket.off("call:offer", handleOffer);
       socket.off("call:ice-candidate", handleIceCandidate);
       socket.off("call:end", handleEnd);
+      socket.off("disconnect", handleDisconnect);
     };
   }, [socket, token, updateAcceptedIncomingCall, updateIncomingCall]);
 
@@ -188,9 +224,36 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     [updateAcceptedIncomingCall],
   );
 
+  const claimActiveCall = useCallback((callId: string) => {
+    if (
+      activeCallIdRef.current !== null &&
+      activeCallIdRef.current !== callId
+    ) {
+      return false;
+    }
+    activeCallIdRef.current = callId;
+    return true;
+  }, []);
+
+  const releaseActiveCall = useCallback((callId: string) => {
+    if (activeCallIdRef.current === callId) {
+      activeCallIdRef.current = null;
+    }
+  }, []);
+
   const value = useMemo(
-    () => ({ acceptedIncomingCall, clearAcceptedIncomingCall }),
-    [acceptedIncomingCall, clearAcceptedIncomingCall],
+    () => ({
+      acceptedIncomingCall,
+      clearAcceptedIncomingCall,
+      claimActiveCall,
+      releaseActiveCall,
+    }),
+    [
+      acceptedIncomingCall,
+      claimActiveCall,
+      clearAcceptedIncomingCall,
+      releaseActiveCall,
+    ],
   );
 
   return (

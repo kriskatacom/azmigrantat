@@ -4,12 +4,16 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 type Props = {
   visible: boolean;
   name?: string;
+  status?: string;
+  canCancel?: boolean;
   onCancel: () => void;
 };
 
 export default function OutgoingCall({
   visible,
   name = "Потребител",
+  status = "Обаждане...",
+  canCancel = true,
   onCancel,
 }: Props) {
   if (!visible) {
@@ -24,11 +28,13 @@ export default function OutgoingCall({
 
       <Text style={styles.name}>{name}</Text>
 
-      <Text style={styles.status}>Обаждане...</Text>
+      <Text selectable style={styles.status}>{status}</Text>
 
-      <TouchableOpacity style={styles.endButton} onPress={onCancel}>
-        <Ionicons name="call" size={30} color="#ffffff" />
-      </TouchableOpacity>
+      {canCancel ? (
+        <TouchableOpacity style={styles.endButton} onPress={onCancel}>
+          <Ionicons name="call" size={30} color="#ffffff" />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
