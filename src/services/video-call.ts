@@ -16,7 +16,9 @@ export type CallEndReason =
   | "cancelled"
   | "hangup"
   | "failed"
-  | "connection_timeout";
+  | "connection_timeout"
+  | "answered_elsewhere"
+  | "rejected_elsewhere";
 
 export type CallState =
   | "idle"

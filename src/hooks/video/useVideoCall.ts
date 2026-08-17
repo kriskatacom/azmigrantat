@@ -21,6 +21,7 @@ export type { CallState } from "@/services/video-call";
 
 type Options = {
   recipientId: number;
+  currentUserId?: number;
   acceptedIncomingCall?: CallServerPayload | null;
   pendingIncomingIceCandidates?: CallIceCandidate[];
   onIncomingCallAccepted?: (callId: string) => void;
@@ -78,6 +79,7 @@ function stateForReason(reason?: CallEndReason): CallState {
 
 export function useVideoCall({
   recipientId,
+  currentUserId,
   acceptedIncomingCall,
   pendingIncomingIceCandidates = [],
   onIncomingCallAccepted,
@@ -377,6 +379,13 @@ export function useVideoCall({
         recipient_id: call.sender_id,
         description: { type: "answer", sdp: answer.sdp },
       });
+      if (currentUserId) {
+        socket.emit("call:end", {
+          call_id: call.call_id,
+          recipient_id: currentUserId,
+          reason: "answered_elsewhere",
+        });
+      }
       acceptingRef.current = false;
       onIncomingCallAccepted?.(call.call_id);
       startConnectionTimeout(call.call_id, call.sender_id);
@@ -388,7 +397,7 @@ export function useVideoCall({
       }
       throw error;
     }
-  }, [changeIncoming, changeState, claimActiveCall, clearReset, createPeer, emitEnd, finish, flushCandidates, onIncomingCallAccepted, startConnectionTimeout]);
+  }, [changeIncoming, changeState, claimActiveCall, clearReset, createPeer, currentUserId, emitEnd, finish, flushCandidates, onIncomingCallAccepted, startConnectionTimeout]);
 
   const rejectCall = useCallback(() => {
     const call = incomingRef.current;
@@ -468,7 +477,16 @@ export function useVideoCall({
       }
     };
     const onEnd = (payload: CallServerPayload) => {
-      if (payload.call_id === callIdRef.current) finish(payload.call_id, stateForReason(payload.reason));
+      if (payload.call_id !== callIdRef.current) return;
+      if (
+        (payload.reason === "answered_elsewhere" ||
+          payload.reason === "rejected_elsewhere") &&
+        currentUserId !== undefined &&
+        Number(payload.sender_id) === currentUserId
+      ) {
+        return;
+      }
+      finish(payload.call_id, stateForReason(payload.reason));
     };
     const onDisconnect = () => {
       const callId = callIdRef.current;
@@ -484,7 +502,7 @@ export function useVideoCall({
       socket.off("call:end", onEnd);
       socket.off("disconnect", onDisconnect);
     };
-  }, [changeState, clearNoAnswer, emitEnd, finish, flushCandidates, startConnectionTimeout]);
+  }, [changeState, clearNoAnswer, currentUserId, emitEnd, finish, flushCandidates, startConnectionTimeout]);
 
   useEffect(() => () => {
     mountedRef.current = false;

@@ -29,7 +29,16 @@ export function useLinkPreview(
         setPreview(result);
       })
       .catch((error: unknown) => {
-        if (error instanceof Error && error.name === "AbortError") {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        if (
+          error instanceof Error &&
+          (error.name === "AbortError" ||
+            error.message.toLowerCase().includes("canceled") ||
+            error.message.toLowerCase().includes("cancelled"))
+        ) {
           return;
         }
 

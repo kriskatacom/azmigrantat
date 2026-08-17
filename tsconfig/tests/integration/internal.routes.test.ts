@@ -210,6 +210,7 @@ describe('internal routes', () => {
 
         it('изпраща message:new към уникалните валидни получатели', async () => {
             const { app, emit, inRoom, toRoom } = createTestApp({
+                'user:5': 2,
                 'user:10': 2,
                 'user:20': 0,
                 'user:30': 1,
@@ -226,21 +227,23 @@ describe('internal routes', () => {
             expect(response.status).toBe(200);
             expect(response.body).toEqual({
                 success: true,
-                recipient_count: 3,
-                connected_recipient_count: 2,
-                delivered_socket_count: 3,
+                recipient_count: 4,
+                connected_recipient_count: 3,
+                delivered_socket_count: 5,
             });
 
-            expect(inRoom).toHaveBeenCalledTimes(3);
+            expect(inRoom).toHaveBeenCalledTimes(4);
             expect(inRoom).toHaveBeenNthCalledWith(1, 'user:10');
             expect(inRoom).toHaveBeenNthCalledWith(2, 'user:20');
             expect(inRoom).toHaveBeenNthCalledWith(3, 'user:30');
+            expect(inRoom).toHaveBeenNthCalledWith(4, 'user:5');
 
-            expect(toRoom).toHaveBeenCalledTimes(3);
+            expect(toRoom).toHaveBeenCalledTimes(4);
 
             expect(emit).toHaveBeenNthCalledWith(1, 'user:10', 'message:new', validMessage);
             expect(emit).toHaveBeenNthCalledWith(2, 'user:20', 'message:new', validMessage);
             expect(emit).toHaveBeenNthCalledWith(3, 'user:30', 'message:new', validMessage);
+            expect(emit).toHaveBeenNthCalledWith(4, 'user:5', 'message:new', validMessage);
         });
     });
 

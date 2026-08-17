@@ -38,7 +38,7 @@ const VideoCallContext = createContext<VideoCallContextValue | undefined>(
 export function VideoCallProvider({ children }: PropsWithChildren) {
   const router = useRouter();
   const { socket } = useSocket();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [incomingCall, setIncomingCall] = useState<CallServerPayload | null>(
     null,
   );
@@ -145,6 +145,16 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     };
 
     const handleEnd = (payload: CallServerPayload) => {
+      const isHandledElsewhere =
+        payload.reason === "answered_elsewhere" ||
+        payload.reason === "rejected_elsewhere";
+      if (
+        isHandledElsewhere &&
+        payload.call_id === activeCallIdRef.current
+      ) {
+        return;
+      }
+
       if (payload.call_id === incomingCallRef.current?.call_id) {
         updateIncomingCall(null);
         setCaller(null);
@@ -210,10 +220,17 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       recipient_id: call.sender_id,
       reason: "rejected",
     });
+    if (user?.id) {
+      socket?.emit("call:end", {
+        call_id: call.call_id,
+        recipient_id: Number(user.id),
+        reason: "rejected_elsewhere",
+      });
+    }
     pendingCandidatesRef.current.delete(call.call_id);
     updateIncomingCall(null);
     setCaller(null);
-  }, [socket, updateIncomingCall]);
+  }, [socket, updateIncomingCall, user?.id]);
 
   const clearAcceptedIncomingCall = useCallback(
     (callId: string) => {

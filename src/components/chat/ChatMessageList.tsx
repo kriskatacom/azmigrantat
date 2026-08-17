@@ -21,6 +21,7 @@ type ChatMessageListProps = {
     button: string;
     buttonText: string;
     card: string;
+    border: string;
     text: string;
     textSecondary: string;
     primary: string;

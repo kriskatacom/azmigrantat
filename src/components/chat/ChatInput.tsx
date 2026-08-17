@@ -10,6 +10,7 @@ import {
     View,
 } from "react-native";
 import AudioMessageRecorder from "./audio-message-recorder";
+import ChatAttachmentOptionsModal from "./chat-attachment-options-modal";
 import ChatMoreOptionsModal from "./chat-more-options-modal";
 
 type ChatInputProps = {
@@ -20,7 +21,9 @@ type ChatInputProps = {
 
   onChangeText: (value: string) => void;
   onSend: () => void;
-  onAttach: () => void;
+  onTakePhoto: () => void;
+  onChoosePhotos: () => void;
+  onChooseFiles: () => void;
   onSendAudio: (attachments: ChatAttachmentUpload[]) => Promise<boolean>;
 
   colors: {
@@ -42,7 +45,9 @@ export default function ChatInput({
   inputRef,
   onChangeText,
   onSend,
-  onAttach,
+  onTakePhoto,
+  onChoosePhotos,
+  onChooseFiles,
   onSendAudio,
   colors,
 }: ChatInputProps) {
@@ -50,6 +55,7 @@ export default function ChatInput({
   const [isRecording, setIsRecording] = useState(false);
   const [audioStartRequestId, setAudioStartRequestId] = useState(0);
   const [isMoreMenuVisible, setIsMoreMenuVisible] = useState(false);
+  const [isAttachmentMenuVisible, setIsAttachmentMenuVisible] = useState(false);
 
   const openMoreMenu = () => {
     if (isSending) return;
@@ -128,7 +134,16 @@ export default function ChatInput({
         onAudioPress={() =>
           setAudioStartRequestId((current) => current + 1)
         }
-        onAttachmentPress={onAttach}
+        onAttachmentPress={() => setIsAttachmentMenuVisible(true)}
+        colors={colors}
+      />
+
+      <ChatAttachmentOptionsModal
+        visible={isAttachmentMenuVisible}
+        onClose={() => setIsAttachmentMenuVisible(false)}
+        onCameraPress={onTakePhoto}
+        onPhotosPress={onChoosePhotos}
+        onFilePress={onChooseFiles}
         colors={colors}
       />
     </View>

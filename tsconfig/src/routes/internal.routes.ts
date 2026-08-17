@@ -42,16 +42,12 @@ export function registerInternalRoutes(app: Express, io: RealtimeServer): void {
             return;
         }
 
-        const recipientIds = [
-            ...new Set(
-                payload.recipient_ids.filter(
-                    (recipientId): recipientId is number =>
-                        Number.isInteger(recipientId) && recipientId > 0,
-                ),
-            ),
-        ];
+        const validRecipientIds = payload.recipient_ids.filter(
+            (recipientId): recipientId is number =>
+                Number.isInteger(recipientId) && recipientId > 0,
+        );
 
-        if (recipientIds.length === 0) {
+        if (validRecipientIds.length === 0) {
             response.status(422).json({
                 success: false,
                 message: 'Няма валидни получатели.',
@@ -59,6 +55,10 @@ export function registerInternalRoutes(app: Express, io: RealtimeServer): void {
 
             return;
         }
+
+        const recipientIds = [
+            ...new Set([...validRecipientIds, payload.message.sender_id]),
+        ];
 
         if (recipientIds.length === 0) {
             response.status(422).json({

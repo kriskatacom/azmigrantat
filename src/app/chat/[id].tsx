@@ -118,7 +118,7 @@ export default function ChatRoom() {
     isAppActive,
   });
 
-  const { openAttachmentMenu } = useChatAttachments({
+  const { takePhoto, choosePhotos, chooseFiles } = useChatAttachments({
     disabled: isSending || isUploading,
     onSend: sendChatAttachments,
   });
@@ -279,7 +279,9 @@ export default function ChatRoom() {
         keyboardVisible={keyboardVisible}
         inputRef={inputRef}
         onChangeText={handleInputChange}
-        onAttach={openAttachmentMenu}
+        onTakePhoto={() => void takePhoto()}
+        onChoosePhotos={() => void choosePhotos()}
+        onChooseFiles={() => void chooseFiles()}
         onSendAudio={sendChatAttachments}
         onSend={() => {
           void handleSendMessage();

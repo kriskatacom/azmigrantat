@@ -4,9 +4,13 @@ import VideoCallView from "@/components/video/video-call-view";
 import { useIncomingVideoCall } from "@/contexts/VideoCallContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useVideoCall } from "@/hooks/video/useVideoCall";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import {
+  useLocalSearchParams,
+  useRootNavigationState,
+  useRouter,
+} from "expo-router";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function VideoCallScreen() {
@@ -19,6 +23,7 @@ export default function VideoCallScreen() {
   }>();
   const hasStartedCallRef = useRef(false);
   const hasLeftScreenRef = useRef(false);
+  const rootNavigationState = useRootNavigationState();
 
   const recipientId = useMemo(() => {
     const rawUserId = Array.isArray(params.userId)
@@ -43,8 +48,7 @@ export default function VideoCallScreen() {
     claimActiveCall,
     clearAcceptedIncomingCall,
     releaseActiveCall,
-  } =
-    useIncomingVideoCall();
+  } = useIncomingVideoCall();
   const matchingIncomingCall =
     direction === "incoming" &&
     acceptedIncomingCall?.call.sender_id === recipientId
@@ -73,6 +77,7 @@ export default function VideoCallScreen() {
     switchCamera,
   } = useVideoCall({
     recipientId,
+    currentUserId: user ? Number(user.id) : undefined,
     acceptedIncomingCall: matchingIncomingCall?.call,
     pendingIncomingIceCandidates:
       matchingIncomingCall?.pendingIceCandidates ?? [],
@@ -83,15 +88,24 @@ export default function VideoCallScreen() {
 
   const terminalStatus = useMemo(() => {
     switch (callState) {
-      case "busy": return "Потребителят е зает";
-      case "timeout": return "Няма отговор";
-      case "rejected": return "Обаждането е отказано";
-      case "failed": return "Неуспешно обаждане";
-      case "connection_timeout": return "Неуспешно свързване";
-      case "cancelled": return "Обаждането е прекратено";
-      case "ended": return "Разговорът приключи";
-      case "connecting": return "Свързване...";
-      default: return "Обаждане...";
+      case "busy":
+        return "Потребителят е зает";
+      case "timeout":
+        return "Няма отговор";
+      case "rejected":
+        return "Обаждането е отказано";
+      case "failed":
+        return "Неуспешно обаждане";
+      case "connection_timeout":
+        return "Неуспешно свързване";
+      case "cancelled":
+        return "Обаждането е прекратено";
+      case "ended":
+        return "Разговорът приключи";
+      case "connecting":
+        return "Свързване...";
+      default:
+        return "Обаждане...";
     }
   }, [callState]);
   const formattedDuration = `${Math.floor(callDurationSeconds / 60)
@@ -101,7 +115,10 @@ export default function VideoCallScreen() {
     .padStart(2, "0")}`;
 
   const leaveVideoCallScreen = useCallback(() => {
-    if (hasLeftScreenRef.current) return;
+    if (hasLeftScreenRef.current || !rootNavigationState?.key) {
+      return;
+    }
+
     hasLeftScreenRef.current = true;
 
     if (router.canGoBack()) {
@@ -110,24 +127,27 @@ export default function VideoCallScreen() {
     }
 
     router.replace("/inbox");
-  }, [router]);
+  }, [rootNavigationState?.key, router]);
 
   useEffect(() => {
-    if (
-      isAuthLoading ||
-      !isValidRecipient ||
-      direction === "incoming" ||
-      hasStartedCallRef.current
-    ) return;
+    if (!rootNavigationState?.key) {
+      return;
+    }
 
-    hasStartedCallRef.current = true;
-    void startCall().catch((error: unknown) => {
-      Alert.alert(
-        "Видео обаждането не стартира",
-        error instanceof Error ? error.message : "Възникна неочаквана грешка.",
-      );
-    });
-  }, [direction, isAuthLoading, isValidRecipient, startCall]);
+    if (
+      direction === "incoming" &&
+      !matchingIncomingCall &&
+      callState === "idle"
+    ) {
+      leaveVideoCallScreen();
+    }
+  }, [
+    callState,
+    direction,
+    leaveVideoCallScreen,
+    matchingIncomingCall,
+    rootNavigationState?.key,
+  ]);
 
   useEffect(() => {
     if (
@@ -140,8 +160,22 @@ export default function VideoCallScreen() {
   }, [callState, direction, leaveVideoCallScreen, matchingIncomingCall]);
 
   useEffect(() => {
-    if (!["ended", "rejected", "busy", "timeout", "cancelled", "failed", "connection_timeout"].includes(callState)) return;
+    if (
+      ![
+        "ended",
+        "rejected",
+        "busy",
+        "timeout",
+        "cancelled",
+        "failed",
+        "connection_timeout",
+      ].includes(callState)
+    ) {
+      return;
+    }
+
     const timeout = setTimeout(leaveVideoCallScreen, 1_600);
+
     return () => clearTimeout(timeout);
   }, [callState, leaveVideoCallScreen]);
 
@@ -174,7 +208,17 @@ export default function VideoCallScreen() {
       <VideoCallView localStream={localStream} remoteStream={remoteStream} />
 
       <OutgoingCall
-        visible={["calling", "connecting", "busy", "timeout", "rejected", "failed", "connection_timeout", "cancelled", "ended"].includes(callState)}
+        visible={[
+          "calling",
+          "connecting",
+          "busy",
+          "timeout",
+          "rejected",
+          "failed",
+          "connection_timeout",
+          "cancelled",
+          "ended",
+        ].includes(callState)}
         name={recipientName ?? "Потребител"}
         status={terminalStatus}
         canCancel={callState === "calling" || callState === "connecting"}
@@ -182,7 +226,9 @@ export default function VideoCallScreen() {
       />
 
       {callState === "connected" ? (
-        <Text selectable style={styles.duration}>{formattedDuration}</Text>
+        <Text selectable style={styles.duration}>
+          {formattedDuration}
+        </Text>
       ) : null}
 
       {callState === "idle" || callState === "connected" ? (

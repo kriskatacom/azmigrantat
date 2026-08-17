@@ -53,10 +53,15 @@ export function useChatMessages({
   const [isUploading, setIsUploading] = useState(false);
 
   const lastReadReceiptRef = useRef(lastReadReceipt);
+  const isAppActiveRef = useRef(isAppActive);
 
   useEffect(() => {
     lastReadReceiptRef.current = lastReadReceipt;
   }, [lastReadReceipt]);
+
+  useEffect(() => {
+    isAppActiveRef.current = isAppActive;
+  }, [isAppActive]);
 
   const resolveOtherUser = useCallback(
     (items: ChatMessage[]) => {
@@ -104,7 +109,7 @@ export function useChatMessages({
       const lastMessage = response.data.at(-1);
 
       if (
-        isAppActive &&
+        isAppActiveRef.current &&
         lastMessage &&
         Number(lastMessage.sender_id) !== Number(currentUserId)
       ) {
@@ -126,7 +131,6 @@ export function useChatMessages({
     conversationId,
     currentUserId,
     resolveOtherUser,
-    isAppActive,
   ]);
 
   useEffect(() => {

@@ -61,15 +61,5 @@ export function useChatAttachments({ disabled, onSend }: UseChatAttachmentsParam
     }
   }, [disabled, send]);
 
-  const openAttachmentMenu = useCallback(() => {
-    if (disabled) return;
-    Alert.alert("Изпрати прикачен файл", "Изберете откъде да добавите файл.", [
-      { text: "Камера", onPress: () => void takePhoto() },
-      { text: "Снимки", onPress: () => void choosePhotos() },
-      { text: "Файл", onPress: () => void chooseFiles() },
-      { text: "Отказ", style: "cancel" },
-    ]);
-  }, [disabled, takePhoto, choosePhotos, chooseFiles]);
-
-  return { openAttachmentMenu };
+  return { takePhoto, choosePhotos, chooseFiles };
 }

@@ -18,8 +18,9 @@ function safeFileName(messageId: number, name: string) {
 
 export function useSaveChatImage({ messageId, url, name, mimeType }: UseSaveChatImageParams) {
   const [isSaving, setIsSaving] = useState(false);
+  const [isSaveMenuVisible, setIsSaveMenuVisible] = useState(false);
 
-  const downloadImage = useCallback(async () => {
+  const downloadAttachment = useCallback(async () => {
     const destination = new File(Paths.cache, safeFileName(messageId, name));
     if (destination.exists) return destination;
     return File.downloadFileAsync(url, destination, { idempotent: true });
@@ -34,7 +35,7 @@ export function useSaveChatImage({ messageId, url, name, mimeType }: UseSaveChat
         Alert.alert("Нужно е разрешение", "Разрешете записването на снимки от настройките на телефона.");
         return;
       }
-      const file = await downloadImage();
+      const file = await downloadAttachment();
       await Asset.create(file.uri);
       Alert.alert("Снимката е запазена", "Ще я намерите в галерията и в Google Photos.");
     } catch (error) {
@@ -42,9 +43,9 @@ export function useSaveChatImage({ messageId, url, name, mimeType }: UseSaveChat
     } finally {
       setIsSaving(false);
     }
-  }, [downloadImage, isSaving]);
+  }, [downloadAttachment, isSaving]);
 
-  const shareToGooglePhotos = useCallback(async () => {
+  const downloadFile = useCallback(async () => {
     if (isSaving) return;
     setIsSaving(true);
     try {
@@ -52,26 +53,30 @@ export function useSaveChatImage({ messageId, url, name, mimeType }: UseSaveChat
         Alert.alert("Споделянето не е налично", "Това устройство не поддържа системно споделяне.");
         return;
       }
-      const file = await downloadImage();
+      const file = await downloadAttachment();
       await Sharing.shareAsync(file.uri, {
-        dialogTitle: "Изпрати към Google Photos",
-        mimeType: mimeType ?? "image/jpeg",
-        UTI: "public.image",
+        dialogTitle: "Свали или запази файла",
+        mimeType: mimeType ?? "application/octet-stream",
       });
     } catch (error) {
-      Alert.alert("Грешка", error instanceof Error ? error.message : "Снимката не можа да бъде споделена.");
+      Alert.alert("Грешка", error instanceof Error ? error.message : "Файлът не можа да бъде свален.");
     } finally {
       setIsSaving(false);
     }
-  }, [downloadImage, isSaving, mimeType]);
+  }, [downloadAttachment, isSaving, mimeType]);
 
   const openSaveMenu = useCallback(() => {
-    Alert.alert("Снимка", "Какво искате да направите?", [
-      { text: "Запази в галерията", onPress: () => void saveToGallery() },
-      { text: "Изпрати към Google Photos…", onPress: () => void shareToGooglePhotos() },
-      { text: "Отказ", style: "cancel" },
-    ]);
-  }, [saveToGallery, shareToGooglePhotos]);
+    if (!isSaving) setIsSaveMenuVisible(true);
+  }, [isSaving]);
 
-  return { isSaving, openSaveMenu };
+  const closeSaveMenu = useCallback(() => setIsSaveMenuVisible(false), []);
+
+  return {
+    isSaving,
+    isSaveMenuVisible,
+    openSaveMenu,
+    closeSaveMenu,
+    downloadFile,
+    saveToGallery,
+  };
 }
