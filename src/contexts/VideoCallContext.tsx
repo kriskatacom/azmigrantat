@@ -13,6 +13,7 @@ import {
   rememberCallEvent,
   setIncomingCallAppForeground,
   setPendingIncomingCallAction,
+  subscribeNativeIncomingCallLaunch,
   subscribePendingIncomingCallAction,
   toIncomingCallPayload,
   type PendingIncomingCallAction,
@@ -645,6 +646,17 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
         console.error("Native incoming call launch не се прочете:", error);
       });
 
+    const unsubscribeNativeLaunch = subscribeNativeIncomingCallLaunch(
+      (pending) => {
+        console.log("[CALL] native launch event", {
+          callId: pending.callId,
+          action: pending.action,
+        });
+        setPendingIncomingCallAction(pending);
+        applyPendingAction(pending);
+      },
+    );
+
     const notificationSubscription =
       Notifications.addNotificationReceivedListener((notification) => {
         const payload = parseIncomingCallData(
@@ -722,6 +734,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       linkingSubscription.remove();
       notificationSubscription.remove();
       responseSubscription.remove();
+      unsubscribeNativeLaunch();
       unsubscribePending();
     };
   }, [applyPendingAction, beginIncomingCall, clearCallArtifacts]);

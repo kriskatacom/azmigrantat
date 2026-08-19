@@ -8,6 +8,7 @@ import {
   dismissIncomingCallNative,
   displayIncomingCallNative,
   setIncomingCallNativeForeground,
+  subscribeIncomingCallLaunchNative,
 } from "../../modules/incoming-call";
 
 import type { CallServerPayload } from "@/services/video-call";
@@ -363,7 +364,30 @@ export async function setIncomingCallAppForeground(
 
 export async function consumeNativeIncomingCallLaunch(): Promise<PendingIncomingCallAction | null> {
   const launch = await consumeIncomingCallLaunchNative();
+  return toPendingNativeLaunch(launch);
+}
 
+export function subscribeNativeIncomingCallLaunch(
+  listener: (value: PendingIncomingCallAction) => void,
+): () => void {
+  return subscribeIncomingCallLaunchNative((launch) => {
+    const pending = toPendingNativeLaunch(launch);
+    if (pending) {
+      listener(pending);
+    }
+  });
+}
+
+function toPendingNativeLaunch(
+  launch: {
+    callId?: string;
+    action?: string;
+    callerId?: number;
+    callerName?: string | null;
+    callerAvatar?: string | null;
+    timestamp?: number | null;
+  } | null,
+): PendingIncomingCallAction | null {
   if (!launch?.callId) {
     return null;
   }

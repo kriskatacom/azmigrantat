@@ -69,6 +69,8 @@ class IncomingCallModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("IncomingCall")
 
+    Events("onLaunchAction")
+
     OnCreate {
       val activity = appContext.currentActivity
       if (activity != null) {
@@ -78,7 +80,10 @@ class IncomingCallModule : Module() {
     }
 
     OnNewIntent { intent ->
-      captureIntent(intent, appContext.currentActivity?.applicationContext)
+      val launch = captureIntent(intent, appContext.currentActivity?.applicationContext)
+      if (launch != null) {
+        sendEvent("onLaunchAction", launch)
+      }
     }
 
     OnActivityEntersForeground {
@@ -229,18 +234,22 @@ class IncomingCallModule : Module() {
       callType: String = "video",
       timestamp: Long = 0L,
       context: Context? = null,
-    ) {
+    ): Map<String, Any?>? {
       if (callId.isBlank()) {
-        return
+        return null
       }
 
       if (isCancelled(callId, context) && action != "accept") {
         Log.i(TAG, "[CALL] stale call ignored callId=$callId")
-        return
+        return null
       }
 
       if (action == "accept") {
-        acceptedCallIds.add(callId)
+        val firstAccept = acceptedCallIds.add(callId)
+        if (firstAccept && context != null) {
+          dismiss(context, callId)
+          postCallAction(context, "/calls/accept", callId)
+        }
       }
 
       pendingLaunch = mapOf(
@@ -256,15 +265,17 @@ class IncomingCallModule : Module() {
       if (context != null) {
         persistLaunch(context, pendingLaunch!!)
       }
+
+      return pendingLaunch
     }
 
-    fun captureIntent(intent: Intent?, context: Context? = null) {
+    fun captureIntent(intent: Intent?, context: Context? = null): Map<String, Any?>? {
       if (intent == null) {
-        return
+        return null
       }
 
       val data = intent.data
-      val callId = intentCallId(intent) ?: return
+      val callId = intentCallId(intent) ?: return null
       val action = intent.getStringExtra(EXTRA_ACTION)
         ?: data?.getQueryParameter("action")
         ?: "open"
@@ -282,7 +293,7 @@ class IncomingCallModule : Module() {
         ?: data?.getQueryParameter("timestamp")?.toLongOrNull()
         ?: 0L
 
-      rememberLaunch(
+      return rememberLaunch(
         callId,
         action,
         callerId,
@@ -369,12 +380,12 @@ class IncomingCallModule : Module() {
 
       activeCallIds.add(options.callId)
       scheduleTimeout(context.applicationContext, options.callId)
-      wakeScreen(context)
 
       val canNotify =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
           ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
+      val canUseFsi = canNotify && canUseFullScreenIntent(context)
 
       if (canNotify) {
         ensureChannel(context)
@@ -382,13 +393,20 @@ class IncomingCallModule : Module() {
           notificationId(options.callId),
           buildNotification(context, options),
         )
-        Log.i(TAG, "[CALL] full-screen intent created callId=${options.callId}")
+        Log.i(
+          TAG,
+          "[CALL] full-screen intent created callId=${options.callId} fsi=$canUseFsi sdk=${Build.VERSION.SDK_INT}",
+        )
       } else {
         Log.w(TAG, "[CALL] notification permission missing callId=${options.callId}")
       }
 
+      if (!canUseFsi) {
+        wakeScreen(context)
+      }
+
       if (launchApp) {
-        tryLaunchMainActivity(context, options, usedFullScreenIntent = canNotify)
+        tryLaunchMainActivity(context, options, usedFullScreenIntent = canUseFsi)
       }
     }
 
@@ -513,7 +531,7 @@ class IncomingCallModule : Module() {
     }
 
     fun buildNotification(context: Context, options: IncomingCallDisplayOptions): Notification {
-      val acceptIntent = actionIntent(context, ACTION_ACCEPT, options)
+      val acceptIntent = activityPendingIntent(context, "accept", options, "accept")
       val declineIntent = actionIntent(context, ACTION_DECLINE, options)
       val contentIntent = activityPendingIntent(context, "open", options)
       val fullScreenIntent = activityPendingIntent(context, "full", options)
@@ -691,11 +709,12 @@ class IncomingCallModule : Module() {
       context: Context,
       kind: String,
       options: IncomingCallDisplayOptions,
+      action: String = "open",
     ): PendingIntent {
       val launch = launchIntent(
         context,
         options.callId,
-        "open",
+        action,
         options.callerId,
         options.callerName,
         options.callerAvatar,
@@ -753,6 +772,46 @@ class IncomingCallModule : Module() {
 
       val requestCode = notificationId("$action:${options.callId}")
       return PendingIntent.getBroadcast(context, requestCode, intent, pendingFlags())
+    }
+
+    fun postCallAction(
+      context: Context,
+      path: String,
+      callId: String,
+      onComplete: (() -> Unit)? = null,
+    ) {
+      val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+      val token = prefs.getString(KEY_TOKEN, null)
+      val socketUrl = prefs.getString(KEY_SOCKET_URL, null)
+
+      Thread {
+        try {
+          if (!token.isNullOrBlank() && !socketUrl.isNullOrBlank()) {
+            val connection = java.net.URL("$socketUrl$path").openConnection() as java.net.HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.connectTimeout = 8_000
+            connection.readTimeout = 8_000
+            connection.doOutput = true
+            connection.setRequestProperty("Authorization", "Bearer $token")
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.setRequestProperty("Accept", "application/json")
+
+            java.io.OutputStreamWriter(connection.outputStream, Charsets.UTF_8).use { writer ->
+              writer.write("""{"call_id":"${callId.replace("\"", "")}"}""")
+            }
+
+            val status = connection.responseCode
+            Log.i(TAG, "[CALL] native $path status=$status callId=$callId")
+            connection.disconnect()
+          } else {
+            Log.w(TAG, "[CALL] native $path skipped, missing session callId=$callId")
+          }
+        } catch (error: Exception) {
+          Log.e(TAG, "[CALL] native $path failed callId=$callId: ${error.message}")
+        } finally {
+          onComplete?.invoke()
+        }
+      }.start()
     }
 
     private fun scheduleTimeout(context: Context, callId: String) {

@@ -24,6 +24,10 @@ type IncomingCallNativeModule = {
   openFullScreenIntentSettings(): Promise<void>;
   setForeground(isForeground: boolean): Promise<void>;
   consumeLaunchAction(): Promise<IncomingCallLaunchAction | null>;
+  addListener?(
+    eventName: "onLaunchAction",
+    listener: (event: IncomingCallLaunchAction) => void,
+  ): { remove(): void };
 };
 
 export type IncomingCallLaunchAction = {
@@ -94,4 +98,11 @@ export async function consumeIncomingCallLaunchNative(): Promise<IncomingCallLau
   }
 
   return nativeModule.consumeLaunchAction();
+}
+
+export function subscribeIncomingCallLaunchNative(
+  listener: (launch: IncomingCallLaunchAction) => void,
+): () => void {
+  const subscription = nativeModule?.addListener?.("onLaunchAction", listener);
+  return () => subscription?.remove();
 }
