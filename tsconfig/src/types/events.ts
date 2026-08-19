@@ -1,5 +1,12 @@
 import type { Server } from 'socket.io';
 
+import type {
+    AppStatePayload,
+    CallClientPayload,
+    CallServerPayload,
+    CallStatePayload,
+    DeviceRegisterPayload,
+} from './call';
 import type { AuthenticatedUser } from './socket';
 
 export interface RealtimeMessage {
@@ -29,17 +36,33 @@ export interface ServerToClientEvents {
     'message:new': (message: RealtimeMessage) => void;
     'message:read': (payload: MessageReadPayload) => void;
     'typing:update': (payload: TypingPayload) => void;
+
+    'call:offer': (payload: CallServerPayload) => void;
+    'call:answer': (payload: CallServerPayload) => void;
+    'call:ice-candidate': (payload: CallServerPayload) => void;
+    'call:end': (payload: CallServerPayload) => void;
+    'call:state': (payload: CallStatePayload) => void;
 }
 
 export interface ClientToServerEvents {
     'typing:start': (payload: TypingClientPayload) => void;
     'typing:stop': (payload: TypingClientPayload) => void;
+
+    'call:offer': (payload: CallClientPayload) => void;
+    'call:answer': (payload: CallClientPayload) => void;
+    'call:ice-candidate': (payload: CallClientPayload) => void;
+    'call:end': (payload: CallClientPayload) => void;
+    'call:sync': () => void;
+    'device:register': (payload: DeviceRegisterPayload) => void;
+    'app:state': (payload: AppStatePayload) => void;
 }
 
 export interface InterServerEvents {}
 
 export interface SocketData {
     user: AuthenticatedUser;
+    appState?: 'active' | 'background';
+    expoPushToken?: string;
 }
 
 export type RealtimeServer = Server<

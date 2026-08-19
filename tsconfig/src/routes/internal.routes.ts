@@ -56,9 +56,7 @@ export function registerInternalRoutes(app: Express, io: RealtimeServer): void {
             return;
         }
 
-        const recipientIds = [
-            ...new Set([...validRecipientIds, payload.message.sender_id]),
-        ];
+        const recipientIds = [...new Set([...validRecipientIds, payload.message.sender_id])];
 
         if (recipientIds.length === 0) {
             response.status(422).json({

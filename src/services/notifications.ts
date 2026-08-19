@@ -2,6 +2,8 @@ import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
+import { setupIncomingCallNotifications } from "@/services/incoming-call";
+
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export async function registerForPushNotifications(
@@ -13,6 +15,8 @@ export async function registerForPushNotifications(
       importance: Notifications.AndroidImportance.MAX,
     });
   }
+
+  await setupIncomingCallNotifications();
 
   const permissions = await Notifications.getPermissionsAsync();
 
@@ -37,6 +41,16 @@ export async function registerForPushNotifications(
     throw new Error("EAS projectId не е намерен.");
   }
 
+  try {
+    const devicePushToken = await Notifications.getDevicePushTokenAsync();
+
+    if (typeof devicePushToken.data === "string" && devicePushToken.data) {
+      await savePushToken(accessToken, devicePushToken.data, "fcm");
+    }
+  } catch (error: unknown) {
+    console.error("FCM token за входящи обаждания не се регистрира:", error);
+  }
+
   const expoPushToken = (
     await Notifications.getExpoPushTokenAsync({
       projectId,
@@ -45,7 +59,7 @@ export async function registerForPushNotifications(
 
   console.log("Expo Push Token:", expoPushToken);
 
-  await savePushToken(accessToken, expoPushToken);
+  await savePushToken(accessToken, expoPushToken, "expo");
 
   return expoPushToken;
 }
@@ -53,6 +67,7 @@ export async function registerForPushNotifications(
 async function savePushToken(
   accessToken: string,
   pushToken: string,
+  provider: "fcm" | "expo",
 ): Promise<void> {
   if (!API_URL) {
     throw new Error("Липсва EXPO_PUBLIC_API_URL.");
@@ -69,6 +84,7 @@ async function savePushToken(
       token: pushToken,
       platform: Platform.OS,
       device_id: null,
+      provider,
     }),
   });
 
@@ -80,5 +96,5 @@ async function savePushToken(
     );
   }
 
-  console.log("Push token saved:", data);
+  console.log("Push token saved:", provider);
 }

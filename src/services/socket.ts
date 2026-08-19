@@ -1,8 +1,11 @@
 import { io, type Socket } from "socket.io-client";
 
 import type {
+  AppStatePayload,
   CallClientPayload,
   CallServerPayload,
+  CallStatePayload,
+  DeviceRegisterPayload,
 } from "@/services/video-call";
 import type { AuthUser } from "@/types/auth";
 import type { ChatMessage } from "@/types/chat";
@@ -59,6 +62,7 @@ interface ServerToClientEvents {
   "call:answer": (payload: CallServerPayload) => void;
   "call:ice-candidate": (payload: CallServerPayload) => void;
   "call:end": (payload: CallServerPayload) => void;
+  "call:state": (payload: CallStatePayload) => void;
 }
 
 interface ClientToServerEvents {
@@ -71,15 +75,32 @@ interface ClientToServerEvents {
   "call:answer": (payload: CallClientPayload) => void;
   "call:ice-candidate": (payload: CallClientPayload) => void;
   "call:end": (payload: CallClientPayload) => void;
+  "call:sync": () => void;
+  "device:register": (payload: DeviceRegisterPayload) => void;
+  "app:state": (payload: AppStatePayload) => void;
 }
 
 export type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
+export type SocketConnectExtras = {
+  expoPushToken?: string | null;
+  appState?: "active" | "background";
+};
+
 let socket: AppSocket | null = null;
 
-export function connectSocket(token: string): AppSocket {
+export function connectSocket(
+  token: string,
+  extras: SocketConnectExtras = {},
+): AppSocket {
+  const auth = {
+    token,
+    expo_push_token: extras.expoPushToken ?? undefined,
+    app_state: extras.appState,
+  };
+
   if (socket) {
-    socket.auth = { token };
+    socket.auth = auth;
 
     if (!socket.connected) {
       socket.connect();
@@ -91,9 +112,7 @@ export function connectSocket(token: string): AppSocket {
   socket = io(SOCKET_URL, {
     autoConnect: false,
     transports: ["websocket"],
-    auth: {
-      token,
-    },
+    auth,
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,

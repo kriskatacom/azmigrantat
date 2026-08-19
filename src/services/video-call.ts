@@ -34,6 +34,8 @@ export type CallState =
   | "failed"
   | "connection_timeout";
 
+export type CallType = "video";
+
 export type CallClientPayload = {
   call_id: string;
   recipient_id: number;
@@ -48,4 +50,25 @@ export type CallServerPayload = {
   description?: CallDescription;
   candidate?: CallIceCandidate;
   reason?: CallEndReason;
+  caller_name?: string;
+  caller_avatar?: string | null;
+  call_type?: CallType;
+  timestamp?: number;
 };
+
+export type CallStatePayload = {
+  call: CallServerPayload | null;
+  pending_ice_candidates: CallIceCandidate[];
+  status: "ringing" | "accepted" | "declined" | "cancelled" | "ended" | "timeout" | "busy" | "failed" | "idle";
+};
+
+export type DeviceRegisterPayload = {
+  expo_push_token?: string;
+  app_state?: "active" | "background";
+};
+
+export type AppStatePayload = {
+  app_state: "active" | "background";
+};
+
+export const CALL_NO_ANSWER_MS = 30_000;

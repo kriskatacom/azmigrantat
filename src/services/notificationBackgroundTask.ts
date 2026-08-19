@@ -2,6 +2,14 @@ import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
 import * as TaskManager from "expo-task-manager";
 
+import {
+  INCOMING_CALL_DECLINE_ACTION,
+  dismissIncomingCallAlert,
+  parseIncomingCallData,
+  presentIncomingCallAlert,
+} from "@/services/incoming-call";
+import { declineCallViaHttp } from "@/services/realtime-http";
+
 const TASK_NAME = "notification-action-task";
 
 TaskManager.defineTask<Notifications.NotificationTaskPayload>(
@@ -11,23 +19,90 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
       return;
     }
 
-    if (!("actionIdentifier" in data)) {
+    const isNotificationResponse = "actionIdentifier" in data;
+
+    if (!isNotificationResponse) {
+      const notification = data as unknown as Notifications.Notification;
+      const payload = parseIncomingCallData(
+        notification.request?.content?.data as Record<string, unknown> | undefined,
+      );
+
+      if (!payload) {
+        const rawData = (data as { data?: Record<string, unknown> }).data;
+        const nestedPayload = parseIncomingCallData(rawData);
+
+        if (!nestedPayload) {
+          return;
+        }
+
+        if (nestedPayload.type === "incoming_call_ended") {
+          await dismissIncomingCallAlert(nestedPayload.call_id);
+          return;
+        }
+
+        await presentIncomingCallAlert({
+          callId: nestedPayload.call_id,
+          callerId: nestedPayload.caller_id,
+          callerName: nestedPayload.caller_name,
+          callerAvatar: nestedPayload.caller_avatar,
+        });
+        return;
+      }
+
+      if (payload.type === "incoming_call_ended") {
+        await dismissIncomingCallAlert(payload.call_id);
+        return;
+      }
+
+      await presentIncomingCallAlert({
+        callId: payload.call_id,
+        callerId: payload.caller_id,
+        callerName: payload.caller_name,
+        callerAvatar: payload.caller_avatar,
+      });
       return;
     }
 
     const response = data;
+    const notification = response.notification;
+    const payloadData = notification.request.content.data as Record<
+      string,
+      unknown
+    >;
+    const incomingCall = parseIncomingCallData(payloadData);
+
+    if (
+      incomingCall &&
+      (response.actionIdentifier === INCOMING_CALL_DECLINE_ACTION ||
+        response.actionIdentifier === "incoming_call_decline")
+    ) {
+      const token = await SecureStore.getItemAsync("auth_token");
+
+      try {
+        if (token) {
+          await declineCallViaHttp(token, incomingCall.call_id);
+        }
+      } catch {
+        // Background decline should not crash the headless task.
+      }
+
+      await dismissIncomingCallAlert(incomingCall.call_id);
+      return;
+    }
+
+    if (incomingCall?.type === "incoming_call_ended") {
+      await dismissIncomingCallAlert(incomingCall.call_id);
+      return;
+    }
 
     if (response.actionIdentifier !== "mark_read") {
       return;
     }
 
-    const notification = response.notification;
-    const payload = notification.request.content.data;
-
-    const conversationId = Number(payload?.conversation_id);
+    const conversationId = Number(payloadData?.conversation_id);
     const messageId =
-      payload?.message_id !== undefined
-        ? Number(payload.message_id)
+      payloadData?.message_id !== undefined
+        ? Number(payloadData.message_id)
         : undefined;
 
     if (!Number.isInteger(conversationId) || conversationId <= 0) {
@@ -47,7 +122,7 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
     }
 
     try {
-      const response = await fetch(
+      const readResponse = await fetch(
         `${API_URL}/api/mobile/conversations/${conversationId}/read`,
         {
           method: "POST",
@@ -66,7 +141,7 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
         },
       );
 
-      if (!response.ok) {
+      if (!readResponse.ok) {
         return;
       }
 

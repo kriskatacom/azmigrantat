@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { Server } from 'socket.io';
 
 import { config } from './config';
+import { registerCallRoutes } from './routes/call.routes';
 import { registerHealthRoutes } from './routes/health.routes';
 import { registerInternalRoutes } from './routes/internal.routes';
 import { registerSocketAuthMiddleware } from './socket/auth.middleware';
@@ -33,6 +34,7 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEve
 
 registerHealthRoutes(app);
 registerInternalRoutes(app, io);
+registerCallRoutes(app, io);
 
 registerSocketAuthMiddleware(io);
 registerSocketConnections(io);

@@ -16,6 +16,8 @@ import {
 } from "@/services/auth";
 
 import { registerForPushNotifications } from "@/services/notifications";
+import { configureIncomingCallNativeSession } from "@/services/incoming-call";
+import { getRealtimeHttpUrl } from "@/services/realtime-http";
 import type { AuthUser, LoginPayload, RegisterPayload } from "@/types/auth";
 
 const TOKEN_KEY = "auth_token";
@@ -86,6 +88,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setToken(storedToken);
         setUser(parsedUser);
         setExpiresAt(parsedExpiresAt);
+
+        void configureIncomingCallNativeSession({
+          token: storedToken,
+          socketUrl: getRealtimeHttpUrl(),
+        }).catch((error: unknown) => {
+          console.error("Native incoming call session не се настрои:", error);
+        });
+
+        void registerForPushNotifications(storedToken).catch((error: unknown) => {
+          console.error("Неуспешна регистрация на push notifications:", error);
+        });
       } catch (error) {
         console.error("Неуспешно възстановяване на сесията:", error);
 
@@ -130,6 +143,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setToken(newToken);
       setUser(newUser);
       setExpiresAt(newExpiresAt);
+
+      void configureIncomingCallNativeSession({
+        token: newToken,
+        socketUrl: getRealtimeHttpUrl(),
+      }).catch((error: unknown) => {
+        console.error("Native incoming call session не се настрои:", error);
+      });
     },
     [],
   );

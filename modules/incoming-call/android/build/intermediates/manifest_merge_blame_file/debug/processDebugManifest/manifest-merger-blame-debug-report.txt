@@ -1,0 +1,69 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="expo.modules.incomingcall" >
+4
+5    <uses-sdk android:minSdkVersion="24" />
+6
+7    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+7-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:2:3-75
+7-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:2:20-72
+8    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+8-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:3:3-79
+8-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:3:20-76
+9    <uses-permission android:name="android.permission.WAKE_LOCK" />
+9-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:4:3-66
+9-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:4:20-63
+10    <uses-permission android:name="android.permission.VIBRATE" />
+10-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:5:3-64
+10-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:5:20-61
+11    <uses-permission android:name="android.permission.TURN_SCREEN_ON" />
+11-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:6:3-71
+11-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:6:20-68
+12    <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
+12-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:7:3-73
+12-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:7:20-70
+13    <uses-permission android:name="android.permission.INTERNET" />
+13-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:8:3-65
+13-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:8:20-62
+14    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+14-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:9:3-79
+14-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:9:20-76
+15
+16    <application>
+16-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:11:3-29:17
+17        <receiver
+17-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:12:5-19:16
+18            android:name="expo.modules.incomingcall.IncomingCallActionReceiver"
+18-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:13:7-49
+19            android:exported="false" >
+19-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:14:7-31
+20            <intent-filter>
+20-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:15:7-18:23
+21                <action android:name="expo.modules.incomingcall.ACTION_ACCEPT" />
+21-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:16:9-74
+21-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:16:17-71
+22                <action android:name="expo.modules.incomingcall.ACTION_DECLINE" />
+22-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:17:9-75
+22-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:17:17-72
+23            </intent-filter>
+24        </receiver>
+25
+26        <service
+26-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:21:5-28:15
+27            android:name="expo.modules.incomingcall.IncomingCallFirebaseMessagingService"
+27-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:22:7-59
+28            android:directBootAware="true"
+28-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:24:7-37
+29            android:exported="false" >
+29-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:23:7-31
+30            <intent-filter android:priority="1000" >
+30-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:25:7-27:23
+30-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:25:22-45
+31                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+31-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:26:9-70
+31-->/home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:26:17-67
+32            </intent-filter>
+33        </service>
+34    </application>
+35
+36</manifest>

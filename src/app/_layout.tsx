@@ -4,6 +4,7 @@ import { SocketProvider } from "@/contexts/SocketContext";
 import { VideoCallProvider } from "@/contexts/VideoCallContext";
 import { useAuth } from "@/hooks/useAuth";
 import { markConversationAsRead } from "@/services/chat";
+import { parseIncomingCallData, setupIncomingCallNotifications } from "@/services/incoming-call";
 import "@/services/notificationBackgroundTask";
 import { getActiveConversationId } from "@/services/notificationState";
 import * as Notifications from "expo-notifications";
@@ -19,12 +20,34 @@ import {
   useRef,
   useState,
 } from "react";
-import { useColorScheme } from "react-native";
+import { AppState, useColorScheme } from "react-native";
 import "../../global.css";
 
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
-    const data = notification.request.content.data;
+    const data = notification.request.content.data as Record<string, unknown>;
+    const incomingCall = parseIncomingCallData(data);
+
+    if (incomingCall?.type === "incoming_call_ended") {
+      return {
+        shouldShowBanner: false,
+        shouldShowList: false,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      };
+    }
+
+    if (incomingCall?.type === "incoming_call") {
+      const showSystemCallAlert = AppState.currentState !== "active";
+
+      return {
+        shouldShowBanner: showSystemCallAlert,
+        shouldShowList: showSystemCallAlert,
+        shouldPlaySound: showSystemCallAlert,
+        shouldSetBadge: false,
+        priority: Notifications.AndroidNotificationPriority.MAX,
+      };
+    }
 
     const notificationConversationId =
       data?.conversation_id !== undefined ? Number(data.conversation_id) : null;
@@ -112,6 +135,13 @@ function NotificationNavigationHandler() {
       const actionIdentifier = response.actionIdentifier;
 
       console.log("Notification action:", actionIdentifier);
+
+      if (
+        data?.type === "incoming_call" ||
+        data?.type === "incoming_call_ended"
+      ) {
+        return;
+      }
 
       if (
         data?.type !== "chat_message" ||
@@ -246,6 +276,12 @@ function NotificationNavigationHandler() {
 
 function RootNavigator() {
   const { theme, colorScheme } = useAppTheme();
+
+  useEffect(() => {
+    void setupIncomingCallNotifications().catch((error: unknown) => {
+      console.error("Категориите за входящи обаждания не се регистрираха:", error);
+    });
+  }, []);
 
   return (
     <>

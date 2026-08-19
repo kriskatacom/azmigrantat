@@ -15,7 +15,8 @@ for (let index = 0; index < sampleCount; index += 1) {
   const frequency = notes[beat % notes.length];
   const attack = Math.min(1, withinBeat / 0.025);
   const release = Math.min(1, (0.38 - withinBeat) / 0.08);
-  const envelope = isRest || withinBeat > 0.38 ? 0 : attack * Math.max(0, release);
+  const envelope =
+    isRest || withinBeat > 0.38 ? 0 : attack * Math.max(0, release);
   const tone =
     Math.sin(2 * Math.PI * frequency * time) * 0.7 +
     Math.sin(2 * Math.PI * frequency * 1.5 * time) * 0.3;
@@ -39,4 +40,7 @@ header.writeUInt32LE(samples.length, 40);
 
 const outputDirectory = path.join(__dirname, "..", "assets", "sounds");
 fs.mkdirSync(outputDirectory, { recursive: true });
-fs.writeFileSync(path.join(outputDirectory, "incoming-call.wav"), Buffer.concat([header, samples]));
+fs.writeFileSync(
+  path.join(outputDirectory, "incoming_call.wav"),
+  Buffer.concat([header, samples]),
+);

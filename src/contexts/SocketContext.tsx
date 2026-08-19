@@ -18,6 +18,7 @@ import {
   useState,
   type PropsWithChildren,
 } from "react";
+import { AppState } from "react-native";
 
 interface ConnectionReadyPayload {
   user: AuthUser;
@@ -97,7 +98,9 @@ export function SocketProvider({ children }: PropsWithChildren) {
     setIsConnecting(true);
     setConnectionError(null);
 
-    const currentSocket = connectSocket(token);
+    const currentSocket = connectSocket(token, {
+      appState: AppState.currentState === "active" ? "active" : "background",
+    });
 
     setSocket(currentSocket);
 

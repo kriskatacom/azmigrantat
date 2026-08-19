@@ -1,32 +1,108 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
-import { useEffect } from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Image } from "expo-image";
+import { useEffect, useState } from "react";
+import {
+  Animated,
+  Easing,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const RINGTONE = require("../../../assets/sounds/incoming-call.wav");
+const RINGTONE = require("../../../assets/sounds/incoming_call.wav");
 
 type IncomingCallProps = {
   visible: boolean;
   callerName?: string | null;
   callerImage?: string | null;
+  connecting?: boolean;
   onAccept: () => void;
   onReject: () => void;
 };
+
+function PulseRing({ delay, size }: { delay: number; size: number }) {
+  const [scale] = useState(() => new Animated.Value(0.72));
+  const [opacity] = useState(() => new Animated.Value(0.42));
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.delay(delay),
+        Animated.parallel([
+          Animated.timing(scale, {
+            toValue: 1.18,
+            duration: 2200,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacity, {
+            toValue: 0,
+            duration: 2200,
+            easing: Easing.out(Easing.quad),
+            useNativeDriver: true,
+          }),
+        ]),
+        Animated.parallel([
+          Animated.timing(scale, {
+            toValue: 0.72,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacity, {
+            toValue: 0.42,
+            duration: 0,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]),
+    );
+
+    animation.start();
+
+    return () => {
+      animation.stop();
+    };
+  }, [delay, opacity, scale]);
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      style={[
+        styles.pulse,
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 2,
+          transform: [{ scale }],
+          opacity,
+        },
+      ]}
+    />
+  );
+}
 
 export default function IncomingCall({
   visible,
   callerName,
   callerImage,
+  connecting = false,
   onAccept,
   onReject,
 }: IncomingCallProps) {
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
+  const compact = height < 700;
+  const avatarSize = compact ? 128 : 156;
   const ringtonePlayer = useAudioPlayer(RINGTONE, {
     keepAudioSessionActive: true,
   });
 
   useEffect(() => {
-    if (!visible) {
+    if (!visible || connecting) {
       ringtonePlayer.pause();
       void ringtonePlayer.seekTo(0);
       return;
@@ -51,52 +127,215 @@ export default function IncomingCall({
       ringtonePlayer.pause();
       void ringtonePlayer.seekTo(0);
     };
-  }, [ringtonePlayer, visible]);
+  }, [connecting, ringtonePlayer, visible]);
+
+  if (!visible) {
+    return null;
+  }
 
   return (
-    <Modal animationType="fade" onRequestClose={onReject} transparent visible={visible}>
-      <View style={styles.backdrop}>
-        <View style={styles.card}>
+    <View
+      accessibilityViewIsModal
+      pointerEvents="auto"
+      style={[
+        styles.screen,
+        { paddingTop: insets.top + 24, paddingBottom: insets.bottom + 28 },
+      ]}
+    >
+      <View style={styles.glow} />
+      <View style={styles.header}>
+        <Text selectable style={styles.brand}>
+          Видео разговор
+        </Text>
+        <Text selectable style={styles.subtitle}>
+          {connecting
+            ? "Свързване към обаждането..."
+            : "Входящо видео обаждане"}
+        </Text>
+      </View>
+
+      <View style={styles.identity}>
+        <View
+          style={[
+            styles.avatarWrap,
+            { width: avatarSize + 84, height: avatarSize + 84 },
+          ]}
+        >
+          <PulseRing delay={0} size={avatarSize + 84} />
+          <PulseRing delay={700} size={avatarSize + 84} />
+          <PulseRing delay={1400} size={avatarSize + 84} />
           {callerImage ? (
             <Image
               accessibilityLabel={`Снимка на ${callerName ?? "повикващия"}`}
               contentFit="cover"
               source={{ uri: callerImage }}
-              style={styles.avatar}
+              style={[
+                styles.avatar,
+                {
+                  width: avatarSize,
+                  height: avatarSize,
+                  borderRadius: avatarSize / 2,
+                },
+              ]}
             />
           ) : (
-            <View style={[styles.avatar, styles.avatarPlaceholder]}>
-              <Ionicons name="person" size={52} color="#d4d4d8" />
+            <View
+              style={[
+                styles.avatar,
+                styles.avatarPlaceholder,
+                {
+                  width: avatarSize,
+                  height: avatarSize,
+                  borderRadius: avatarSize / 2,
+                },
+              ]}
+            >
+              <Ionicons
+                name="person"
+                size={compact ? 54 : 64}
+                color="#dbeafe"
+              />
             </View>
           )}
-          <Text numberOfLines={1} selectable style={styles.callerName}>
-            {callerName ?? "Потребител"}
-          </Text>
-          <Text selectable style={styles.title}>Входящо видео обаждане</Text>
-          <View style={styles.actions}>
-            <TouchableOpacity accessibilityRole="button" onPress={onReject} style={[styles.button, styles.rejectButton]}>
-              <Text style={styles.buttonText}>Откажи</Text>
-            </TouchableOpacity>
-            <TouchableOpacity accessibilityRole="button" onPress={onAccept} style={[styles.button, styles.acceptButton]}>
-              <Text style={styles.buttonText}>Приеми</Text>
-            </TouchableOpacity>
-          </View>
+        </View>
+        <Text numberOfLines={2} selectable style={styles.callerName}>
+          {callerName ?? "Потребител"}
+        </Text>
+      </View>
+
+      <View style={styles.actions}>
+        <View style={styles.action}>
+          <TouchableOpacity
+            accessibilityLabel="Откажи обаждането"
+            accessibilityRole="button"
+            disabled={connecting}
+            onPress={onReject}
+            style={[
+              styles.circleButton,
+              styles.declineButton,
+              connecting && styles.disabledButton,
+            ]}
+          >
+            <Ionicons name="close" size={36} color="#ffffff" />
+          </TouchableOpacity>
+          <Text style={styles.actionLabel}>Откажи</Text>
+        </View>
+
+        <View style={styles.action}>
+          <TouchableOpacity
+            accessibilityLabel="Приеми видео обаждането"
+            accessibilityRole="button"
+            disabled={connecting}
+            onPress={onAccept}
+            style={[
+              styles.circleButton,
+              styles.acceptButton,
+              connecting && styles.disabledButton,
+            ]}
+          >
+            <Ionicons name="videocam" size={32} color="#082f49" />
+          </TouchableOpacity>
+          <Text style={styles.actionLabel}>Приеми</Text>
         </View>
       </View>
-    </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, backgroundColor: "rgba(0, 0, 0, 0.72)" },
-  card: { width: "100%", maxWidth: 380, alignItems: "center", padding: 24, borderRadius: 20, gap: 16, backgroundColor: "#18181b" },
-  avatar: { width: 112, height: 112, borderRadius: 56 },
-  avatarPlaceholder: { alignItems: "center", justifyContent: "center", backgroundColor: "#3f3f46" },
-  callerName: { maxWidth: "100%", color: "#ffffff", fontSize: 25, fontWeight: "800", textAlign: "center" },
-  title: { color: "#a1a1aa", fontSize: 16, fontWeight: "600", textAlign: "center" },
-  actions: { width: "100%", flexDirection: "row", gap: 12 },
-  button: { flex: 1, minHeight: 48, alignItems: "center", justifyContent: "center", borderRadius: 14 },
-  rejectButton: { backgroundColor: "#ef4444" },
-  acceptButton: { backgroundColor: "#22c55e" },
-  buttonText: { color: "#ffffff", fontSize: 16, fontWeight: "700" },
+  screen: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 40,
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 28,
+    backgroundColor: "#07111f",
+  },
+  glow: {
+    position: "absolute",
+    top: "18%",
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: "rgba(56, 189, 248, 0.16)",
+  },
+  header: {
+    alignItems: "center",
+    gap: 8,
+  },
+  brand: {
+    color: "#7dd3fc",
+    fontSize: 13,
+    fontWeight: "800",
+    letterSpacing: 2.4,
+    textTransform: "uppercase",
+  },
+  subtitle: {
+    color: "#cbd5e1",
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  identity: {
+    alignItems: "center",
+    gap: 22,
+  },
+  avatarWrap: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  pulse: {
+    position: "absolute",
+    borderWidth: 2,
+    borderColor: "rgba(125, 211, 252, 0.55)",
+    backgroundColor: "rgba(14, 165, 233, 0.08)",
+  },
+  avatar: {
+    borderWidth: 3,
+    borderColor: "rgba(186, 230, 253, 0.9)",
+  },
+  avatarPlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#164e63",
+  },
+  callerName: {
+    maxWidth: 320,
+    color: "#f8fafc",
+    fontSize: 34,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  actions: {
+    width: "100%",
+    maxWidth: 360,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 18,
+  },
+  action: {
+    alignItems: "center",
+    gap: 12,
+  },
+  circleButton: {
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  declineButton: {
+    backgroundColor: "#e11d48",
+  },
+  acceptButton: {
+    backgroundColor: "#38bdf8",
+  },
+  disabledButton: {
+    opacity: 0.55,
+  },
+  actionLabel: {
+    color: "#e2e8f0",
+    fontSize: 15,
+    fontWeight: "700",
+  },
 });

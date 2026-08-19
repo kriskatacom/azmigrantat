@@ -1,5 +1,6 @@
 import type { RealtimeServer } from '../types/events';
 import type { SocketConnectionReadyPayload } from '../types/socket';
+import { registerCallEvents } from './call.events';
 import { registerTypingEvents } from './typing.events';
 
 export function registerSocketConnections(io: RealtimeServer): void {
@@ -10,6 +11,7 @@ export function registerSocketConnections(io: RealtimeServer): void {
         await socket.join(userRoom);
 
         registerTypingEvents(socket);
+        registerCallEvents(io, socket);
 
         const socketsInRoom = await io.in(userRoom).fetchSockets();
 

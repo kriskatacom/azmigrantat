@@ -1,0 +1,82 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:1:1-30:12
+INJECTED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:1:1-30:12
+	package
+		INJECTED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml
+	xmlns:android
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:1:11-69
+uses-permission#android.permission.POST_NOTIFICATIONS
+ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:2:3-75
+	android:name
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:2:20-72
+uses-permission#android.permission.USE_FULL_SCREEN_INTENT
+ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:3:3-79
+	android:name
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:3:20-76
+uses-permission#android.permission.WAKE_LOCK
+ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:4:3-66
+	android:name
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:4:20-63
+uses-permission#android.permission.VIBRATE
+ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:5:3-64
+	android:name
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:5:20-61
+uses-permission#android.permission.TURN_SCREEN_ON
+ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:6:3-71
+	android:name
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:6:20-68
+uses-permission#android.permission.DISABLE_KEYGUARD
+ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:7:3-73
+	android:name
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:7:20-70
+uses-permission#android.permission.INTERNET
+ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:8:3-65
+	android:name
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:8:20-62
+uses-permission#android.permission.RECEIVE_BOOT_COMPLETED
+ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:9:3-79
+	android:name
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:9:20-76
+application
+ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:11:3-29:17
+receiver#expo.modules.incomingcall.IncomingCallActionReceiver
+ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:12:5-19:16
+	android:exported
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:14:7-31
+	android:name
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:13:7-49
+intent-filter#action:name:expo.modules.incomingcall.ACTION_ACCEPT+action:name:expo.modules.incomingcall.ACTION_DECLINE
+ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:15:7-18:23
+action#expo.modules.incomingcall.ACTION_ACCEPT
+ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:16:9-74
+	android:name
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:16:17-71
+action#expo.modules.incomingcall.ACTION_DECLINE
+ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:17:9-75
+	android:name
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:17:17-72
+service#expo.modules.incomingcall.IncomingCallFirebaseMessagingService
+ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:21:5-28:15
+	android:exported
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:23:7-31
+	android:directBootAware
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:24:7-37
+	android:name
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:22:7-59
+intent-filter#action:name:com.google.firebase.MESSAGING_EVENT
+ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:25:7-27:23
+	android:priority
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:25:22-45
+action#com.google.firebase.MESSAGING_EVENT
+ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:26:9-70
+	android:name
+		ADDED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml:26:17-67
+uses-sdk
+INJECTED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml
+INJECTED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /home/kristian/projects/azmigrantat/app/chat-app/modules/incoming-call/android/src/main/AndroidManifest.xml
