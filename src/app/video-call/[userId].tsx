@@ -202,6 +202,7 @@ export default function VideoCallScreen() {
           "cancelled",
           "ended",
         ].includes(callState)}
+        ringing={callState === "calling"}
         name={recipientName ?? "Потребител"}
         status={terminalStatus}
         canCancel={callState === "calling" || callState === "connecting"}

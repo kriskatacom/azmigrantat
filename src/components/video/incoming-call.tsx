@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { setAudioModeAsync, useAudioPlayer } from "expo-audio";
+import { createAudioPlayer, setAudioModeAsync } from "expo-audio";
 import { Image } from "expo-image";
 import { useEffect, useState } from "react";
 import {
@@ -98,9 +98,6 @@ export default function IncomingCall({
   const compact = height < 700;
   const avatarSize = compact ? 128 : 156;
   const [closedByAccept, setClosedByAccept] = useState(false);
-  const ringtonePlayer = useAudioPlayer(RINGTONE, {
-    keepAudioSessionActive: true,
-  });
 
   useEffect(() => {
     if (!visible) {
@@ -110,20 +107,22 @@ export default function IncomingCall({
 
   useEffect(() => {
     if (!visible || connecting || closedByAccept) {
-      ringtonePlayer.pause();
-      void ringtonePlayer.seekTo(0);
       return;
     }
 
     let cancelled = false;
+    const player = createAudioPlayer(RINGTONE, {
+      keepAudioSessionActive: true,
+    });
+    player.loop = true;
+
     void setAudioModeAsync({
       playsInSilentMode: false,
       interruptionMode: "doNotMix",
     })
       .then(() => {
         if (cancelled) return;
-        ringtonePlayer.loop = true;
-        ringtonePlayer.play();
+        player.play();
       })
       .catch((error: unknown) => {
         console.error("Мелодията за входящо обаждане не стартира:", error);
@@ -131,10 +130,9 @@ export default function IncomingCall({
 
     return () => {
       cancelled = true;
-      ringtonePlayer.pause();
-      void ringtonePlayer.seekTo(0);
+      player.release();
     };
-  }, [closedByAccept, connecting, ringtonePlayer, visible]);
+  }, [closedByAccept, connecting, visible]);
 
   if (!visible || closedByAccept) {
     return null;

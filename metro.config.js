@@ -1,3 +1,5 @@
+require("./scripts/fix-react-native-devtools");
+
 const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require("nativewind/metro");
 

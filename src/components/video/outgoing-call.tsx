@@ -1,8 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
+import { createAudioPlayer, setAudioModeAsync } from "expo-audio";
+import { useEffect } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+const RINGTONE = require("../../../assets/sounds/phone_call.wav");
 
 type Props = {
   visible: boolean;
+  ringing?: boolean;
   name?: string;
   status?: string;
   canCancel?: boolean;
@@ -11,11 +16,41 @@ type Props = {
 
 export default function OutgoingCall({
   visible,
+  ringing = false,
   name = "Потребител",
   status = "Обаждане...",
   canCancel = true,
   onCancel,
 }: Props) {
+  useEffect(() => {
+    if (!visible || !ringing) {
+      return;
+    }
+
+    let cancelled = false;
+    const player = createAudioPlayer(RINGTONE, {
+      keepAudioSessionActive: true,
+    });
+    player.loop = true;
+
+    void setAudioModeAsync({
+      playsInSilentMode: false,
+      interruptionMode: "doNotMix",
+    })
+      .then(() => {
+        if (cancelled) return;
+        player.play();
+      })
+      .catch((error: unknown) => {
+        console.error("Мелодията за изходящо обаждане не стартира:", error);
+      });
+
+    return () => {
+      cancelled = true;
+      player.release();
+    };
+  }, [ringing, visible]);
+
   if (!visible) {
     return null;
   }
