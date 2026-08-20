@@ -3,19 +3,37 @@ import { useLocalSearchParams, useRootNavigationState, useRouter } from "expo-ro
 import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
+function first(value?: string | string[]) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 export default function IncomingCallLinkScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ action?: string | string[] }>();
+  const params = useLocalSearchParams<{
+    action?: string | string[];
+  }>();
   const navigationState = useRootNavigationState();
   const { acceptedIncomingCall } = useIncomingVideoCall();
-  const action = Array.isArray(params.action) ? params.action[0] : params.action;
+  const action = first(params.action);
 
   useEffect(() => {
     if (!navigationState?.key) {
       return;
     }
 
-    if (acceptedIncomingCall || action === "accept") {
+    if (acceptedIncomingCall) {
+      router.replace({
+        pathname: "/video-call/[userId]",
+        params: {
+          userId: String(acceptedIncomingCall.call.sender_id),
+          name: acceptedIncomingCall.call.caller_name ?? "Потребител",
+          direction: "incoming",
+        },
+      });
+      return;
+    }
+
+    if (action === "accept") {
       return;
     }
 

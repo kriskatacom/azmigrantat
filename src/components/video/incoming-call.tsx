@@ -97,12 +97,19 @@ export default function IncomingCall({
   const { height } = useWindowDimensions();
   const compact = height < 700;
   const avatarSize = compact ? 128 : 156;
+  const [closedByAccept, setClosedByAccept] = useState(false);
   const ringtonePlayer = useAudioPlayer(RINGTONE, {
     keepAudioSessionActive: true,
   });
 
   useEffect(() => {
-    if (!visible || connecting) {
+    if (!visible) {
+      setClosedByAccept(false);
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    if (!visible || connecting || closedByAccept) {
       ringtonePlayer.pause();
       void ringtonePlayer.seekTo(0);
       return;
@@ -127,9 +134,9 @@ export default function IncomingCall({
       ringtonePlayer.pause();
       void ringtonePlayer.seekTo(0);
     };
-  }, [connecting, ringtonePlayer, visible]);
+  }, [closedByAccept, connecting, ringtonePlayer, visible]);
 
-  if (!visible) {
+  if (!visible || closedByAccept) {
     return null;
   }
 
@@ -226,7 +233,10 @@ export default function IncomingCall({
             accessibilityLabel="Приеми видео обаждането"
             accessibilityRole="button"
             disabled={connecting}
-            onPress={onAccept}
+            onPress={() => {
+              setClosedByAccept(true);
+              onAccept();
+            }}
             style={[
               styles.circleButton,
               styles.acceptButton,

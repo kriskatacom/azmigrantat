@@ -73,20 +73,35 @@ class IncomingCallModule : Module() {
     OnCreate {
       val activity = appContext.currentActivity
       if (activity != null) {
-        captureIntent(activity.intent, activity.applicationContext)
+        val launch = captureIntent(activity.intent, activity.applicationContext)
         IncomingCallAppState.isForeground = true
+        if (launch != null && isAcceptAction(launch["action"] as? String)) {
+          sendEvent("onLaunchAction", launch)
+        }
       }
     }
 
     OnNewIntent { intent ->
       val launch = captureIntent(intent, appContext.currentActivity?.applicationContext)
       if (launch != null) {
+        Log.i(
+          TAG,
+          "[CALL] launch action received action=${launch["action"]} callId=${launch["callId"]}",
+        )
         sendEvent("onLaunchAction", launch)
       }
     }
 
     OnActivityEntersForeground {
       IncomingCallAppState.isForeground = true
+      val launch = pendingLaunch
+      if (launch != null && isAcceptAction(launch["action"] as? String)) {
+        Log.i(
+          TAG,
+          "[CALL] launch action received action=${launch["action"]} callId=${launch["callId"]}",
+        )
+        sendEvent("onLaunchAction", launch)
+      }
     }
 
     OnActivityEntersBackground {
@@ -136,7 +151,7 @@ class IncomingCallModule : Module() {
       if (launch != null) {
         Log.i(
           TAG,
-          "[IncomingCall] processing answer callId=${launch["callId"]} action=${launch["action"]}",
+          "[CALL] launch action received action=${launch["action"]} callId=${launch["callId"]}",
         )
       }
       launch
@@ -249,24 +264,25 @@ class IncomingCallModule : Module() {
         return null
       }
 
-      if (isCancelled(callId, context) && action != "accept") {
+      if (isCancelled(callId, context) && !isAcceptAction(action)) {
         Log.i(TAG, "[CALL] stale call ignored callId=$callId")
         return null
       }
 
+      val normalizedAction = normalizeLaunchAction(action)
       val existing = pendingLaunch ?: context?.let { readPersistedLaunch(it) }
       if (
-        action != "accept" &&
-        existing?.get("action") == "accept" &&
-        existing["callId"] == callId
+        !isAcceptAction(normalizedAction) &&
+        isAcceptAction(existing?.get("action") as? String) &&
+        existing?.get("callId") == callId
       ) {
         Log.i(TAG, "[IncomingCall] pending answer stored callId=$callId")
         return existing
       }
 
-      if (action == "accept") {
+      if (isAcceptAction(normalizedAction)) {
         acceptedCallIds.add(callId)
-        Log.i(TAG, "[IncomingCall] Android Answer received callId=$callId")
+        Log.i(TAG, "[CALL] native answer pressed callId=$callId")
         if (context != null) {
           dismiss(context, callId)
         }
@@ -274,7 +290,7 @@ class IncomingCallModule : Module() {
 
       pendingLaunch = mapOf(
         "callId" to callId,
-        "action" to action,
+        "action" to normalizedAction,
         "callerId" to callerId,
         "callerName" to callerName,
         "callerAvatar" to callerAvatar,
@@ -296,9 +312,16 @@ class IncomingCallModule : Module() {
 
       val data = intent.data
       val callId = intentCallId(intent) ?: return null
-      val action = intent.getStringExtra(EXTRA_ACTION)
-        ?: data?.getQueryParameter("action")
-        ?: "open"
+      val action = normalizeLaunchAction(
+        intent.getStringExtra(EXTRA_ACTION)
+          ?: data?.getQueryParameter("action")
+          ?: when (intent.action) {
+            ACTION_ACCEPT -> "accept"
+            ACTION_DECLINE -> "decline"
+            else -> null
+          }
+          ?: "open",
+      )
       val callerId = intent.getIntExtra(EXTRA_CALLER_ID, 0).takeIf { it > 0 }
         ?: data?.getQueryParameter("callerId")?.toIntOrNull()
         ?: 0
@@ -541,7 +564,7 @@ class IncomingCallModule : Module() {
 
       return Intent().apply {
         component = resolveMainActivity(context)
-        this.action = Intent.ACTION_VIEW
+        this.action = if (isAcceptAction(action)) ACTION_ACCEPT else Intent.ACTION_VIEW
         data = deepLink
         putExtra(EXTRA_CALL_ID, callId)
         putExtra(EXTRA_ACTION, action)
@@ -685,6 +708,18 @@ class IncomingCallModule : Module() {
       }
 
       return flags
+    }
+
+    private fun isAcceptAction(action: String?): Boolean {
+      return action == "accept" || action == "answer"
+    }
+
+    private fun normalizeLaunchAction(action: String?): String {
+      return when {
+        isAcceptAction(action) -> "accept"
+        action == "decline" -> "decline"
+        else -> "open"
+      }
     }
 
     private fun activityPendingIntent(

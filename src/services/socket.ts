@@ -60,6 +60,7 @@ interface ServerToClientEvents {
 
   "call:offer": (payload: CallServerPayload) => void;
   "call:answer": (payload: CallServerPayload) => void;
+  "call:accepted": (payload: CallServerPayload) => void;
   "call:ice-candidate": (payload: CallServerPayload) => void;
   "call:end": (payload: CallServerPayload) => void;
   "call:state": (payload: CallStatePayload) => void;
@@ -73,6 +74,7 @@ interface ClientToServerEvents {
 
   "call:offer": (payload: CallClientPayload) => void;
   "call:answer": (payload: CallClientPayload) => void;
+  "call:accept": (payload: CallClientPayload) => void;
   "call:ice-candidate": (payload: CallClientPayload) => void;
   "call:end": (payload: CallClientPayload) => void;
   "call:sync": () => void;

@@ -19,7 +19,7 @@ import {
   type PendingIncomingCallAction,
 } from "@/services/incoming-call";
 import { registerForPushNotifications } from "@/services/notifications";
-import { declineCallViaHttp, fetchRingingCall, getRealtimeHttpUrl } from "@/services/realtime-http";
+import { declineCallViaHttp, fetchCallById, fetchRingingCall, getRealtimeHttpUrl } from "@/services/realtime-http";
 import {
   CALL_NO_ANSWER_MS,
   type CallIceCandidate,
@@ -101,6 +101,10 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
   const navigatedAcceptRef = useRef<string | null>(null);
   const incomingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
+  const emittedAcceptRef = useRef(new Set<string>());
+  const pendingCallIdRef = useRef<string | null>(null);
+  const acceptingCallRef = useRef<CallServerPayload | null>(null);
+  const dismissedIncomingUiRef = useRef(new Set<string>());
 
   const updateIncomingCall = useCallback((call: CallServerPayload | null) => {
     incomingCallRef.current = call;
@@ -126,6 +130,25 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     await dismissIncomingCallAlert(callId);
   }, []);
 
+  const closeIncomingScreen = useCallback(
+    (callId?: string) => {
+      const current = incomingCallRef.current;
+      if (current) {
+        acceptingCallRef.current = current;
+      }
+
+      if (callId) {
+        dismissedIncomingUiRef.current.add(callId);
+      } else if (current) {
+        dismissedIncomingUiRef.current.add(current.call_id);
+      }
+
+      updateIncomingCall(null);
+      void hideIncomingUi(callId ?? current?.call_id);
+    },
+    [hideIncomingUi, updateIncomingCall],
+  );
+
   const storeCandidates = useCallback(
     (callId: string, candidate: CallIceCandidate) => {
       const candidates = pendingCandidatesRef.current.get(callId) ?? [];
@@ -150,6 +173,14 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
   const clearCallArtifacts = useCallback(
     (callId: string) => {
       pendingCandidatesRef.current.delete(callId);
+      emittedAcceptRef.current.delete(callId);
+      dismissedIncomingUiRef.current.delete(callId);
+      if (pendingCallIdRef.current === callId) {
+        pendingCallIdRef.current = null;
+      }
+      if (acceptingCallRef.current?.call_id === callId) {
+        acceptingCallRef.current = null;
+      }
       clearIncomingTimeout();
       void hideIncomingUi(callId);
 
@@ -199,7 +230,23 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
         return false;
       }
 
-      const merged = mergeCall(incomingCallRef.current, payload);
+      const merged = mergeCall(
+        incomingCallRef.current ?? acceptingCallRef.current,
+        payload,
+      );
+
+      if (
+        dismissedIncomingUiRef.current.has(merged.call_id) ||
+        pendingAcceptRef.current ||
+        acceptedIncomingCallRef.current?.call.call_id === merged.call_id
+      ) {
+        acceptingCallRef.current = merged;
+        if (!pendingCandidatesRef.current.has(merged.call_id)) {
+          pendingCandidatesRef.current.set(merged.call_id, []);
+        }
+        return true;
+      }
+
       updateIncomingCall(merged);
 
       if (!pendingCandidatesRef.current.has(merged.call_id)) {
@@ -220,12 +267,14 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
   );
 
   const acceptIncomingCall = useCallback(() => {
-    const call = incomingCallRef.current;
-    if (!call) return;
-
+    const call = incomingCallRef.current ?? acceptingCallRef.current;
     pendingAcceptRef.current = true;
     setIsAccepting(true);
-    console.log("[IncomingCall] acceptCall started", { callId: call.call_id });
+    closeIncomingScreen(call?.call_id);
+
+    if (!call) return;
+
+    console.log("[CALL] acceptCall started", { callId: call.call_id });
 
     if (!call.description || call.description.type !== "offer") {
       return;
@@ -247,11 +296,12 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     }
 
     updateAcceptedIncomingCall(acceptedCall);
+    acceptingCallRef.current = call;
     updateIncomingCall(null);
     setIsAccepting(false);
     clearIncomingTimeout();
-    void hideIncomingUi(call.call_id);
-    console.log("[IncomingCall] call state -> connecting", {
+    closeIncomingScreen(call.call_id);
+    console.log("[CALL] local state -> connecting", {
       callId: call.call_id,
     });
 
@@ -261,7 +311,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
 
     pendingAcceptRef.current = false;
     navigatedAcceptRef.current = call.call_id;
-    console.log("[IncomingCall] navigating to active call", {
+    console.log("[CALL] active call navigation", {
       callId: call.call_id,
     });
     router.push({
@@ -274,7 +324,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     });
   }, [
     clearIncomingTimeout,
-    hideIncomingUi,
+    closeIncomingScreen,
     isAuthLoading,
     isAuthenticated,
     navigationState?.key,
@@ -282,6 +332,50 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     updateAcceptedIncomingCall,
     updateIncomingCall,
   ]);
+
+  const applyCallState = useCallback(
+    (callId: string, nextState: "accepted") => {
+      if (nextState !== "accepted") {
+        return;
+      }
+      const incoming = incomingCallRef.current;
+      const accepted = acceptedIncomingCallRef.current;
+      const held = acceptingCallRef.current;
+      const isReceiver =
+        incoming?.call_id === callId ||
+        accepted?.call.call_id === callId ||
+        held?.call_id === callId ||
+        pendingCallIdRef.current === callId;
+
+      if (!isReceiver) {
+        return;
+      }
+
+      if (accepted?.call.call_id === callId) {
+        console.log("[CALL] ignoring duplicate accepted transition", {
+          callId,
+        });
+        return;
+      }
+
+      const callerId =
+        incoming?.sender_id ?? accepted?.call.sender_id ?? held?.sender_id;
+      if (socket && callerId && !emittedAcceptRef.current.has(callId)) {
+        emittedAcceptRef.current.add(callId);
+        console.log("[CALL] emitting call:accept callId=" + callId);
+        socket.emit("call:accept", {
+          call_id: callId,
+          recipient_id: callerId,
+        });
+      }
+
+      pendingAcceptRef.current = true;
+      setIsAccepting(true);
+      console.log("[CALL] applying local state accepted callId=" + callId);
+      acceptIncomingCall();
+    },
+    [acceptIncomingCall, socket],
+  );
 
   const rejectIncomingCall = useCallback(() => {
     const call = incomingCallRef.current;
@@ -330,17 +424,17 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       }
 
       if (pending.action === "accept") {
-        console.log("[IncomingCall] processing answer callId=" + pending.callId);
+        console.log("[CALL] native action accept callId=" + pending.callId);
+        pendingCallIdRef.current = pending.callId;
         pendingAcceptRef.current = true;
         setIsAccepting(true);
-
-        if (!incomingCallRef.current) {
-          beginIncomingCall(toIncomingCallPayload(pending.meta));
-        }
-
-        if (incomingCallRef.current?.description?.type === "offer") {
-          acceptIncomingCall();
-        }
+        acceptingCallRef.current = mergeCall(
+          acceptingCallRef.current,
+          toIncomingCallPayload(pending.meta),
+        );
+        closeIncomingScreen(pending.callId);
+        socket?.emit("call:sync");
+        applyCallState(pending.callId, "accepted");
         return;
       }
 
@@ -348,7 +442,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
         beginIncomingCall(toIncomingCallPayload(pending.meta));
       }
     },
-    [acceptIncomingCall, beginIncomingCall, rejectIncomingCall],
+    [applyCallState, closeIncomingScreen, rejectIncomingCall, socket],
   );
 
   useEffect(() => {
@@ -358,12 +452,20 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       if (payload.description && payload.description.type !== "offer") return;
 
       if (!rememberCallEvent(payload.call_id, "offer-ui")) {
-        const merged = mergeCall(incomingCallRef.current, payload);
-        if (incomingCallRef.current?.call_id === payload.call_id) {
+        const merged = mergeCall(
+          incomingCallRef.current ?? acceptingCallRef.current,
+          payload,
+        );
+        acceptingCallRef.current = merged;
+        if (
+          incomingCallRef.current?.call_id === payload.call_id &&
+          !dismissedIncomingUiRef.current.has(payload.call_id) &&
+          !pendingAcceptRef.current
+        ) {
           updateIncomingCall(merged);
         }
         if (pendingAcceptRef.current && merged.description?.type === "offer") {
-          acceptIncomingCall();
+          applyCallState(merged.call_id, "accepted");
         }
         return;
       }
@@ -372,7 +474,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       console.log("[CALL] socket delivered", { callId: payload.call_id });
 
       if (pendingAcceptRef.current && payload.description?.type === "offer") {
-        acceptIncomingCall();
+        applyCallState(payload.call_id, "accepted");
       }
     };
 
@@ -433,6 +535,14 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       }
 
       handleOffer(payload.call);
+      if (payload.status === "accepted") {
+        applyCallState(payload.call.call_id, "accepted");
+      }
+    };
+
+    const handleAccepted = (payload: CallServerPayload) => {
+      console.log("[CALL] received call:accepted callId=" + payload.call_id);
+      applyCallState(payload.call_id, "accepted");
     };
 
     const handleDisconnect = () => {
@@ -440,6 +550,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     };
 
     socket.on("call:offer", handleOffer);
+    socket.on("call:accepted", handleAccepted);
     socket.on("call:ice-candidate", handleIceCandidate);
     socket.on("call:end", handleEnd);
     socket.on("call:state", handleCallState);
@@ -447,13 +558,14 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
 
     return () => {
       socket.off("call:offer", handleOffer);
+      socket.off("call:accepted", handleAccepted);
       socket.off("call:ice-candidate", handleIceCandidate);
       socket.off("call:end", handleEnd);
       socket.off("call:state", handleCallState);
       socket.off("disconnect", handleDisconnect);
     };
   }, [
-    acceptIncomingCall,
+    applyCallState,
     beginIncomingCall,
     clearCallArtifacts,
     hideIncomingUi,
@@ -568,14 +680,18 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
           callId: result.call.call_id,
         });
 
-        if (pendingAcceptRef.current && result.call.description?.type === "offer") {
-          acceptIncomingCall();
+        if (
+          result.status === "accepted" ||
+          result.status === "active" ||
+          pendingAcceptRef.current
+        ) {
+          applyCallState(result.call.call_id, "accepted");
         }
       })
       .catch((error: unknown) => {
         console.error("Текущото входящо обаждане не се зареди:", error);
       });
-  }, [acceptIncomingCall, beginIncomingCall, clearCallArtifacts, isConnected, socket, storeCandidates, token]);
+  }, [applyCallState, beginIncomingCall, clearCallArtifacts, isConnected, socket, storeCandidates, token]);
 
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
@@ -585,13 +701,76 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
         app_state: appStateToSocketState(nextState),
       });
 
-      const call = incomingCallRef.current;
-      if (!call) return;
-
       if (nextState === "active") {
-        void hideIncomingUi(call.call_id);
+        void consumeNativeIncomingCallLaunch()
+          .then((pending) => {
+            if (!pending) return;
+            console.log("[CALL] launch action received", {
+              action: pending.action,
+              callId: pending.callId,
+            });
+            setPendingIncomingCallAction(pending);
+            applyPendingAction(pending);
+          })
+          .catch(() => {});
+
+        socket?.emit("call:sync");
+
+        const callId =
+          incomingCallRef.current?.call_id ??
+          acceptedIncomingCallRef.current?.call.call_id ??
+          pendingCallIdRef.current;
+        console.log("[CALL] app resumed callId=" + (callId ?? "none"));
+
+        if (!callId) {
+          console.log("[CALL] reconciliation skipped: no active call");
+        } else if (token) {
+          console.log("[CALL] reconciling call state callId=" + callId);
+          void fetchCallById(token, callId)
+            .then((result) => {
+              if (result.status === "accepted" || result.status === "active") {
+                console.log("[CALL] server state returned accepted");
+                if (result.call) {
+                  result.pending_ice_candidates.forEach((candidate) => {
+                    storeCandidates(result.call!.call_id, candidate);
+                  });
+                  beginIncomingCall(result.call);
+                }
+                applyCallState(callId, "accepted");
+                return;
+              }
+
+              const localIsIncoming =
+                incomingCallRef.current?.call_id === callId &&
+                !acceptedIncomingCallRef.current;
+              if (
+                localIsIncoming &&
+                (result.status === "declined" ||
+                  result.status === "ended" ||
+                  result.status === "cancelled" ||
+                  result.status === "timeout" ||
+                  result.status === "idle")
+              ) {
+                console.log("[CALL] state mismatch callId=" + callId, {
+                  local: "incoming",
+                  server: result.status,
+                });
+                clearCallArtifacts(callId);
+              }
+            })
+            .catch((error: unknown) => {
+              console.error("Състоянието на обаждането не се свери:", error);
+            });
+        }
+
+        if (incomingCallRef.current) {
+          void hideIncomingUi(incomingCallRef.current.call_id);
+        }
         return;
       }
+
+      const call = incomingCallRef.current;
+      if (!call) return;
 
       void presentIncomingCallAlert({
         callId: call.call_id,
@@ -604,11 +783,20 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     return () => {
       subscription.remove();
     };
-  }, [hideIncomingUi, socket]);
+  }, [
+    applyCallState,
+    applyPendingAction,
+    beginIncomingCall,
+    clearCallArtifacts,
+    hideIncomingUi,
+    socket,
+    storeCandidates,
+    token,
+  ]);
 
   useEffect(() => {
     const call = incomingCall;
-    if (!call) {
+    if (!call || pendingAcceptRef.current || dismissedIncomingUiRef.current.has(call.call_id)) {
       return;
     }
 
@@ -644,7 +832,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     void consumeNativeIncomingCallLaunch()
       .then((pending) => {
         if (!pending) return;
-        console.log("[CALL] RN ready", {
+        console.log("[CALL] launch action received", {
           callId: pending.callId,
           action: pending.action,
         });
@@ -657,7 +845,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
 
     const unsubscribeNativeLaunch = subscribeNativeIncomingCallLaunch(
       (pending) => {
-        console.log("[CALL] native launch event", {
+        console.log("[CALL] launch action received", {
           callId: pending.callId,
           action: pending.action,
         });
@@ -781,28 +969,44 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       return;
     }
 
-    if (incomingCallRef.current?.description?.type === "offer") {
+    const callId =
+      pendingCallIdRef.current ??
+      acceptingCallRef.current?.call_id ??
+      incomingCallRef.current?.call_id;
+    if (!callId) {
       return;
     }
 
-    void fetchRingingCall(token)
+    if (
+      acceptingCallRef.current?.description?.type === "offer" ||
+      incomingCallRef.current?.description?.type === "offer"
+    ) {
+      applyCallState(callId, "accepted");
+      return;
+    }
+
+    console.log("[CALL] reconciling call state callId=" + callId);
+    void fetchCallById(token, callId)
       .then((result) => {
-        if (!pendingAcceptRef.current || !result.call) {
+        if (!pendingAcceptRef.current) {
           return;
         }
 
+        console.log("[CALL] server state returned " + result.status);
         result.pending_ice_candidates.forEach((candidate) => {
-          storeCandidates(result.call!.call_id, candidate);
+          if (result.call) {
+            storeCandidates(result.call.call_id, candidate);
+          }
         });
-        beginIncomingCall(result.call);
-        if (result.call.description?.type === "offer") {
-          acceptIncomingCall();
+        if (result.call) {
+          beginIncomingCall(result.call);
+          applyCallState(result.call.call_id, "accepted");
         }
       })
       .catch((error: unknown) => {
         console.error("Текущото входящо обаждане не се зареди:", error);
       });
-  }, [acceptIncomingCall, beginIncomingCall, isAccepting, storeCandidates, token]);
+  }, [applyCallState, beginIncomingCall, isAccepting, storeCandidates, token]);
 
   useEffect(() => {
     const accepted = acceptedIncomingCall;
@@ -821,7 +1025,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
 
     navigatedAcceptRef.current = accepted.call.call_id;
     pendingAcceptRef.current = false;
-    console.log("[IncomingCall] navigating to active call", {
+    console.log("[CALL] active call navigation", {
       callId: accepted.call.call_id,
     });
     router.push({
@@ -887,10 +1091,14 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
         {children}
         <IncomingCall
           visible={incomingCall !== null}
-          connecting={isAccepting && incomingCall?.description?.type !== "offer"}
+          connecting={false}
           callerName={incomingCall?.caller_name}
           callerImage={incomingCall?.caller_avatar}
-          onAccept={acceptIncomingCall}
+          onAccept={() => {
+            if (incomingCall) {
+              applyCallState(incomingCall.call_id, "accepted");
+            }
+          }}
           onReject={rejectIncomingCall}
         />
       </View>

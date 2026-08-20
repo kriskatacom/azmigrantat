@@ -23,6 +23,7 @@ class IncomingCallActionReceiver : BroadcastReceiver() {
           callerAvatar,
           context = context,
         )
+        IncomingCallModule.dismiss(context, callId)
       }
 
       IncomingCallModule.ACTION_DECLINE -> {

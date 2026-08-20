@@ -130,33 +130,16 @@ export default function VideoCallScreen() {
   }, [rootNavigationState?.key, router]);
 
   useEffect(() => {
-    if (!rootNavigationState?.key) {
+    if (
+      direction !== "incoming" ||
+      matchingIncomingCall ||
+      callState !== "idle"
+    ) {
       return;
     }
 
-    if (
-      direction === "incoming" &&
-      !matchingIncomingCall &&
-      callState === "idle"
-    ) {
-      leaveVideoCallScreen();
-    }
-  }, [
-    callState,
-    direction,
-    leaveVideoCallScreen,
-    matchingIncomingCall,
-    rootNavigationState?.key,
-  ]);
-
-  useEffect(() => {
-    if (
-      direction === "incoming" &&
-      !matchingIncomingCall &&
-      callState === "idle"
-    ) {
-      leaveVideoCallScreen();
-    }
+    const timeout = setTimeout(leaveVideoCallScreen, 8_000);
+    return () => clearTimeout(timeout);
   }, [callState, direction, leaveVideoCallScreen, matchingIncomingCall]);
 
   useEffect(() => {

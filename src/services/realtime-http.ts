@@ -55,16 +55,41 @@ async function request<T>(
 export async function fetchRingingCall(token: string): Promise<{
   call: CallServerPayload | null;
   pending_ice_candidates: CallIceCandidate[];
+  status: string;
 }> {
   const response = await request<{
     success: true;
     call: CallServerPayload | null;
     pending_ice_candidates: CallIceCandidate[];
+    status?: string;
   }>("/calls/ringing", token);
 
   return {
     call: response.call,
     pending_ice_candidates: response.pending_ice_candidates ?? [],
+    status: response.status ?? (response.call ? "ringing" : "idle"),
+  };
+}
+
+export async function fetchCallById(
+  token: string,
+  callId: string,
+): Promise<{
+  call: CallServerPayload | null;
+  pending_ice_candidates: CallIceCandidate[];
+  status: string;
+}> {
+  const response = await request<{
+    success: true;
+    call: CallServerPayload | null;
+    pending_ice_candidates: CallIceCandidate[];
+    status: string;
+  }>(`/calls/${encodeURIComponent(callId)}`, token);
+
+  return {
+    call: response.call,
+    pending_ice_candidates: response.pending_ice_candidates ?? [],
+    status: response.status,
   };
 }
 

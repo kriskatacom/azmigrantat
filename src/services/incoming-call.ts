@@ -150,7 +150,11 @@ export function parseIncomingCallUrl(
     }
 
     const normalizedAction: IncomingCallAction =
-      action === "accept" || action === "decline" ? action : "open";
+      action === "accept" || action === "answer" || action === "decline"
+        ? action === "decline"
+          ? "decline"
+          : "accept"
+        : "open";
 
     return {
       callId,
@@ -393,8 +397,12 @@ function toPendingNativeLaunch(
   }
 
   const action: IncomingCallAction =
-    launch.action === "accept" || launch.action === "decline"
-      ? launch.action
+    launch.action === "accept" ||
+    launch.action === "answer" ||
+    launch.action === "decline"
+      ? launch.action === "decline"
+        ? "decline"
+        : "accept"
       : "open";
 
   return {

@@ -37,6 +37,19 @@ type IceEvent = {
   } | null;
 };
 
+function isPeerOpen(peer: RTCPeerConnection | null): peer is RTCPeerConnection {
+  return (
+    peer !== null &&
+    peer.connectionState !== "closed" &&
+    peer.signalingState !== "closed"
+  );
+}
+
+function isPeerShutdownError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /session was shut down|peer connection is closed/i.test(message);
+}
+
 const PEER_CONFIG = {
   iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
 };
@@ -224,10 +237,20 @@ export function useVideoCall({
 
   const flushCandidates = useCallback(async () => {
     const peer = peerRef.current;
-    if (!peer || !remoteSetRef.current) return;
+    if (!isPeerOpen(peer) || !remoteSetRef.current) return;
     const candidates = candidatesRef.current;
     candidatesRef.current = [];
-    for (const candidate of candidates) await peer.addIceCandidate(candidate);
+    for (const candidate of candidates) {
+      if (!isPeerOpen(peerRef.current) || peerRef.current !== peer) return;
+      try {
+        await peer.addIceCandidate(candidate);
+      } catch (error) {
+        if (isPeerShutdownError(error)) return;
+        if (isPeerOpen(peer)) {
+          console.warn("[CALL] skipped ICE candidate", error);
+        }
+      }
+    }
   }, []);
 
   const createPeer = useCallback(
@@ -436,6 +459,32 @@ export function useVideoCall({
 
   useEffect(() => {
     const socket = getSocket();
+    if (!socket || !acceptedIncomingCall) return;
+    const retryAccept = () => {
+      if (
+        !acceptedIncomingCall.description ||
+        acceptedIncomingCall.description.type !== "offer" ||
+        acceptedIdRef.current === acceptedIncomingCall.call_id ||
+        acceptingRef.current
+      ) {
+        return;
+      }
+      incomingRef.current = acceptedIncomingCall;
+      void acceptCall().catch((error: unknown) => {
+        console.error("Неуспешно приемане на входящото обаждане:", error);
+      });
+    };
+    socket.on("connect", retryAccept);
+    if (socket.connected) {
+      retryAccept();
+    }
+    return () => {
+      socket.off("connect", retryAccept);
+    };
+  }, [acceptCall, acceptedIncomingCall]);
+
+  useEffect(() => {
+    const socket = getSocket();
     if (!socket) return;
     const onAnswer = async (payload: CallServerPayload) => {
       const callId = callIdRef.current;
@@ -447,11 +496,22 @@ export function useVideoCall({
       changeState("connecting");
       try {
         await peer.setRemoteDescription(new RTCSessionDescription(payload.description));
-        if (callIdRef.current !== callId || peerRef.current !== peer) return;
+        if (callIdRef.current !== callId || peerRef.current !== peer || !isPeerOpen(peer)) {
+          return;
+        }
         remoteSetRef.current = true;
         await flushCandidates();
-        if (callIdRef.current === callId) startConnectionTimeout(callId, targetId);
+        if (callIdRef.current === callId && isPeerOpen(peerRef.current)) {
+          startConnectionTimeout(callId, targetId);
+        }
       } catch (error) {
+        if (
+          isPeerShutdownError(error) ||
+          callIdRef.current !== callId ||
+          peerRef.current !== peer
+        ) {
+          return;
+        }
         console.error("Неуспешна обработка на call answer:", error);
         if (callIdRef.current === callId) {
           emitEnd(callId, targetId, "failed");
@@ -466,14 +526,17 @@ export function useVideoCall({
       candidateKeysRef.current.add(key);
       const candidate = new RTCIceCandidate(payload.candidate);
       const peer = peerRef.current;
-      if (!peer || !remoteSetRef.current) {
+      if (!isPeerOpen(peer) || !remoteSetRef.current) {
         candidatesRef.current.push(candidate);
         return;
       }
       try {
         await peer.addIceCandidate(candidate);
       } catch (error) {
-        if (payload.call_id === callIdRef.current) console.error("ICE candidate грешка:", error);
+        if (isPeerShutdownError(error)) return;
+        if (payload.call_id === callIdRef.current && isPeerOpen(peer)) {
+          console.error("ICE candidate грешка:", error);
+        }
       }
     };
     const onEnd = (payload: CallServerPayload) => {
@@ -492,12 +555,17 @@ export function useVideoCall({
       const callId = callIdRef.current;
       if (callId && ACTIVE_STATES.includes(stateRef.current)) finish(callId, "failed");
     };
+    const onAccepted = (payload: CallServerPayload) => {
+      console.log("[CALL] received call:accepted callId=" + payload.call_id);
+    };
     socket.on("call:answer", onAnswer);
+    socket.on("call:accepted", onAccepted);
     socket.on("call:ice-candidate", onCandidate);
     socket.on("call:end", onEnd);
     socket.on("disconnect", onDisconnect);
     return () => {
       socket.off("call:answer", onAnswer);
+      socket.off("call:accepted", onAccepted);
       socket.off("call:ice-candidate", onCandidate);
       socket.off("call:end", onEnd);
       socket.off("disconnect", onDisconnect);
