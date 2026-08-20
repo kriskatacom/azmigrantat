@@ -86,7 +86,9 @@ $router->post('/api/mobile/calls/{call_id}/action', [CallController::class, 'act
 $router->get('/api/mobile/notifications/unread-count', [NotificationController::class, 'unreadCount']);
 $router->get('/api/mobile/notifications', [NotificationController::class, 'index']);
 $router->post('/api/mobile/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+$router->post('/api/mobile/notifications/delete-all', [NotificationController::class, 'deleteAll']);
 $router->post('/api/mobile/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+$router->post('/api/mobile/notifications/{id}/delete', [NotificationController::class, 'destroy']);
 
 $router->get('/internal/mobile/push-tokens', [InternalMobileController::class, 'pushTokens']);
 $router->post('/internal/mobile/push-tokens/deactivate', [InternalMobileController::class, 'deactivatePushToken']);

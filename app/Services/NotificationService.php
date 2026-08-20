@@ -200,6 +200,18 @@ final class NotificationService
             ->update(['is_read' => true]);
     }
 
+    public function deleteAll(int $userId): int
+    {
+        return Notification::query()
+            ->where('user_id', $userId)
+            ->delete();
+    }
+
+    public function deleteOne(Notification $notification): bool
+    {
+        return (bool) $notification->delete();
+    }
+
     public function serialize(?Notification $notification): ?array
     {
         if (!$notification) {

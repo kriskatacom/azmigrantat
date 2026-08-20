@@ -119,6 +119,68 @@ final class NotificationController extends BaseController
         ]);
     }
 
+    public function deleteAll()
+    {
+        $user = $this->authenticatedUser();
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $this->notifications->deleteAll((int) $user->id);
+        try {
+            $this->realtime()->notifyNotificationsCleared((int) $user->id);
+        } catch (\Throwable $exception) {
+            error_log('[NotificationDeleteAll] realtime_failed user_id=' . (int) $user->id);
+        }
+
+        return $this->json([
+            'success' => true,
+            'data' => [
+                'unread_count' => 0,
+            ],
+        ]);
+    }
+
+    public function destroy($id)
+    {
+        $user = $this->authenticatedUser();
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $notification = Notification::query()
+            ->where('user_id', (int) $user->id)
+            ->find((int) $id);
+
+        if (!$notification) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Известието не е намерено.',
+            ], 404);
+        }
+
+        $payload = $this->notifications->serialize($notification);
+        $this->notifications->deleteOne($notification);
+
+        try {
+            $this->realtime()->notifyNotification(
+                (int) $user->id,
+                $payload,
+                'notification:deleted'
+            );
+        } catch (\Throwable $exception) {
+            error_log('[NotificationDelete] realtime_failed id=' . (int) $id);
+        }
+
+        return $this->json([
+            'success' => true,
+            'data' => [
+                'id' => (int) $id,
+                'unread_count' => $this->notifications->unreadCount((int) $user->id),
+            ],
+        ]);
+    }
+
     private function realtime(): RealtimeNotifier
     {
         return new RealtimeNotifier();

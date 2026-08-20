@@ -206,6 +206,15 @@ final class RealtimeNotifier
         ]);
     }
 
+    public function notifyNotificationsCleared(int $userId): bool
+    {
+        return $this->send('/internal/events/notification', [
+            'recipient_ids' => [$userId],
+            'event' => 'notification:cleared',
+            'notification' => null,
+        ]);
+    }
+
     public function notifyMessageRead(
         Conversation $conversation,
         int $readerId,
