@@ -1,19 +1,21 @@
 import { useIncomingVideoCall } from "@/contexts/VideoCallContext";
-import { useRootNavigationState, useRouter } from "expo-router";
+import { useLocalSearchParams, useRootNavigationState, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 export default function IncomingCallLinkScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ action?: string | string[] }>();
   const navigationState = useRootNavigationState();
   const { acceptedIncomingCall } = useIncomingVideoCall();
+  const action = Array.isArray(params.action) ? params.action[0] : params.action;
 
   useEffect(() => {
     if (!navigationState?.key) {
       return;
     }
 
-    if (acceptedIncomingCall) {
+    if (acceptedIncomingCall || action === "accept") {
       return;
     }
 
@@ -27,7 +29,7 @@ export default function IncomingCallLinkScreen() {
     }, 1600);
 
     return () => clearTimeout(timeout);
-  }, [acceptedIncomingCall, navigationState?.key, router]);
+  }, [acceptedIncomingCall, action, navigationState?.key, router]);
 
   return (
     <View style={styles.screen}>

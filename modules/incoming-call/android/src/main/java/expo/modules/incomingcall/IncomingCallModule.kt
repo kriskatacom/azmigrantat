@@ -19,7 +19,6 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.os.PowerManager
 import android.provider.Settings
 import android.util.Log
 import android.view.WindowManager
@@ -127,13 +126,20 @@ class IncomingCallModule : Module() {
     }
 
     AsyncFunction("consumeLaunchAction") {
-      Log.i(TAG, "[CALL] RN ready")
+      Log.i(TAG, "[IncomingCall] React Native ready")
       val appContext = try {
         context()
       } catch (_: Exception) {
         null
       }
-      consumeLaunchAction(appContext)
+      val launch = consumeLaunchAction(appContext)
+      if (launch != null) {
+        Log.i(
+          TAG,
+          "[IncomingCall] processing answer callId=${launch["callId"]} action=${launch["action"]}",
+        )
+      }
+      launch
     }
 
     AsyncFunction("openFullScreenIntentSettings") {
@@ -157,7 +163,7 @@ class IncomingCallModule : Module() {
 
   companion object {
     const val TAG = "IncomingCall"
-    const val CHANNEL_ID = "incoming_calls"
+    const val CHANNEL_ID = "incoming_video_calls"
     const val PREFS = "incoming_call_prefs"
     const val KEY_TOKEN = "auth_token"
     const val KEY_SOCKET_URL = "socket_url"
@@ -194,7 +200,7 @@ class IncomingCallModule : Module() {
       return callId.hashCode() and 0x7fffffff
     }
 
-    fun onActivityLaunched(activity: Activity, intent: Intent?) {
+    fun onActivityLaunched(activity: Activity, intent: Intent?, source: String = "launched") {
       captureIntent(intent, activity.applicationContext)
       val applyFlags = {
         applyDisplayFlags(activity, intent)
@@ -202,6 +208,10 @@ class IncomingCallModule : Module() {
         val action = intent?.getStringExtra(EXTRA_ACTION)
           ?: intent?.data?.getQueryParameter("action")
           ?: "open"
+        Log.i(
+          TAG,
+          "[CALL] MainActivity $source action=$action callId=$callId extrasCallId=${intent?.getStringExtra(EXTRA_CALL_ID)}",
+        )
         val launchKey = "$callId:$action"
         if (!callId.isNullOrBlank() && lastLoggedLaunch != launchKey) {
           lastLoggedLaunch = launchKey
@@ -244,11 +254,21 @@ class IncomingCallModule : Module() {
         return null
       }
 
+      val existing = pendingLaunch ?: context?.let { readPersistedLaunch(it) }
+      if (
+        action != "accept" &&
+        existing?.get("action") == "accept" &&
+        existing["callId"] == callId
+      ) {
+        Log.i(TAG, "[IncomingCall] pending answer stored callId=$callId")
+        return existing
+      }
+
       if (action == "accept") {
-        val firstAccept = acceptedCallIds.add(callId)
-        if (firstAccept && context != null) {
+        acceptedCallIds.add(callId)
+        Log.i(TAG, "[IncomingCall] Android Answer received callId=$callId")
+        if (context != null) {
           dismiss(context, callId)
-          postCallAction(context, "/calls/accept", callId)
         }
       }
 
@@ -341,6 +361,11 @@ class IncomingCallModule : Module() {
         return true
       }
 
+      Log.i(
+        TAG,
+        "[CALL] background/killed branch callId=$callId foreground=false API=${Build.VERSION.SDK_INT}",
+      )
+
       val options = IncomingCallDisplayOptions().apply {
         this.callId = callId
         this.callerId = data["caller_id"]?.toIntOrNull() ?: 0
@@ -386,27 +411,31 @@ class IncomingCallModule : Module() {
           ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
             PackageManager.PERMISSION_GRANTED
       val canUseFsi = canNotify && canUseFullScreenIntent(context)
+      val notifyId = notificationId(options.callId)
+
+      Log.i(TAG, "[CALL] API=${Build.VERSION.SDK_INT}")
+      Log.i(TAG, "[CALL] channelId=$CHANNEL_ID")
+      Log.i(TAG, "[CALL] canNotify=$canNotify canUseFsi=$canUseFsi launchApp=$launchApp")
 
       if (canNotify) {
         ensureChannel(context)
-        NotificationManagerCompat.from(context).notify(
-          notificationId(options.callId),
-          buildNotification(context, options),
-        )
+        val importance = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+          context.getSystemService(NotificationManager::class.java)
+            ?.getNotificationChannel(CHANNEL_ID)
+            ?.importance
+        } else {
+          null
+        }
+        Log.i(TAG, "[CALL] channelImportance=$importance")
+        val notification = buildNotification(context, options)
+        Log.i(TAG, "[CALL] posting notification id=$notifyId")
+        NotificationManagerCompat.from(context).notify(notifyId, notification)
         Log.i(
           TAG,
-          "[CALL] full-screen intent created callId=${options.callId} fsi=$canUseFsi sdk=${Build.VERSION.SDK_INT}",
+          "[IncomingCall] full-screen intent posted callId=${options.callId} fsi=$canUseFsi sdk=${Build.VERSION.SDK_INT} launchApp=$launchApp",
         )
       } else {
-        Log.w(TAG, "[CALL] notification permission missing callId=${options.callId}")
-      }
-
-      if (!canUseFsi) {
-        wakeScreen(context)
-      }
-
-      if (launchApp) {
-        tryLaunchMainActivity(context, options, usedFullScreenIntent = canUseFsi)
+        Log.w(TAG, "[IncomingCall] notification permission missing callId=${options.callId}")
       }
     }
 
@@ -535,6 +564,7 @@ class IncomingCallModule : Module() {
       val declineIntent = actionIntent(context, ACTION_DECLINE, options)
       val contentIntent = activityPendingIntent(context, "open", options)
       val fullScreenIntent = activityPendingIntent(context, "full", options)
+      Log.i(TAG, "[CALL] fullScreenPendingIntentNull=false")
       val caller = Person.Builder()
         .setName(options.callerName.ifBlank { "Потребител" })
         .setImportant(true)
@@ -567,6 +597,7 @@ class IncomingCallModule : Module() {
         .setColor(ContextCompat.getColor(context, android.R.color.holo_blue_dark))
         .setExtras(extras)
         .addPerson(caller)
+      Log.i(TAG, "[CALL] fullScreenIntentConfigured=true")
 
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         builder.setStyle(
@@ -581,51 +612,19 @@ class IncomingCallModule : Module() {
       return builder.build()
     }
 
-    private fun tryLaunchMainActivity(
-      context: Context,
-      options: IncomingCallDisplayOptions,
-      usedFullScreenIntent: Boolean,
-    ) {
-      if (IncomingCallAppState.isForeground) {
-        Log.i(TAG, "[CALL] skip launch, app already foreground")
-        return
-      }
-
-      if (!launchedCallIds.add(options.callId)) {
-        Log.i(TAG, "[CALL] skip duplicate launch callId=${options.callId}")
-        return
-      }
-
-      if (usedFullScreenIntent) {
-        Log.i(
-          TAG,
-          "[CALL] launching MainActivity callId=${options.callId} via full-screen intent sdk=${Build.VERSION.SDK_INT}",
-        )
-        return
-      }
-
-      val intent = launchIntent(
-        context,
-        options.callId,
-        "open",
-        options.callerId,
-        options.callerName,
-        options.callerAvatar,
-        options.callType,
-        options.timestamp.toLong(),
-      )
-
-      Log.i(
-        TAG,
-        "[CALL] launching MainActivity callId=${options.callId} sdk=${Build.VERSION.SDK_INT} fsi=${canUseFullScreenIntent(context)}",
-      )
-
-      timeoutHandler.post {
-        context.startActivity(intent, backgroundStartOptions())
-      }
-    }
-
     private fun handleCallEnded(context: Context, callId: String) {
+      if (
+        acceptedCallIds.contains(callId) ||
+        (
+          pendingLaunch?.get("action") == "accept" &&
+            pendingLaunch?.get("callId") == callId
+          )
+      ) {
+        Log.i(TAG, "[IncomingCall] keep pending answer after ended push callId=$callId")
+        dismiss(context, callId)
+        return
+      }
+
       Log.i(TAG, "[CALL] call ended callId=$callId")
       markCancelled(context, callId)
       if (pendingLaunch?.get("callId") == callId) {
@@ -656,23 +655,6 @@ class IncomingCallModule : Module() {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         activity.getSystemService(KeyguardManager::class.java)
           ?.requestDismissKeyguard(activity, null)
-      }
-    }
-
-    private fun wakeScreen(context: Context) {
-      try {
-        val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return
-
-        @Suppress("DEPRECATION")
-        val wakeLock = powerManager.newWakeLock(
-          PowerManager.FULL_WAKE_LOCK or
-            PowerManager.ACQUIRE_CAUSES_WAKEUP or
-            PowerManager.ON_AFTER_RELEASE,
-          "chatapp:incoming_call",
-        )
-        wakeLock.acquire(5_000)
-      } catch (error: Exception) {
-        Log.w(TAG, "[CALL] wake lock skipped: ${error.message}")
       }
     }
 
@@ -722,19 +704,14 @@ class IncomingCallModule : Module() {
         options.timestamp.toLong(),
       )
       val requestCode = notificationId("$kind:${options.callId}")
-      val activityOptions = backgroundStartOptions()
-
-      return if (activityOptions != null) {
-        PendingIntent.getActivity(
-          context,
-          requestCode,
-          launch,
-          pendingFlags(),
-          activityOptions,
+      if (kind == "full") {
+        Log.i(
+          TAG,
+          "[CALL] fullScreenActivity=${launch.component} intentFlags=${launch.flags} pendingFlags=${pendingFlags()}",
         )
-      } else {
-        PendingIntent.getActivity(context, requestCode, launch, pendingFlags())
       }
+
+      return PendingIntent.getActivity(context, requestCode, launch, pendingFlags())
     }
 
     private fun backgroundStartOptions(): Bundle? {

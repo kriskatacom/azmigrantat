@@ -98,6 +98,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
   );
   const activeCallIdRef = useRef<string | null>(null);
   const pendingAcceptRef = useRef(false);
+  const navigatedAcceptRef = useRef<string | null>(null);
   const incomingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
@@ -224,7 +225,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
 
     pendingAcceptRef.current = true;
     setIsAccepting(true);
-    console.log("[CALL] accepted", { callId: call.call_id });
+    console.log("[IncomingCall] acceptCall started", { callId: call.call_id });
 
     if (!call.description || call.description.type !== "offer") {
       return;
@@ -248,14 +249,21 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     updateAcceptedIncomingCall(acceptedCall);
     updateIncomingCall(null);
     setIsAccepting(false);
-    pendingAcceptRef.current = false;
     clearIncomingTimeout();
     void hideIncomingUi(call.call_id);
+    console.log("[IncomingCall] call state -> connecting", {
+      callId: call.call_id,
+    });
 
     if (!navigationState?.key || isAuthLoading || !isAuthenticated) {
       return;
     }
 
+    pendingAcceptRef.current = false;
+    navigatedAcceptRef.current = call.call_id;
+    console.log("[IncomingCall] navigating to active call", {
+      callId: call.call_id,
+    });
     router.push({
       pathname: "/video-call/[userId]",
       params: {
@@ -322,6 +330,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       }
 
       if (pending.action === "accept") {
+        console.log("[IncomingCall] processing answer callId=" + pending.callId);
         pendingAcceptRef.current = true;
         setIsAccepting(true);
 
@@ -665,6 +674,13 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
         if (!payload) return;
 
         if (payload.type === "incoming_call_ended") {
+          if (
+            pendingAcceptRef.current &&
+            (incomingCallRef.current?.call_id === payload.call_id ||
+              acceptedIncomingCallRef.current?.call.call_id === payload.call_id)
+          ) {
+            return;
+          }
           clearCallArtifacts(payload.call_id);
           return;
         }
@@ -758,6 +774,70 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     isAuthLoading,
     isAuthenticated,
     navigationState?.key,
+  ]);
+
+  useEffect(() => {
+    if (!isAccepting || !token) {
+      return;
+    }
+
+    if (incomingCallRef.current?.description?.type === "offer") {
+      return;
+    }
+
+    void fetchRingingCall(token)
+      .then((result) => {
+        if (!pendingAcceptRef.current || !result.call) {
+          return;
+        }
+
+        result.pending_ice_candidates.forEach((candidate) => {
+          storeCandidates(result.call!.call_id, candidate);
+        });
+        beginIncomingCall(result.call);
+        if (result.call.description?.type === "offer") {
+          acceptIncomingCall();
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("Текущото входящо обаждане не се зареди:", error);
+      });
+  }, [acceptIncomingCall, beginIncomingCall, isAccepting, storeCandidates, token]);
+
+  useEffect(() => {
+    const accepted = acceptedIncomingCall;
+    if (
+      !accepted ||
+      !navigationState?.key ||
+      isAuthLoading ||
+      !isAuthenticated
+    ) {
+      return;
+    }
+
+    if (navigatedAcceptRef.current === accepted.call.call_id) {
+      return;
+    }
+
+    navigatedAcceptRef.current = accepted.call.call_id;
+    pendingAcceptRef.current = false;
+    console.log("[IncomingCall] navigating to active call", {
+      callId: accepted.call.call_id,
+    });
+    router.push({
+      pathname: "/video-call/[userId]",
+      params: {
+        userId: String(accepted.call.sender_id),
+        name: accepted.call.caller_name ?? "Потребител",
+        direction: "incoming",
+      },
+    });
+  }, [
+    acceptedIncomingCall,
+    isAuthLoading,
+    isAuthenticated,
+    navigationState?.key,
+    router,
   ]);
 
   const clearAcceptedIncomingCall = useCallback(

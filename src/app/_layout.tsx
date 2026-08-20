@@ -9,6 +9,7 @@ import "@/services/notificationBackgroundTask";
 import { getActiveConversationId } from "@/services/notificationState";
 import * as Notifications from "expo-notifications";
 import { Stack, useRouter } from "expo-router";
+import { canUseFullScreenIntent } from "../../modules/incoming-call";
 import { StatusBar } from "expo-status-bar";
 import {
   createContext,
@@ -278,9 +279,32 @@ function RootNavigator() {
   const { theme, colorScheme } = useAppTheme();
 
   useEffect(() => {
+    console.log("[IncomingCall] checking full screen permission...");
+
     void setupIncomingCallNotifications().catch((error: unknown) => {
-      console.error("Категориите за входящи обаждания не се регистрираха:", error);
+      console.error(
+        "Категориите за входящи обаждания не се регистрираха:",
+        error
+      );
     });
+    
+    const checkFullScreenIntent = async () => {
+      try {
+        const allowed = await canUseFullScreenIntent();
+
+        console.log(
+          "[IncomingCall] canUseFullScreenIntent:",
+          allowed
+        );
+      } catch (error) {
+        console.error(
+          "[IncomingCall] canUseFullScreenIntent ERROR:",
+          error
+        );
+      }
+    };
+
+    void checkFullScreenIntent();
   }, []);
 
   return (
