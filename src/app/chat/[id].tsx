@@ -238,6 +238,7 @@ export default function ChatRoom() {
       params: {
         userId: String(recipientUserId),
         name: displayedName,
+        autoStart: "1",
       },
     });
   };

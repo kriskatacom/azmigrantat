@@ -7,6 +7,7 @@ import UserSearch from "@/components/inbox/user-search";
 import { useInboxPresence } from "@/hooks/chat/useInboxPresence";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
+import { useUnreadNotificationCount } from "@/hooks/useUnreadNotificationCount";
 import { createDirectConversation, getConversations } from "@/services/chat";
 import type { ChatUser, Conversation } from "@/types/chat";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -19,6 +20,7 @@ export default function InboxScreen() {
   const { theme } = useAppTheme();
   const { token, user } = useAuth();
   const { socket, isConnected, lastReceivedMessage, lastPresenceUpdate, lastPresenceStatus } = useSocket();
+  const unreadNotificationCount = useUnreadNotificationCount();
   const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -88,7 +90,12 @@ export default function InboxScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Header title="Входящи съобщения" hideSearchButton />
+      <Header
+        title="Входящи съобщения"
+        hideSearchButton
+        showNotificationsButton
+        notificationCount={unreadNotificationCount}
+      />
       <UserSearch token={token} onSelectUser={handleSelectUser} isSelecting={isOpeningConversation} />
       {isLoading ? <InboxLoading /> : (
         <FlatList

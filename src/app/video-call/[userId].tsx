@@ -20,6 +20,7 @@ export default function VideoCallScreen() {
     userId?: string | string[];
     name?: string | string[];
     direction?: string | string[];
+    autoStart?: string | string[];
   }>();
   const hasStartedCallRef = useRef(false);
   const hasLeftScreenRef = useRef(false);
@@ -43,6 +44,9 @@ export default function VideoCallScreen() {
   const direction = Array.isArray(params.direction)
     ? params.direction[0]
     : params.direction;
+  const autoStart =
+    (Array.isArray(params.autoStart) ? params.autoStart[0] : params.autoStart) ===
+    "1";
   const {
     acceptedIncomingCall,
     claimActiveCall,
@@ -165,6 +169,24 @@ export default function VideoCallScreen() {
   const handleEndCall = useCallback(() => {
     endCall();
   }, [endCall]);
+
+  useEffect(() => {
+    if (
+      !autoStart ||
+      direction === "incoming" ||
+      isAuthLoading ||
+      !isValidRecipient ||
+      hasStartedCallRef.current
+    ) {
+      return;
+    }
+
+    hasStartedCallRef.current = true;
+    void startCall().catch((error: unknown) => {
+      hasStartedCallRef.current = false;
+      console.error("Видео обаждането не можа да стартира автоматично:", error);
+    });
+  }, [autoStart, direction, isAuthLoading, isValidRecipient, startCall]);
 
   if (!isAuthLoading && !isValidRecipient) {
     return (

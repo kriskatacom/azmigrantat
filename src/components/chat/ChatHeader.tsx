@@ -137,18 +137,6 @@ export default function ChatHeader({
           <FontAwesome name="video-camera" size={22} color={colors.text} />
         </TouchableOpacity>
       ) : null}
-
-      <TouchableOpacity
-        style={styles.infoButton}
-        accessibilityRole="button"
-        accessibilityLabel="Информация за разговора"
-      >
-        <FontAwesome
-          name="info-circle"
-          size={24}
-          color={colors.textSecondary}
-        />
-      </TouchableOpacity>
     </View>
   );
 }
@@ -203,10 +191,6 @@ const styles = StyleSheet.create({
 
   statusOffline: {
     color: "#71717a",
-  },
-
-  infoButton: {
-    padding: 8,
   },
 
   videoButton: {

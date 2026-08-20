@@ -10,6 +10,7 @@ import {
 
 import type { AuthUser } from "@/types/auth";
 import type { ChatMessage } from "@/types/chat";
+import type { AppNotification, NotificationSocketEvent } from "@/types/notifications";
 
 import {
   createContext,
@@ -39,6 +40,9 @@ interface SocketContextValue {
 
   lastPresenceUpdate: PresencePayload | null;
   lastPresenceStatus: PresencePayload | null;
+  lastNotification: AppNotification | null;
+  lastNotificationEvent: NotificationSocketEvent | null;
+  lastNotificationEventAt: number;
 }
 
 export const SocketContext = createContext<SocketContextValue | undefined>(
@@ -70,6 +74,11 @@ export function SocketProvider({ children }: PropsWithChildren) {
 
   const [lastPresenceStatus, setLastPresenceStatus] =
     useState<PresencePayload | null>(null);
+  const [lastNotification, setLastNotification] =
+    useState<AppNotification | null>(null);
+  const [lastNotificationEvent, setLastNotificationEvent] =
+    useState<NotificationSocketEvent | null>(null);
+  const [lastNotificationEventAt, setLastNotificationEventAt] = useState(0);
 
   useEffect(() => {
     if (isLoading) {
@@ -91,6 +100,9 @@ export function SocketProvider({ children }: PropsWithChildren) {
       setLastTypingUpdate(null);
       setLastPresenceUpdate(null);
       setLastPresenceStatus(null);
+      setLastNotification(null);
+      setLastNotificationEvent(null);
+      setLastNotificationEventAt(0);
 
       return;
     }
@@ -146,6 +158,36 @@ export function SocketProvider({ children }: PropsWithChildren) {
       console.log("Получено message:read:", payload);
     };
 
+    const handleNotificationNew = (notification: AppNotification) => {
+      setLastNotification(notification);
+      setLastNotificationEvent("new");
+      setLastNotificationEventAt(Date.now());
+    };
+
+    const handleNotificationUpdated = (notification: AppNotification) => {
+      setLastNotification(notification);
+      setLastNotificationEvent("updated");
+      setLastNotificationEventAt(Date.now());
+    };
+
+    const handleNotificationReadAll = () => {
+      setLastNotification(null);
+      setLastNotificationEvent("read-all");
+      setLastNotificationEventAt(Date.now());
+    };
+
+    const handleNotificationCleared = () => {
+      setLastNotification(null);
+      setLastNotificationEvent("cleared");
+      setLastNotificationEventAt(Date.now());
+    };
+
+    const handleNotificationDeleted = (notification: AppNotification) => {
+      setLastNotification(notification);
+      setLastNotificationEvent("deleted");
+      setLastNotificationEventAt(Date.now());
+    };
+
     const handleConnectError = (error: Error) => {
       setIsConnected(false);
       setIsConnecting(false);
@@ -174,6 +216,12 @@ export function SocketProvider({ children }: PropsWithChildren) {
 
     currentSocket.on("message:read", handleMessageRead);
 
+    currentSocket.on("notification:new", handleNotificationNew);
+    currentSocket.on("notification:updated", handleNotificationUpdated);
+    currentSocket.on("notification:read-all", handleNotificationReadAll);
+    currentSocket.on("notification:cleared", handleNotificationCleared);
+    currentSocket.on("notification:deleted", handleNotificationDeleted);
+
     currentSocket.on("typing:update", handleTypingUpdate);
 
     currentSocket.on("presence:update", handlePresenceUpdate);
@@ -194,6 +242,12 @@ export function SocketProvider({ children }: PropsWithChildren) {
       currentSocket.off("message:new", handleNewMessage);
 
       currentSocket.off("message:read", handleMessageRead);
+
+      currentSocket.off("notification:new", handleNotificationNew);
+      currentSocket.off("notification:updated", handleNotificationUpdated);
+      currentSocket.off("notification:read-all", handleNotificationReadAll);
+      currentSocket.off("notification:cleared", handleNotificationCleared);
+      currentSocket.off("notification:deleted", handleNotificationDeleted);
 
       currentSocket.off("typing:update", handleTypingUpdate);
 
@@ -222,8 +276,10 @@ export function SocketProvider({ children }: PropsWithChildren) {
       lastReadReceipt,
       lastTypingUpdate,
       lastPresenceUpdate,
-
       lastPresenceStatus,
+      lastNotification,
+      lastNotificationEvent,
+      lastNotificationEventAt,
     }),
     [
       socket,
@@ -239,6 +295,9 @@ export function SocketProvider({ children }: PropsWithChildren) {
 
       lastPresenceUpdate,
       lastPresenceStatus,
+      lastNotification,
+      lastNotificationEvent,
+      lastNotificationEventAt,
     ],
   );
 

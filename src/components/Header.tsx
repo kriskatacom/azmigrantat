@@ -1,6 +1,7 @@
 import { useAppTheme } from "@/app/_layout";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import type { ReactNode } from "react";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 interface HeaderProps {
@@ -8,6 +9,9 @@ interface HeaderProps {
   hideAuthButton?: boolean;
   title?: string;
   showBackButton?: boolean;
+  showNotificationsButton?: boolean;
+  notificationCount?: number;
+  actions?: ReactNode;
 }
 
 export default function Header({
@@ -15,9 +19,13 @@ export default function Header({
   hideAuthButton = false,
   title,
   showBackButton = true,
+  showNotificationsButton = false,
+  notificationCount = 0,
+  actions,
 }: HeaderProps) {
   const { theme } = useAppTheme();
   const router = useRouter();
+  const canGoBack = router.canGoBack();
 
   return (
     <>
@@ -31,7 +39,7 @@ export default function Header({
         ]}
       >
         <Image
-          source={require("../../assets/images/azmigrantat-logo.webp")}
+          source={require("../../assets/images/eto-me.png")}
           style={styles.logo}
           resizeMode="contain"
         />
@@ -53,6 +61,33 @@ export default function Header({
             </TouchableOpacity>
           )}
 
+          {showNotificationsButton && (
+            <TouchableOpacity
+              onPress={() => router.push("/notifications")}
+              style={[
+                styles.headerIconButton,
+                {
+                  backgroundColor: theme.colors.background,
+                },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={
+                notificationCount > 0
+                  ? `Известия, ${notificationCount} непрочетени`
+                  : "Известия"
+              }
+            >
+              <FontAwesome name="bell" size={22} color={theme.colors.icon} />
+              {notificationCount > 0 ? (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {notificationCount > 99 ? "99+" : notificationCount}
+                  </Text>
+                </View>
+              ) : null}
+            </TouchableOpacity>
+          )}
+
           {!hideAuthButton && (
             <TouchableOpacity
               onPress={() => router.push("/(auth)/login")}
@@ -68,6 +103,8 @@ export default function Header({
               <FontAwesome name="user" size={24} color={theme.colors.icon} />
             </TouchableOpacity>
           )}
+
+          {actions}
         </View>
       </View>
 
@@ -82,13 +119,20 @@ export default function Header({
       >
         {showBackButton ? (
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => {
+              if (canGoBack) {
+                router.back();
+                return;
+              }
+
+              router.replace("/");
+            }}
             style={styles.backButton}
             accessibilityRole="button"
-            accessibilityLabel="Назад"
+            accessibilityLabel={canGoBack ? "Назад" : "Начало"}
           >
             <FontAwesome
-              name="chevron-left"
+              name={canGoBack ? "chevron-left" : "home"}
               size={20}
               color={theme.colors.text}
             />
@@ -129,6 +173,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    overflow: "visible",
   },
   backButton: {
     width: 40,
@@ -161,5 +206,25 @@ const styles = StyleSheet.create({
     borderRadius: 26,
     justifyContent: "center",
     alignItems: "center",
+    overflow: "visible",
+  },
+  badge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    paddingHorizontal: 5,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#2563eb",
+    borderWidth: 2,
+    borderColor: "#ffffff",
+  },
+  badgeText: {
+    color: "#ffffff",
+    fontSize: 10,
+    fontWeight: "800",
   },
 });

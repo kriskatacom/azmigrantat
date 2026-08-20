@@ -1,3 +1,4 @@
+import AppSplash from "@/components/app-splash";
 import { darkTheme, lightTheme, type AppTheme } from "@/constants/theme";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SocketProvider } from "@/contexts/SocketContext";
@@ -11,6 +12,7 @@ import * as Notifications from "expo-notifications";
 import { Stack, useRouter } from "expo-router";
 import { canUseFullScreenIntent } from "../../modules/incoming-call";
 import { StatusBar } from "expo-status-bar";
+import * as SplashScreen from "expo-splash-screen";
 import {
   createContext,
   PropsWithChildren,
@@ -21,8 +23,11 @@ import {
   useRef,
   useState,
 } from "react";
-import { AppState, useColorScheme } from "react-native";
+import { AppState, StyleSheet, View, useColorScheme } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../../global.css";
+
+void SplashScreen.preventAutoHideAsync();
 
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
@@ -141,6 +146,22 @@ function NotificationNavigationHandler() {
         data?.type === "incoming_call" ||
         data?.type === "incoming_call_ended"
       ) {
+        return;
+      }
+
+      if (data?.type === "missed_video_call" || data?.type === "text") {
+        const responseKey = `${notification.request.identifier}:${actionIdentifier}`;
+
+        if (lastHandledResponseRef.current === responseKey) {
+          return;
+        }
+
+        lastHandledResponseRef.current = responseKey;
+
+        if (actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+          router.push("/notifications");
+        }
+
         return;
       }
 
@@ -326,16 +347,49 @@ function RootNavigator() {
   );
 }
 
-export default function Layout() {
+function SplashOverlay({ children }: PropsWithChildren) {
+  const { isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!isLoading) {
+      void SplashScreen.hideAsync();
+    }
+  }, [isLoading]);
+
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <SocketProvider>
-          <VideoCallProvider>
-            <RootNavigator />
-          </VideoCallProvider>
-        </SocketProvider>
-      </AuthProvider>
-    </ThemeProvider>
+    <View style={styles.root}>
+      {children}
+      {isLoading ? (
+        <AppSplash
+          onReady={() => {
+            void SplashScreen.hideAsync();
+          }}
+        />
+      ) : null}
+    </View>
   );
 }
+
+export default function Layout() {
+  return (
+    <GestureHandlerRootView style={styles.root}>
+      <ThemeProvider>
+        <AuthProvider>
+          <SplashOverlay>
+            <SocketProvider>
+              <VideoCallProvider>
+                <RootNavigator />
+              </VideoCallProvider>
+            </SocketProvider>
+          </SplashOverlay>
+        </AuthProvider>
+      </ThemeProvider>
+    </GestureHandlerRootView>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
+});

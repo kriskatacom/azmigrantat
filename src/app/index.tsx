@@ -1,5 +1,6 @@
 import { useAppTheme } from "@/app/_layout";
 import { useUnreadMessageCount } from "@/hooks/chat/useUnreadMessageCount";
+import { useUnreadNotificationCount } from "@/hooks/useUnreadNotificationCount";
 import { useAuth } from "@/hooks/useAuth";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -17,6 +18,7 @@ export default function HomeScreen() {
   const { theme } = useAppTheme();
   const { isAuthenticated } = useAuth();
   const unreadMessageCount = useUnreadMessageCount();
+  const unreadNotificationCount = useUnreadNotificationCount();
 
   return (
     <View style={styles.screen}>
@@ -40,12 +42,34 @@ export default function HomeScreen() {
             <Text style={styles.topPillText}>Виж повече</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.searchButton}
-            onPress={() => router.push("/search")}
-          >
-            <Ionicons name="search-outline" size={31} color="#ffffff" />
-          </TouchableOpacity>
+          <View style={styles.topRightActions}>
+            <TouchableOpacity
+              style={styles.searchButton}
+              onPress={() => router.push("/notifications")}
+              accessibilityRole="button"
+              accessibilityLabel={
+                unreadNotificationCount > 0
+                  ? `Известия, ${unreadNotificationCount} непрочетени`
+                  : "Известия"
+              }
+            >
+              <Ionicons name="notifications-outline" size={28} color="#ffffff" />
+              {isAuthenticated && unreadNotificationCount > 0 ? (
+                <View style={styles.topBadge}>
+                  <Text style={styles.topBadgeText}>
+                    {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                  </Text>
+                </View>
+              ) : null}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.searchButton}
+              onPress={() => router.push("/search")}
+            >
+              <Ionicons name="search-outline" size={31} color="#ffffff" />
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.quickActions}>
@@ -215,7 +239,32 @@ const styles = StyleSheet.create({
     height: 46,
     alignItems: "center",
     justifyContent: "center",
+    overflow: "visible",
+    position: "relative",
+  },
+  topRightActions: {
     marginLeft: "auto",
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  topBadge: {
+    position: "absolute",
+    top: -2,
+    right: -2,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 5,
+    borderRadius: 10,
+    backgroundColor: "#2563eb",
+    borderWidth: 2,
+    borderColor: "#030718",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  topBadgeText: {
+    color: "#ffffff",
+    fontSize: 10,
+    fontWeight: "800",
   },
   centerBrand: {
     flex: 1,

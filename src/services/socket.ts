@@ -9,6 +9,7 @@ import type {
 } from "@/services/video-call";
 import type { AuthUser } from "@/types/auth";
 import type { ChatMessage } from "@/types/chat";
+import type { AppNotification } from "@/types/notifications";
 
 const SOCKET_URL = process.env.EXPO_PUBLIC_SOCKET_URL;
 
@@ -64,6 +65,11 @@ interface ServerToClientEvents {
   "call:ice-candidate": (payload: CallServerPayload) => void;
   "call:end": (payload: CallServerPayload) => void;
   "call:state": (payload: CallStatePayload) => void;
+  "notification:new": (payload: AppNotification) => void;
+  "notification:updated": (payload: AppNotification) => void;
+  "notification:read-all": (payload: { user_id: number }) => void;
+  "notification:cleared": (payload: { user_id: number }) => void;
+  "notification:deleted": (payload: AppNotification) => void;
 }
 
 interface ClientToServerEvents {

@@ -125,7 +125,7 @@ export default function RegisterScreen() {
           automaticallyAdjustKeyboardInsets
         >
           <Image
-            source={require("../../../assets/images/azmigrantat-logo.webp")}
+            source={require("../../../assets/images/eto-me.png")}
             style={styles.logo}
             resizeMode="contain"
           />
