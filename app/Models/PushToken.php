@@ -12,12 +12,18 @@ class PushToken extends Model
         'user_id',
         'token',
         'platform',
+        'provider',
         'device_id',
+        'is_active',
+        'deactivated_reason',
+        'last_seen_at',
         'last_used_at',
     ];
 
     protected $casts = [
         'user_id' => 'integer',
+        'is_active' => 'boolean',
+        'last_seen_at' => 'datetime',
         'last_used_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',

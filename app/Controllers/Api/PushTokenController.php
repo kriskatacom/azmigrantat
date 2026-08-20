@@ -32,6 +32,7 @@ final class PushTokenController extends BaseController
             [
                 'token' => 'required|string|max:255',
                 'platform' => 'required|in:android,ios',
+                'provider' => 'sometimes|in:expo,fcm',
                 'device_id' => 'nullable|string|max:255',
             ],
             [
@@ -43,6 +44,7 @@ final class PushTokenController extends BaseController
             [
                 'token' => 'push token',
                 'platform' => 'платформа',
+                'provider' => 'доставчик',
                 'device_id' => 'идентификатор на устройството',
             ]
         );
@@ -51,26 +53,37 @@ final class PushTokenController extends BaseController
             return $this->validationError($validator);
         }
 
-        $pushToken = $this->pushTokenService->register(
-            $user,
-            trim($input['token']),
-            $input['platform'],
-            isset($input['device_id'])
-                ? trim($input['device_id'])
-                : null
-        );
+        $provider = $input['provider'] ?? 'expo';
+        if ($provider === 'fcm' && $input['platform'] !== 'android') {
+            return $this->json([
+                'success' => false,
+                'message' => 'FCM регистрацията е разрешена само за Android.',
+            ], 422);
+        }
+
+        try {
+            $pushToken = $this->pushTokenService->register(
+                $user,
+                trim($input['token']),
+                $input['platform'],
+                isset($input['device_id']) ? trim($input['device_id']) : null,
+                $provider
+            );
+        } catch (\Throwable $exception) {
+            error_log('[PushToken] registration_failed user_id=' . (int) $user->id);
+            return $this->json(['success' => false, 'message' => 'Push token-ът не можа да бъде регистриран.'], 500);
+        }
 
         return $this->json([
             'success' => true,
-            'message' => 'Push token-ът беше регистриран успешно.',
-            'data' => [
-                'id' => (int) $pushToken->id,
+            'token' => [
                 'platform' => $pushToken->platform,
+                'provider' => $pushToken->provider,
                 'device_id' => $pushToken->device_id,
-                'last_used_at' =>
-                    $pushToken->last_used_at?->toISOString(),
+                'is_active' => (bool) $pushToken->is_active,
+                'last_seen_at' => $pushToken->last_seen_at?->toISOString(),
             ],
-        ], 201);
+        ], 200);
     }
 
     public function destroy()
@@ -87,6 +100,7 @@ final class PushTokenController extends BaseController
             $input,
             [
                 'token' => 'required|string|max:255',
+                'provider' => 'sometimes|in:expo,fcm',
             ],
             [
                 'required' => 'Полето :attribute е задължително.',
@@ -104,13 +118,25 @@ final class PushTokenController extends BaseController
 
         $this->pushTokenService->unregister(
             $user,
-            trim($input['token'])
+            trim($input['token']),
+            $input['provider'] ?? 'expo'
         );
 
         return $this->json([
             'success' => true,
             'message' => 'Push token-ът беше премахнат.',
         ]);
+    }
+
+    public function destroyAll()
+    {
+        $user = $this->authenticatedUser();
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $this->pushTokenService->unregisterAll($user);
+        return $this->json(['success' => true]);
     }
 
     private function authenticatedUser(): ?User

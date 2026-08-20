@@ -5,7 +5,6 @@ namespace App\Controllers;
 use App\Core\Session;
 use App\Core\View;
 use App\Helpers\SecurityHelper;
-use App\Services\MediaService;
 use App\Services\OpenGraphService;
 
 use Attribute;
@@ -171,39 +170,6 @@ abstract class BaseController
         return $query->orderBy($sort, $order)
             ->paginate($perPage)
             ->appends($_GET);
-    }
-
-    protected function handleImageUploads(array $imageKeys): array
-    {
-        $mediaService = new MediaService();
-        $results = [];
-
-        foreach ($imageKeys as $key) {
-            $removeKey = "remove_options";
-            if (isset($_POST[$removeKey][$key]) && $_POST[$removeKey][$key] == "1") {
-                $results[$key] = null;
-                continue;
-            }
-
-            if (isset($_FILES['options']['name'][$key]) && $_FILES['options']['error'][$key] === UPLOAD_ERR_OK) {
-                try {
-                    $fileData = [
-                        'name' => $_FILES['options']['name'][$key],
-                        'type' => $_FILES['options']['type'][$key],
-                        'tmp_name' => $_FILES['options']['tmp_name'][$key],
-                        'error' => $_FILES['options']['error'][$key],
-                        'size' => $_FILES['options']['size'][$key],
-                    ];
-
-                    $media = $mediaService->upload($fileData);
-                    $results[$key] = $media->file_path;
-                } catch (\Exception $e) {
-                    continue;
-                }
-            }
-        }
-
-        return $results;
     }
 
     protected function abort404()

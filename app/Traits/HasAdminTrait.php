@@ -2,8 +2,6 @@
 
 namespace App\Traits;
 
-use App\Services\MediaService;
-
 trait HasAdminTrait
 {
     protected function resourceIndex($modelClass, string $view, array $config = [])
@@ -68,36 +66,5 @@ trait HasAdminTrait
             'currentTab' => $currentTab,
             'counts' => $counts
         ]);
-    }
-
-    protected function updateResource($model, array $data, array $imageKeys = [])
-    {
-        $data['options'] = $this->processResourceOptions($model, $imageKeys);
-        return $model->update($data);
-    }
-
-    protected function processResourceOptions($model = null, array $imageKeys = []): array
-    {
-        $mediaService = new MediaService();
-        $existingOptions = $model ? (array) ($model->options ?? []) : [];
-        $newOptions = $_POST['options'] ?? [];
-
-        $imageResults = $this->handleImageUploads($imageKeys);
-
-        foreach ($imageResults as $key => $newPath) {
-            if ($newPath === null) {
-                if (!empty($existingOptions[$key])) {
-                    $mediaService->deleteFile($existingOptions[$key]);
-                }
-                unset($existingOptions[$key]);
-            } elseif ($newPath) {
-                if (!empty($existingOptions[$key]) && $existingOptions[$key] !== $newPath) {
-                    $mediaService->deleteFile($existingOptions[$key]);
-                }
-                $existingOptions[$key] = $newPath;
-            }
-        }
-
-        return array_merge($existingOptions, $newOptions);
     }
 }

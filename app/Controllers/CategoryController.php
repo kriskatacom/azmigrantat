@@ -17,9 +17,11 @@ class CategoryController extends BaseController
         $sortField = $_GET['sort'] ?? '';
         $sortDirection = $_GET['direction'] ?? 'asc';
 
-        $query = Category::withTrashed()->with(['children' => function($query) {
-            $query->withTrashed();
-        }]);
+        $query = Category::withTrashed()->with([
+            'children' => function ($query) {
+                $query->withTrashed();
+            }
+        ]);
 
         if (!empty($search)) {
             $query->where('name', 'like', "%{$search}%");
@@ -139,25 +141,6 @@ class CategoryController extends BaseController
 
     private function prepareData(array $data, array $files, ?int $ignoreId = null): array
     {
-        $mediaService = new \App\Services\MediaService();
-        $existing = $ignoreId ? Category::find($ignoreId) : null;
-
-        if (isset($data['remove_image_url']) && $data['remove_image_url'] == '1') {
-            if ($existing && $existing->image_url) {
-                $mediaService->deleteFile($existing->image_url);
-                $data['image_url'] = null;
-            }
-        }
-
-        if (!empty($files['image_url']['name'])) {
-            if ($existing && $existing->image_url) {
-                $mediaService->deleteFile($existing->image_url);
-            }
-
-            $media = $mediaService->upload($files['image_url']);
-            $data['image_url'] = $media->file_path;
-        }
-
         $data['slug'] = Str::slug($data['slug'] ?: $data['name']);
 
         $originalSlug = $data['slug'];
@@ -181,7 +164,7 @@ class CategoryController extends BaseController
 
         return $data;
     }
-    
+
     // Api methods
     public function getCategories()
     {

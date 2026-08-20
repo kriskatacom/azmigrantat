@@ -32,7 +32,7 @@ class App
 
         header("Access-Control-Allow-Origin: " . $_ENV['ETOME_BASE_URL']);
         header("Access-Control-Allow-Headers: Content-Type, Accept, Authorization");
-        header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+        header("Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS");
 
         require_once BASE_PATH . '/app/Config/constants.php';
         require_once BASE_PATH . '/app/Config/helper.php';

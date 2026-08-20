@@ -6,13 +6,10 @@ use App\Controllers\HandleExceptions;
 use App\Core\Auth;
 use App\Core\Session;
 use App\Helpers\AuthHelper;
-use App\Models\SessionModel;
 use App\Models\User;
 use App\Services\EmailService;
-use App\Services\MediaService;
 use App\Services\UserService;
 use App\Traits\HasAdminTrait;
-use Illuminate\Database\Capsule\Manager;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends BaseController
@@ -20,12 +17,10 @@ class UserController extends BaseController
     use HasAdminTrait;
 
     protected UserService $userService;
-    protected MediaService $mediaService;
 
     public function __construct()
     {
         $this->userService = new UserService();
-        $this->mediaService = new MediaService();
     }
 
     public function index()

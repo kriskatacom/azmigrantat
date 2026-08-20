@@ -1,9 +1,12 @@
 <?php
 
+use App\Controllers\Api\CallController;
 use App\Controllers\Api\ConversationController;
+use App\Controllers\Api\InternalMobileController;
 use App\Controllers\Api\LinkPreviewController;
 use App\Controllers\Api\MessageController;
 use App\Controllers\Api\MobileAuthController;
+use App\Controllers\Api\NotificationController;
 use App\Controllers\Api\PushTokenController;
 use App\Controllers\Api\TwoFAuthController;
 use App\Controllers\CategoryController;
@@ -75,8 +78,21 @@ $router->post('/api/mobile/conversations/{id}/attachments', [MessageController::
 $router->post('/api/mobile/conversations/{id}/read', [MessageController::class, 'markAsRead']);
 
 $router->post('/api/mobile/push-tokens', [PushTokenController::class, 'store']);
+$router->delete('/api/mobile/push-tokens', [PushTokenController::class, 'destroy']);
 $router->post('/api/mobile/push-tokens/delete', [PushTokenController::class, 'destroy']);
 $router->post('/api/mobile/push-tokens/delete-all',[PushTokenController::class, 'destroyAll']);
+$router->post('/api/mobile/calls/{call_id}/action', [CallController::class, 'action']);
+
+$router->get('/api/mobile/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+$router->get('/api/mobile/notifications', [NotificationController::class, 'index']);
+$router->post('/api/mobile/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+$router->post('/api/mobile/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+
+$router->get('/internal/mobile/push-tokens', [InternalMobileController::class, 'pushTokens']);
+$router->post('/internal/mobile/push-tokens/deactivate', [InternalMobileController::class, 'deactivatePushToken']);
+$router->post('/internal/mobile/calls/authorize', [InternalMobileController::class, 'authorizeCall']);
+$router->post('/internal/mobile/notifications/missed-video-call', [InternalMobileController::class, 'missedVideoCall']);
+$router->post('/internal/mobile/notifications', [InternalMobileController::class, 'createNotification']);
 
 $router->get('/api/users', [UserController::class, 'getUsers']);
 $router->get('/api/users/account', [UserController::class, 'getAccount']);

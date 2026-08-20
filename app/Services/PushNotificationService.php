@@ -70,6 +70,8 @@ final class PushNotificationService
                 'user_id',
                 (int) $user->id
             )
+            ->where('provider', 'expo')
+            ->where('is_active', true)
             ->pluck('token')
             ->filter(
                 static fn($token): bool =>

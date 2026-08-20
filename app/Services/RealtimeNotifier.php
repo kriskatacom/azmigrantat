@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Exceptions\RealtimeCallNotActionableException;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Participant;
@@ -95,6 +96,29 @@ final class RealtimeNotifier
 
     private function send(string $endpoint, array $payload): bool
     {
+        try {
+            $this->sendJson($endpoint, $payload);
+            return true;
+        } catch (Throwable $exception) {
+            error_log('[RealtimeNotifier] ' . $exception->getMessage());
+            return false;
+        }
+    }
+
+    public function forwardCallAction(
+        string $callId,
+        int $userId,
+        string $action
+    ): array {
+        return $this->sendJson('/internal/events/call-action', [
+            'call_id' => $callId,
+            'user_id' => $userId,
+            'action' => $action,
+        ]);
+    }
+
+    private function sendJson(string $endpoint, array $payload): array
+    {
         $url = $this->realtimeUrl . $endpoint;
         $json = json_encode($payload, JSON_UNESCAPED_UNICODE);
 
@@ -141,6 +165,9 @@ final class RealtimeNotifier
             );
 
             if ($statusCode < 200 || $statusCode >= 300) {
+                if ($endpoint === '/internal/events/call-action' && in_array($statusCode, [404, 409], true)) {
+                    throw new RealtimeCallNotActionableException('Call is not actionable.');
+                }
                 throw new RuntimeException(
                     sprintf(
                         'Realtime сървърът върна HTTP %d: %s',
@@ -150,16 +177,33 @@ final class RealtimeNotifier
                 );
             }
 
-            return true;
-        } catch (Throwable $exception) {
-            error_log(
-                '[RealtimeNotifier] ' . $exception->getMessage()
-            );
+            $decoded = json_decode((string) $responseBody, true);
+            if (!is_array($decoded)) {
+                throw new RuntimeException('Realtime сървърът върна невалиден JSON.');
+            }
 
-            return false;
+            return $decoded;
         } finally {
             curl_close($curl);
         }
+    }
+
+    public function notifyNotification(int $userId, array $notification, string $event): bool
+    {
+        return $this->send('/internal/events/notification', [
+            'recipient_ids' => [$userId],
+            'event' => $event,
+            'notification' => $notification,
+        ]);
+    }
+
+    public function notifyNotificationsReadAll(int $userId): bool
+    {
+        return $this->send('/internal/events/notification', [
+            'recipient_ids' => [$userId],
+            'event' => 'notification:read-all',
+            'notification' => null,
+        ]);
     }
 
     public function notifyMessageRead(
