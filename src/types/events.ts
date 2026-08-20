@@ -40,6 +40,7 @@ export interface ServerToClientEvents {
 
     'call:offer': (payload: CallOfferServerPayload) => void;
     'call:answer': (payload: CallAnswerServerPayload) => void;
+    'call:accepted': (payload: CallAcceptedServerPayload) => void;
     'call:ice-candidate': (payload: CallIceCandidateServerPayload) => void;
     'call:end': (payload: CallEndServerPayload) => void;
     'call:state': (payload: CallStatePayload) => void;
@@ -53,6 +54,7 @@ export interface ClientToServerEvents {
 
     'call:offer': (payload: CallOfferClientPayload) => void;
     'call:answer': (payload: CallAnswerClientPayload) => void;
+    'call:accept': (payload: CallAcceptClientPayload) => void;
     'call:ice-candidate': (payload: CallIceCandidateClientPayload) => void;
     'call:end': (payload: CallEndClientPayload) => void;
     'call:sync': () => void;
@@ -140,6 +142,10 @@ export interface CallOfferServerPayload extends CallServerPayload {
     timestamp?: number;
 }
 
+export interface CallAcceptClientPayload extends CallClientPayload {}
+
+export interface CallAcceptedServerPayload extends CallServerPayload {}
+
 export interface CallAnswerClientPayload extends CallClientPayload {
     description: SessionDescriptionPayload;
 }
@@ -167,7 +173,7 @@ export interface CallEndServerPayload extends CallServerPayload {
 export interface CallStatePayload {
     call: CallOfferServerPayload | null;
     pending_ice_candidates: IceCandidatePayload[];
-    status: 'ringing' | 'idle';
+    status: 'ringing' | 'accepted' | 'idle';
 }
 
 export interface DeviceRegisterPayload {

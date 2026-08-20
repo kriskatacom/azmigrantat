@@ -125,6 +125,14 @@ describe('CallService', () => {
         const accepted = await harness.calls.acceptByUser(44, 'call-1');
         expect(accepted).toEqual({ ok: true, status: 'accepted' });
         expect(harness.store.get('call-1')?.status).toBe('accepted');
+        expect(harness.roomEmit).toHaveBeenCalledWith('user:22', 'call:accepted', {
+            call_id: 'call-1',
+            sender_id: 44,
+        });
+        expect(harness.roomEmit).toHaveBeenCalledWith('user:44', 'call:accepted', {
+            call_id: 'call-1',
+            sender_id: 44,
+        });
         expect(harness.store.get('call-1')?.offer).toEqual(offer);
         expect(harness.calls.getCallForUser(44, 'call-1')).toEqual({
             call: expect.objectContaining({ call_id: 'call-1' }),
@@ -282,5 +290,63 @@ describe('CallService', () => {
         expect(harness.store.get('call-1')?.status).toBe('cancelled');
         expect(harness.notifications.sendCallCancelledPush).toHaveBeenCalledTimes(1);
         expect(harness.notifications.sendCallEndedPush).not.toHaveBeenCalled();
+    });
+
+    it('broadcast-ва call:accepted към caller и receiver и е idempotent', async () => {
+        const caller = harness.socket(22, 'Caller');
+        const recipient = harness.socket(44, 'Recipient');
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+        });
+
+        await harness.calls.acceptIntent(recipient.value, {
+            call_id: 'call-1',
+            recipient_id: 22,
+        });
+
+        expect(harness.store.get('call-1')?.status).toBe('accepted');
+        expect(harness.roomEmit).toHaveBeenCalledWith('user:22', 'call:accepted', {
+            call_id: 'call-1',
+            sender_id: 44,
+        });
+        expect(harness.roomEmit).toHaveBeenCalledWith('user:44', 'call:accepted', {
+            call_id: 'call-1',
+            sender_id: 44,
+        });
+        expect(recipient.toEmit).toHaveBeenCalledWith('user:44', 'call:end', {
+            call_id: 'call-1',
+            sender_id: 44,
+            reason: 'answered_elsewhere',
+        });
+
+        recipient.toEmit.mockClear();
+        harness.roomEmit.mockClear();
+
+        await harness.calls.acceptIntent(recipient.value, {
+            call_id: 'call-1',
+            recipient_id: 22,
+        });
+
+        expect(harness.store.get('call-1')?.status).toBe('accepted');
+        expect(harness.roomEmit).toHaveBeenCalledWith('user:22', 'call:accepted', {
+            call_id: 'call-1',
+            sender_id: 44,
+        });
+        expect(recipient.toEmit).not.toHaveBeenCalled();
+
+        harness.calls.replay(recipient.value);
+        expect(recipient.socketEmit).toHaveBeenCalledWith(
+            'call:state',
+            expect.objectContaining({
+                call: expect.objectContaining({ call_id: 'call-1' }),
+                status: 'accepted',
+            }),
+        );
+        expect(recipient.socketEmit).toHaveBeenCalledWith('call:accepted', {
+            call_id: 'call-1',
+            sender_id: 44,
+        });
     });
 });

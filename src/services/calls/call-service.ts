@@ -3,6 +3,7 @@ import type { Socket } from 'socket.io';
 import type { CallNotifications } from '../fcm/call-notifications';
 import type { CallAuthorizationProvider } from './call-authorization.provider';
 import type {
+    CallAcceptClientPayload,
     CallAnswerClientPayload,
     CallEndClientPayload,
     CallIceCandidateClientPayload,
@@ -104,6 +105,13 @@ export class CallService {
         if (call.status === 'pending') {
             if (call.expiresAt <= this.now()) return;
             if (!this.store.claim(call.callId, 'pending', 'accepted')) return;
+            console.log('[CALL] server state ringing -> accepted callId=' + call.callId);
+            const event = {
+                call_id: call.callId,
+                sender_id: socket.data.user.id,
+            };
+            this.io.to(`user:${call.callerId}`).emit('call:accepted', event);
+            this.io.to(`user:${call.recipientId}`).emit('call:accepted', event);
         } else if (call.status !== 'accepted') {
             return;
         }
@@ -137,6 +145,43 @@ export class CallService {
                 'answered_elsewhere',
             ),
         );
+    }
+
+    async acceptIntent(socket: RealtimeSocket, payload: CallAcceptClientPayload): Promise<void> {
+        const call = this.store.get(payload.call_id);
+        if (
+            !call ||
+            call.recipientId !== socket.data.user.id ||
+            call.callerId !== payload.recipient_id
+        ) {
+            return;
+        }
+
+        const alreadyAccepted = call.status === 'accepted';
+        if (call.status === 'pending') {
+            if (call.expiresAt <= this.now()) return;
+            if (!this.store.claim(call.callId, 'pending', 'accepted')) return;
+            console.log('[CALL] server state ringing -> accepted callId=' + call.callId);
+        } else if (alreadyAccepted) {
+            console.log('[CALL] ignoring duplicate accepted transition', { callId: call.callId });
+        } else {
+            return;
+        }
+
+        const event = {
+            call_id: call.callId,
+            sender_id: socket.data.user.id,
+        };
+        this.io.to(`user:${call.callerId}`).emit('call:accepted', event);
+        this.io.to(`user:${call.recipientId}`).emit('call:accepted', event);
+
+        if (!alreadyAccepted) {
+            socket.to(`user:${call.recipientId}`).emit('call:end', {
+                call_id: call.callId,
+                sender_id: socket.data.user.id,
+                reason: 'answered_elsewhere',
+            });
+        }
     }
 
     ice(socket: RealtimeSocket, payload: CallIceCandidateClientPayload): void {
@@ -240,6 +285,9 @@ export class CallService {
         }
 
         console.log('[CALL] accepted', { callId: call.callId, userId, source: 'http' });
+        const event = { call_id: call.callId, sender_id: userId };
+        this.io.to(`user:${call.callerId}`).emit('call:accepted', event);
+        this.io.to(`user:${call.recipientId}`).emit('call:accepted', event);
         this.io.to(`user:${call.recipientId}`).emit('call:end', {
             call_id: call.callId,
             sender_id: userId,
@@ -258,18 +306,21 @@ export class CallService {
     getRingingForRecipient(userId: number): {
         call: CallOfferServerPayload | null;
         pending_ice_candidates: CallStatePayload['pending_ice_candidates'];
+        status: CallStatePayload['status'];
     } {
         const call = this.store
             .findIncomingForRecipient(userId, this.now())
             .find((item) => item.offer);
 
         if (!call?.offer) {
-            return { call: null, pending_ice_candidates: [] };
+            return { call: null, pending_ice_candidates: [], status: 'idle' };
         }
 
+        const apiStatus = this.toApiStatus(call);
         return {
             call: this.toIncomingPayload(call),
             pending_ice_candidates: call.bufferedIce,
+            status: apiStatus === 'accepted' || apiStatus === 'active' ? 'accepted' : 'ringing',
         };
     }
 
@@ -297,18 +348,28 @@ export class CallService {
 
     replay(socket: RealtimeSocket): void {
         const ringing = this.getRingingForRecipient(socket.data.user.id);
+        const status = ringing.status;
+
         console.log('[CALL] receiver opened app', {
             userId: socket.data.user.id,
             callId: ringing.call?.call_id ?? null,
+            status,
         });
         socket.emit('call:state', {
             call: ringing.call,
             pending_ice_candidates: ringing.pending_ice_candidates,
-            status: ringing.call ? 'ringing' : 'idle',
+            status,
         });
 
         if (!ringing.call) {
             return;
+        }
+
+        if (status === 'accepted') {
+            socket.emit('call:accepted', {
+                call_id: ringing.call.call_id,
+                sender_id: socket.data.user.id,
+            });
         }
 
         socket.emit('call:offer', ringing.call);

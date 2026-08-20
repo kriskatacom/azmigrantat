@@ -69,6 +69,14 @@ export function registerCallEvents(socket: RealtimeSocket, calls: CallService): 
         await calls.answer(socket, { ...payload, call_id: payload.call_id.trim() });
     });
 
+    socket.on('call:accept', async (payload) => {
+        if (!hasValidRecipientAndCall(payload)) {
+            return;
+        }
+
+        await calls.acceptIntent(socket, { ...payload, call_id: payload.call_id.trim() });
+    });
+
     socket.on('call:ice-candidate', (payload) => {
         if (!hasValidRecipientAndCall(payload) || !isValidCandidate(payload.candidate)) {
             return;

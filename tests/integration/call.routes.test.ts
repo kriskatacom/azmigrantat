@@ -69,6 +69,7 @@ describe('call routes', () => {
                 pending_ice_candidates: [
                     { candidate: 'candidate:1', sdpMid: '0', sdpMLineIndex: 0 },
                 ],
+                status: 'ringing',
             }),
         });
 
@@ -81,6 +82,7 @@ describe('call routes', () => {
             success: true,
             call,
             pending_ice_candidates: [{ candidate: 'candidate:1', sdpMid: '0', sdpMLineIndex: 0 }],
+            status: 'ringing',
         });
     });
 

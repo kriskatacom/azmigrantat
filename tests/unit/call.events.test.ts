@@ -10,6 +10,7 @@ function createHarness() {
     const calls = {
         offer: vi.fn(),
         answer: vi.fn(),
+        acceptIntent: vi.fn(),
         ice: vi.fn(),
         end: vi.fn(),
         replay: vi.fn(),
@@ -35,6 +36,7 @@ describe('registerCallEvents', () => {
         expect([...harness.handlers.keys()]).toEqual([
             'call:offer',
             'call:answer',
+            'call:accept',
             'call:ice-candidate',
             'call:end',
             'call:sync',
@@ -53,6 +55,17 @@ describe('registerCallEvents', () => {
         expect(harness.calls.offer).toHaveBeenCalledWith(harness.socket, {
             ...payload,
             call_id: 'call-1',
+        });
+    });
+
+    it('предава call:accept към call service', async () => {
+        await harness.handlers.get('call:accept')?.({
+            call_id: ' call-1 ',
+            recipient_id: 23,
+        });
+        expect(harness.calls.acceptIntent).toHaveBeenCalledWith(harness.socket, {
+            call_id: 'call-1',
+            recipient_id: 23,
         });
     });
 

@@ -44,6 +44,7 @@ export function registerCallRoutes(app: Express, calls: CallService): void {
             success: true,
             call: ringing.call,
             pending_ice_candidates: ringing.pending_ice_candidates,
+            status: ringing.status,
         });
     });
 
