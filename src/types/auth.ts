@@ -51,6 +51,13 @@ export interface RegisterPayload {
   passwordConfirmation: string;
 }
 
+export interface ResetPasswordPayload {
+  email: string;
+  code: string;
+  password: string;
+  passwordConfirmation: string;
+}
+
 export interface AuthResponse {
   token: string;
   refreshToken: string | null;

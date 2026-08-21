@@ -1,4 +1,5 @@
 import { useAppTheme } from "@/app/_layout";
+import AuthLegalLinks from "@/components/auth/auth-legal-links";
 import GoogleLoginButton from "@/components/auth/google-login-button";
 import AppButton from "@/components/ui/AppButton";
 import AppInput from "@/components/ui/AppInput";
@@ -140,13 +141,23 @@ export default function LoginScreen() {
               onSubmitEditing={handleLogin}
             />
 
-            <TouchableOpacity style={styles.forgotButton}>
-              <Text
-                style={[styles.forgotText, { color: theme.colors.primary }]}
-              >
-                Забравена парола?
-              </Text>
-            </TouchableOpacity>
+            <Link
+              href={{
+                pathname: "/(auth)/forgot-password",
+                params: email.trim()
+                  ? { email: email.trim().toLowerCase() }
+                  : {},
+              }}
+              asChild
+            >
+              <TouchableOpacity style={styles.forgotButton}>
+                <Text
+                  style={[styles.forgotText, { color: theme.colors.primary }]}
+                >
+                  Забравена парола?
+                </Text>
+              </TouchableOpacity>
+            </Link>
 
             <AppButton
               title="Вход"
@@ -188,6 +199,8 @@ export default function LoginScreen() {
               </Link>
             </View>
           </View>
+
+          <AuthLegalLinks />
         </ScrollView>
       </Animated.View>
     </KeyboardAvoidingView>

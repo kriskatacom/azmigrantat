@@ -5,6 +5,7 @@ import type {
   DeleteChatMessagesPayload,
   LoginPayload,
   RegisterPayload,
+  ResetPasswordPayload,
   UpdateProfilePayload,
 } from "@/types/auth";
 
@@ -15,6 +16,19 @@ interface ApiErrorResponse {
   success?: false;
   message?: string;
   errors?: Record<string, string[]>;
+  retry_after?: number;
+}
+
+export class ApiError extends Error {
+  readonly status: number;
+  readonly retryAfter: number | null;
+
+  constructor(message: string, status: number, retryAfter: number | null = null) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.retryAfter = retryAfter;
+  }
 }
 
 interface MobileAuthResponse {
@@ -74,9 +88,13 @@ async function request<T>(
 
   if (!response.ok) {
     const errorData = data as ApiErrorResponse;
+    const retryAfter =
+      typeof errorData.retry_after === "number" ? errorData.retry_after : null;
 
-    throw new Error(
+    throw new ApiError(
       errorData.message ?? "Възникна грешка при комуникацията със сървъра.",
+      response.status,
+      retryAfter,
     );
   }
 
@@ -124,6 +142,43 @@ export async function registerRequest(
     expiresIn: response.expires_in,
     user: response.user,
   };
+}
+
+export async function forgotPasswordRequest(
+  email: string,
+): Promise<{ message: string }> {
+  const response = await request<{ success: true; message: string }>(
+    "/api/mobile/password/forgot",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        client_id: CLIENT_ID,
+        email: email.trim().toLowerCase(),
+      }),
+    },
+  );
+
+  return { message: response.message };
+}
+
+export async function resetPasswordRequest(
+  payload: ResetPasswordPayload,
+): Promise<{ message: string }> {
+  const response = await request<{ success: true; message: string }>(
+    "/api/mobile/password/reset",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        client_id: CLIENT_ID,
+        email: payload.email.trim().toLowerCase(),
+        code: payload.code.replace(/\D/g, ""),
+        password: payload.password,
+        passwordConfirmation: payload.passwordConfirmation,
+      }),
+    },
+  );
+
+  return { message: response.message };
 }
 
 export async function googleLoginRequest(

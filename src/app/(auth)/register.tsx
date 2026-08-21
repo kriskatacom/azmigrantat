@@ -1,4 +1,5 @@
 import { useAppTheme } from "@/app/_layout";
+import AuthLegalLinks from "@/components/auth/auth-legal-links";
 import GoogleLoginButton from "@/components/auth/google-login-button";
 import AppButton from "@/components/ui/AppButton";
 import AppInput from "@/components/ui/AppInput";
@@ -240,6 +241,8 @@ export default function RegisterScreen() {
               </Link>
             </View>
           </View>
+
+          <AuthLegalLinks preface="Създавайки профил, приемате" />
         </ScrollView>
       </Animated.View>
     </KeyboardAvoidingView>

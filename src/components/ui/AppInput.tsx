@@ -47,6 +47,12 @@ const AppInput = forwardRef<TextInput, AppInputProps>(
             style={[styles.input, { color: theme.colors.text }, style]}
             placeholderTextColor={theme.colors.placeholder}
             secureTextEntry={isPassword ? !passwordVisible : secureTextEntry}
+            importantForAutofill={
+              props.importantForAutofill
+              ?? (props.autoComplete === "one-time-code" || props.autoComplete === "sms-otp"
+                ? "yes"
+                : undefined)
+            }
           />
 
           {isPassword && (

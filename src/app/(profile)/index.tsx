@@ -6,6 +6,7 @@ import PasswordForm from "@/components/profile/password-form";
 import PhoneVerificationForm from "@/components/profile/phone-verification-form";
 import ProfileDetailsForm from "@/components/profile/profile-details-form";
 import ProfileIdentityCard from "@/components/profile/profile-identity-card";
+import { PRIVACY_URL, TERMS_URL } from "@/constants/legal";
 import { useAuth } from "@/hooks/useAuth";
 import {
   changePasswordRequest,
@@ -30,9 +31,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
-const TERMS_URL = "https://example.com/terms";
-const PRIVACY_URL = "https://example.com/privacy";
 
 export default function ProfileHomeScreen() {
   const { theme } = useAppTheme();
