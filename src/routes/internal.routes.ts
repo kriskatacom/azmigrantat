@@ -172,6 +172,188 @@ export function registerInternalRoutes(app: Express, io: RealtimeServer): void {
         });
     });
 
+    app.post('/internal/events/message-delivered', async (request, response) => {
+        const providedSecret = request.header('X-Internal-Secret');
+
+        if (!providedSecret || providedSecret !== config.internalApiSecret) {
+            response.status(401).json({
+                success: false,
+                message: 'Невалиден вътрешен ключ.',
+            });
+
+            return;
+        }
+
+        const {
+            recipient_ids,
+            conversation_id,
+            recipient_id,
+            last_delivered_message_id,
+            delivered_at,
+        } = request.body as {
+            recipient_ids?: unknown;
+            conversation_id?: unknown;
+            recipient_id?: unknown;
+            last_delivered_message_id?: unknown;
+            delivered_at?: unknown;
+        };
+
+        if (
+            !Array.isArray(recipient_ids) ||
+            typeof conversation_id !== 'number' ||
+            typeof recipient_id !== 'number' ||
+            typeof last_delivered_message_id !== 'number' ||
+            typeof delivered_at !== 'string'
+        ) {
+            response.status(422).json({
+                success: false,
+                message: 'Невалидни данни за получено съобщение.',
+            });
+
+            return;
+        }
+
+        const recipientIds = [
+            ...new Set(recipient_ids.filter((id): id is number => Number.isInteger(id) && id > 0)),
+        ];
+
+        if (recipientIds.length === 0) {
+            response.status(422).json({
+                success: false,
+                message: 'Няма валидни получатели.',
+            });
+
+            return;
+        }
+
+        const payload = {
+            conversation_id,
+            recipient_id,
+            last_delivered_message_id,
+            delivered_at,
+        };
+
+        let connectedRecipients = 0;
+        let deliveredSockets = 0;
+
+        for (const targetUserId of recipientIds) {
+            const room = `user:${targetUserId}`;
+            const sockets = await io.in(room).fetchSockets();
+
+            if (sockets.length > 0) {
+                connectedRecipients += 1;
+                deliveredSockets += sockets.length;
+            }
+
+            io.to(room).emit('message:delivered', payload);
+        }
+
+        console.log(
+            `message:delivered conversation ${conversation_id} → ${recipientIds.join(', ')}`,
+        );
+
+        response.json({
+            success: true,
+            recipient_count: recipientIds.length,
+            connected_recipient_count: connectedRecipients,
+            delivered_socket_count: deliveredSockets,
+        });
+    });
+
+    app.post('/internal/events/message-reaction', async (request, response) => {
+        const providedSecret = request.header('X-Internal-Secret');
+
+        if (!providedSecret || providedSecret !== config.internalApiSecret) {
+            response.status(401).json({
+                success: false,
+                message: 'Невалиден вътрешен ключ.',
+            });
+
+            return;
+        }
+
+        const { recipient_ids, conversation_id, message_id, user_id, type, items } =
+            request.body as {
+                recipient_ids?: unknown;
+                conversation_id?: unknown;
+                message_id?: unknown;
+                user_id?: unknown;
+                type?: unknown;
+                items?: unknown;
+            };
+
+        const normalizedItems = Array.isArray(items)
+            ? items.filter(
+                  (item): item is { type: string; count: number } =>
+                      Boolean(item) &&
+                      typeof item === 'object' &&
+                      typeof (item as { type?: unknown }).type === 'string' &&
+                      typeof (item as { count?: unknown }).count === 'number',
+              )
+            : null;
+
+        if (
+            !Array.isArray(recipient_ids) ||
+            typeof conversation_id !== 'number' ||
+            typeof message_id !== 'number' ||
+            typeof user_id !== 'number' ||
+            !(typeof type === 'string' || type === null) ||
+            normalizedItems === null
+        ) {
+            response.status(422).json({
+                success: false,
+                message: 'Невалидни данни за реакция.',
+            });
+
+            return;
+        }
+
+        const recipientIds = [
+            ...new Set(recipient_ids.filter((id): id is number => Number.isInteger(id) && id > 0)),
+        ];
+
+        if (recipientIds.length === 0) {
+            response.status(422).json({
+                success: false,
+                message: 'Няма валидни получатели.',
+            });
+
+            return;
+        }
+
+        const payload = {
+            conversation_id,
+            message_id,
+            user_id,
+            type,
+            items: normalizedItems,
+        };
+
+        let connectedRecipients = 0;
+        let deliveredSockets = 0;
+
+        for (const targetUserId of recipientIds) {
+            const room = `user:${targetUserId}`;
+            const sockets = await io.in(room).fetchSockets();
+
+            if (sockets.length > 0) {
+                connectedRecipients += 1;
+                deliveredSockets += sockets.length;
+            }
+
+            io.to(room).emit('message:reaction', payload);
+        }
+
+        console.log(`message:reaction ${message_id} → ${recipientIds.join(', ')}`);
+
+        response.json({
+            success: true,
+            recipient_count: recipientIds.length,
+            connected_recipient_count: connectedRecipients,
+            delivered_socket_count: deliveredSockets,
+        });
+    });
+
     app.post('/internal/events/notification', async (request, response) => {
         const providedSecret = request.header('X-Internal-Secret');
 

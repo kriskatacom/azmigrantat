@@ -455,6 +455,239 @@ describe('internal routes', () => {
         });
     });
 
+    describe('POST /internal/events/message-delivered', () => {
+        const validPayload = {
+            recipient_ids: [10, 20],
+            conversation_id: 50,
+            recipient_id: 5,
+            last_delivered_message_id: 500,
+            delivered_at: '2026-08-08T10:30:00.000Z',
+        };
+
+        it('връща 401 при липсващ вътрешен ключ', async () => {
+            const { app, emit } = createTestApp();
+
+            const response = await request(app)
+                .post('/internal/events/message-delivered')
+                .send(validPayload);
+
+            expect(response.status).toBe(401);
+            expect(response.body).toEqual({
+                success: false,
+                message: 'Невалиден вътрешен ключ.',
+            });
+
+            expect(emit).not.toHaveBeenCalled();
+        });
+
+        it('връща 401 при неправилен вътрешен ключ', async () => {
+            const { app } = createTestApp();
+
+            const response = await request(app)
+                .post('/internal/events/message-delivered')
+                .set('X-Internal-Secret', 'wrong-secret')
+                .send(validPayload);
+
+            expect(response.status).toBe(401);
+            expect(response.body.message).toBe('Невалиден вътрешен ключ.');
+        });
+
+        it.each([
+            [
+                'невалидни recipient IDs',
+                {
+                    ...validPayload,
+                    recipient_ids: 'invalid',
+                },
+            ],
+            [
+                'невалиден conversation ID',
+                {
+                    ...validPayload,
+                    conversation_id: '50',
+                },
+            ],
+            [
+                'невалиден recipient ID',
+                {
+                    ...validPayload,
+                    recipient_id: '5',
+                },
+            ],
+            [
+                'невалиден last delivered message ID',
+                {
+                    ...validPayload,
+                    last_delivered_message_id: '500',
+                },
+            ],
+            [
+                'невалидна delivered дата',
+                {
+                    ...validPayload,
+                    delivered_at: null,
+                },
+            ],
+        ])('връща 422 при %s', async (_scenario, payload) => {
+            const { app } = createTestApp();
+
+            const response = await request(app)
+                .post('/internal/events/message-delivered')
+                .set('X-Internal-Secret', 'test-internal-secret')
+                .send(payload);
+
+            expect(response.status).toBe(422);
+            expect(response.body).toEqual({
+                success: false,
+                message: 'Невалидни данни за получено съобщение.',
+            });
+        });
+
+        it('връща 422, когато няма валидни получатели', async () => {
+            const { app, emit } = createTestApp();
+
+            const response = await request(app)
+                .post('/internal/events/message-delivered')
+                .set('X-Internal-Secret', 'test-internal-secret')
+                .send({
+                    ...validPayload,
+                    recipient_ids: [0, -1, 1.5, 'invalid'],
+                });
+
+            expect(response.status).toBe(422);
+            expect(response.body).toEqual({
+                success: false,
+                message: 'Няма валидни получатели.',
+            });
+
+            expect(emit).not.toHaveBeenCalled();
+        });
+
+        it('изпраща message:delivered към уникалните валидни получатели', async () => {
+            const { app, emit } = createTestApp({
+                'user:10': 1,
+                'user:20': 3,
+                'user:30': 0,
+            });
+
+            const response = await request(app)
+                .post('/internal/events/message-delivered')
+                .set('X-Internal-Secret', 'test-internal-secret')
+                .send({
+                    ...validPayload,
+                    recipient_ids: [10, 20, 10, 30, -5],
+                });
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual({
+                success: true,
+                recipient_count: 3,
+                connected_recipient_count: 2,
+                delivered_socket_count: 4,
+            });
+
+            const expectedEventPayload = {
+                conversation_id: 50,
+                recipient_id: 5,
+                last_delivered_message_id: 500,
+                delivered_at: '2026-08-08T10:30:00.000Z',
+            };
+
+            expect(emit).toHaveBeenCalledTimes(3);
+
+            expect(emit).toHaveBeenNthCalledWith(
+                1,
+                'user:10',
+                'message:delivered',
+                expectedEventPayload,
+            );
+            expect(emit).toHaveBeenNthCalledWith(
+                2,
+                'user:20',
+                'message:delivered',
+                expectedEventPayload,
+            );
+            expect(emit).toHaveBeenNthCalledWith(
+                3,
+                'user:30',
+                'message:delivered',
+                expectedEventPayload,
+            );
+        });
+    });
+
+    describe('POST /internal/events/message-reaction', () => {
+        const validPayload = {
+            recipient_ids: [10, 20],
+            conversation_id: 50,
+            message_id: 500,
+            user_id: 5,
+            type: 'heart',
+            items: [{ type: 'heart', count: 1 }],
+        };
+
+        it('връща 401 при липсващ вътрешен ключ', async () => {
+            const { app, emit } = createTestApp();
+
+            const response = await request(app)
+                .post('/internal/events/message-reaction')
+                .send(validPayload);
+
+            expect(response.status).toBe(401);
+            expect(emit).not.toHaveBeenCalled();
+        });
+
+        it('връща 422 при невалидни данни', async () => {
+            const { app } = createTestApp();
+
+            const response = await request(app)
+                .post('/internal/events/message-reaction')
+                .set('X-Internal-Secret', 'test-internal-secret')
+                .send({
+                    ...validPayload,
+                    type: 12,
+                });
+
+            expect(response.status).toBe(422);
+            expect(response.body.message).toBe('Невалидни данни за реакция.');
+        });
+
+        it('изпраща message:reaction към получателите', async () => {
+            const { app, emit } = createTestApp({
+                'user:10': 1,
+                'user:20': 0,
+            });
+
+            const response = await request(app)
+                .post('/internal/events/message-reaction')
+                .set('X-Internal-Secret', 'test-internal-secret')
+                .send(validPayload);
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual({
+                success: true,
+                recipient_count: 2,
+                connected_recipient_count: 1,
+                delivered_socket_count: 1,
+            });
+
+            expect(emit).toHaveBeenNthCalledWith(1, 'user:10', 'message:reaction', {
+                conversation_id: 50,
+                message_id: 500,
+                user_id: 5,
+                type: 'heart',
+                items: [{ type: 'heart', count: 1 }],
+            });
+            expect(emit).toHaveBeenNthCalledWith(2, 'user:20', 'message:reaction', {
+                conversation_id: 50,
+                message_id: 500,
+                user_id: 5,
+                type: 'heart',
+                items: [{ type: 'heart', count: 1 }],
+            });
+        });
+    });
+
     describe('POST /internal/events/notification', () => {
         const notification = {
             id: 9,

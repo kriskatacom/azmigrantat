@@ -15,6 +15,8 @@ export interface RealtimeMessage {
     read_at: string | null;
     edited_at: string | null;
     created_at: string | null;
+    mine_reaction?: string | null;
+    reactions?: Array<{ type: string; count: number; reacted?: boolean }>;
     sender: AuthenticatedUser | null;
 }
 
@@ -32,7 +34,9 @@ export interface ServerToClientEvents {
     'connection:ready': (payload: { user: AuthenticatedUser; socketId: string }) => void;
 
     'message:new': (message: RealtimeMessage) => void;
+    'message:delivered': (payload: MessageDeliveredPayload) => void;
     'message:read': (payload: MessageReadPayload) => void;
+    'message:reaction': (payload: MessageReactionPayload) => void;
     'typing:update': (payload: TypingPayload) => void;
 
     'presence:update': (payload: PresencePayload) => void;
@@ -92,6 +96,29 @@ export interface MessageReadPayload {
 }
 
 export interface MessageReadEventPayload extends MessageReadPayload {
+    recipient_ids: number[];
+}
+
+export interface MessageDeliveredPayload {
+    conversation_id: number;
+    recipient_id: number;
+    last_delivered_message_id: number;
+    delivered_at: string;
+}
+
+export interface MessageDeliveredEventPayload extends MessageDeliveredPayload {
+    recipient_ids: number[];
+}
+
+export interface MessageReactionPayload {
+    conversation_id: number;
+    message_id: number;
+    user_id: number;
+    type: string | null;
+    items: Array<{ type: string; count: number }>;
+}
+
+export interface MessageReactionEventPayload extends MessageReactionPayload {
     recipient_ids: number[];
 }
 
