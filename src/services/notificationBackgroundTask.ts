@@ -45,6 +45,7 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
           callerId: nestedPayload.caller_id,
           callerName: nestedPayload.caller_name,
           callerAvatar: nestedPayload.caller_avatar,
+          callType: nestedPayload.call_type,
         });
         return;
       }
@@ -59,6 +60,7 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
         callerId: payload.caller_id,
         callerName: payload.caller_name,
         callerAvatar: payload.caller_avatar,
+        callType: payload.call_type,
       });
       return;
     }

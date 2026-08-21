@@ -319,6 +319,8 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       params: {
         userId: String(call.sender_id),
         name: call.caller_name ?? "Потребител",
+        image: call.caller_avatar ?? "",
+        callType: call.call_type === "audio" ? "audio" : "video",
         direction: "incoming",
       },
     });
@@ -777,6 +779,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
         callerId: call.sender_id,
         callerName: call.caller_name,
         callerAvatar: call.caller_avatar,
+        callType: call.call_type,
       });
     });
 
@@ -806,6 +809,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
         callerId: call.sender_id,
         callerName: call.caller_name,
         callerAvatar: call.caller_avatar,
+        callType: call.call_type,
       });
       return;
     }
@@ -1033,6 +1037,8 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       params: {
         userId: String(accepted.call.sender_id),
         name: accepted.call.caller_name ?? "Потребител",
+        image: accepted.call.caller_avatar ?? "",
+        callType: accepted.call.call_type === "audio" ? "audio" : "video",
         direction: "incoming",
       },
     });
@@ -1094,6 +1100,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
           connecting={false}
           callerName={incomingCall?.caller_name}
           callerImage={incomingCall?.caller_avatar}
+          callType={incomingCall?.call_type === "audio" ? "audio" : "video"}
           onAccept={() => {
             if (incomingCall) {
               applyCallState(incomingCall.call_id, "accepted");

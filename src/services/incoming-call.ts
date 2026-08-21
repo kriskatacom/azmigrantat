@@ -11,7 +11,8 @@ import {
   subscribeIncomingCallLaunchNative,
 } from "../../modules/incoming-call";
 
-import type { CallServerPayload } from "@/services/video-call";
+import type { CallServerPayload, CallType } from "@/services/video-call";
+import { parseCallType } from "@/services/video-call";
 
 export const INCOMING_CALL_CATEGORY = "incoming_call";
 export const INCOMING_CALL_CHANNEL = "incoming_calls";
@@ -26,7 +27,7 @@ export type IncomingCallPushData = {
   caller_id: number;
   caller_name?: string;
   caller_avatar?: string | null;
-  call_type?: "video";
+  call_type?: CallType;
   timestamp?: number;
   reason?: string;
 };
@@ -116,7 +117,7 @@ export function parseIncomingCallData(
     caller_id: callerId > 0 ? callerId : 0,
     caller_name: asString(record.caller_name),
     caller_avatar: asString(record.caller_avatar) ?? null,
-    call_type: "video",
+    call_type: parseCallType(record.call_type),
     timestamp: asNumber(record.timestamp),
     reason: asString(record.reason),
   };
@@ -144,6 +145,7 @@ export function parseIncomingCallUrl(
     const callerId = Number(parsed.searchParams.get("callerId")) || 0;
     const callerName = parsed.searchParams.get("callerName") ?? undefined;
     const callerAvatar = parsed.searchParams.get("callerAvatar");
+    const callType = parseCallType(parsed.searchParams.get("callType"));
 
     if (!callId) {
       return null;
@@ -165,7 +167,7 @@ export function parseIncomingCallUrl(
         caller_id: callerId,
         caller_name: callerName,
         caller_avatar: callerAvatar,
-        call_type: "video",
+        call_type: callType,
       },
     };
   } catch {
@@ -231,7 +233,7 @@ export function toIncomingCallPayload(
     sender_id: meta.caller_id,
     caller_name: meta.caller_name,
     caller_avatar: meta.caller_avatar,
-    call_type: "video",
+    call_type: parseCallType(meta.call_type),
     timestamp: meta.timestamp,
     ...extras,
   };
@@ -277,14 +279,21 @@ export async function presentIncomingCallAlert(options: {
   callerId: number;
   callerName?: string | null;
   callerAvatar?: string | null;
+  callType?: CallType;
 }): Promise<void> {
+  const callType = parseCallType(options.callType);
+  const body =
+    callType === "audio"
+      ? "Входящо аудио обаждане"
+      : "Входящо видео обаждане";
+
   if (Platform.OS === "android") {
     await displayIncomingCallNative({
       callId: options.callId,
       callerId: options.callerId,
       callerName: options.callerName?.trim() || "Потребител",
       callerAvatar: options.callerAvatar,
-      callType: "video",
+      callType,
     });
     return;
   }
@@ -293,7 +302,7 @@ export async function presentIncomingCallAlert(options: {
     identifier: incomingCallNotificationId(options.callId),
     content: {
       title: options.callerName?.trim() || "Потребител",
-      body: "Входящо видео обаждане",
+      body,
       sound: "incoming_call.wav",
       categoryIdentifier: INCOMING_CALL_CATEGORY,
       interruptionLevel: "timeSensitive",
@@ -303,7 +312,7 @@ export async function presentIncomingCallAlert(options: {
         caller_id: options.callerId,
         caller_name: options.callerName,
         caller_avatar: options.callerAvatar,
-        call_type: "video",
+        call_type: callType,
         timestamp: Date.now(),
       },
     },
@@ -389,6 +398,7 @@ function toPendingNativeLaunch(
     callerId?: number;
     callerName?: string | null;
     callerAvatar?: string | null;
+    callType?: string | null;
     timestamp?: number | null;
   } | null,
 ): PendingIncomingCallAction | null {
@@ -414,7 +424,7 @@ function toPendingNativeLaunch(
       caller_id: Number(launch.callerId) || 0,
       caller_name: launch.callerName ?? undefined,
       caller_avatar: launch.callerAvatar ?? null,
-      call_type: "video",
+      call_type: parseCallType(launch.callType),
       timestamp: launch.timestamp ? Number(launch.timestamp) : undefined,
     },
   };

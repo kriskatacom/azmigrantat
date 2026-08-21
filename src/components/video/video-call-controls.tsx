@@ -59,6 +59,9 @@ export default function VideoCallControls({
           <TouchableOpacity
             style={[styles.button, styles.secondaryButton]}
             onPress={onToggleCamera}
+            accessibilityLabel={
+              isCameraEnabled ? "Изключи камерата" : "Включи камерата"
+            }
           >
             <Ionicons
               name={isCameraEnabled ? "videocam" : "videocam-off"}
@@ -67,12 +70,15 @@ export default function VideoCallControls({
             />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.button, styles.secondaryButton]}
-            onPress={onSwitchCamera}
-          >
-            <Ionicons name="camera-reverse" size={26} color="#fff" />
-          </TouchableOpacity>
+          {isCameraEnabled ? (
+            <TouchableOpacity
+              style={[styles.button, styles.secondaryButton]}
+              onPress={onSwitchCamera}
+              accessibilityLabel="Смени камерата"
+            >
+              <Ionicons name="camera-reverse" size={26} color="#fff" />
+            </TouchableOpacity>
+          ) : null}
 
           <TouchableOpacity
             style={[styles.button, styles.endButton]}

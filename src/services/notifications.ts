@@ -3,6 +3,11 @@ import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
 import { setupIncomingCallNotifications } from "@/services/incoming-call";
+import {
+  MISSED_CALL_CALLBACK_ACTION,
+  MISSED_CALL_CATEGORY,
+  MISSED_CALL_OPEN_CHAT_ACTION,
+} from "@/types/notifications";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -17,6 +22,23 @@ export async function registerForPushNotifications(
   }
 
   await setupIncomingCallNotifications();
+
+  await Notifications.setNotificationCategoryAsync(MISSED_CALL_CATEGORY, [
+    {
+      identifier: MISSED_CALL_CALLBACK_ACTION,
+      buttonTitle: "Обади се",
+      options: {
+        opensAppToForeground: true,
+      },
+    },
+    {
+      identifier: MISSED_CALL_OPEN_CHAT_ACTION,
+      buttonTitle: "Към чата",
+      options: {
+        opensAppToForeground: true,
+      },
+    },
+  ]);
 
   const permissions = await Notifications.getPermissionsAsync();
 

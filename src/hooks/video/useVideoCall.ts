@@ -15,13 +15,16 @@ import type {
   CallIceCandidate,
   CallServerPayload,
   CallState,
+  CallType,
 } from "@/services/video-call";
+import { parseCallType } from "@/services/video-call";
 
 export type { CallState } from "@/services/video-call";
 
 type Options = {
   recipientId: number;
   currentUserId?: number;
+  callType?: CallType;
   acceptedIncomingCall?: CallServerPayload | null;
   pendingIncomingIceCandidates?: CallIceCandidate[];
   onIncomingCallAccepted?: (callId: string) => void;
@@ -93,6 +96,7 @@ function stateForReason(reason?: CallEndReason): CallState {
 export function useVideoCall({
   recipientId,
   currentUserId,
+  callType = "video",
   acceptedIncomingCall,
   pendingIncomingIceCandidates = [],
   onIncomingCallAccepted,
@@ -105,7 +109,10 @@ export function useVideoCall({
   const [callState, setCallState] = useState<CallState>("idle");
   const [callDurationSeconds, setCallDurationSeconds] = useState(0);
   const [isMicrophoneEnabled, setIsMicrophoneEnabled] = useState(true);
-  const [isCameraEnabled, setIsCameraEnabled] = useState(true);
+  const [isCameraEnabled, setIsCameraEnabled] = useState(callType !== "audio");
+  const [isRemoteCameraEnabled, setIsRemoteCameraEnabled] = useState(
+    callType !== "audio",
+  );
 
   const peerRef = useRef<RTCPeerConnection | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
@@ -125,11 +132,20 @@ export function useVideoCall({
   const connectionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const durationRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const callTypeRef = useRef<CallType>(parseCallType(callType));
 
   const changeState = useCallback((value: CallState) => {
     stateRef.current = value;
     if (mountedRef.current) setCallState(value);
   }, []);
+  useEffect(() => {
+    callTypeRef.current = parseCallType(callType);
+    if (stateRef.current === "idle") {
+      const cameraOn = callTypeRef.current === "video";
+      setIsCameraEnabled(cameraOn);
+      setIsRemoteCameraEnabled(cameraOn);
+    }
+  }, [callType]);
   const changeIncoming = useCallback((value: CallServerPayload | null) => {
     incomingRef.current = value;
     if (mountedRef.current) setIncomingCall(value);
@@ -182,7 +198,8 @@ export function useVideoCall({
         setRemoteStream(null);
         setCallDurationSeconds(0);
         setIsMicrophoneEnabled(true);
-        setIsCameraEnabled(true);
+        setIsCameraEnabled(callTypeRef.current === "video");
+        setIsRemoteCameraEnabled(callTypeRef.current === "video");
       }
       return true;
     },
@@ -221,6 +238,19 @@ export function useVideoCall({
     },
     [],
   );
+
+  const emitCameraState = useCallback((enabled: boolean) => {
+    const callId = callIdRef.current;
+    const targetId = targetIdRef.current;
+    const socket = getSocket();
+    if (!callId || !targetId || !socket?.connected) return;
+    console.log("[CALL] emit camera-state", { callId, targetId, enabled });
+    socket.emit("call:camera-state", {
+      call_id: callId,
+      recipient_id: targetId,
+      enabled,
+    });
+  }, []);
 
   const startConnectionTimeout = useCallback(
     (callId: string, targetId: number) => {
@@ -273,13 +303,29 @@ export function useVideoCall({
         throw new Error("Разговорът беше прекратен.");
       }
       stream.getTracks().forEach((track) => peer.addTrack(track, stream));
+      const enableCamera = callTypeRef.current === "video";
+      stream.getVideoTracks().forEach((track) => {
+        track.enabled = enableCamera;
+      });
+      if (mountedRef.current) {
+        setIsCameraEnabled(enableCamera);
+        setIsMicrophoneEnabled(true);
+      }
 
-      peer.ontrack = (event: { streams?: MediaStream[] }) => {
+      peer.ontrack = (event: { streams?: MediaStream[]; track?: MediaStreamTrack }) => {
         if (peerRef.current !== peer || callIdRef.current !== callId) return;
         const streamValue = event.streams?.[0];
         if (!streamValue) return;
         remoteStreamRef.current = streamValue;
         setRemoteStream((current) => current?.id === streamValue.id ? current : streamValue);
+        const videoTrack = event.track?.kind === "video"
+          ? event.track
+          : streamValue.getVideoTracks()[0];
+        if (!videoTrack) return;
+        const handleEnded = () => {
+          if (callIdRef.current === callId) setIsRemoteCameraEnabled(false);
+        };
+        videoTrack.addEventListener("ended", handleEnded);
       };
       peer.onicecandidate = (event: IceEvent) => {
         if (!event.candidate || callIdRef.current !== callId) return;
@@ -301,6 +347,8 @@ export function useVideoCall({
           changeState("connected");
           setCallDurationSeconds(0);
           clearDuration();
+          const videoSender = peer.getSenders().find((sender) => sender.track?.kind === "video");
+          emitCameraState(Boolean(videoSender?.track?.enabled));
           durationRef.current = setInterval(() => {
             if (callIdRef.current === callId && stateRef.current === "connected") {
               setCallDurationSeconds((value) => value + 1);
@@ -313,7 +361,7 @@ export function useVideoCall({
       };
       return peer;
     },
-    [changeState, clearConnection, clearDuration, clearNoAnswer, emitEnd, finish, startCamera],
+    [changeState, clearConnection, clearDuration, clearNoAnswer, emitCameraState, emitEnd, finish, startCamera],
   );
 
   const startCall = useCallback(async () => {
@@ -337,6 +385,7 @@ export function useVideoCall({
     }
     callIdRef.current = callId;
     targetIdRef.current = recipientId;
+    callTypeRef.current = parseCallType(callType);
     changeState("calling");
     try {
       const peer = await createPeer(recipientId, callId);
@@ -349,6 +398,7 @@ export function useVideoCall({
       socket.emit("call:offer", {
         call_id: callId,
         recipient_id: recipientId,
+        call_type: callTypeRef.current,
         description: { type: "offer", sdp: offer.sdp },
       });
       startingRef.current = false;
@@ -367,7 +417,7 @@ export function useVideoCall({
       }
       throw error;
     }
-  }, [changeState, claimActiveCall, clearReset, createPeer, emitEnd, finish, recipientId]);
+  }, [callType, changeState, claimActiveCall, clearReset, createPeer, emitEnd, finish, recipientId]);
 
   const acceptCall = useCallback(async () => {
     const socket = getSocket();
@@ -383,6 +433,7 @@ export function useVideoCall({
     generationRef.current += 1;
     callIdRef.current = call.call_id;
     targetIdRef.current = call.sender_id;
+    callTypeRef.current = parseCallType(call.call_type);
     changeState("connecting");
     changeIncoming(null);
     try {
@@ -557,20 +608,37 @@ export function useVideoCall({
     };
     const onAccepted = (payload: CallServerPayload) => {
       console.log("[CALL] received call:accepted callId=" + payload.call_id);
+      if (payload.call_id === callIdRef.current && localStream) {
+        const enabled = localStream.getVideoTracks().some((track) => track.enabled);
+        emitCameraState(enabled);
+      }
+    };
+    const onCameraState = (payload: CallServerPayload) => {
+      if (payload.call_id !== callIdRef.current) return;
+      if (currentUserId !== undefined && Number(payload.sender_id) === currentUserId) return;
+      if (typeof payload.enabled !== "boolean") return;
+      console.log("[CALL] received camera-state", {
+        callId: payload.call_id,
+        senderId: payload.sender_id,
+        enabled: payload.enabled,
+      });
+      setIsRemoteCameraEnabled(payload.enabled);
     };
     socket.on("call:answer", onAnswer);
     socket.on("call:accepted", onAccepted);
     socket.on("call:ice-candidate", onCandidate);
+    socket.on("call:camera-state", onCameraState);
     socket.on("call:end", onEnd);
     socket.on("disconnect", onDisconnect);
     return () => {
       socket.off("call:answer", onAnswer);
       socket.off("call:accepted", onAccepted);
       socket.off("call:ice-candidate", onCandidate);
+      socket.off("call:camera-state", onCameraState);
       socket.off("call:end", onEnd);
       socket.off("disconnect", onDisconnect);
     };
-  }, [changeState, clearNoAnswer, currentUserId, emitEnd, finish, flushCandidates, startConnectionTimeout]);
+  }, [changeState, clearNoAnswer, currentUserId, emitCameraState, emitEnd, finish, flushCandidates, localStream, startConnectionTimeout]);
 
   useEffect(() => () => {
     mountedRef.current = false;
@@ -602,7 +670,8 @@ export function useVideoCall({
     const enabled = !tracks[0].enabled;
     tracks.forEach((track) => { track.enabled = enabled; });
     setIsCameraEnabled(enabled);
-  }, [localStream]);
+    emitCameraState(enabled);
+  }, [emitCameraState, localStream]);
   const switchCamera = useCallback(() => {
     if (stateRef.current !== "connected" || !localStream) return;
     (localStream.getVideoTracks()[0] as SwitchableTrack | undefined)?._switchCamera?.();
@@ -618,6 +687,7 @@ export function useVideoCall({
     callDurationSeconds,
     isMicrophoneEnabled,
     isCameraEnabled,
+    isRemoteCameraEnabled,
     startCamera,
     stopCamera,
     startCall,

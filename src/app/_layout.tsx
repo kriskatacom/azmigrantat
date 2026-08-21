@@ -4,10 +4,15 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { VideoCallProvider } from "@/contexts/VideoCallContext";
 import { useAuth } from "@/hooks/useAuth";
-import { markConversationAsRead } from "@/services/chat";
+import { createDirectConversation, markConversationAsRead } from "@/services/chat";
 import { parseIncomingCallData, setupIncomingCallNotifications } from "@/services/incoming-call";
 import "@/services/notificationBackgroundTask";
 import { getActiveConversationId } from "@/services/notificationState";
+import {
+  MISSED_CALL_CALLBACK_ACTION,
+  MISSED_CALL_CATEGORY,
+  MISSED_CALL_OPEN_CHAT_ACTION,
+} from "@/types/notifications";
 import * as Notifications from "expo-notifications";
 import { Stack, useRouter } from "expo-router";
 import { canUseFullScreenIntent } from "../../modules/incoming-call";
@@ -158,7 +163,83 @@ function NotificationNavigationHandler() {
 
         lastHandledResponseRef.current = responseKey;
 
+        if (actionIdentifier === MISSED_CALL_CALLBACK_ACTION) {
+          const callerId = Number(data?.caller_id);
+          if (!Number.isInteger(callerId) || callerId <= 0) {
+            router.push("/notifications");
+            return;
+          }
+
+          router.push({
+            pathname: "/video-call/[userId]",
+            params: {
+              userId: String(callerId),
+              name: typeof data?.caller_name === "string" ? data.caller_name : "",
+              image:
+                typeof data?.caller_avatar === "string" ? data.caller_avatar : "",
+              autoStart: "1",
+            },
+          });
+          return;
+        }
+
+        if (actionIdentifier === MISSED_CALL_OPEN_CHAT_ACTION) {
+          const conversationId = Number(data?.conversation_id);
+          const callerId = Number(data?.caller_id);
+          const title =
+            typeof data?.caller_name === "string" ? data.caller_name : "";
+          const image =
+            typeof data?.caller_avatar === "string" ? data.caller_avatar : "";
+
+          if (Number.isInteger(conversationId) && conversationId > 0) {
+            router.push({
+              pathname: "/chat/[id]",
+              params: {
+                id: String(conversationId),
+                userId: Number.isInteger(callerId) ? String(callerId) : "",
+                title,
+                image,
+              },
+            });
+            return;
+          }
+
+          if (!token || !Number.isInteger(callerId) || callerId <= 0) {
+            router.push("/notifications");
+            return;
+          }
+
+          try {
+            const conversation = await createDirectConversation(token, callerId);
+            router.push({
+              pathname: "/chat/[id]",
+              params: {
+                id: conversation.id.toString(),
+                userId: conversation.other_user?.id?.toString() ?? String(callerId),
+                title: conversation.other_user?.name ?? conversation.title ?? title,
+                image:
+                  conversation.other_user?.profile_image ??
+                  conversation.image ??
+                  image,
+              },
+            });
+          } catch (error) {
+            console.error("Грешка при отваряне на чат от известие:", error);
+            router.push("/notifications");
+          }
+          return;
+        }
+
         if (actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+          const notificationId = Number(data?.notification_id);
+          if (Number.isInteger(notificationId) && notificationId > 0) {
+            router.push({
+              pathname: "/notifications/[id]",
+              params: { id: String(notificationId) },
+            });
+            return;
+          }
+
           router.push("/notifications");
         }
 
@@ -264,6 +345,23 @@ function NotificationNavigationHandler() {
         buttonTitle: "Маркирай като прочетено",
         options: {
           opensAppToForeground: false,
+        },
+      },
+    ]);
+
+    void Notifications.setNotificationCategoryAsync(MISSED_CALL_CATEGORY, [
+      {
+        identifier: MISSED_CALL_CALLBACK_ACTION,
+        buttonTitle: "Обади се",
+        options: {
+          opensAppToForeground: true,
+        },
+      },
+      {
+        identifier: MISSED_CALL_OPEN_CHAT_ACTION,
+        buttonTitle: "Към чата",
+        options: {
+          opensAppToForeground: true,
         },
       },
     ]);

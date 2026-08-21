@@ -6,13 +6,11 @@ import NotificationsEmpty from "@/components/notifications/notifications-empty";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
-import { createDirectConversation } from "@/services/chat";
 import {
   deleteAllNotifications,
   deleteNotification,
   getNotifications,
   markAllNotificationsAsRead,
-  markNotificationAsRead,
 } from "@/services/notifications-api";
 import type { AppNotification } from "@/types/notifications";
 import { isNotificationUnread } from "@/types/notifications";
@@ -140,73 +138,11 @@ export default function NotificationsScreen() {
     }
   };
 
-  const openNotification = async (notification: AppNotification) => {
-    if (!token) return;
-
-    if (isNotificationUnread(notification)) {
-      setNotifications((current) =>
-        current.map((item) =>
-          item.id === notification.id ? { ...item, is_read: true } : item,
-        ),
-      );
-
-      try {
-        const updated = await markNotificationAsRead(token, notification.id);
-        setNotifications((current) =>
-          current.map((item) => (item.id === updated.id ? updated : item)),
-        );
-      } catch (error) {
-        setNotifications((current) =>
-          current.map((item) =>
-            item.id === notification.id ? notification : item,
-          ),
-        );
-        console.warn("Известието не можа да бъде маркирано като прочетено:", error);
-      }
-    }
-
-    const conversationId = Number(notification.data?.conversation_id);
-    if (Number.isInteger(conversationId) && conversationId > 0) {
-      router.push({
-        pathname: "/chat/[id]",
-        params: {
-          id: String(conversationId),
-          userId: notification.actor_id ? String(notification.actor_id) : "",
-          title: notification.actor?.name ?? notification.title ?? "",
-          image: notification.actor?.profile_image ?? "",
-        },
-      });
-      return;
-    }
-
-    if (notification.type === "missed_video_call" && notification.actor_id) {
-      try {
-        const conversation = await createDirectConversation(
-          token,
-          notification.actor_id,
-        );
-        router.push({
-          pathname: "/chat/[id]",
-          params: {
-            id: conversation.id.toString(),
-            userId: conversation.other_user?.id?.toString() ?? "",
-            title:
-              conversation.other_user?.name ??
-              conversation.title ??
-              "Неизвестен потребител",
-            image:
-              conversation.other_user?.profile_image ?? conversation.image ?? "",
-          },
-        });
-      } catch (error) {
-        Alert.alert(
-          "Грешка",
-          error instanceof Error
-            ? error.message
-            : "Разговорът не можа да бъде отворен.",
-        );
-      }
-    }
+  const openNotification = (notification: AppNotification) => {
+    router.push({
+      pathname: "/notifications/[id]",
+      params: { id: String(notification.id) },
+    });
   };
 
   const callBackFromNotification = async (notification: AppNotification) => {
@@ -371,7 +307,7 @@ export default function NotificationsScreen() {
           renderItem={({ item }) => (
             <NotificationRow
               notification={item}
-              onPress={() => void openNotification(item)}
+              onPress={() => openNotification(item)}
               onDelete={() => void handleDeleteNotification(item)}
               onCallBack={
                 item.type === "missed_video_call"

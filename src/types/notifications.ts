@@ -54,8 +54,25 @@ export type NotificationSocketEvent =
   | "cleared"
   | "deleted";
 
+export const MISSED_CALL_CATEGORY = "missed_call";
+export const MISSED_CALL_CALLBACK_ACTION = "missed_call_callback";
+export const MISSED_CALL_OPEN_CHAT_ACTION = "missed_call_open_chat";
+
 export function isNotificationUnread(notification: {
   is_read?: boolean | number | string | null;
 }): boolean {
   return notification.is_read !== true && notification.is_read !== 1 && notification.is_read !== "1";
+}
+
+export function getMissedCallActorId(notification: AppNotification): number | null {
+  if (notification.type !== "missed_video_call") {
+    return null;
+  }
+
+  if (notification.actor_id && Number.isInteger(notification.actor_id)) {
+    return notification.actor_id;
+  }
+
+  const callerId = Number(notification.data?.caller_id);
+  return Number.isInteger(callerId) && callerId > 0 ? callerId : null;
 }

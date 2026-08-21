@@ -1,6 +1,6 @@
 import { useAppTheme } from "@/app/_layout";
 import type { AppNotification } from "@/types/notifications";
-import { isNotificationUnread } from "@/types/notifications";
+import { getMissedCallActorId, isNotificationUnread } from "@/types/notifications";
 import { formatInboxMessageTime } from "@/components/inbox/format-inbox-message-time";
 import { FontAwesome } from "@expo/vector-icons";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -11,19 +11,6 @@ interface NotificationRowProps {
   onPress: () => void;
   onDelete: () => void;
   onCallBack?: () => void;
-}
-
-function getMissedCallActorId(notification: AppNotification): number | null {
-  if (notification.type !== "missed_video_call") {
-    return null;
-  }
-
-  if (notification.actor_id && Number.isInteger(notification.actor_id)) {
-    return notification.actor_id;
-  }
-
-  const callerId = Number(notification.data?.caller_id);
-  return Number.isInteger(callerId) && callerId > 0 ? callerId : null;
 }
 
 export default function NotificationRow({
@@ -74,17 +61,24 @@ export default function NotificationRow({
             <View
               style={[
                 styles.avatarPlaceholder,
-                { backgroundColor: theme.colors.card },
+                {
+                  backgroundColor:
+                    notification.type === "missed_video_call"
+                      ? theme.colors.primary
+                      : theme.colors.card,
+                },
               ]}
             >
               <FontAwesome
                 name={
-                  notification.type === "missed_video_call"
-                    ? "video-camera"
-                    : "bell"
+                  notification.type === "missed_video_call" ? "phone" : "bell"
                 }
                 size={22}
-                color={theme.colors.textSecondary}
+                color={
+                  notification.type === "missed_video_call"
+                    ? "#ffffff"
+                    : theme.colors.textSecondary
+                }
               />
             </View>
           )}
@@ -133,16 +127,12 @@ export default function NotificationRow({
             onPress={onCallBack}
             style={[
               styles.callButton,
-              { backgroundColor: theme.colors.card },
+              { backgroundColor: theme.colors.primary },
             ]}
             accessibilityRole="button"
             accessibilityLabel="Върни обаждането"
           >
-            <FontAwesome
-              name="video-camera"
-              size={18}
-              color={theme.colors.primary}
-            />
+            <FontAwesome name="phone" size={18} color="#ffffff" />
           </TouchableOpacity>
         ) : null}
       </TouchableOpacity>

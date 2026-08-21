@@ -27,6 +27,8 @@ export default function IncomingCallLinkScreen() {
         params: {
           userId: String(acceptedIncomingCall.call.sender_id),
           name: acceptedIncomingCall.call.caller_name ?? "Потребител",
+          image: acceptedIncomingCall.call.caller_avatar ?? "",
+          callType: acceptedIncomingCall.call.call_type === "audio" ? "audio" : "video",
           direction: "incoming",
         },
       });

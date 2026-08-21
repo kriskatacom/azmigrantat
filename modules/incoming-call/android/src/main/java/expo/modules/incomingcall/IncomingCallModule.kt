@@ -606,7 +606,10 @@ class IncomingCallModule : Module() {
       val builder = NotificationCompat.Builder(context, CHANNEL_ID)
         .setSmallIcon(android.R.drawable.ic_menu_call)
         .setContentTitle(options.callerName.ifBlank { "Потребител" })
-        .setContentText("Входящо видео обаждане")
+        .setContentText(
+          if (options.callType == "audio") "Входящо аудио обаждане"
+          else "Входящо видео обаждане",
+        )
         .setCategory(NotificationCompat.CATEGORY_CALL)
         .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
         .setPriority(NotificationCompat.PRIORITY_MAX)

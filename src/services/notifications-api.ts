@@ -67,6 +67,18 @@ export async function getNotifications(
   );
 }
 
+export async function getNotification(
+  token: string,
+  notificationId: number,
+): Promise<AppNotification> {
+  const response = await request<NotificationResponse>(
+    `/api/mobile/notifications/${notificationId}`,
+    token,
+  );
+
+  return response.data;
+}
+
 export async function getUnreadNotificationCount(token: string): Promise<number> {
   const response = await request<UnreadNotificationsResponse>(
     "/api/mobile/notifications/unread-count",

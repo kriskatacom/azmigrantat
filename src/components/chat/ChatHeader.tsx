@@ -8,6 +8,7 @@ type ChatHeaderProps = {
   lastSeenAt?: string | null;
   isTyping: boolean;
   onBack: () => void;
+  onAudioCall?: () => void;
   onVideoCall?: () => void;
 
   colors: {
@@ -26,6 +27,7 @@ export default function ChatHeader({
   lastSeenAt,
   isTyping,
   onBack,
+  onAudioCall,
   onVideoCall,
   colors,
 }: ChatHeaderProps) {
@@ -127,15 +129,29 @@ export default function ChatHeader({
         </Text>
       </View>
 
-      {onVideoCall ? (
-        <TouchableOpacity
-          onPress={onVideoCall}
-          style={styles.videoButton}
-          accessibilityRole="button"
-          accessibilityLabel={`Видео обаждане с ${name}`}
-        >
-          <FontAwesome name="video-camera" size={22} color={colors.text} />
-        </TouchableOpacity>
+      {onAudioCall || onVideoCall ? (
+        <View style={styles.headerActions}>
+          {onAudioCall ? (
+            <TouchableOpacity
+              onPress={onAudioCall}
+              style={styles.videoButton}
+              accessibilityRole="button"
+              accessibilityLabel={`Аудио обаждане с ${name}`}
+            >
+              <FontAwesome name="phone" size={22} color={colors.text} />
+            </TouchableOpacity>
+          ) : null}
+          {onVideoCall ? (
+            <TouchableOpacity
+              onPress={onVideoCall}
+              style={styles.videoButton}
+              accessibilityRole="button"
+              accessibilityLabel={`Видео обаждане с ${name}`}
+            >
+              <FontAwesome name="video-camera" size={22} color={colors.text} />
+            </TouchableOpacity>
+          ) : null}
+        </View>
       ) : null}
     </View>
   );
@@ -195,5 +211,10 @@ const styles = StyleSheet.create({
 
   videoButton: {
     padding: 8,
+  },
+
+  headerActions: {
+    flexDirection: "row",
+    alignItems: "center",
   },
 });

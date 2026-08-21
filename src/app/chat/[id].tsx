@@ -220,7 +220,7 @@ export default function ChatRoom() {
 
   const recipientUserId = otherUser?.id ?? routeUserId;
 
-  const openVideoCall = () => {
+  const openCall = (callType: "audio" | "video") => {
     if (
       videoNavigationLockedRef.current ||
       !recipientUserId ||
@@ -238,6 +238,8 @@ export default function ChatRoom() {
       params: {
         userId: String(recipientUserId),
         name: displayedName,
+        image: displayedImage ?? "",
+        callType,
         autoStart: "1",
       },
     });
@@ -261,7 +263,8 @@ export default function ChatRoom() {
         lastSeenAt={lastSeenAt}
         isTyping={isOtherUserTyping}
         onBack={() => router.back()}
-        onVideoCall={recipientUserId ? openVideoCall : undefined}
+        onAudioCall={recipientUserId ? () => openCall("audio") : undefined}
+        onVideoCall={recipientUserId ? () => openCall("video") : undefined}
         colors={theme.colors}
       />
 

@@ -34,7 +34,11 @@ export type CallState =
   | "failed"
   | "connection_timeout";
 
-export type CallType = "video";
+export type CallType = "audio" | "video";
+
+export function parseCallType(value: unknown): CallType {
+  return value === "audio" ? "audio" : "video";
+}
 
 export type CallClientPayload = {
   call_id: string;
@@ -42,6 +46,8 @@ export type CallClientPayload = {
   description?: CallDescription;
   candidate?: CallIceCandidate;
   reason?: CallEndReason;
+  call_type?: CallType;
+  enabled?: boolean;
 };
 
 export type CallServerPayload = {
@@ -54,6 +60,7 @@ export type CallServerPayload = {
   caller_avatar?: string | null;
   call_type?: CallType;
   timestamp?: number;
+  enabled?: boolean;
 };
 
 export type CallStatePayload = {

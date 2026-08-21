@@ -4,6 +4,7 @@ import VideoCallView from "@/components/video/video-call-view";
 import { useIncomingVideoCall } from "@/contexts/VideoCallContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useVideoCall } from "@/hooks/video/useVideoCall";
+import { parseCallType } from "@/services/video-call";
 import {
   useLocalSearchParams,
   useRootNavigationState,
@@ -21,6 +22,8 @@ export default function VideoCallScreen() {
     name?: string | string[];
     direction?: string | string[];
     autoStart?: string | string[];
+    callType?: string | string[];
+    image?: string | string[];
   }>();
   const hasStartedCallRef = useRef(false);
   const hasLeftScreenRef = useRef(false);
@@ -41,9 +44,15 @@ export default function VideoCallScreen() {
   const recipientName = Array.isArray(params.name)
     ? params.name[0]
     : params.name;
+  const recipientImage = Array.isArray(params.image)
+    ? params.image[0]
+    : params.image;
   const direction = Array.isArray(params.direction)
     ? params.direction[0]
     : params.direction;
+  const routeCallType = parseCallType(
+    Array.isArray(params.callType) ? params.callType[0] : params.callType,
+  );
   const autoStart =
     (Array.isArray(params.autoStart) ? params.autoStart[0] : params.autoStart) ===
     "1";
@@ -58,6 +67,11 @@ export default function VideoCallScreen() {
     acceptedIncomingCall?.call.sender_id === recipientId
       ? acceptedIncomingCall
       : null;
+  const callType = parseCallType(
+    direction === "incoming"
+      ? matchingIncomingCall?.call.call_type ?? routeCallType
+      : routeCallType,
+  );
   const isValidRecipient =
     Number.isInteger(recipientId) &&
     recipientId > 0 &&
@@ -72,6 +86,7 @@ export default function VideoCallScreen() {
     callDurationSeconds,
     isMicrophoneEnabled,
     isCameraEnabled,
+    isRemoteCameraEnabled,
     startCamera,
     stopCamera,
     startCall,
@@ -82,6 +97,7 @@ export default function VideoCallScreen() {
   } = useVideoCall({
     recipientId,
     currentUserId: user ? Number(user.id) : undefined,
+    callType,
     acceptedIncomingCall: matchingIncomingCall?.call,
     pendingIncomingIceCandidates:
       matchingIncomingCall?.pendingIceCandidates ?? [],
@@ -107,9 +123,11 @@ export default function VideoCallScreen() {
       case "ended":
         return "Разговорът приключи";
       case "connecting":
-        return "Свързване...";
+        return "Свързване…";
+      case "calling":
+        return "Звъни…";
       default:
-        return "Обаждане...";
+        return "Повикване…";
     }
   }, [callState]);
   const formattedDuration = `${Math.floor(callDurationSeconds / 60)
@@ -117,6 +135,18 @@ export default function VideoCallScreen() {
     .padStart(2, "0")}:${(callDurationSeconds % 60)
     .toString()
     .padStart(2, "0")}`;
+  const localName = user
+    ? [user.firstName, user.lastName].filter(Boolean).join(" ").trim() || "Вие"
+    : "Вие";
+  const localImage = user
+    ? ((user as { avatar?: string | null; profile_image?: string | null })
+        .avatar ??
+      (user as { profile_image?: string | null }).profile_image ??
+      null)
+    : null;
+  const remoteName = recipientName ?? "Потребител";
+  const remoteImage =
+    recipientImage ?? matchingIncomingCall?.call.caller_avatar ?? null;
 
   const leaveVideoCallScreen = useCallback(() => {
     if (hasLeftScreenRef.current || !rootNavigationState?.key) {
@@ -208,25 +238,40 @@ export default function VideoCallScreen() {
     );
   }
 
+  const showOutgoingOverlay = [
+    "calling",
+    "connecting",
+    "busy",
+    "timeout",
+    "rejected",
+    "failed",
+    "connection_timeout",
+    "cancelled",
+    "ended",
+  ].includes(callState);
+
   return (
     <SafeAreaView style={styles.container}>
-      <VideoCallView localStream={localStream} remoteStream={remoteStream} />
+      {showOutgoingOverlay ? null : (
+        <VideoCallView
+          localStream={localStream}
+          remoteStream={remoteStream}
+          isCameraEnabled={isCameraEnabled}
+          isRemoteCameraEnabled={isRemoteCameraEnabled}
+          displayName={remoteName}
+          avatarUrl={remoteImage}
+          localName={localName}
+          localAvatarUrl={localImage}
+        />
+      )}
 
       <OutgoingCall
-        visible={[
-          "calling",
-          "connecting",
-          "busy",
-          "timeout",
-          "rejected",
-          "failed",
-          "connection_timeout",
-          "cancelled",
-          "ended",
-        ].includes(callState)}
+        visible={showOutgoingOverlay}
         ringing={callState === "calling"}
-        name={recipientName ?? "Потребител"}
+        name={remoteName}
+        image={remoteImage}
         status={terminalStatus}
+        callType={callType}
         canCancel={callState === "calling" || callState === "connecting"}
         onCancel={handleEndCall}
       />

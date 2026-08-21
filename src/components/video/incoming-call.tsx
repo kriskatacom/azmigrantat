@@ -19,6 +19,7 @@ type IncomingCallProps = {
   visible: boolean;
   callerName?: string | null;
   callerImage?: string | null;
+  callType?: "audio" | "video";
   connecting?: boolean;
   onAccept: () => void;
   onReject: () => void;
@@ -89,6 +90,7 @@ export default function IncomingCall({
   visible,
   callerName,
   callerImage,
+  callType = "video",
   connecting = false,
   onAccept,
   onReject,
@@ -97,6 +99,7 @@ export default function IncomingCall({
   const { height } = useWindowDimensions();
   const compact = height < 700;
   const avatarSize = compact ? 128 : 156;
+  const isAudio = callType === "audio";
   const [closedByAccept, setClosedByAccept] = useState(false);
 
   useEffect(() => {
@@ -150,12 +153,14 @@ export default function IncomingCall({
       <View style={styles.glow} />
       <View style={styles.header}>
         <Text selectable style={styles.brand}>
-          Видео разговор
+          {isAudio ? "Аудио разговор" : "Видео разговор"}
         </Text>
         <Text selectable style={styles.subtitle}>
           {connecting
             ? "Свързване към обаждането..."
-            : "Входящо видео обаждане"}
+            : isAudio
+              ? "Входящо аудио обаждане"
+              : "Входящо видео обаждане"}
         </Text>
       </View>
 
@@ -228,7 +233,9 @@ export default function IncomingCall({
 
         <View style={styles.action}>
           <TouchableOpacity
-            accessibilityLabel="Приеми видео обаждането"
+            accessibilityLabel={
+              isAudio ? "Приеми аудио обаждането" : "Приеми видео обаждането"
+            }
             accessibilityRole="button"
             disabled={connecting}
             onPress={() => {
@@ -241,7 +248,7 @@ export default function IncomingCall({
               connecting && styles.disabledButton,
             ]}
           >
-            <Ionicons name="videocam" size={32} color="#082f49" />
+            <Ionicons name={isAudio ? "call" : "videocam"} size={32} color="#082f49" />
           </TouchableOpacity>
           <Text style={styles.actionLabel}>Приеми</Text>
         </View>
