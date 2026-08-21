@@ -54,7 +54,9 @@ final class PushNotificationService
                 'sender_id' => (int) $sender->id,
                 'sender_image' => $senderImage,
             ],
-            $senderImage
+            $senderImage,
+            'chat_message',
+            'receive_message.wav'
         );
     }
 
@@ -64,7 +66,8 @@ final class PushNotificationService
         string $body,
         array $data = [],
         ?string $imageUrl = null,
-        string $categoryId = 'chat_message'
+        string $categoryId = 'chat_message',
+        ?string $sound = null
     ): bool {
         $tokens = PushToken::query()
             ->where(
@@ -100,9 +103,13 @@ final class PushNotificationService
                 'body' => $body,
                 'data' => $data,
                 'priority' => 'high',
-                'channelId' => 'chat-messages-v3',
+                'channelId' => 'chat-messages-v4',
                 'categoryId' => $categoryId !== '' ? $categoryId : 'chat_message',
             ];
+
+            if (is_string($sound) && trim($sound) !== '') {
+                $notification['sound'] = trim($sound);
+            }
 
             if (
                 is_string($imageUrl)
