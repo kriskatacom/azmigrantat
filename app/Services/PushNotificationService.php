@@ -63,7 +63,8 @@ final class PushNotificationService
         string $title,
         string $body,
         array $data = [],
-        ?string $imageUrl = null
+        ?string $imageUrl = null,
+        string $categoryId = 'chat_message'
     ): bool {
         $tokens = PushToken::query()
             ->where(
@@ -100,7 +101,7 @@ final class PushNotificationService
                 'data' => $data,
                 'priority' => 'high',
                 'channelId' => 'chat-messages-v3',
-                'categoryId' => 'chat_message',
+                'categoryId' => $categoryId !== '' ? $categoryId : 'chat_message',
             ];
 
             if (

@@ -3,6 +3,7 @@
 namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
+use App\Models\Notification;
 use App\Models\User;
 use App\Services\CallAuthorizationService;
 use App\Services\NotificationService;
@@ -192,17 +193,39 @@ final class InternalMobileController extends BaseController
 
         $user = User::query()->find($userId);
         if ($user) {
+            $type = (string) $payload['type'];
+            $notificationData = is_array($payload['data'] ?? null) ? $payload['data'] : [];
+            $conversationId = $notificationData['conversation_id'] ?? null;
+            $callerAvatar = $payload['actor']['profile_image']
+                ?? $notificationData['caller_avatar']
+                ?? null;
+            $pushData = [
+                'type' => $type,
+                'notification_id' => (string) $payload['id'],
+                'caller_id' => isset($payload['actor_id']) ? (string) $payload['actor_id'] : '',
+                'call_id' => (string) ($payload['entity_id'] ?? ''),
+                'count' => (string) $payload['count'],
+            ];
+
+            if ($conversationId !== null && $conversationId !== '') {
+                $pushData['conversation_id'] = (string) $conversationId;
+            }
+
+            if (!empty($payload['title'])) {
+                $pushData['caller_name'] = (string) $payload['title'];
+            }
+
+            if (is_string($callerAvatar) && $callerAvatar !== '') {
+                $pushData['caller_avatar'] = $callerAvatar;
+            }
+
             $this->pushNotifications->sendToUser(
                 $user,
                 (string) ($payload['title'] ?: 'Известие'),
                 (string) ($payload['message'] ?: 'Имате ново известие.'),
-                [
-                    'type' => (string) $payload['type'],
-                    'notification_id' => (string) $payload['id'],
-                    'caller_id' => isset($payload['actor_id']) ? (string) $payload['actor_id'] : '',
-                    'call_id' => (string) ($payload['entity_id'] ?? ''),
-                    'count' => (string) $payload['count'],
-                ]
+                $pushData,
+                is_string($callerAvatar) && $callerAvatar !== '' ? $callerAvatar : null,
+                $type === Notification::TYPE_MISSED_VIDEO_CALL ? 'missed_call' : 'chat_message'
             );
         }
 

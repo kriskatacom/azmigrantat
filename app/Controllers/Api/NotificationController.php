@@ -57,6 +57,34 @@ final class NotificationController extends BaseController
         ]);
     }
 
+    public function show($id)
+    {
+        $user = $this->authenticatedUser();
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $notification = Notification::query()
+            ->where('user_id', (int) $user->id)
+            ->with('actor')
+            ->find((int) $id);
+
+        if (!$notification) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Известието не е намерено.',
+            ], 404);
+        }
+
+        return $this->json([
+            'success' => true,
+            'data' => $this->notifications->serialize($notification),
+            'meta' => [
+                'unread_count' => $this->notifications->unreadCount((int) $user->id),
+            ],
+        ]);
+    }
+
     public function markAsRead($id)
     {
         $user = $this->authenticatedUser();
