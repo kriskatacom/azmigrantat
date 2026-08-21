@@ -208,6 +208,7 @@ final class ConversationController extends BaseController
             ->messages()
             ->where('id', '>', $lastReadMessageId)
             ->where('sender_id', '!=', $currentUserId)
+            ->where('type', '!=', \App\Models\Message::TYPE_SYSTEM)
             ->count();
 
         return [

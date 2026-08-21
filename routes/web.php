@@ -105,6 +105,7 @@ $router->get('/internal/mobile/push-tokens', [InternalMobileController::class, '
 $router->post('/internal/mobile/push-tokens/deactivate', [InternalMobileController::class, 'deactivatePushToken']);
 $router->post('/internal/mobile/calls/authorize', [InternalMobileController::class, 'authorizeCall']);
 $router->post('/internal/mobile/notifications/missed-video-call', [InternalMobileController::class, 'missedVideoCall']);
+$router->post('/internal/mobile/calls/log', [InternalMobileController::class, 'recordCallLog']);
 $router->post('/internal/mobile/notifications', [InternalMobileController::class, 'createNotification']);
 
 $router->get('/api/users', [UserController::class, 'getUsers']);

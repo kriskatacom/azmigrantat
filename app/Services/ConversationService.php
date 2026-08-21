@@ -165,6 +165,90 @@ final class ConversationService
         return $message;
     }
 
+    public function recordCallEvent(
+        Conversation $conversation,
+        User $caller,
+        array $metadata
+    ): Message {
+        $callId = trim((string) ($metadata['call_id'] ?? ''));
+
+        if ($callId === '') {
+            throw new \InvalidArgumentException('Липсва call_id.');
+        }
+
+        $existingMessage = $this->messageRepository->findByClientMessageId(
+            (int) $caller->id,
+            $callId
+        );
+
+        if ($existingMessage) {
+            return $existingMessage;
+        }
+
+        $content = $this->callEventPreview($metadata);
+
+        $connection = (new Message())->getConnection();
+
+        $message = $connection->transaction(
+            function () use ($conversation, $caller, $callId, $content, $metadata) {
+                $message = $this->messageRepository->createMessage(
+                    $conversation,
+                    $caller,
+                    $callId,
+                    $content,
+                    Message::TYPE_SYSTEM,
+                    $metadata
+                );
+
+                $this->conversationRepository->updateLastMessage(
+                    $conversation,
+                    (int) $message->id
+                );
+
+                return $message;
+            }
+        );
+
+        $this->realtimeNotifier->notifyNewMessage(
+            $message,
+            $conversation
+        );
+
+        return $message;
+    }
+
+    private function callEventPreview(array $metadata): string
+    {
+        $isVideo = ($metadata['call_type'] ?? '') === 'video';
+        $kind = $isVideo ? 'Видео обаждане' : 'Аудио обаждане';
+        $outcome = (string) ($metadata['outcome'] ?? '');
+        $duration = (int) ($metadata['duration_seconds'] ?? 0);
+
+        return match ($outcome) {
+            'completed' => $duration > 0
+                ? $kind . ' · ' . $this->formatCallDuration($duration)
+                : $kind,
+            'rejected' => 'Отхвърлено ' . mb_strtolower($kind),
+            'cancelled' => 'Отменено ' . mb_strtolower($kind),
+            'unanswered' => $kind . ' без отговор',
+            default => 'Пропуснато ' . mb_strtolower($kind),
+        };
+    }
+
+    private function formatCallDuration(int $seconds): string
+    {
+        $seconds = max(0, $seconds);
+        $hours = intdiv($seconds, 3600);
+        $minutes = intdiv($seconds % 3600, 60);
+        $rest = $seconds % 60;
+
+        if ($hours > 0) {
+            return sprintf('%d:%02d:%02d', $hours, $minutes, $rest);
+        }
+
+        return sprintf('%d:%02d', $minutes, $rest);
+    }
+
     public function markConversationAsRead(
         Conversation $conversation,
         User $user,

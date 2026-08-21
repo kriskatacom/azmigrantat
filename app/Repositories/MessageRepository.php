@@ -160,6 +160,7 @@ final class MessageRepository
                 '!=',
                 (int) $user->id
             )
+            ->where('type', '!=', Message::TYPE_SYSTEM)
             ->where(
                 'status',
                 '!=',

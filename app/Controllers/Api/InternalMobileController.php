@@ -3,9 +3,11 @@
 namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
+use App\Models\Conversation;
 use App\Models\Notification;
 use App\Models\User;
 use App\Services\CallAuthorizationService;
+use App\Services\ConversationService;
 use App\Services\NotificationService;
 use App\Services\PushNotificationService;
 use App\Services\PushTokenService;
@@ -17,6 +19,7 @@ final class InternalMobileController extends BaseController
     private PushTokenService $pushTokens;
     private CallAuthorizationService $callAuthorization;
     private NotificationService $notifications;
+    private ConversationService $conversations;
     private PushNotificationService $pushNotifications;
     private ?RealtimeNotifier $realtimeNotifier = null;
 
@@ -25,6 +28,7 @@ final class InternalMobileController extends BaseController
         $this->pushTokens = new PushTokenService();
         $this->callAuthorization = new CallAuthorizationService();
         $this->notifications = new NotificationService();
+        $this->conversations = new ConversationService();
         $this->pushNotifications = new PushNotificationService();
     }
 
@@ -144,6 +148,118 @@ final class InternalMobileController extends BaseController
             'created' => $result['created'],
             'updated' => $result['updated'],
             'notification' => $payload,
+        ]);
+    }
+
+    public function recordCallLog()
+    {
+        if (!$this->hasValidInternalSecret()) {
+            return $this->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        $input = $this->jsonInput();
+        $validator = Validator::make($input, [
+            'call_id' => 'required|string|max:128',
+            'caller_id' => 'required|integer|min:1',
+            'recipient_id' => 'required|integer|min:1',
+            'call_type' => 'required|in:audio,video',
+            'outcome' => 'required|in:completed,missed,rejected,cancelled,unanswered',
+            'started_at' => 'required|date',
+            'ended_at' => 'required|date',
+            'answered_at' => 'nullable|date',
+            'duration_seconds' => 'nullable|integer|min:0',
+            'ended_by_id' => 'nullable|integer|min:1',
+            'reason' => 'nullable|string|max:64',
+            'camera_enabled' => 'nullable|boolean',
+            'conversation_id' => 'nullable|integer|min:1',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator);
+        }
+
+        $callerId = (int) $input['caller_id'];
+        $recipientId = (int) $input['recipient_id'];
+
+        $conversation = null;
+        if (isset($input['conversation_id'])) {
+            $conversation = Conversation::query()
+                ->where('id', (int) $input['conversation_id'])
+                ->where('is_active', true)
+                ->first();
+        }
+
+        if (!$conversation) {
+            $conversation = Conversation::query()
+                ->where('type', 'direct')
+                ->where('direct_key', Conversation::makeDirectKey($callerId, $recipientId))
+                ->where('is_active', true)
+                ->first();
+        }
+
+        if (!$conversation) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Разговорът не е намерен.',
+            ], 404);
+        }
+
+        $users = User::query()
+            ->whereIn('id', array_filter([
+                $callerId,
+                $recipientId,
+                isset($input['ended_by_id']) ? (int) $input['ended_by_id'] : null,
+            ]))
+            ->get()
+            ->keyBy('id');
+
+        $caller = $users->get($callerId);
+        $recipient = $users->get($recipientId);
+
+        if (!$caller || !$recipient) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Участникът в обаждането не е намерен.',
+            ], 404);
+        }
+
+        $endedById = isset($input['ended_by_id']) ? (int) $input['ended_by_id'] : null;
+        $endedBy = $endedById ? $users->get($endedById) : null;
+        $duration = (int) ($input['duration_seconds'] ?? 0);
+
+        $metadata = [
+            'kind' => 'call',
+            'call_id' => trim((string) $input['call_id']),
+            'call_type' => $input['call_type'],
+            'outcome' => $input['outcome'],
+            'caller_id' => $callerId,
+            'caller_name' => (string) $caller->name,
+            'recipient_id' => $recipientId,
+            'recipient_name' => (string) $recipient->name,
+            'started_at' => $input['started_at'],
+            'answered_at' => $input['answered_at'] ?? null,
+            'ended_at' => $input['ended_at'],
+            'duration_seconds' => $duration,
+            'ended_by_id' => $endedById,
+            'ended_by_name' => $endedBy?->name,
+            'reason' => $input['reason'] ?? null,
+            'camera_enabled' => (bool) ($input['camera_enabled'] ?? ($input['call_type'] === 'video')),
+        ];
+
+        try {
+            $message = $this->conversations->recordCallEvent(
+                $conversation,
+                $caller,
+                $metadata
+            );
+        } catch (\Throwable $exception) {
+            error_log('[InternalCallLog] failed call_id=' . trim((string) $input['call_id']));
+            return $this->json(['success' => false, 'message' => 'Internal service error.'], 500);
+        }
+
+        return $this->json([
+            'success' => true,
+            'message_id' => (int) $message->id,
         ]);
     }
 
