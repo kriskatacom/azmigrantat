@@ -42,8 +42,15 @@ export interface ServerToClientEvents {
     'call:answer': (payload: CallAnswerServerPayload) => void;
     'call:accepted': (payload: CallAcceptedServerPayload) => void;
     'call:ice-candidate': (payload: CallIceCandidateServerPayload) => void;
+    'call:camera-state': (payload: CallCameraStateServerPayload) => void;
     'call:end': (payload: CallEndServerPayload) => void;
     'call:state': (payload: CallStatePayload) => void;
+
+    'notification:new': (payload: AppNotificationPayload) => void;
+    'notification:updated': (payload: AppNotificationPayload) => void;
+    'notification:read-all': (payload: { user_id: number }) => void;
+    'notification:cleared': (payload: { user_id: number }) => void;
+    'notification:deleted': (payload: AppNotificationPayload) => void;
 }
 
 export interface ClientToServerEvents {
@@ -56,6 +63,7 @@ export interface ClientToServerEvents {
     'call:answer': (payload: CallAnswerClientPayload) => void;
     'call:accept': (payload: CallAcceptClientPayload) => void;
     'call:ice-candidate': (payload: CallIceCandidateClientPayload) => void;
+    'call:camera-state': (payload: CallCameraStateClientPayload) => void;
     'call:end': (payload: CallEndClientPayload) => void;
     'call:sync': () => void;
     'device:register': (payload: DeviceRegisterPayload) => void;
@@ -132,13 +140,14 @@ interface CallServerPayload {
 
 export interface CallOfferClientPayload extends CallClientPayload {
     description: SessionDescriptionPayload;
+    call_type?: 'audio' | 'video';
 }
 
 export interface CallOfferServerPayload extends CallServerPayload {
     description: SessionDescriptionPayload;
     caller_name?: string;
     caller_avatar?: string | null;
-    call_type?: 'video';
+    call_type?: 'audio' | 'video';
     timestamp?: number;
 }
 
@@ -162,6 +171,14 @@ export interface CallIceCandidateServerPayload extends CallServerPayload {
     candidate: IceCandidatePayload;
 }
 
+export interface CallCameraStateClientPayload extends CallClientPayload {
+    enabled: boolean;
+}
+
+export interface CallCameraStateServerPayload extends CallServerPayload {
+    enabled: boolean;
+}
+
 export interface CallEndClientPayload extends CallClientPayload {
     reason?: string;
 }
@@ -183,4 +200,28 @@ export interface DeviceRegisterPayload {
 
 export interface AppStatePayload {
     app_state: 'active' | 'background';
+}
+
+export interface AppNotificationActor {
+    id: number;
+    name: string;
+    username?: string | null;
+    profile_image?: string | null;
+    is_active?: boolean;
+}
+
+export interface AppNotificationPayload {
+    id: number;
+    user_id: number;
+    type: string;
+    title: string | null;
+    message: string | null;
+    count: number;
+    is_read: boolean;
+    actor_id: number | null;
+    entity_id: string | null;
+    data: Record<string, unknown> | null;
+    created_at: string | null;
+    updated_at: string | null;
+    actor: AppNotificationActor | null;
 }

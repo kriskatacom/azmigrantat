@@ -454,4 +454,103 @@ describe('internal routes', () => {
             );
         });
     });
+
+    describe('POST /internal/events/notification', () => {
+        const notification = {
+            id: 9,
+            user_id: 44,
+            type: 'missed_video_call',
+            title: 'Caller',
+            message: 'Имате 1 пропуснато видео обаждане!',
+            count: 1,
+            is_read: false,
+            actor_id: 22,
+            entity_id: 'call-1',
+            data: { call_id: 'call-1' },
+            created_at: '2026-08-20T10:00:00.000Z',
+            updated_at: '2026-08-20T10:00:00.000Z',
+            actor: { id: 22, name: 'Caller' },
+        };
+
+        it('изпраща notification:new към получателя', async () => {
+            const { app, emit } = createTestApp({ 'user:44': 1 });
+
+            const response = await request(app)
+                .post('/internal/events/notification')
+                .set('X-Internal-Secret', 'test-internal-secret')
+                .send({
+                    recipient_ids: [44],
+                    event: 'notification:new',
+                    notification,
+                });
+
+            expect(response.status).toBe(200);
+            expect(emit).toHaveBeenCalledWith('user:44', 'notification:new', notification);
+        });
+
+        it('изпраща notification:updated при групиране', async () => {
+            const { app, emit } = createTestApp({ 'user:44': 1 });
+
+            const response = await request(app)
+                .post('/internal/events/notification')
+                .set('X-Internal-Secret', 'test-internal-secret')
+                .send({
+                    recipient_ids: [44],
+                    event: 'notification:updated',
+                    notification: { ...notification, count: 2 },
+                });
+
+            expect(response.status).toBe(200);
+            expect(emit).toHaveBeenCalledWith('user:44', 'notification:updated', {
+                ...notification,
+                count: 2,
+            });
+        });
+
+        it('изпраща notification:read-all без notification payload', async () => {
+            const { app, emit } = createTestApp({ 'user:44': 1 });
+
+            const response = await request(app)
+                .post('/internal/events/notification')
+                .set('X-Internal-Secret', 'test-internal-secret')
+                .send({
+                    recipient_ids: [44],
+                    event: 'notification:read-all',
+                });
+
+            expect(response.status).toBe(200);
+            expect(emit).toHaveBeenCalledWith('user:44', 'notification:read-all', { user_id: 44 });
+        });
+
+        it('изпраща notification:deleted с payload на известието', async () => {
+            const { app, emit } = createTestApp({ 'user:44': 1 });
+
+            const response = await request(app)
+                .post('/internal/events/notification')
+                .set('X-Internal-Secret', 'test-internal-secret')
+                .send({
+                    recipient_ids: [44],
+                    event: 'notification:deleted',
+                    notification,
+                });
+
+            expect(response.status).toBe(200);
+            expect(emit).toHaveBeenCalledWith('user:44', 'notification:deleted', notification);
+        });
+
+        it('изпраща notification:cleared без notification payload', async () => {
+            const { app, emit } = createTestApp({ 'user:44': 1 });
+
+            const response = await request(app)
+                .post('/internal/events/notification')
+                .set('X-Internal-Secret', 'test-internal-secret')
+                .send({
+                    recipient_ids: [44],
+                    event: 'notification:cleared',
+                });
+
+            expect(response.status).toBe(200);
+            expect(emit).toHaveBeenCalledWith('user:44', 'notification:cleared', { user_id: 44 });
+        });
+    });
 });

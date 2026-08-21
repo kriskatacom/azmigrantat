@@ -10,6 +10,7 @@ import { registerInternalRoutes } from './routes/internal.routes';
 import { CallService } from './services/calls/call-service';
 import { InMemoryCallStore } from './services/calls/call-store';
 import { PhpCallAuthorizationProvider } from './services/calls/call-authorization.provider';
+import { PhpNotificationClient } from './services/notifications/php-notification.client';
 import { CallNotifications } from './services/fcm/call-notifications';
 import { FirebaseFcmSender } from './services/fcm/fcm-client';
 import { PhpPushTokenProvider } from './services/fcm/php-push-token.provider';
@@ -48,7 +49,14 @@ const callNotifications = config.fcmEnabled
     ? new CallNotifications(new FirebaseFcmSender(new PhpPushTokenProvider()))
     : undefined;
 const callAuthorization = config.fcmEnabled ? new PhpCallAuthorizationProvider() : undefined;
-const calls = new CallService(io, callStore, callNotifications, callAuthorization);
+const calls = new CallService(
+    io,
+    callStore,
+    callNotifications,
+    callAuthorization,
+    () => new Date(),
+    new PhpNotificationClient(),
+);
 
 registerCallRoutes(app, calls);
 registerSocketConnections(io, calls);

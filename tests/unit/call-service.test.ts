@@ -26,8 +26,11 @@ function createHarness(initialNow = new Date('2026-08-17T12:00:00.000Z')) {
         sendCallCancelledPush: vi.fn().mockResolvedValue(undefined),
         sendCallEndedPush: vi.fn().mockResolvedValue(undefined),
     } as unknown as CallNotifications;
+    const missedCalls = {
+        recordMissedVideoCall: vi.fn().mockResolvedValue(undefined),
+    };
     const store = new InMemoryCallStore();
-    const calls = new CallService(io, store, notifications, undefined, () => now);
+    const calls = new CallService(io, store, notifications, undefined, () => now, missedCalls);
 
     function socket(userId: number, name: string) {
         const socketEmit = vi.fn();
@@ -48,6 +51,7 @@ function createHarness(initialNow = new Date('2026-08-17T12:00:00.000Z')) {
         calls,
         store,
         notifications,
+        missedCalls,
         roomEmit,
         socket,
         setNow(value: Date) {
@@ -87,10 +91,40 @@ describe('CallService', () => {
             callerId: 22,
             callerName: 'Trusted Caller',
             callerAvatar: null,
+            callType: 'video',
             expiresAt: new Date('2026-08-17T12:00:30.000Z'),
             timestamp: new Date('2026-08-17T12:00:00.000Z').getTime(),
         });
         expect(harness.store.get('call-1')?.offer).toEqual(offer);
+    });
+
+    it('препраща call:camera-state към другия участник', async () => {
+        const caller = harness.socket(22, 'Caller');
+        const recipient = harness.socket(44, 'Recipient');
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+        });
+        await harness.calls.answer(recipient.value, {
+            call_id: 'call-1',
+            recipient_id: 22,
+            description: answer,
+        });
+
+        harness.roomEmit.mockClear();
+        harness.calls.cameraState(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            enabled: false,
+        });
+
+        expect(harness.store.get('call-1')?.cameraEnabled).toBe(false);
+        expect(harness.roomEmit).toHaveBeenCalledWith('user:44', 'call:camera-state', {
+            call_id: 'call-1',
+            sender_id: 22,
+            enabled: false,
+        });
     });
 
     it('връща ringing state за HTTP restore и decline-ва през HTTP', async () => {
@@ -112,6 +146,7 @@ describe('CallService', () => {
             'call-1',
             'rejected',
         );
+        expect(harness.missedCalls.recordMissedVideoCall).not.toHaveBeenCalled();
     });
 
     it('HTTP accept спира timeout и пази offer за restore', async () => {
@@ -144,6 +179,7 @@ describe('CallService', () => {
         harness.setNow(new Date('2026-08-17T12:00:31.000Z'));
         await harness.calls.expirePendingCalls();
         expect(harness.store.get('call-1')?.status).toBe('accepted');
+        expect(harness.missedCalls.recordMissedVideoCall).not.toHaveBeenCalled();
 
         const recipient = harness.socket(44, 'Recipient');
         await harness.calls.answer(recipient.value, {
@@ -243,6 +279,52 @@ describe('CallService', () => {
         await harness.calls.end(caller.value, payload);
         await harness.calls.end(caller.value, payload);
         expect(harness.notifications.sendCallCancelledPush).toHaveBeenCalledTimes(1);
+        expect(harness.missedCalls.recordMissedVideoCall).toHaveBeenCalledTimes(1);
+        expect(harness.missedCalls.recordMissedVideoCall).toHaveBeenCalledWith({
+            callId: 'call-1',
+            callerId: 22,
+            recipientId: 44,
+            callerName: 'Caller',
+            callerAvatar: null,
+        });
+    });
+
+    it('recipient cancel на pending call не създава missed notification', async () => {
+        const caller = harness.socket(22, 'Caller');
+        const recipient = harness.socket(44, 'Recipient');
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+        });
+        await harness.calls.end(recipient.value, {
+            call_id: 'call-1',
+            recipient_id: 22,
+            reason: 'cancelled',
+        });
+        expect(harness.missedCalls.recordMissedVideoCall).not.toHaveBeenCalled();
+    });
+
+    it('client timeout върху pending call създава missed notification само веднъж', async () => {
+        const caller = harness.socket(22, 'Caller');
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+        });
+        const payload = { call_id: 'call-1', recipient_id: 44, reason: 'timeout' };
+        await harness.calls.end(caller.value, payload);
+        await harness.calls.end(caller.value, payload);
+        await harness.calls.expirePendingCalls();
+        expect(harness.store.get('call-1')?.status).toBe('ended');
+        expect(harness.missedCalls.recordMissedVideoCall).toHaveBeenCalledTimes(1);
+        expect(harness.missedCalls.recordMissedVideoCall).toHaveBeenCalledWith({
+            callId: 'call-1',
+            callerId: 22,
+            recipientId: 44,
+            callerName: 'Caller',
+            callerAvatar: null,
+        });
     });
 
     it('authoritative timeout печели срещу късен answer', async () => {
@@ -263,6 +345,16 @@ describe('CallService', () => {
         expect(harness.store.get('call-1')?.status).toBe('expired');
         expect(recipient.toEmit).not.toHaveBeenCalled();
         expect(harness.notifications.sendCallCancelledPush).toHaveBeenCalledTimes(1);
+        expect(harness.missedCalls.recordMissedVideoCall).toHaveBeenCalledTimes(1);
+        expect(harness.missedCalls.recordMissedVideoCall).toHaveBeenCalledWith({
+            callId: 'call-1',
+            callerId: 22,
+            recipientId: 44,
+            callerName: 'Caller',
+            callerAvatar: null,
+        });
+        await harness.calls.expirePendingCalls();
+        expect(harness.missedCalls.recordMissedVideoCall).toHaveBeenCalledTimes(1);
     });
 
     it('cancel и answer race допуска само първия terminal transition', async () => {
@@ -290,6 +382,7 @@ describe('CallService', () => {
         expect(harness.store.get('call-1')?.status).toBe('cancelled');
         expect(harness.notifications.sendCallCancelledPush).toHaveBeenCalledTimes(1);
         expect(harness.notifications.sendCallEndedPush).not.toHaveBeenCalled();
+        expect(harness.missedCalls.recordMissedVideoCall).toHaveBeenCalledTimes(1);
     });
 
     it('broadcast-ва call:accepted към caller и receiver и е idempotent', async () => {

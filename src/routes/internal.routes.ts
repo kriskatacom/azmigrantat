@@ -1,7 +1,11 @@
 import type { Express } from 'express';
 
 import { config } from '../config';
-import type { NewMessageEventPayload, RealtimeServer } from '../types/events';
+import type {
+    AppNotificationPayload,
+    NewMessageEventPayload,
+    RealtimeServer,
+} from '../types/events';
 
 export function registerInternalRoutes(app: Express, io: RealtimeServer): void {
     app.post('/internal/events/message', async (request, response) => {
@@ -159,6 +163,110 @@ export function registerInternalRoutes(app: Express, io: RealtimeServer): void {
         }
 
         console.log(`message:read conversation ${conversation_id} → ${recipientIds.join(', ')}`);
+
+        response.json({
+            success: true,
+            recipient_count: recipientIds.length,
+            connected_recipient_count: connectedRecipients,
+            delivered_socket_count: deliveredSockets,
+        });
+    });
+
+    app.post('/internal/events/notification', async (request, response) => {
+        const providedSecret = request.header('X-Internal-Secret');
+
+        if (!providedSecret || providedSecret !== config.internalApiSecret) {
+            response.status(401).json({
+                success: false,
+                message: 'Невалиден вътрешен ключ.',
+            });
+
+            return;
+        }
+
+        const { recipient_ids, event, notification } = request.body as {
+            recipient_ids?: unknown;
+            event?: unknown;
+            notification?: unknown;
+        };
+
+        const allowedEvents = [
+            'notification:new',
+            'notification:updated',
+            'notification:read-all',
+            'notification:cleared',
+            'notification:deleted',
+        ] as const;
+
+        if (
+            !Array.isArray(recipient_ids) ||
+            typeof event !== 'string' ||
+            !allowedEvents.includes(event as (typeof allowedEvents)[number])
+        ) {
+            response.status(422).json({
+                success: false,
+                message: 'Невалидни данни за известие.',
+            });
+
+            return;
+        }
+
+        const recipientIds = [
+            ...new Set(recipient_ids.filter((id): id is number => Number.isInteger(id) && id > 0)),
+        ];
+
+        if (recipientIds.length === 0) {
+            response.status(422).json({
+                success: false,
+                message: 'Няма валидни получатели.',
+            });
+
+            return;
+        }
+
+        if (event !== 'notification:read-all' && event !== 'notification:cleared') {
+            if (
+                !notification ||
+                typeof notification !== 'object' ||
+                typeof (notification as AppNotificationPayload).id !== 'number' ||
+                typeof (notification as AppNotificationPayload).user_id !== 'number' ||
+                typeof (notification as AppNotificationPayload).type !== 'string'
+            ) {
+                response.status(422).json({
+                    success: false,
+                    message: 'Подадено е невалидно известие.',
+                });
+
+                return;
+            }
+        }
+
+        let connectedRecipients = 0;
+        let deliveredSockets = 0;
+
+        for (const recipientId of recipientIds) {
+            const room = `user:${recipientId}`;
+            const sockets = await io.in(room).fetchSockets();
+
+            if (sockets.length > 0) {
+                connectedRecipients += 1;
+                deliveredSockets += sockets.length;
+            }
+
+            if (event === 'notification:read-all') {
+                io.to(room).emit('notification:read-all', { user_id: recipientId });
+            } else if (event === 'notification:cleared') {
+                io.to(room).emit('notification:cleared', { user_id: recipientId });
+            } else if (event === 'notification:updated') {
+                io.to(room).emit('notification:updated', notification as AppNotificationPayload);
+            } else if (event === 'notification:deleted') {
+                io.to(room).emit('notification:deleted', notification as AppNotificationPayload);
+            } else {
+                io.to(room).emit('notification:new', notification as AppNotificationPayload);
+            }
+        }
+
+        console.log(`${event} → ${recipientIds.join(', ')}`);
 
         response.json({
             success: true,

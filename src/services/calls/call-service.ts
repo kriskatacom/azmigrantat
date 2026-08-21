@@ -1,10 +1,12 @@
 import type { Socket } from 'socket.io';
 
 import type { CallNotifications } from '../fcm/call-notifications';
+import type { MissedCallRecorder } from '../notifications/php-notification.client';
 import type { CallAuthorizationProvider } from './call-authorization.provider';
 import type {
     CallAcceptClientPayload,
     CallAnswerClientPayload,
+    CallCameraStateClientPayload,
     CallEndClientPayload,
     CallIceCandidateClientPayload,
     CallOfferClientPayload,
@@ -34,6 +36,7 @@ export class CallService {
         private readonly notifications?: CallNotifications,
         private readonly authorization?: CallAuthorizationProvider,
         private readonly now: () => Date = () => new Date(),
+        private readonly missedCalls?: MissedCallRecorder,
     ) {}
 
     async offer(socket: RealtimeSocket, payload: CallOfferClientPayload): Promise<void> {
@@ -66,6 +69,8 @@ export class CallService {
             createdAt,
             expiresAt: new Date(createdAt.getTime() + CALL_TTL_MS),
             offer: payload.description,
+            callType: payload.call_type === 'audio' ? 'audio' : 'video',
+            cameraEnabled: payload.call_type !== 'audio',
             ...(conversationId !== undefined ? { conversationId } : {}),
             bufferedIce: [],
         };
@@ -207,6 +212,45 @@ export class CallService {
             call_id: call.callId,
             sender_id: senderId,
             candidate: payload.candidate,
+        });
+    }
+
+    cameraState(socket: RealtimeSocket, payload: CallCameraStateClientPayload): void {
+        const call = this.store.get(payload.call_id);
+        if (!call) {
+            console.log('[CALL] camera-state dropped, call missing', {
+                callId: payload.call_id,
+            });
+            return;
+        }
+
+        const senderId = socket.data.user.id;
+        const validDirection =
+            (senderId === call.callerId && payload.recipient_id === call.recipientId) ||
+            (senderId === call.recipientId && payload.recipient_id === call.callerId);
+
+        if (!validDirection || !['pending', 'accepted'].includes(call.status)) {
+            console.log('[CALL] camera-state dropped, invalid call', {
+                callId: call.callId,
+                status: call.status,
+                senderId,
+            });
+            return;
+        }
+
+        call.cameraEnabled = payload.enabled === true;
+        const event = {
+            call_id: call.callId,
+            sender_id: senderId,
+            enabled: call.cameraEnabled,
+        };
+
+        this.io.to(`user:${payload.recipient_id}`).emit('call:camera-state', event);
+        console.log('[CALL] camera-state', {
+            callId: call.callId,
+            senderId,
+            recipientId: payload.recipient_id,
+            enabled: call.cameraEnabled,
         });
     }
 
@@ -403,6 +447,7 @@ export class CallService {
         await this.notify(() =>
             this.notifications?.sendCallCancelledPush(call.recipientId, call.callId, 'timeout'),
         );
+        await this.recordMissedVideoCall(call);
     }
 
     private async finish(
@@ -411,10 +456,11 @@ export class CallService {
         reason: string | undefined,
         options: { excludeSocket?: RealtimeSocket } = {},
     ): Promise<boolean> {
+        const wasPending = call.status === 'pending';
         const nextStatus =
-            call.status === 'pending' && reason === 'cancelled'
+            wasPending && reason === 'cancelled'
                 ? 'cancelled'
-                : call.status === 'pending' && reason === 'rejected'
+                : wasPending && reason === 'rejected'
                   ? 'rejected'
                   : 'ended';
         const transitioned = this.store.transition(call.callId, call.status, nextStatus);
@@ -461,6 +507,12 @@ export class CallService {
                   ),
         );
 
+        const callerCancelledPending =
+            wasPending && reason === 'cancelled' && senderId === call.callerId;
+        if (wasPending && (reason === 'timeout' || callerCancelledPending)) {
+            await this.recordMissedVideoCall(call);
+        }
+
         return true;
     }
 
@@ -471,7 +523,7 @@ export class CallService {
             description: call.offer!,
             caller_name: call.callerName,
             caller_avatar: call.callerAvatar ?? null,
-            call_type: 'video',
+            call_type: call.callType,
             timestamp: call.createdAt.getTime(),
         };
     }
@@ -482,6 +534,35 @@ export class CallService {
         if (call.status === 'rejected') return 'declined';
         if (call.status === 'expired') return 'timeout';
         return call.status;
+    }
+
+    private async recordMissedVideoCall(call: PendingCall): Promise<void> {
+        if (!this.missedCalls) {
+            return;
+        }
+
+        try {
+            await this.missedCalls.recordMissedVideoCall({
+                callId: call.callId,
+                callerId: call.callerId,
+                recipientId: call.recipientId,
+                callerName: call.callerName,
+                callerAvatar: call.callerAvatar,
+                ...(call.conversationId !== undefined
+                    ? { conversationId: call.conversationId }
+                    : {}),
+            });
+            console.log('[CALL] missed notification recorded', {
+                callId: call.callId,
+                recipientId: call.recipientId,
+            });
+        } catch (error) {
+            console.error('[CALL] missed notification failed', {
+                callId: call.callId,
+                recipientId: call.recipientId,
+                error,
+            });
+        }
     }
 
     private async sendIncomingPush(call: PendingCall): Promise<void> {
@@ -499,6 +580,7 @@ export class CallService {
                     callerId: call.callerId,
                     callerName: call.callerName,
                     callerAvatar: call.callerAvatar,
+                    callType: call.callType,
                     ...(call.conversationId !== undefined
                         ? { conversationId: call.conversationId }
                         : {}),

@@ -10,6 +10,7 @@ export class CallNotifications {
         callerName: string;
         callerAvatar?: string | null;
         conversationId?: number;
+        callType?: 'audio' | 'video';
         expiresAt: Date;
         timestamp: number;
     }): Promise<void> {
@@ -18,7 +19,7 @@ export class CallNotifications {
             call_id: input.callId,
             caller_id: String(input.callerId),
             caller_name: input.callerName,
-            call_type: 'video',
+            call_type: input.callType === 'audio' ? 'audio' : 'video',
             timestamp: String(input.timestamp),
             expires_at: input.expiresAt.toISOString(),
         };

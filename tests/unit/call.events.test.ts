@@ -12,6 +12,7 @@ function createHarness() {
         answer: vi.fn(),
         acceptIntent: vi.fn(),
         ice: vi.fn(),
+        cameraState: vi.fn(),
         end: vi.fn(),
         replay: vi.fn(),
     } as unknown as CallService;
@@ -32,12 +33,13 @@ describe('registerCallEvents', () => {
         harness = createHarness();
     });
 
-    it('регистрира четирите съществуващи signaling събития', () => {
+    it('регистрира signaling събитията включително call:camera-state', () => {
         expect([...harness.handlers.keys()]).toEqual([
             'call:offer',
             'call:answer',
             'call:accept',
             'call:ice-candidate',
+            'call:camera-state',
             'call:end',
             'call:sync',
             'device:register',
@@ -55,6 +57,19 @@ describe('registerCallEvents', () => {
         expect(harness.calls.offer).toHaveBeenCalledWith(harness.socket, {
             ...payload,
             call_id: 'call-1',
+        });
+    });
+
+    it('предава call:camera-state към call service', () => {
+        harness.handlers.get('call:camera-state')?.({
+            call_id: ' call-1 ',
+            recipient_id: 23,
+            enabled: false,
+        });
+        expect(harness.calls.cameraState).toHaveBeenCalledWith(harness.socket, {
+            call_id: 'call-1',
+            recipient_id: 23,
+            enabled: false,
         });
     });
 

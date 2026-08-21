@@ -85,6 +85,24 @@ export function registerCallEvents(socket: RealtimeSocket, calls: CallService): 
         calls.ice(socket, { ...payload, call_id: payload.call_id.trim() });
     });
 
+    socket.on('call:camera-state', (payload) => {
+        if (!hasValidRecipientAndCall(payload)) {
+            return;
+        }
+
+        const enabled = typeof payload.enabled === 'boolean' ? payload.enabled : null;
+
+        if (enabled === null) {
+            return;
+        }
+
+        calls.cameraState(socket, {
+            call_id: payload.call_id.trim(),
+            recipient_id: payload.recipient_id,
+            enabled,
+        });
+    });
+
     socket.on('call:end', async (payload) => {
         if (!hasValidRecipientAndCall(payload)) {
             return;
