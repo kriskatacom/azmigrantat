@@ -15,6 +15,7 @@ export interface PendingCall {
     callType: 'audio' | 'video';
     cameraEnabled: boolean;
     conversationId?: number;
+    acceptedAt?: Date;
     bufferedIce: IceCandidatePayload[];
     answered?: boolean;
 }

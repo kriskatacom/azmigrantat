@@ -28,6 +28,7 @@ function createHarness(initialNow = new Date('2026-08-17T12:00:00.000Z')) {
     } as unknown as CallNotifications;
     const missedCalls = {
         recordMissedVideoCall: vi.fn().mockResolvedValue(undefined),
+        recordCallEvent: vi.fn().mockResolvedValue(undefined),
     };
     const store = new InMemoryCallStore();
     const calls = new CallService(io, store, notifications, undefined, () => now, missedCalls);
@@ -440,6 +441,44 @@ describe('CallService', () => {
         expect(recipient.socketEmit).toHaveBeenCalledWith('call:accepted', {
             call_id: 'call-1',
             sender_id: 44,
+        });
+    });
+
+    it('записва детайлите на обаждането в чата при край', async () => {
+        const caller = harness.socket(22, 'Caller');
+        const recipient = harness.socket(44, 'Recipient');
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+            call_type: 'video',
+        });
+
+        await harness.calls.acceptIntent(recipient.value, {
+            call_id: 'call-1',
+            recipient_id: 22,
+        });
+
+        harness.setNow(new Date('2026-08-17T12:01:25.000Z'));
+        await harness.calls.end(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            reason: 'hangup',
+        });
+
+        expect(harness.missedCalls.recordCallEvent).toHaveBeenCalledWith({
+            callId: 'call-1',
+            callerId: 22,
+            recipientId: 44,
+            callType: 'video',
+            outcome: 'completed',
+            startedAt: '2026-08-17T12:00:00.000Z',
+            endedAt: '2026-08-17T12:01:25.000Z',
+            answeredAt: '2026-08-17T12:00:00.000Z',
+            durationSeconds: 85,
+            endedById: 22,
+            reason: 'hangup',
+            cameraEnabled: true,
         });
     });
 });

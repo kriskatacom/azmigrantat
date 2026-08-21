@@ -110,6 +110,7 @@ export class CallService {
         if (call.status === 'pending') {
             if (call.expiresAt <= this.now()) return;
             if (!this.store.claim(call.callId, 'pending', 'accepted')) return;
+            call.acceptedAt = this.now();
             console.log('[CALL] server state ringing -> accepted callId=' + call.callId);
             const event = {
                 call_id: call.callId,
@@ -166,6 +167,7 @@ export class CallService {
         if (call.status === 'pending') {
             if (call.expiresAt <= this.now()) return;
             if (!this.store.claim(call.callId, 'pending', 'accepted')) return;
+            call.acceptedAt = this.now();
             console.log('[CALL] server state ringing -> accepted callId=' + call.callId);
         } else if (alreadyAccepted) {
             console.log('[CALL] ignoring duplicate accepted transition', { callId: call.callId });
@@ -328,6 +330,7 @@ export class CallService {
             return { ok: true, status: 'ended' };
         }
 
+        call.acceptedAt = this.now();
         console.log('[CALL] accepted', { callId: call.callId, userId, source: 'http' });
         const event = { call_id: call.callId, sender_id: userId };
         this.io.to(`user:${call.callerId}`).emit('call:accepted', event);
@@ -448,6 +451,7 @@ export class CallService {
             this.notifications?.sendCallCancelledPush(call.recipientId, call.callId, 'timeout'),
         );
         await this.recordMissedVideoCall(call);
+        await this.recordCallEvent(call, 'unanswered', null, 'timeout');
     }
 
     private async finish(
@@ -513,7 +517,22 @@ export class CallService {
             await this.recordMissedVideoCall(call);
         }
 
+        const outcome = this.toCallOutcome(nextStatus, wasPending, reason);
+        await this.recordCallEvent(call, outcome, senderId, reason);
+
         return true;
+    }
+
+    private toCallOutcome(
+        nextStatus: PendingCall['status'],
+        wasPending: boolean,
+        reason: string | undefined,
+    ): 'completed' | 'missed' | 'rejected' | 'cancelled' | 'unanswered' {
+        if (nextStatus === 'rejected') return 'rejected';
+        if (nextStatus === 'cancelled') return 'cancelled';
+        if (reason === 'timeout' || nextStatus === 'expired') return 'unanswered';
+        if (wasPending) return 'missed';
+        return 'completed';
     }
 
     private toIncomingPayload(call: PendingCall): CallOfferServerPayload {
@@ -560,6 +579,53 @@ export class CallService {
             console.error('[CALL] missed notification failed', {
                 callId: call.callId,
                 recipientId: call.recipientId,
+                error,
+            });
+        }
+    }
+
+    private async recordCallEvent(
+        call: PendingCall,
+        outcome: 'completed' | 'missed' | 'rejected' | 'cancelled' | 'unanswered',
+        endedById: number | null,
+        reason?: string | null,
+    ): Promise<void> {
+        if (!this.missedCalls?.recordCallEvent) {
+            return;
+        }
+
+        const endedAt = this.now();
+        const answeredAt = call.acceptedAt ?? null;
+        const durationSeconds = answeredAt
+            ? Math.max(0, Math.round((endedAt.getTime() - answeredAt.getTime()) / 1000))
+            : 0;
+
+        try {
+            await this.missedCalls.recordCallEvent({
+                callId: call.callId,
+                callerId: call.callerId,
+                recipientId: call.recipientId,
+                callType: call.callType,
+                outcome,
+                startedAt: call.createdAt.toISOString(),
+                endedAt: endedAt.toISOString(),
+                answeredAt: answeredAt ? answeredAt.toISOString() : null,
+                durationSeconds,
+                endedById,
+                reason: reason ?? null,
+                cameraEnabled: call.cameraEnabled,
+                ...(call.conversationId !== undefined
+                    ? { conversationId: call.conversationId }
+                    : {}),
+            });
+            console.log('[CALL] chat event recorded', {
+                callId: call.callId,
+                outcome,
+            });
+        } catch (error) {
+            console.error('[CALL] chat event failed', {
+                callId: call.callId,
+                outcome,
                 error,
             });
         }
