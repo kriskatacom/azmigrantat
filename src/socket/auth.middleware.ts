@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { authenticateAccessToken } from '../services/auth.service';
 import type { RealtimeServer } from '../types/events';
 
@@ -11,9 +13,11 @@ export function registerSocketAuthMiddleware(io: RealtimeServer): void {
                 return;
             }
 
-            const user = await authenticateAccessToken(token.trim());
+            const accessToken = token.trim();
+            const user = await authenticateAccessToken(accessToken);
 
             socket.data.user = user;
+            socket.data.tokenHash = createHash('sha256').update(accessToken).digest('hex');
 
             next();
         } catch (error) {

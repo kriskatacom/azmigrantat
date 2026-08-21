@@ -457,4 +457,58 @@ export function registerInternalRoutes(app: Express, io: RealtimeServer): void {
             delivered_socket_count: deliveredSockets,
         });
     });
+
+    app.post('/internal/events/session-revoke', async (request, response) => {
+        const providedSecret = request.header('X-Internal-Secret');
+
+        if (!providedSecret || providedSecret !== config.internalApiSecret) {
+            response.status(401).json({
+                success: false,
+                message: 'Невалиден вътрешен ключ.',
+            });
+
+            return;
+        }
+
+        const { user_id, token_hash, reason } = request.body as {
+            user_id?: unknown;
+            token_hash?: unknown;
+            reason?: unknown;
+        };
+
+        if (
+            !Number.isInteger(user_id) ||
+            (user_id as number) <= 0 ||
+            typeof token_hash !== 'string' ||
+            token_hash.trim() === ''
+        ) {
+            response.status(422).json({
+                success: false,
+                message: 'Невалидни данни за отнемане на сесия.',
+            });
+
+            return;
+        }
+
+        const revokeReason = reason === 'rotated' ? 'rotated' : 'logout';
+        const sockets = await io.in(`user:${user_id}`).fetchSockets();
+        let disconnected = 0;
+
+        for (const socket of sockets) {
+            if (socket.data?.tokenHash !== token_hash) {
+                continue;
+            }
+
+            socket.emit('auth:revoked', { reason: revokeReason });
+            socket.disconnect(true);
+            disconnected += 1;
+        }
+
+        console.log(`session-revoke user:${user_id} disconnected=${disconnected}`);
+
+        response.json({
+            success: true,
+            disconnected,
+        });
+    });
 }

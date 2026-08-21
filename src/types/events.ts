@@ -55,6 +55,7 @@ export interface ServerToClientEvents {
     'notification:read-all': (payload: { user_id: number }) => void;
     'notification:cleared': (payload: { user_id: number }) => void;
     'notification:deleted': (payload: AppNotificationPayload) => void;
+    'auth:revoked': (payload: { reason: string }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -78,6 +79,7 @@ export interface InterServerEvents {}
 
 export interface SocketData {
     user: AuthenticatedUser;
+    tokenHash?: string;
     appState?: 'active' | 'background';
 }
 

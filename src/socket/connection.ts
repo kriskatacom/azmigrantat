@@ -1,4 +1,5 @@
 import type { CallService } from '../services/calls/call-service';
+import type { TypingAuthorizationProvider } from '../services/conversations/typing-authorization.provider';
 import type { RealtimeServer } from '../types/events';
 import type { SocketConnectionReadyPayload } from '../types/socket';
 import { registerCallEvents } from './call.events';
@@ -6,14 +7,18 @@ import { registerTypingEvents } from './typing.events';
 
 const lastSeenByUser = new Map<number, string>();
 
-export function registerSocketConnections(io: RealtimeServer, calls: CallService): void {
+export function registerSocketConnections(
+    io: RealtimeServer,
+    calls: CallService,
+    typingAuthorization?: TypingAuthorizationProvider,
+): void {
     io.on('connection', async (socket) => {
         const user = socket.data.user;
         const userRoom = `user:${user.id}`;
 
         await socket.join(userRoom);
 
-        registerTypingEvents(socket);
+        registerTypingEvents(socket, typingAuthorization);
         registerCallEvents(socket, calls);
 
         const socketsInRoom = await io.in(userRoom).fetchSockets();

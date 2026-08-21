@@ -35,13 +35,28 @@ type RoomSocketCounts = Record<string, number>;
 
 function createIo(roomSocketCounts: RoomSocketCounts = {}) {
     const emit = vi.fn();
+    const createdSockets: Array<{
+        id: string;
+        data: { tokenHash: string };
+        emit: ReturnType<typeof vi.fn>;
+        disconnect: ReturnType<typeof vi.fn>;
+    }> = [];
 
     const fetchSockets = vi.fn(async (room: string) => {
         const socketCount = roomSocketCounts[room] ?? 0;
 
-        return Array.from({ length: socketCount }, (_, index) => ({
+        const sockets = Array.from({ length: socketCount }, (_, index) => ({
             id: `${room}-socket-${index + 1}`,
+            data: {
+                tokenHash: 'revoked-token-hash',
+            },
+            emit: vi.fn(),
+            disconnect: vi.fn(),
         }));
+
+        createdSockets.push(...sockets);
+
+        return sockets;
     });
 
     const inRoom = vi.fn((room: string) => ({
@@ -63,6 +78,7 @@ function createIo(roomSocketCounts: RoomSocketCounts = {}) {
         fetchSockets,
         inRoom,
         toRoom,
+        createdSockets,
     };
 }
 
@@ -784,6 +800,43 @@ describe('internal routes', () => {
 
             expect(response.status).toBe(200);
             expect(emit).toHaveBeenCalledWith('user:44', 'notification:cleared', { user_id: 44 });
+        });
+    });
+
+    describe('POST /internal/events/session-revoke', () => {
+        it('прекъсва sockets с отнетия token hash', async () => {
+            const { app, createdSockets } = createTestApp({ 'user:9': 2 });
+
+            const response = await request(app)
+                .post('/internal/events/session-revoke')
+                .set('X-Internal-Secret', 'test-internal-secret')
+                .send({
+                    user_id: 9,
+                    token_hash: 'revoked-token-hash',
+                });
+
+            expect(response.status).toBe(200);
+            expect(response.body.disconnected).toBe(2);
+            expect(createdSockets[0]?.emit).toHaveBeenCalledWith('auth:revoked', {
+                reason: 'logout',
+            });
+            expect(createdSockets[0]?.disconnect).toHaveBeenCalledWith(true);
+        });
+
+        it('не пипа sockets с друг token hash', async () => {
+            const { app, createdSockets } = createTestApp({ 'user:9': 1 });
+
+            const response = await request(app)
+                .post('/internal/events/session-revoke')
+                .set('X-Internal-Secret', 'test-internal-secret')
+                .send({
+                    user_id: 9,
+                    token_hash: 'other-hash',
+                });
+
+            expect(response.status).toBe(200);
+            expect(response.body.disconnected).toBe(0);
+            expect(createdSockets[0]?.disconnect).not.toHaveBeenCalled();
         });
     });
 });
