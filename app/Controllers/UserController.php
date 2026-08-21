@@ -7,6 +7,7 @@ use App\Core\Auth;
 use App\Core\Session;
 use App\Helpers\AuthHelper;
 use App\Models\User;
+use App\Services\AuthRateLimiter;
 use App\Services\EmailService;
 use App\Services\UserService;
 use App\Traits\HasAdminTrait;
@@ -55,6 +56,16 @@ class UserController extends BaseController
     public function register()
     {
         $this->validateSpam();
+
+        $limiter = new AuthRateLimiter();
+        $ip = AuthRateLimiter::clientIp();
+
+        if ($limiter->tooMany(AuthRateLimiter::ACTION_REGISTER_IP, $ip)) {
+            $this->flash('error', 'Твърде много опити за регистрация. Опитайте отново по-късно.');
+            return $this->redirectBack();
+        }
+
+        $limiter->hit(AuthRateLimiter::ACTION_REGISTER_IP, $ip);
 
         $rules = [
             'name' => 'required|min:3',
@@ -132,6 +143,18 @@ class UserController extends BaseController
     {
         $this->validateSpam();
 
+        $limiter = new AuthRateLimiter();
+        $ip = AuthRateLimiter::clientIp();
+        $email = strtolower(trim((string) ($_POST['email'] ?? '')));
+
+        if (
+            $limiter->tooMany(AuthRateLimiter::ACTION_LOGIN_IP, $ip)
+            || $limiter->tooMany(AuthRateLimiter::ACTION_LOGIN_EMAIL, $email)
+        ) {
+            $this->flash('error', 'Твърде много опити за вход. Изчакайте няколко минути.');
+            return $this->redirectBack();
+        }
+
         $rules = [
             'email' => 'required|email',
             'password' => 'required'
@@ -151,15 +174,18 @@ class UserController extends BaseController
             return $this->redirectBack();
         }
 
-        $user = $this->userService->authenticate(
-            $_POST['email'],
-            $_POST['password']
-        );
-
-        if (!$user) {
-            $this->flash('error', 'Грешни данни за вход.');
-            return $this->redirectBack();
+        try {
+            $user = $this->userService->authenticate(
+                $_POST['email'],
+                $_POST['password']
+            );
+        } catch (\Exception $exception) {
+            $limiter->hit(AuthRateLimiter::ACTION_LOGIN_IP, $ip);
+            $limiter->hit(AuthRateLimiter::ACTION_LOGIN_EMAIL, $email);
+            throw $exception;
         }
+
+        $limiter->clear(AuthRateLimiter::ACTION_LOGIN_EMAIL, $email);
 
         Session::set('user', $user);
         Session::csrfToken();

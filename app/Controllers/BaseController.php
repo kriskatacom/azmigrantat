@@ -5,6 +5,9 @@ namespace App\Controllers;
 use App\Core\Session;
 use App\Core\View;
 use App\Helpers\SecurityHelper;
+use App\Models\OauthAccessToken;
+use App\Models\User;
+use App\Services\AuthRateLimiter;
 use App\Services\OpenGraphService;
 
 use Attribute;
@@ -81,6 +84,26 @@ abstract class BaseController
         http_response_code($status);
         echo json_encode($data);
         exit();
+    }
+
+    protected function authenticatedUser(): ?User
+    {
+        return OauthAccessToken::userFromRequest();
+    }
+
+    protected function jsonTooManyAuthAttempts(
+        AuthRateLimiter $limiter,
+        string $action,
+        string $identifier
+    ) {
+        $retryAfter = $limiter->retryAfterSeconds($action, $identifier);
+        header('Retry-After: ' . $retryAfter);
+
+        return $this->json([
+            'success' => false,
+            'message' => 'Твърде много опити. Опитайте отново след малко.',
+            'retry_after' => $retryAfter,
+        ], 429);
     }
 
     protected function view(string $view, array $data = [])

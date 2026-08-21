@@ -4,7 +4,6 @@ namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
 use App\Models\Conversation;
-use App\Models\OauthAccessToken;
 use App\Models\Participant;
 use App\Models\User;
 use App\Services\BlockService;
@@ -255,11 +254,6 @@ final class ConversationController extends BaseController
         }
 
         return $user->toChatUserArray();
-    }
-
-    private function authenticatedUser(): ?User
-    {
-        return OauthAccessToken::userFromRequest();
     }
 
     private function jsonInput(): array

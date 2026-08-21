@@ -132,7 +132,7 @@ class OauthController extends BaseController
             return $this->json(['error' => 'invalid_grant', 'message' => 'Redirect URI mismatch']);
         }
 
-        $accessToken = OauthAccessToken::issue(
+        $tokens = OauthAccessToken::issue(
             (int) $authCode->user_id,
             (int) $app->id,
             date('Y-m-d H:i:s', strtotime('+1 hour'))
@@ -141,34 +141,17 @@ class OauthController extends BaseController
         $authCode->delete();
 
         return $this->json([
-            'access_token' => $accessToken,
+            'access_token' => $tokens['access_token'],
             'token_type' => 'Bearer',
-            'expires_in' => 3600
+            'expires_in' => 3600,
         ]);
     }
 
     public function me()
     {
-        $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-        $token = null;
+        $user = $this->authenticatedUser();
 
-        if (preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
-            $token = $matches[1];
-        }
-
-        if (!$token) {
-            return $this->json(['error' => 'missing_token'], 401);
-        }
-
-        $accessToken = OauthAccessToken::findByPlainToken($token);
-
-        if (!$accessToken || $accessToken->isExpired()) {
-            return $this->json(['error' => 'invalid_or_expired_token'], 401);
-        }
-
-        $user = $accessToken->user;
-
-        if (!$user || !$user->is_active) {
+        if (!$user) {
             return $this->json(['error' => 'invalid_or_expired_token'], 401);
         }
 
@@ -177,13 +160,13 @@ class OauthController extends BaseController
             'name' => $user->name,
             'email' => $user->email,
             'role' => $user->role,
-            'avatar' => $user->avatar_url ?? null
+            'avatar' => $user->avatar_url ?? null,
         ]);
     }
 
     public function getUsers()
     {
-        $user = OauthAccessToken::userFromRequest();
+        $user = $this->authenticatedUser();
 
         if (!$user || $user->role !== User::ROLE_ADMIN) {
             return $this->json(['error' => 'unauthorized'], 401);

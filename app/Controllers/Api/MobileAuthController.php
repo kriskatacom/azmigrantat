@@ -7,14 +7,34 @@ use App\Models\OauthAccessToken;
 use App\Models\OauthApp;
 use App\Models\User;
 use App\Models\UserSocialAccount;
+use App\Services\AuthRateLimiter;
+use App\Services\RealtimeNotifier;
 use Illuminate\Support\Facades\Validator;
 use Google\Client as GoogleClient;
 
 final class MobileAuthController extends BaseController
 {
+    private const ACCESS_TTL_SECONDS = 2592000;
+    private const REFRESH_TTL_SECONDS = 5184000;
+
     public function login()
     {
         $input = $this->jsonInput();
+        $limiter = new AuthRateLimiter();
+        $ip = AuthRateLimiter::clientIp();
+        $email = strtolower(trim((string) ($input['email'] ?? '')));
+
+        if (
+            $limiter->tooMany(AuthRateLimiter::ACTION_LOGIN_IP, $ip)
+            || $limiter->tooMany(AuthRateLimiter::ACTION_LOGIN_EMAIL, $email)
+        ) {
+            $action = $limiter->tooMany(AuthRateLimiter::ACTION_LOGIN_IP, $ip)
+                ? AuthRateLimiter::ACTION_LOGIN_IP
+                : AuthRateLimiter::ACTION_LOGIN_EMAIL;
+            $identifier = $action === AuthRateLimiter::ACTION_LOGIN_IP ? $ip : $email;
+
+            return $this->jsonTooManyAuthAttempts($limiter, $action, $identifier);
+        }
 
         $validator = Validator::make($input, [
             'client_id' => 'required|string',
@@ -39,9 +59,12 @@ final class MobileAuthController extends BaseController
             ], 401);
         }
 
-        $user = User::where('email', strtolower(trim($input['email'])))->first();
+        $user = User::where('email', $email)->first();
 
         if (!$user || !isset($user->password_hash) || !password_verify($input['password'], $user->password_hash)) {
+            $limiter->hit(AuthRateLimiter::ACTION_LOGIN_IP, $ip);
+            $limiter->hit(AuthRateLimiter::ACTION_LOGIN_EMAIL, $email);
+
             return $this->json([
                 'success' => false,
                 'message' => 'Невалиден имейл или парола.',
@@ -49,26 +72,35 @@ final class MobileAuthController extends BaseController
         }
 
         if (!$user->is_active) {
+            $limiter->hit(AuthRateLimiter::ACTION_LOGIN_IP, $ip);
+            $limiter->hit(AuthRateLimiter::ACTION_LOGIN_EMAIL, $email);
+
             return $this->json([
                 'success' => false,
                 'message' => 'Профилът е деактивиран.',
             ], 403);
         }
 
-        $token = $this->issueAccessToken($user, $app);
+        $limiter->clear(AuthRateLimiter::ACTION_LOGIN_EMAIL, $email);
 
-        return $this->json([
-            'success' => true,
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-            'expires_in' => 2592000,
-            'user' => $this->serializeUser($user),
-        ]);
+        return $this->json($this->authPayload($user, $app));
     }
 
     public function register()
     {
         $input = $this->jsonInput();
+        $limiter = new AuthRateLimiter();
+        $ip = AuthRateLimiter::clientIp();
+
+        if ($limiter->tooMany(AuthRateLimiter::ACTION_REGISTER_IP, $ip)) {
+            return $this->jsonTooManyAuthAttempts(
+                $limiter,
+                AuthRateLimiter::ACTION_REGISTER_IP,
+                $ip
+            );
+        }
+
+        $limiter->hit(AuthRateLimiter::ACTION_REGISTER_IP, $ip);
 
         $validator = Validator::make(
             $input,
@@ -135,23 +167,19 @@ final class MobileAuthController extends BaseController
             'is_active' => true,
         ]);
 
-        $token = $this->issueAccessToken($user, $app);
-
-        return $this->json([
-            'success' => true,
-            'message' => 'Профилът беше създаден успешно.',
-            'access_token' => $token,
-            'token_type' => 'Bearer',
-            'expires_in' => 2592000,
-            'user' => $this->serializeUser($user),
-        ], 201);
+        return $this->json(
+            $this->authPayload($user, $app) + [
+                'message' => 'Профилът беше създаден успешно.',
+            ],
+            201
+        );
     }
 
     public function me()
     {
-        $accessToken = $this->resolveAccessToken();
+        $user = $this->authenticatedUser();
 
-        if (!$accessToken) {
+        if (!$user) {
             return $this->json([
                 'success' => false,
                 'message' => 'Невалиден или изтекъл access token.',
@@ -160,7 +188,7 @@ final class MobileAuthController extends BaseController
 
         return $this->json([
             'success' => true,
-            'user' => $this->serializeUser($accessToken->user),
+            'user' => $this->serializeUser($user),
         ]);
     }
 
@@ -169,7 +197,10 @@ final class MobileAuthController extends BaseController
         $accessToken = $this->resolveAccessToken();
 
         if ($accessToken) {
+            $userId = (int) $accessToken->user_id;
+            $tokenHash = (string) $accessToken->token;
             $accessToken->delete();
+            $this->revokeRealtimeSession($userId, $tokenHash);
         }
 
         return $this->json([
@@ -178,9 +209,85 @@ final class MobileAuthController extends BaseController
         ]);
     }
 
+    public function refresh()
+    {
+        $input = $this->jsonInput();
+        $limiter = new AuthRateLimiter();
+        $ip = AuthRateLimiter::clientIp();
+
+        if ($limiter->tooMany(AuthRateLimiter::ACTION_REFRESH_IP, $ip)) {
+            return $this->jsonTooManyAuthAttempts(
+                $limiter,
+                AuthRateLimiter::ACTION_REFRESH_IP,
+                $ip
+            );
+        }
+
+        $validator = Validator::make($input, [
+            'client_id' => 'required|string',
+            'refresh_token' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors()->toArray(),
+            ], 422);
+        }
+
+        $app = $this->resolvePublicApplication($input['client_id']);
+
+        if (!$app) {
+            $limiter->hit(AuthRateLimiter::ACTION_REFRESH_IP, $ip);
+
+            return $this->json([
+                'success' => false,
+                'message' => 'Невалидно или неактивно мобилно приложение.',
+            ], 401);
+        }
+
+        $current = OauthAccessToken::findByRefreshToken($input['refresh_token']);
+
+        if (
+            !$current ||
+            $current->isRefreshExpired() ||
+            (int) $current->app_id !== (int) $app->id ||
+            !$current->user ||
+            !$current->user->is_active
+        ) {
+            $limiter->hit(AuthRateLimiter::ACTION_REFRESH_IP, $ip);
+
+            return $this->json([
+                'success' => false,
+                'message' => 'Невалиден или изтекъл refresh token.',
+            ], 401);
+        }
+
+        $userId = (int) $current->user_id;
+        $tokenHash = (string) $current->token;
+        $user = $current->user;
+        $current->delete();
+        $this->revokeRealtimeSession($userId, $tokenHash, 'rotated');
+
+        return $this->json($this->authPayload($user, $app));
+    }
+
     public function google()
     {
         $input = $this->jsonInput();
+        $limiter = new AuthRateLimiter();
+        $ip = AuthRateLimiter::clientIp();
+
+        if ($limiter->tooMany(AuthRateLimiter::ACTION_GOOGLE_IP, $ip)) {
+            return $this->jsonTooManyAuthAttempts(
+                $limiter,
+                AuthRateLimiter::ACTION_GOOGLE_IP,
+                $ip
+            );
+        }
+
+        $limiter->hit(AuthRateLimiter::ACTION_GOOGLE_IP, $ip);
 
         $validator = Validator::make(
             $input,
@@ -341,18 +448,7 @@ final class MobileAuthController extends BaseController
                 ], 403);
             }
 
-            $accessToken = $this->issueAccessToken(
-                $user,
-                $oauthApp
-            );
-
-            return $this->json([
-                'success' => true,
-                'access_token' => $accessToken,
-                'token_type' => 'Bearer',
-                'expires_in' => 2592000,
-                'user' => $this->serializeUser($user),
-            ]);
+            return $this->json($this->authPayload($user, $oauthApp));
         } catch (\Throwable $exception) {
             error_log(
                 'Google authentication error: '
@@ -385,13 +481,36 @@ final class MobileAuthController extends BaseController
         return ($options['client_type'] ?? null) === 'public' ? $app : null;
     }
 
-    private function issueAccessToken(User $user, OauthApp $app): string
+    private function authPayload(User $user, OauthApp $app): array
     {
-        return OauthAccessToken::issue(
+        $tokens = OauthAccessToken::issue(
             (int) $user->id,
             (int) $app->id,
-            date('Y-m-d H:i:s', strtotime('+30 days'))
+            date('Y-m-d H:i:s', time() + self::ACCESS_TTL_SECONDS),
+            date('Y-m-d H:i:s', time() + self::REFRESH_TTL_SECONDS)
         );
+
+        return [
+            'success' => true,
+            'access_token' => $tokens['access_token'],
+            'refresh_token' => $tokens['refresh_token'],
+            'token_type' => 'Bearer',
+            'expires_in' => self::ACCESS_TTL_SECONDS,
+            'refresh_expires_in' => self::REFRESH_TTL_SECONDS,
+            'user' => $this->serializeUser($user),
+        ];
+    }
+
+    private function revokeRealtimeSession(
+        int $userId,
+        string $tokenHash,
+        string $reason = 'logout'
+    ): void {
+        try {
+            (new RealtimeNotifier())->notifySessionRevoked($userId, $tokenHash, $reason);
+        } catch (\Throwable $exception) {
+            error_log('[MobileAuth] session revoke failed user_id=' . $userId);
+        }
     }
 
     private function resolveAccessToken(): ?OauthAccessToken

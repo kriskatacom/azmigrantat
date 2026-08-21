@@ -308,4 +308,16 @@ final class RealtimeNotifier
             ),
         ]);
     }
+
+    public function notifySessionRevoked(
+        int $userId,
+        string $tokenHash,
+        string $reason = 'logout'
+    ): bool {
+        return $this->send('/internal/events/session-revoke', [
+            'user_id' => $userId,
+            'token_hash' => $tokenHash,
+            'reason' => $reason,
+        ]);
+    }
 }

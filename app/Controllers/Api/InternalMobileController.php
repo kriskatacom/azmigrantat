@@ -5,10 +5,12 @@ namespace App\Controllers\Api;
 use App\Controllers\BaseController;
 use App\Models\Conversation;
 use App\Models\Notification;
+use App\Models\Participant;
 use App\Models\User;
 use App\Services\CallAuthorizationService;
 use App\Services\ConversationService;
 use App\Services\NotificationService;
+use App\Services\BlockService;
 use App\Services\PushNotificationService;
 use App\Services\PushTokenService;
 use App\Services\RealtimeNotifier;
@@ -77,6 +79,62 @@ final class InternalMobileController extends BaseController
             error_log('[InternalCallAuthorization] failed caller_id=' . (int) $input['caller_id'] . ' recipient_id=' . (int) $input['recipient_id']);
             return $this->json(['success' => false, 'message' => 'Internal service error.'], 500);
         }
+    }
+
+    public function authorizeTyping()
+    {
+        if (!$this->hasValidInternalSecret()) {
+            return $this->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        $input = $this->jsonInput();
+        $validator = Validator::make($input, [
+            'conversation_id' => 'required|integer|min:1',
+            'sender_id' => 'required|integer|min:1',
+            'recipient_ids' => 'nullable|array',
+            'recipient_ids.*' => 'integer|min:1',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator);
+        }
+
+        $conversationId = (int) $input['conversation_id'];
+        $senderId = (int) $input['sender_id'];
+        $requested = array_values(array_unique(array_map(
+            static fn($id): int => (int) $id,
+            $input['recipient_ids'] ?? []
+        )));
+
+        $participantIds = Participant::query()
+            ->where('conversation_id', $conversationId)
+            ->whereNull('left_at')
+            ->pluck('user_id')
+            ->map(static fn($id): int => (int) $id)
+            ->all();
+
+        if (!in_array($senderId, $participantIds, true)) {
+            return $this->json([
+                'success' => true,
+                'authorized' => false,
+                'recipient_ids' => [],
+            ]);
+        }
+
+        $blocks = new BlockService();
+        $allowed = array_values(array_filter(
+            $requested,
+            static fn(int $id): bool =>
+                $id !== $senderId
+                && in_array($id, $participantIds, true)
+                && !$blocks->areBlocked($senderId, $id)
+        ));
+
+        return $this->json([
+            'success' => true,
+            'authorized' => $allowed !== [],
+            'recipient_ids' => $allowed,
+        ]);
     }
 
     public function deactivatePushToken()

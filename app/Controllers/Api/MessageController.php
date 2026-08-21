@@ -6,7 +6,6 @@ use App\Controllers\BaseController;
 use App\Models\Message;
 use App\Models\MessageReaction;
 use App\Models\Notification;
-use App\Models\OauthAccessToken;
 use App\Models\User;
 use App\Services\BackblazeB2Service;
 use App\Services\BlockService;
@@ -823,11 +822,6 @@ final class MessageController extends BaseController
         }
 
         return $user->toChatUserArray();
-    }
-
-    private function authenticatedUser(): ?User
-    {
-        return OauthAccessToken::userFromRequest();
     }
 
     private function jsonInput(): array

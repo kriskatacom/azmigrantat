@@ -3,7 +3,6 @@
 namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
-use App\Models\OauthAccessToken;
 use App\Models\User;
 use App\Services\PushTokenService;
 use Illuminate\Support\Facades\Validator;
@@ -137,11 +136,6 @@ final class PushTokenController extends BaseController
 
         $this->pushTokenService->unregisterAll($user);
         return $this->json(['success' => true]);
-    }
-
-    private function authenticatedUser(): ?User
-    {
-        return OauthAccessToken::userFromRequest();
     }
 
     private function jsonInput(): array

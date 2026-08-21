@@ -4,7 +4,6 @@ namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
 use App\Models\Notification;
-use App\Models\OauthAccessToken;
 use App\Models\User;
 use App\Services\NotificationService;
 use App\Services\RealtimeNotifier;
@@ -212,11 +211,6 @@ final class NotificationController extends BaseController
     private function realtime(): RealtimeNotifier
     {
         return new RealtimeNotifier();
-    }
-
-    private function authenticatedUser(): ?User
-    {
-        return OauthAccessToken::userFromRequest();
     }
 
     private function unauthorized()

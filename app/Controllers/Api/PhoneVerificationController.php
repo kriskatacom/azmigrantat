@@ -3,7 +3,6 @@
 namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
-use App\Models\OauthAccessToken;
 use App\Models\User;
 use App\Services\PhoneVerificationService;
 
@@ -76,11 +75,6 @@ final class PhoneVerificationController extends BaseController
     private function serializeUser(User $user): array
     {
         return $user->toMobileUserArray();
-    }
-
-    private function authenticatedUser(): ?User
-    {
-        return OauthAccessToken::userFromRequest();
     }
 
     private function unauthorized()

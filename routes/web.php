@@ -21,6 +21,7 @@ use App\Controllers\PageController;
 use App\Controllers\OauthController;
 
 use App\Middlewares\AuthMiddleware;
+use App\Middlewares\BearerAuthMiddleware;
 
 $router = new Router();
 
@@ -47,7 +48,7 @@ $router->post('/admin/posts/restore/{id}', [PostController::class, 'restore'], [
 $router->post('/admin/posts/force-delete/{id}', [PostController::class, 'forceDelete'], [AuthMiddleware::class]);
 
 $router->get('/oauth/authorize', [OauthController::class, 'authorize']);
-$router->get('/api/user/me', [OauthController::class, 'me']);
+$router->get('/api/user/me', [OauthController::class, 'me'], [BearerAuthMiddleware::class]);
 
 $router->post('/oauth/approve', [OauthController::class, 'approve'], [AuthMiddleware::class]);
 $router->post('/oauth/token', [OauthController::class, 'token']);
@@ -59,51 +60,55 @@ $router->post('/api/2fa/verify', [TwoFAuthController::class, 'verify2faCode'], [
 
 $router->post('/api/mobile/login', [MobileAuthController::class, 'login']);
 $router->post('/api/mobile/register', [MobileAuthController::class, 'register']);
-$router->post('/api/mobile/logout', [MobileAuthController::class, 'logout']);
-$router->get('/api/mobile/me', [MobileAuthController::class, 'me']);
+$router->post('/api/mobile/logout', [MobileAuthController::class, 'logout'], [BearerAuthMiddleware::class]);
+$router->get('/api/mobile/me', [MobileAuthController::class, 'me'], [BearerAuthMiddleware::class]);
 
 $router->post('/api/mobile/auth/google', [MobileAuthController::class, 'google']);
+$router->post('/api/mobile/refresh', [MobileAuthController::class, 'refresh']);
 
-$router->get('/api/mobile/users', [UserController::class, 'search']);
-$router->post('/api/mobile/profile', [UserController::class, 'updateProfile']);
-$router->post('/api/mobile/profile/image', [UserController::class, 'updateProfileImage']);
-$router->post('/api/mobile/profile/password', [UserController::class, 'updatePassword']);
-$router->get('/api/mobile/blocks', [BlockController::class, 'index']);
-$router->post('/api/mobile/blocks', [BlockController::class, 'store']);
-$router->post('/api/mobile/blocks/{id}/unblock', [BlockController::class, 'destroy']);
-$router->post('/api/mobile/phone/send', [PhoneVerificationController::class, 'send']);
-$router->post('/api/mobile/phone/verify', [PhoneVerificationController::class, 'verify']);
-$router->get('/api/mobile/link-preview', [LinkPreviewController::class, 'show']);
+$bearer = [BearerAuthMiddleware::class];
 
-$router->get('/api/mobile/conversations', [ConversationController::class, 'index']);
-$router->post('/api/mobile/conversations/direct', [ConversationController::class, 'createDirect']);
-$router->get('/api/mobile/conversations/unread-count', [ConversationController::class, 'unreadCount']);
-$router->delete('/api/mobile/profile/chat-messages', [UserController::class, 'deleteChatMessages']);
-$router->get('/api/mobile/conversations/{id}', [ConversationController::class, 'show']);
-$router->get('/api/mobile/conversations/{id}/messages', [MessageController::class, 'index']);
-$router->post('/api/mobile/conversations/{id}/messages', [MessageController::class, 'store']);
-$router->post('/api/mobile/conversations/{id}/attachments', [MessageController::class, 'storeAttachment']);
-$router->post('/api/mobile/conversations/{id}/read', [MessageController::class, 'markAsRead']);
-$router->post('/api/mobile/conversations/{id}/delivered', [MessageController::class, 'markAsDelivered']);
-$router->post('/api/mobile/conversations/{id}/messages/{messageId}/reactions', [MessageController::class, 'react']);
+$router->get('/api/mobile/users', [UserController::class, 'search'], $bearer);
+$router->post('/api/mobile/profile', [UserController::class, 'updateProfile'], $bearer);
+$router->post('/api/mobile/profile/image', [UserController::class, 'updateProfileImage'], $bearer);
+$router->post('/api/mobile/profile/password', [UserController::class, 'updatePassword'], $bearer);
+$router->get('/api/mobile/blocks', [BlockController::class, 'index'], $bearer);
+$router->post('/api/mobile/blocks', [BlockController::class, 'store'], $bearer);
+$router->post('/api/mobile/blocks/{id}/unblock', [BlockController::class, 'destroy'], $bearer);
+$router->post('/api/mobile/phone/send', [PhoneVerificationController::class, 'send'], $bearer);
+$router->post('/api/mobile/phone/verify', [PhoneVerificationController::class, 'verify'], $bearer);
+$router->get('/api/mobile/link-preview', [LinkPreviewController::class, 'show'], $bearer);
 
-$router->post('/api/mobile/push-tokens', [PushTokenController::class, 'store']);
-$router->delete('/api/mobile/push-tokens', [PushTokenController::class, 'destroy']);
-$router->post('/api/mobile/push-tokens/delete', [PushTokenController::class, 'destroy']);
-$router->post('/api/mobile/push-tokens/delete-all',[PushTokenController::class, 'destroyAll']);
-$router->post('/api/mobile/calls/{call_id}/action', [CallController::class, 'action']);
+$router->get('/api/mobile/conversations', [ConversationController::class, 'index'], $bearer);
+$router->post('/api/mobile/conversations/direct', [ConversationController::class, 'createDirect'], $bearer);
+$router->get('/api/mobile/conversations/unread-count', [ConversationController::class, 'unreadCount'], $bearer);
+$router->delete('/api/mobile/profile/chat-messages', [UserController::class, 'deleteChatMessages'], $bearer);
+$router->get('/api/mobile/conversations/{id}', [ConversationController::class, 'show'], $bearer);
+$router->get('/api/mobile/conversations/{id}/messages', [MessageController::class, 'index'], $bearer);
+$router->post('/api/mobile/conversations/{id}/messages', [MessageController::class, 'store'], $bearer);
+$router->post('/api/mobile/conversations/{id}/attachments', [MessageController::class, 'storeAttachment'], $bearer);
+$router->post('/api/mobile/conversations/{id}/read', [MessageController::class, 'markAsRead'], $bearer);
+$router->post('/api/mobile/conversations/{id}/delivered', [MessageController::class, 'markAsDelivered'], $bearer);
+$router->post('/api/mobile/conversations/{id}/messages/{messageId}/reactions', [MessageController::class, 'react'], $bearer);
 
-$router->get('/api/mobile/notifications/unread-count', [NotificationController::class, 'unreadCount']);
-$router->get('/api/mobile/notifications/{id}', [NotificationController::class, 'show']);
-$router->get('/api/mobile/notifications', [NotificationController::class, 'index']);
-$router->post('/api/mobile/notifications/read-all', [NotificationController::class, 'markAllAsRead']);
-$router->post('/api/mobile/notifications/delete-all', [NotificationController::class, 'deleteAll']);
-$router->post('/api/mobile/notifications/{id}/read', [NotificationController::class, 'markAsRead']);
-$router->post('/api/mobile/notifications/{id}/delete', [NotificationController::class, 'destroy']);
+$router->post('/api/mobile/push-tokens', [PushTokenController::class, 'store'], $bearer);
+$router->delete('/api/mobile/push-tokens', [PushTokenController::class, 'destroy'], $bearer);
+$router->post('/api/mobile/push-tokens/delete', [PushTokenController::class, 'destroy'], $bearer);
+$router->post('/api/mobile/push-tokens/delete-all',[PushTokenController::class, 'destroyAll'], $bearer);
+$router->post('/api/mobile/calls/{call_id}/action', [CallController::class, 'action'], $bearer);
+
+$router->get('/api/mobile/notifications/unread-count', [NotificationController::class, 'unreadCount'], $bearer);
+$router->get('/api/mobile/notifications/{id}', [NotificationController::class, 'show'], $bearer);
+$router->get('/api/mobile/notifications', [NotificationController::class, 'index'], $bearer);
+$router->post('/api/mobile/notifications/read-all', [NotificationController::class, 'markAllAsRead'], $bearer);
+$router->post('/api/mobile/notifications/delete-all', [NotificationController::class, 'deleteAll'], $bearer);
+$router->post('/api/mobile/notifications/{id}/read', [NotificationController::class, 'markAsRead'], $bearer);
+$router->post('/api/mobile/notifications/{id}/delete', [NotificationController::class, 'destroy'], $bearer);
 
 $router->get('/internal/mobile/push-tokens', [InternalMobileController::class, 'pushTokens']);
 $router->post('/internal/mobile/push-tokens/deactivate', [InternalMobileController::class, 'deactivatePushToken']);
 $router->post('/internal/mobile/calls/authorize', [InternalMobileController::class, 'authorizeCall']);
+$router->post('/internal/mobile/conversations/typing', [InternalMobileController::class, 'authorizeTyping']);
 $router->post('/internal/mobile/notifications/missed-video-call', [InternalMobileController::class, 'missedVideoCall']);
 $router->post('/internal/mobile/calls/log', [InternalMobileController::class, 'recordCallLog']);
 $router->post('/internal/mobile/notifications', [InternalMobileController::class, 'createNotification']);

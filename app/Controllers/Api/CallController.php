@@ -4,7 +4,6 @@ namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
 use App\Exceptions\RealtimeCallNotActionableException;
-use App\Models\OauthAccessToken;
 use App\Models\User;
 use App\Services\RealtimeNotifier;
 use Illuminate\Support\Facades\Validator;
@@ -42,11 +41,6 @@ final class CallController extends BaseController
         }
 
         return $this->json(['success' => true, 'call_id' => $callId, 'status' => $result['status']]);
-    }
-
-    private function authenticatedUser(): ?User
-    {
-        return OauthAccessToken::userFromRequest();
     }
 
     private function jsonInput(): array

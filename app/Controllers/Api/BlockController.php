@@ -3,7 +3,6 @@
 namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
-use App\Models\OauthAccessToken;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Services\BlockService;
@@ -136,11 +135,6 @@ final class BlockController extends BaseController
             'profile_image' => $blocked?->profile_image_url,
             'created_at' => $block->created_at?->toISOString(),
         ];
-    }
-
-    private function authenticatedUser(): ?User
-    {
-        return OauthAccessToken::userFromRequest();
     }
 
     private function jsonInput(): array
