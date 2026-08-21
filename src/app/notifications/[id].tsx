@@ -95,7 +95,9 @@ export default function NotificationDetailScreen() {
   const typeLabel =
     notification?.type === "missed_video_call"
       ? "Пропуснато обаждане"
-      : "Известие";
+      : notification?.type === "message_reaction"
+        ? "Реакция"
+        : "Известие";
   const createdLabel = formatNotificationDate(
     notification?.created_at ?? null,
   );
@@ -226,7 +228,11 @@ export default function NotificationDetailScreen() {
               >
                 <FontAwesome
                   name={
-                    notification.type === "missed_video_call" ? "phone" : "bell"
+                    notification.type === "missed_video_call"
+                      ? "phone"
+                      : notification.type === "message_reaction"
+                        ? "heart"
+                        : "bell"
                   }
                   size={32}
                   color="#ffffff"
@@ -262,7 +268,9 @@ export default function NotificationDetailScreen() {
               <Text
                 style={[styles.count, { color: theme.colors.textSecondary }]}
               >
-                Групирани обаждания: {notification.count}
+                {notification.type === "message_reaction"
+                  ? `Групирани реакции: ${notification.count}`
+                  : `Групирани обаждания: ${notification.count}`}
               </Text>
             ) : null}
           </View>

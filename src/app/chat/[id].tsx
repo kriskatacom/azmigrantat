@@ -53,7 +53,9 @@ export default function ChatRoom() {
     socket,
     isConnected,
     lastReceivedMessage,
+    lastDeliveredReceipt,
     lastReadReceipt,
+    lastReactionUpdate,
     lastTypingUpdate,
     lastPresenceUpdate,
     lastPresenceStatus,
@@ -107,13 +109,16 @@ export default function ChatRoom() {
     isUploading,
     sendChatMessage,
     sendChatAttachments,
+    reactToMessage,
     scrollToBottom,
   } = useChatMessages({
     token,
     conversationId,
     currentUserId: user?.id,
     lastReceivedMessage,
+    lastDeliveredReceipt,
     lastReadReceipt,
+    lastReactionUpdate,
     inputRef,
     flatListRef,
     isAppActive,
@@ -279,6 +284,10 @@ export default function ChatRoom() {
         token={token}
         currentUserId={user?.id}
         isLoading={isLoading}
+        canReact={!isBlocked}
+        onReact={(messageId, type) => {
+          void reactToMessage(messageId, type);
+        }}
         listRef={flatListRef}
         colors={theme.colors}
       />

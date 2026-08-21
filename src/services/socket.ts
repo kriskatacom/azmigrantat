@@ -29,6 +29,21 @@ export interface MessageReadPayload {
   read_at: string;
 }
 
+export interface MessageDeliveredPayload {
+  conversation_id: number;
+  recipient_id: number;
+  last_delivered_message_id: number;
+  delivered_at: string;
+}
+
+export interface MessageReactionPayload {
+  conversation_id: number;
+  message_id: number;
+  user_id: number;
+  type: string | null;
+  items: Array<{ type: string; count: number }>;
+}
+
 export interface TypingPayload {
   conversation_id: number;
   user_id: number;
@@ -53,7 +68,9 @@ export interface PresenceCheckPayload {
 interface ServerToClientEvents {
   "connection:ready": (payload: ConnectionReadyPayload) => void;
   "message:new": (message: ChatMessage) => void;
+  "message:delivered": (payload: MessageDeliveredPayload) => void;
   "message:read": (payload: MessageReadPayload) => void;
+  "message:reaction": (payload: MessageReactionPayload) => void;
   "typing:update": (payload: TypingPayload) => void;
 
   "presence:update": (payload: PresencePayload) => void;

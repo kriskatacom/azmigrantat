@@ -65,19 +65,27 @@ export default function NotificationRow({
                   backgroundColor:
                     notification.type === "missed_video_call"
                       ? theme.colors.primary
-                      : theme.colors.card,
+                      : notification.type === "message_reaction"
+                        ? "#fb7185"
+                        : theme.colors.card,
                 },
               ]}
             >
               <FontAwesome
                 name={
-                  notification.type === "missed_video_call" ? "phone" : "bell"
+                  notification.type === "missed_video_call"
+                    ? "phone"
+                    : notification.type === "message_reaction"
+                      ? "heart"
+                      : "bell"
                 }
                 size={22}
                 color={
                   notification.type === "missed_video_call"
                     ? "#ffffff"
-                    : theme.colors.textSecondary
+                    : notification.type === "message_reaction"
+                      ? "#ffffff"
+                      : theme.colors.textSecondary
                 }
               />
             </View>

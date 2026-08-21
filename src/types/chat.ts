@@ -1,3 +1,5 @@
+import type { MessageReactionItem, MessageReactionType } from "@/constants/message-reactions";
+
 export interface ChatUser {
   id: number;
   name: string;
@@ -27,6 +29,8 @@ export interface ChatMessage {
   edited_at: string | null;
   created_at: string | null;
   sender: ChatUser | null;
+  mine_reaction?: MessageReactionType | null;
+  reactions?: MessageReactionItem[];
 }
 
 export interface Conversation {

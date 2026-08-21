@@ -8,7 +8,7 @@ import { useInboxPresence } from "@/hooks/chat/useInboxPresence";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
 import { useUnreadNotificationCount } from "@/hooks/useUnreadNotificationCount";
-import { createDirectConversation, getConversations } from "@/services/chat";
+import { createDirectConversation, getConversations, markConversationAsDelivered } from "@/services/chat";
 import type { ChatUser, Conversation } from "@/types/chat";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -55,14 +55,39 @@ export default function InboxScreen() {
     try {
       if (mode === "refresh") setIsRefreshing(true);
       else if (mode === "initial") setIsLoading(true);
-      setConversations(sortConversations(await getConversations(token)));
+      const items = sortConversations(await getConversations(token));
+      setConversations(items);
+
+      void Promise.all(
+        items.map((conversation) => {
+          const lastMessage = conversation.last_message;
+          if (
+            !lastMessage ||
+            Number(lastMessage.sender_id) === Number(user?.id) ||
+            lastMessage.status !== "sent"
+          ) {
+            return Promise.resolve();
+          }
+
+          return markConversationAsDelivered(
+            token,
+            conversation.id,
+            lastMessage.id,
+          ).catch((error) => {
+            console.error(
+              "Съобщението не можа да бъде отбелязано като получено:",
+              error,
+            );
+          });
+        }),
+      );
     } catch (error) {
       Alert.alert("Грешка", error instanceof Error ? error.message : "Разговорите не можаха да бъдат заредени.");
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, [token]);
+  }, [token, user?.id]);
 
   const conversationUserIds = useMemo(() => conversations.map((conversation) => Number(conversation.other_user?.id)).filter((id) => Number.isInteger(id) && id > 0), [conversations]);
   const { isUserOnline } = useInboxPresence({ socket, isConnected, userIds: conversationUserIds, lastPresenceUpdate, lastPresenceStatus });

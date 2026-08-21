@@ -76,14 +76,15 @@ Notifications.setNotificationHandler({
       notificationConversationId !== null &&
       activeConversationId !== null &&
       notificationConversationId === activeConversationId;
-    const isChatMessage = data?.type === "chat_message";
+    const isChatAlert =
+      data?.type === "chat_message" || data?.type === "message_reaction";
     const appIsActive = AppState.currentState === "active";
 
     return {
       shouldShowBanner: !isCurrentConversation,
       shouldShowList: !isCurrentConversation,
       shouldPlaySound:
-        !isCurrentConversation && !(isChatMessage && appIsActive),
+        !isCurrentConversation && !(isChatAlert && appIsActive),
       shouldSetBadge: false,
       priority: Notifications.AndroidNotificationPriority.MAX,
     };
@@ -272,7 +273,7 @@ function NotificationNavigationHandler() {
       }
 
       if (
-        data?.type !== "chat_message" ||
+        (data?.type !== "chat_message" && data?.type !== "message_reaction") ||
         data?.conversation_id === undefined
       ) {
         return;

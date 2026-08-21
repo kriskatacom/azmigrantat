@@ -2,7 +2,9 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   connectSocket,
   disconnectSocket,
+  MessageDeliveredPayload,
   MessageReadPayload,
+  MessageReactionPayload,
   PresencePayload,
   TypingPayload,
   type AppSocket,
@@ -13,6 +15,7 @@ import type { ChatMessage } from "@/types/chat";
 import type { AppNotification, NotificationSocketEvent } from "@/types/notifications";
 
 import { getActiveConversationId } from "@/services/notificationState";
+import { markConversationAsDelivered } from "@/services/chat";
 import { playAppSound } from "@/services/sounds";
 import { vibrateForIncomingAlert } from "@/services/user-settings";
 import {
@@ -38,7 +41,9 @@ interface SocketContextValue {
   connectionError: string | null;
 
   lastReceivedMessage: ChatMessage | null;
+  lastDeliveredReceipt: MessageDeliveredPayload | null;
   lastReadReceipt: MessageReadPayload | null;
+  lastReactionUpdate: MessageReactionPayload | null;
   lastTypingUpdate: TypingPayload | null;
 
   lastPresenceUpdate: PresencePayload | null;
@@ -66,8 +71,14 @@ export function SocketProvider({ children }: PropsWithChildren) {
   const [lastReceivedMessage, setLastReceivedMessage] =
     useState<ChatMessage | null>(null);
 
+  const [lastDeliveredReceipt, setLastDeliveredReceipt] =
+    useState<MessageDeliveredPayload | null>(null);
+
   const [lastReadReceipt, setLastReadReceipt] =
     useState<MessageReadPayload | null>(null);
+
+  const [lastReactionUpdate, setLastReactionUpdate] =
+    useState<MessageReactionPayload | null>(null);
 
   const [lastTypingUpdate, setLastTypingUpdate] =
     useState<TypingPayload | null>(null);
@@ -99,7 +110,9 @@ export function SocketProvider({ children }: PropsWithChildren) {
       setConnectionError(null);
 
       setLastReceivedMessage(null);
+      setLastDeliveredReceipt(null);
       setLastReadReceipt(null);
+      setLastReactionUpdate(null);
       setLastTypingUpdate(null);
       setLastPresenceUpdate(null);
       setLastPresenceStatus(null);
@@ -158,6 +171,14 @@ export function SocketProvider({ children }: PropsWithChildren) {
         Number(message.conversation_id) === Number(getActiveConversationId());
 
       if (isIncoming) {
+        void markConversationAsDelivered(
+          token,
+          Number(message.conversation_id),
+          Number(message.id),
+        ).catch((error) => {
+          console.error("Съобщението не можа да бъде отбелязано като получено:", error);
+        });
+
         if (isCurrentConversation) {
           playAppSound("receiveMessageInChatRoom");
         } else {
@@ -169,10 +190,22 @@ export function SocketProvider({ children }: PropsWithChildren) {
       console.log("Получено message:new:", message);
     };
 
+    const handleMessageDelivered = (payload: MessageDeliveredPayload) => {
+      setLastDeliveredReceipt(payload);
+
+      console.log("Получено message:delivered:", payload);
+    };
+
     const handleMessageRead = (payload: MessageReadPayload) => {
       setLastReadReceipt(payload);
 
       console.log("Получено message:read:", payload);
+    };
+
+    const handleMessageReaction = (payload: MessageReactionPayload) => {
+      setLastReactionUpdate(payload);
+
+      console.log("Получено message:reaction:", payload);
     };
 
     const handleNotificationNew = (notification: AppNotification) => {
@@ -232,7 +265,11 @@ export function SocketProvider({ children }: PropsWithChildren) {
 
     currentSocket.on("message:new", handleNewMessage);
 
+    currentSocket.on("message:delivered", handleMessageDelivered);
+
     currentSocket.on("message:read", handleMessageRead);
+
+    currentSocket.on("message:reaction", handleMessageReaction);
 
     currentSocket.on("notification:new", handleNotificationNew);
     currentSocket.on("notification:updated", handleNotificationUpdated);
@@ -259,7 +296,11 @@ export function SocketProvider({ children }: PropsWithChildren) {
 
       currentSocket.off("message:new", handleNewMessage);
 
+      currentSocket.off("message:delivered", handleMessageDelivered);
+
       currentSocket.off("message:read", handleMessageRead);
+
+      currentSocket.off("message:reaction", handleMessageReaction);
 
       currentSocket.off("notification:new", handleNotificationNew);
       currentSocket.off("notification:updated", handleNotificationUpdated);
@@ -291,7 +332,9 @@ export function SocketProvider({ children }: PropsWithChildren) {
       connectionError,
 
       lastReceivedMessage,
+      lastDeliveredReceipt,
       lastReadReceipt,
+      lastReactionUpdate,
       lastTypingUpdate,
       lastPresenceUpdate,
       lastPresenceStatus,
@@ -308,7 +351,9 @@ export function SocketProvider({ children }: PropsWithChildren) {
       connectionError,
 
       lastReceivedMessage,
+      lastDeliveredReceipt,
       lastReadReceipt,
+      lastReactionUpdate,
       lastTypingUpdate,
 
       lastPresenceUpdate,

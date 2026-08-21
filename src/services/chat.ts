@@ -12,6 +12,7 @@ import type {
   UserSearchResponse,
   UnreadCountResponse,
 } from "@/types/chat";
+import type { MessageReactionItem, MessageReactionType } from "@/constants/message-reactions";
 import * as Crypto from "expo-crypto";
 import { File } from "expo-file-system";
 import { fetch } from "expo/fetch";
@@ -197,6 +198,62 @@ export async function markConversationAsRead(
         : {},
     ),
   });
+}
+
+export async function markConversationAsDelivered(
+  token: string,
+  conversationId: number,
+  messageId?: number,
+): Promise<void> {
+  await request<{
+    success: true;
+    message: string;
+    last_delivered_message_id: number;
+  }>(`/api/mobile/conversations/${conversationId}/delivered`, token, {
+    method: "POST",
+    body: JSON.stringify(
+      messageId
+        ? {
+            message_id: messageId,
+          }
+        : {},
+    ),
+  });
+}
+
+export async function toggleMessageReaction(
+  token: string,
+  conversationId: number,
+  messageId: number,
+  type: MessageReactionType,
+): Promise<{
+  message_id: number;
+  type: MessageReactionType | null;
+  reactions: {
+    mine: MessageReactionType | null;
+    items: MessageReactionItem[];
+  };
+}> {
+  const response = await request<{
+    success: true;
+    data: {
+      message_id: number;
+      type: MessageReactionType | null;
+      reactions: {
+        mine: MessageReactionType | null;
+        items: MessageReactionItem[];
+      };
+    };
+  }>(
+    `/api/mobile/conversations/${conversationId}/messages/${messageId}/reactions`,
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify({ type }),
+    },
+  );
+
+  return response.data;
 }
 
 export async function sendAttachment(
