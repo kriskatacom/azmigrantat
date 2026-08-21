@@ -5,6 +5,7 @@ import {
   setAppearancePreference,
   setChatFontSize,
   setPhoneVisible,
+  setShowFullCallDetails,
   setVibrationEnabled,
   type AppearancePreference,
   type ChatFontSize,
@@ -186,6 +187,40 @@ export default function UserSettingsScreen() {
               );
             })}
           </View>
+        </View>
+
+        <View
+          style={[
+            styles.row,
+            {
+              backgroundColor: theme.colors.card,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          <View style={styles.rowText}>
+            <Text style={[styles.label, { color: theme.colors.text }]}>
+              Пълни детайли за обаждания
+            </Text>
+            <Text
+              style={[styles.description, { color: theme.colors.textSecondary }]}
+            >
+              Показва участници, продължителност и други данни в чата. Изключи,
+              за да виждаш само заглавието.
+            </Text>
+          </View>
+          <Switch
+            value={userSettings.showFullCallDetails}
+            onValueChange={(value) => {
+              void setShowFullCallDetails(value);
+            }}
+            trackColor={{
+              false: theme.colors.border,
+              true: theme.colors.primary,
+            }}
+            thumbColor={theme.colors.buttonText}
+            accessibilityLabel="Пълни детайли за обаждания в чата"
+          />
         </View>
 
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>

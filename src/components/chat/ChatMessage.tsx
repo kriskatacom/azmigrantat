@@ -5,6 +5,7 @@ import type { MessageReactionType } from "@/constants/message-reactions";
 import { formatMessageTime } from "@/utils/chat/formatMessageTime";
 import { getFirstMessageUrl } from "@/utils/chat/message-links";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import ChatCallEvent, { parseCallEvent } from "./ChatCallEvent";
 import ChatMessageReactions from "./ChatMessageReactions";
 import LinkifiedMessageText from "./LinkifiedMessageText";
 import LinkPreviewCard from "./LinkPreviewCard";
@@ -13,6 +14,7 @@ import MessageAttachment, { getMessageAttachment } from "./MessageAttachment";
 type ChatMessageProps = {
   message: ChatMessageType;
   isMe: boolean;
+  currentUserId?: number | string;
   token?: string | null;
   canReact?: boolean;
   onReact?: (type: MessageReactionType) => void;
@@ -32,6 +34,7 @@ type ChatMessageProps = {
 export default function ChatMessage({
   message,
   isMe,
+  currentUserId,
   colors,
   token,
   canReact = false,
@@ -40,6 +43,18 @@ export default function ChatMessage({
 }: ChatMessageProps) {
   const { chatFontSize } = useUserSettings();
   const fonts = getChatFontMetrics(chatFontSize);
+  const callEvent = parseCallEvent(message);
+
+  if (callEvent) {
+    return (
+      <ChatCallEvent
+        event={callEvent}
+        currentUserId={currentUserId}
+        colors={colors}
+      />
+    );
+  }
+
   const isRead = message.is_read === true || message.status === "read";
   const isDelivered =
     !isRead &&

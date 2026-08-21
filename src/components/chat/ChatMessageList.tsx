@@ -79,6 +79,7 @@ export default function ChatMessageList({
               <ChatMessage
                 message={item}
                 isMe={Number(item.sender_id) === Number(currentUserId)}
+                currentUserId={currentUserId}
                 colors={colors}
                 token={token}
                 canReact={canReact}

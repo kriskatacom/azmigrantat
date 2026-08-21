@@ -170,7 +170,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
         getActiveConversationId() !== null &&
         Number(message.conversation_id) === Number(getActiveConversationId());
 
-      if (isIncoming) {
+      if (isIncoming && message.type !== "system") {
         void markConversationAsDelivered(
           token,
           Number(message.conversation_id),

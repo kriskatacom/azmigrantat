@@ -10,6 +10,7 @@ export type UserSettings = {
   appearance: AppearancePreference;
   chatFontSize: ChatFontSize;
   phoneVisible: boolean;
+  showFullCallDetails: boolean;
 };
 
 const SETTINGS_KEY = "user_settings_v1";
@@ -29,6 +30,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   appearance: "system",
   chatFontSize: "medium",
   phoneVisible: false,
+  showFullCallDetails: true,
 };
 
 let settings: UserSettings = { ...DEFAULT_SETTINGS };
@@ -58,6 +60,10 @@ export function getChatFontSize(): ChatFontSize {
 
 export function getPhoneVisible(): boolean {
   return settings.phoneVisible;
+}
+
+export function getShowFullCallDetails(): boolean {
+  return settings.showFullCallDetails;
 }
 
 export function subscribeUserSettings(listener: () => void): () => void {
@@ -137,6 +143,10 @@ export async function loadUserSettings(): Promise<void> {
             typeof parsed.phoneVisible === "boolean"
               ? parsed.phoneVisible
               : DEFAULT_SETTINGS.phoneVisible,
+          showFullCallDetails:
+            typeof parsed.showFullCallDetails === "boolean"
+              ? parsed.showFullCallDetails
+              : DEFAULT_SETTINGS.showFullCallDetails,
         };
       } catch {
         settings = {
@@ -187,6 +197,12 @@ export async function setChatFontSize(chatFontSize: ChatFontSize): Promise<void>
 
 export async function setPhoneVisible(phoneVisible: boolean): Promise<void> {
   await patchSettings({ phoneVisible });
+}
+
+export async function setShowFullCallDetails(
+  showFullCallDetails: boolean,
+): Promise<void> {
+  await patchSettings({ showFullCallDetails });
 }
 
 export function getNotificationVibrationOptions(): {
