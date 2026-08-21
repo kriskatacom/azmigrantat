@@ -2,11 +2,11 @@
 
 namespace App\Controllers\Api;
 
+use App\Helpers\AuthHelper;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Post;
 use App\Models\User;
-use App\Models\OauthAccessToken;
 use App\Services\BackblazeB2Service;
 use App\Services\BlockService;
 use App\Services\PhoneVerificationService;
@@ -16,11 +16,16 @@ class UserController extends BaseApiController
 {
     public function getUsers()
     {
-        // if (!$this->isAuthorizedRequest()) {
-        //     return $this->json(['success' => false, 'message' => 'Unauthorized'], 401);
-        // }
+        $admin = $this->requestAdmin();
 
-        $limit = (int) ($_GET['limit'] ?? 100);
+        if (!$admin) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Необходима е администраторска автентикация.',
+            ], 401);
+        }
+
+        $limit = min(max((int) ($_GET['limit'] ?? 100), 1), 200);
         $tab = $_GET['tab'] ?? 'all';
 
         $query = User::query();
@@ -38,25 +43,24 @@ class UserController extends BaseApiController
         return $this->json([
             'success' => true,
             'count' => count($users),
-            'data' => $users
+            'data' => $users,
         ]);
     }
 
     public function getAccount()
     {
-        $userId = $_GET['id'] ?? null;
-
-        if ($userId !== null && $userId !== '') {
-            $user = User::find($userId);
-        } else {
-            $user = $_SESSION['user'] ?? null;
-        }
+        $user = $this->requestUser();
 
         if (!$user) {
-            return $this->json(['error' => 'User not found'], 404);
+            return $this->json([
+                'success' => false,
+                'message' => 'Необходима е автентикация.',
+            ], 401);
         }
 
-        $posts = Post::where('user_id', $userId)->orderBy('created_at', 'DESC')->get();
+        $posts = Post::where('user_id', $user->id)
+            ->orderBy('created_at', 'DESC')
+            ->get();
 
         $postsArray = is_object($posts) ? $posts->toArray() : $posts;
 
@@ -67,8 +71,9 @@ class UserController extends BaseApiController
         }
 
         return $this->json([
-            'user' => $user,
-            'posts' => $postsArray
+            'success' => true,
+            'user' => $user->toMobileUserArray(),
+            'posts' => $postsArray,
         ]);
     }
 
@@ -124,32 +129,38 @@ class UserController extends BaseApiController
         ]);
     }
 
-    private function authenticatedUser(): ?User
+    private function requestUser(): ?User
     {
-        $authorization =
-            $_SERVER['HTTP_AUTHORIZATION']
-            ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
-            ?? '';
+        $fromToken = $this->authenticatedUser();
 
-        if (!preg_match('/Bearer\s+(\S+)/i', $authorization, $matches)) {
+        if ($fromToken) {
+            return $fromToken;
+        }
+
+        if (!AuthHelper::check()) {
             return null;
         }
 
-        $accessToken = OauthAccessToken::query()
-            ->where('token', $matches[1])
-            ->with('user')
-            ->first();
+        $userId = AuthHelper::id();
 
-        if (
-            !$accessToken ||
-            $accessToken->isExpired() ||
-            !$accessToken->user ||
-            !$accessToken->user->is_active
-        ) {
+        if (!$userId) {
             return null;
         }
 
-        return $accessToken->user;
+        return User::query()
+            ->where('is_active', true)
+            ->find($userId);
+    }
+
+    private function requestAdmin(): ?User
+    {
+        $user = $this->requestUser();
+
+        if (!$user || $user->role !== User::ROLE_ADMIN) {
+            return null;
+        }
+
+        return $user;
     }
 
     public function updateProfile()

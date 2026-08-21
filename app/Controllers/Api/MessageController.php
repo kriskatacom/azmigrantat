@@ -827,27 +827,7 @@ final class MessageController extends BaseController
 
     private function authenticatedUser(): ?User
     {
-        $authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-
-        if (!preg_match('/Bearer\s+(\S+)/i', $authorization, $matches)) {
-            return null;
-        }
-
-        $accessToken = OauthAccessToken::query()
-            ->where('token', $matches[1])
-            ->with('user')
-            ->first();
-
-        if (
-            !$accessToken ||
-            $accessToken->isExpired() ||
-            !$accessToken->user ||
-            !$accessToken->user->is_active
-        ) {
-            return null;
-        }
-
-        return $accessToken->user;
+        return OauthAccessToken::userFromRequest();
     }
 
     private function jsonInput(): array

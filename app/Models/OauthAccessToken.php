@@ -14,7 +14,11 @@ class OauthAccessToken extends Model
         'token',
         'user_id',
         'app_id',
-        'expires_at'
+        'expires_at',
+    ];
+
+    protected $hidden = [
+        'token',
     ];
 
     protected $casts = [
@@ -22,7 +26,7 @@ class OauthAccessToken extends Model
         'app_id' => 'integer',
         'expires_at' => 'datetime',
         'created_at' => 'datetime',
-        'updated_at' => 'datetime'
+        'updated_at' => 'datetime',
     ];
 
     public function user()
@@ -37,6 +41,82 @@ class OauthAccessToken extends Model
 
     public function isExpired(): bool
     {
-        return $this->expires_at->isPast();
+        return $this->expires_at === null || $this->expires_at->isPast();
+    }
+
+    public static function hashPlainToken(string $plainToken): string
+    {
+        return hash('sha256', $plainToken);
+    }
+
+    public static function issue(int $userId, int $appId, string $expiresAt): string
+    {
+        $plainToken = bin2hex(random_bytes(40));
+
+        self::create([
+            'token' => self::hashPlainToken($plainToken),
+            'user_id' => $userId,
+            'app_id' => $appId,
+            'expires_at' => $expiresAt,
+        ]);
+
+        return $plainToken;
+    }
+
+    public static function findByPlainToken(string $plainToken): ?self
+    {
+        $plainToken = trim($plainToken);
+
+        if ($plainToken === '') {
+            return null;
+        }
+
+        $hash = self::hashPlainToken($plainToken);
+        $accessToken = self::query()
+            ->where('token', $hash)
+            ->with('user')
+            ->first();
+
+        if ($accessToken) {
+            return $accessToken;
+        }
+
+        $legacy = self::query()
+            ->where('token', $plainToken)
+            ->with('user')
+            ->first();
+
+        if (!$legacy) {
+            return null;
+        }
+
+        $legacy->token = $hash;
+        $legacy->save();
+
+        return $legacy->load('user');
+    }
+
+    public static function userFromRequest(): ?User
+    {
+        $authorization = $_SERVER['HTTP_AUTHORIZATION']
+            ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
+            ?? '';
+
+        if (!preg_match('/Bearer\s+(\S+)/i', $authorization, $matches)) {
+            return null;
+        }
+
+        $accessToken = self::findByPlainToken($matches[1]);
+
+        if (
+            !$accessToken ||
+            $accessToken->isExpired() ||
+            !$accessToken->user ||
+            !$accessToken->user->is_active
+        ) {
+            return null;
+        }
+
+        return $accessToken->user;
     }
 }

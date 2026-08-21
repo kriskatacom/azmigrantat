@@ -387,16 +387,11 @@ final class MobileAuthController extends BaseController
 
     private function issueAccessToken(User $user, OauthApp $app): string
     {
-        $plainToken = bin2hex(random_bytes(40));
-
-        OauthAccessToken::create([
-            'token' => $plainToken,
-            'user_id' => $user->id,
-            'app_id' => $app->id,
-            'expires_at' => date('Y-m-d H:i:s', strtotime('+30 days')),
-        ]);
-
-        return $plainToken;
+        return OauthAccessToken::issue(
+            (int) $user->id,
+            (int) $app->id,
+            date('Y-m-d H:i:s', strtotime('+30 days'))
+        );
     }
 
     private function resolveAccessToken(): ?OauthAccessToken
@@ -407,7 +402,7 @@ final class MobileAuthController extends BaseController
             return null;
         }
 
-        $accessToken = OauthAccessToken::where('token', $matches[1])->first();
+        $accessToken = OauthAccessToken::findByPlainToken($matches[1]);
 
         if (!$accessToken || $accessToken->isExpired()) {
             return null;

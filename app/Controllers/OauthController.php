@@ -132,14 +132,11 @@ class OauthController extends BaseController
             return $this->json(['error' => 'invalid_grant', 'message' => 'Redirect URI mismatch']);
         }
 
-        $accessToken = bin2hex(random_bytes(40));
-
-        OauthAccessToken::create([
-            'token' => $accessToken,
-            'user_id' => $authCode->user_id,
-            'app_id' => $app->id,
-            'expires_at' => date('Y-m-d H:i:s', strtotime('+1 hour'))
-        ]);
+        $accessToken = OauthAccessToken::issue(
+            (int) $authCode->user_id,
+            (int) $app->id,
+            date('Y-m-d H:i:s', strtotime('+1 hour'))
+        );
 
         $authCode->delete();
 
@@ -163,13 +160,17 @@ class OauthController extends BaseController
             return $this->json(['error' => 'missing_token'], 401);
         }
 
-        $accessToken = OauthAccessToken::where('token', $token)->first();
+        $accessToken = OauthAccessToken::findByPlainToken($token);
 
         if (!$accessToken || $accessToken->isExpired()) {
             return $this->json(['error' => 'invalid_or_expired_token'], 401);
         }
 
         $user = $accessToken->user;
+
+        if (!$user || !$user->is_active) {
+            return $this->json(['error' => 'invalid_or_expired_token'], 401);
+        }
 
         return $this->json([
             'id' => $user->id,
@@ -182,11 +183,17 @@ class OauthController extends BaseController
 
     public function getUsers()
     {
+        $user = OauthAccessToken::userFromRequest();
+
+        if (!$user || $user->role !== User::ROLE_ADMIN) {
+            return $this->json(['error' => 'unauthorized'], 401);
+        }
+
         $users = User::all(['id', 'name', 'email', 'role']);
 
         return $this->json([
             'success' => true,
-            'data' => $users
+            'data' => $users,
         ]);
     }
 }
