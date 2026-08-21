@@ -106,6 +106,18 @@ export async function createDirectConversation(
   return response.data;
 }
 
+export async function getConversation(
+  token: string,
+  conversationId: number,
+): Promise<Conversation> {
+  const response = await request<ConversationResponse>(
+    `/api/mobile/conversations/${conversationId}`,
+    token,
+  );
+
+  return response.data;
+}
+
 export async function searchUsers(
   token: string,
   query: string,

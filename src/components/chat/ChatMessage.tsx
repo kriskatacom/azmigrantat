@@ -1,3 +1,5 @@
+import { useUserSettings } from "@/hooks/useUserSettings";
+import { getChatFontMetrics } from "@/services/user-settings";
 import type { ChatMessage as ChatMessageType } from "@/types/chat";
 import { formatMessageTime } from "@/utils/chat/formatMessageTime";
 import { getFirstMessageUrl } from "@/utils/chat/message-links";
@@ -28,6 +30,8 @@ export default function ChatMessage({
   colors,
   token,
 }: ChatMessageProps) {
+  const { chatFontSize } = useUserSettings();
+  const fonts = getChatFontMetrics(chatFontSize);
   const isRead = message.is_read || message.status === "read";
 
   const formattedTime = formatMessageTime(message.created_at);
@@ -61,7 +65,10 @@ export default function ChatMessage({
             content={message.content}
             color={isMe ? colors.buttonText : colors.text}
             linkColor={isMe ? "#dbeafe" : colors.primary}
-            style={styles.messageText}
+            style={[
+              styles.messageText,
+              { fontSize: fonts.message, lineHeight: fonts.messageLineHeight },
+            ]}
           />
         ) : null}
 
@@ -75,6 +82,7 @@ export default function ChatMessage({
               styles.messageTime,
               {
                 color: isMe ? "rgba(255, 255, 255, 0.7)" : colors.textSecondary,
+                fontSize: fonts.time,
               },
             ]}
           >

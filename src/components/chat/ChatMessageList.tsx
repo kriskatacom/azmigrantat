@@ -1,4 +1,8 @@
 import type { ChatMessage as ChatMessageType } from "@/types/chat";
+import {
+  formatChatDateLabel,
+  getMessageDayKey,
+} from "@/utils/chat/formatMessageTime";
 import { useMemo, type RefObject } from "react";
 import {
     ActivityIndicator,
@@ -8,6 +12,7 @@ import {
     View,
 } from "react-native";
 
+import ChatDateSeparator from "./ChatDateSeparator";
 import ChatMessage from "./ChatMessage";
 
 type ChatMessageListProps = {
@@ -52,14 +57,30 @@ export default function ChatMessageList({
       data={invertedMessages}
       inverted
       keyExtractor={(item) => item.id.toString()}
-      renderItem={({ item }) => (
-        <ChatMessage
-          message={item}
-          isMe={Number(item.sender_id) === Number(currentUserId)}
-          colors={colors}
-          token={token}
-        />
-      )}
+      renderItem={({ item, index }) => {
+        const olderMessage = invertedMessages[index + 1];
+        const showDateSeparator =
+          getMessageDayKey(item.created_at) !==
+          getMessageDayKey(olderMessage?.created_at);
+
+        return (
+          <View>
+            <ChatMessage
+              message={item}
+              isMe={Number(item.sender_id) === Number(currentUserId)}
+              colors={colors}
+              token={token}
+            />
+            {showDateSeparator ? (
+              <ChatDateSeparator
+                label={formatChatDateLabel(item.created_at)}
+                textColor={colors.textSecondary}
+                backgroundColor={colors.card}
+              />
+            ) : null}
+          </View>
+        );
+      }}
       contentContainerStyle={[
         styles.messagesList,
         messages.length === 0 && styles.center,

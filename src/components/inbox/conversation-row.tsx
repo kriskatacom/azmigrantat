@@ -8,15 +8,22 @@ interface ConversationRowProps {
   conversation: Conversation;
   isOnline: boolean;
   onPress: () => void;
+  onCall?: () => void;
 }
 
-export default function ConversationRow({ conversation, isOnline, onPress }: ConversationRowProps) {
+export default function ConversationRow({
+  conversation,
+  isOnline,
+  onPress,
+  onCall,
+}: ConversationRowProps) {
   const { theme } = useAppTheme();
   const otherUser = conversation.other_user;
   const displayName = otherUser?.name ?? conversation.title ?? "Неизвестен потребител";
   const profileImage = otherUser?.profile_image ?? conversation.image ?? null;
   const lastMessage = conversation.last_message?.content ?? "Все още няма съобщения.";
   const lastMessageTime = formatInboxMessageTime(conversation.last_message?.created_at ?? conversation.updated_at);
+  const canCall = Boolean(onCall) && conversation.is_blocked !== true;
 
   return (
     <TouchableOpacity activeOpacity={0.7} onPress={onPress} style={[styles.row, { backgroundColor: theme.colors.background }]}>
@@ -42,6 +49,16 @@ export default function ConversationRow({ conversation, isOnline, onPress }: Con
         </View>
         <Text style={[styles.preview, { color: theme.colors.textSecondary }]} numberOfLines={1}>{lastMessage}</Text>
       </View>
+      {canCall ? (
+        <TouchableOpacity
+          onPress={onCall}
+          style={[styles.callButton, { backgroundColor: theme.colors.primary }]}
+          accessibilityRole="button"
+          accessibilityLabel={`Обади се на ${displayName}`}
+        >
+          <FontAwesome name="phone" size={18} color="#ffffff" />
+        </TouchableOpacity>
+      ) : null}
     </TouchableOpacity>
   );
 }
@@ -58,6 +75,14 @@ const styles = StyleSheet.create({
   name: { fontSize: 16, fontWeight: "700", marginRight: 6, maxWidth: "60%" },
   time: { fontSize: 12 },
   preview: { fontSize: 14, marginTop: 4, paddingRight: 10 },
+  callButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
+  },
   badge: { minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 6, alignItems: "center", justifyContent: "center", marginLeft: 6 },
   badgeText: { fontSize: 11, fontWeight: "800" },
 });

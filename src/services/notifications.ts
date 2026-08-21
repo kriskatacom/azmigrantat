@@ -4,6 +4,10 @@ import { Platform } from "react-native";
 
 import { setupIncomingCallNotifications } from "@/services/incoming-call";
 import {
+  getNotificationVibrationOptions,
+  loadUserSettings,
+} from "@/services/user-settings";
+import {
   MISSED_CALL_CALLBACK_ACTION,
   MISSED_CALL_CATEGORY,
   MISSED_CALL_OPEN_CHAT_ACTION,
@@ -15,9 +19,11 @@ export async function registerForPushNotifications(
   accessToken: string,
 ): Promise<string | null> {
   if (Platform.OS === "android") {
+    await loadUserSettings();
     await Notifications.setNotificationChannelAsync("messages", {
       name: "Съобщения",
       importance: Notifications.AndroidImportance.MAX,
+      ...getNotificationVibrationOptions(),
     });
   }
 

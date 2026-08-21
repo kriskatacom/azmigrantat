@@ -1,4 +1,5 @@
 import {
+  getConversation,
   getMessages,
   markConversationAsRead,
   sendMessage,
@@ -47,6 +48,7 @@ export function useChatMessages({
 }: UseChatMessagesParams) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [otherUser, setOtherUser] = useState<ChatUser | null>(null);
+  const [isBlocked, setIsBlocked] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
@@ -99,12 +101,20 @@ export function useChatMessages({
     try {
       setIsLoading(true);
 
-      const response = await getMessages(token, conversationId, {
-        limit: 50,
-      });
+      const [response, conversation] = await Promise.all([
+        getMessages(token, conversationId, {
+          limit: 50,
+        }),
+        getConversation(token, conversationId).catch(() => null),
+      ]);
 
       setMessages(response.data);
-      resolveOtherUser(response.data);
+      if (conversation?.other_user) {
+        setOtherUser(conversation.other_user);
+      } else {
+        resolveOtherUser(response.data);
+      }
+      setIsBlocked(conversation?.is_blocked === true);
 
       const lastMessage = response.data.at(-1);
 
@@ -314,6 +324,7 @@ export function useChatMessages({
   return {
     messages,
     otherUser,
+    isBlocked,
     isLoading,
     isSending,
     isUploading,

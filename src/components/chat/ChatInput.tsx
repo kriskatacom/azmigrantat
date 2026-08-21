@@ -1,4 +1,6 @@
 import { FontAwesome } from "@expo/vector-icons";
+import { useUserSettings } from "@/hooks/useUserSettings";
+import { getChatFontMetrics } from "@/services/user-settings";
 import type { ChatAttachmentUpload } from "@/types/chat";
 import { type RefObject, useState } from "react";
 import {
@@ -51,6 +53,8 @@ export default function ChatInput({
   onSendAudio,
   colors,
 }: ChatInputProps) {
+  const { chatFontSize } = useUserSettings();
+  const fonts = getChatFontMetrics(chatFontSize);
   const canSend = Boolean(value.trim()) && !isSending;
   const [isRecording, setIsRecording] = useState(false);
   const [audioStartRequestId, setAudioStartRequestId] = useState(0);
@@ -90,6 +94,7 @@ export default function ChatInput({
           {
             backgroundColor: colors.background,
             color: colors.text,
+            fontSize: fonts.input,
           },
         ]}
         placeholder="Напиши съобщение..."

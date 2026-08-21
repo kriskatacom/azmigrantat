@@ -2,6 +2,7 @@ export interface ChatUser {
   id: number;
   name: string;
   username: string | null;
+  public_code?: string | null;
   profile_image: string | null;
   is_active: boolean;
 }
@@ -41,6 +42,7 @@ export interface Conversation {
 
   unread_count: number;
 
+  is_blocked?: boolean;
   is_muted: boolean;
   is_archived: boolean;
   updated_at: string | null;

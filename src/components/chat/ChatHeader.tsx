@@ -1,5 +1,6 @@
 import { FontAwesome } from "@expo/vector-icons";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { copyText } from "@/utils/copy-text";
+import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 type ChatHeaderProps = {
   name: string;
@@ -7,6 +8,7 @@ type ChatHeaderProps = {
   isOnline: boolean;
   lastSeenAt?: string | null;
   isTyping: boolean;
+  publicCode?: string | null;
   onBack: () => void;
   onAudioCall?: () => void;
   onVideoCall?: () => void;
@@ -26,6 +28,7 @@ export default function ChatHeader({
   isOnline,
   lastSeenAt,
   isTyping,
+  publicCode,
   onBack,
   onAudioCall,
   onVideoCall,
@@ -115,6 +118,25 @@ export default function ChatHeader({
           {name}
         </Text>
 
+        {publicCode ? (
+          <TouchableOpacity
+            onPress={() => {
+              void copyText(publicCode).then(() => {
+                Alert.alert("Код на потребителя", publicCode);
+              });
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`Копирай кода ${publicCode}`}
+          >
+            <Text
+              selectable
+              style={[styles.headerCode, { color: colors.textSecondary }]}
+            >
+              {publicCode}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
+
         <Text
           style={[
             styles.headerStatus,
@@ -194,6 +216,13 @@ const styles = StyleSheet.create({
   headerName: {
     fontSize: 16,
     fontWeight: "700",
+  },
+
+  headerCode: {
+    fontSize: 12,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    marginTop: 1,
   },
 
   headerStatus: {

@@ -101,6 +101,7 @@ export default function ChatRoom() {
   const {
     messages,
     otherUser,
+    isBlocked,
     isLoading,
     isSending,
     isUploading,
@@ -262,9 +263,14 @@ export default function ChatRoom() {
         isOnline={isOtherUserOnline}
         lastSeenAt={lastSeenAt}
         isTyping={isOtherUserTyping}
+        publicCode={otherUser?.public_code}
         onBack={() => router.back()}
-        onAudioCall={recipientUserId ? () => openCall("audio") : undefined}
-        onVideoCall={recipientUserId ? () => openCall("video") : undefined}
+        onAudioCall={
+          !isBlocked && recipientUserId ? () => openCall("audio") : undefined
+        }
+        onVideoCall={
+          !isBlocked && recipientUserId ? () => openCall("video") : undefined
+        }
         colors={theme.colors}
       />
 
@@ -277,21 +283,37 @@ export default function ChatRoom() {
         colors={theme.colors}
       />
 
-      <ChatInput
-        value={inputMessage}
-        isSending={isSending || isUploading}
-        keyboardVisible={keyboardVisible}
-        inputRef={inputRef}
-        onChangeText={handleInputChange}
-        onTakePhoto={() => void takePhoto()}
-        onChoosePhotos={() => void choosePhotos()}
-        onChooseFiles={() => void chooseFiles()}
-        onSendAudio={sendChatAttachments}
-        onSend={() => {
-          void handleSendMessage();
-        }}
-        colors={theme.colors}
-      />
+      {isBlocked ? (
+        <View
+          style={[
+            styles.blockedBanner,
+            {
+              backgroundColor: theme.colors.card,
+              borderTopColor: theme.colors.border,
+            },
+          ]}
+        >
+          <Text style={[styles.blockedText, { color: theme.colors.textSecondary }]}>
+            Този потребител е блокиран. Съобщения и обаждания не са възможни.
+          </Text>
+        </View>
+      ) : (
+        <ChatInput
+          value={inputMessage}
+          isSending={isSending || isUploading}
+          keyboardVisible={keyboardVisible}
+          inputRef={inputRef}
+          onChangeText={handleInputChange}
+          onTakePhoto={() => void takePhoto()}
+          onChoosePhotos={() => void choosePhotos()}
+          onChooseFiles={() => void chooseFiles()}
+          onSendAudio={sendChatAttachments}
+          onSend={() => {
+            void handleSendMessage();
+          }}
+          colors={theme.colors}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -304,5 +326,15 @@ const styles = StyleSheet.create({
   center: {
     justifyContent: "center",
     alignItems: "center",
+  },
+  blockedBanner: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+  },
+  blockedText: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
   },
 });

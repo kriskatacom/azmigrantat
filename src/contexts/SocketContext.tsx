@@ -12,6 +12,8 @@ import type { AuthUser } from "@/types/auth";
 import type { ChatMessage } from "@/types/chat";
 import type { AppNotification, NotificationSocketEvent } from "@/types/notifications";
 
+import { getActiveConversationId } from "@/services/notificationState";
+import { vibrateForIncomingAlert } from "@/services/user-settings";
 import {
   createContext,
   useEffect,
@@ -50,7 +52,7 @@ export const SocketContext = createContext<SocketContextValue | undefined>(
 );
 
 export function SocketProvider({ children }: PropsWithChildren) {
-  const { token, isAuthenticated, isLoading } = useAuth();
+  const { token, user, isAuthenticated, isLoading } = useAuth();
 
   const [socket, setSocket] = useState<AppSocket | null>(null);
 
@@ -149,6 +151,15 @@ export function SocketProvider({ children }: PropsWithChildren) {
     const handleNewMessage = (message: ChatMessage) => {
       setLastReceivedMessage(message);
 
+      const isIncoming = Number(message.sender_id) !== Number(user?.id);
+      const isCurrentConversation =
+        getActiveConversationId() !== null &&
+        Number(message.conversation_id) === Number(getActiveConversationId());
+
+      if (isIncoming && !isCurrentConversation) {
+        vibrateForIncomingAlert();
+      }
+
       console.log("Получено message:new:", message);
     };
 
@@ -162,6 +173,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
       setLastNotification(notification);
       setLastNotificationEvent("new");
       setLastNotificationEventAt(Date.now());
+      vibrateForIncomingAlert();
     };
 
     const handleNotificationUpdated = (notification: AppNotification) => {
@@ -261,7 +273,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
 
       currentSocket.io.off("reconnect_attempt", handleReconnectAttempt);
     };
-  }, [token, isAuthenticated, isLoading]);
+  }, [token, user?.id, isAuthenticated, isLoading]);
 
   const value = useMemo<SocketContextValue>(
     () => ({

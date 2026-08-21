@@ -206,3 +206,39 @@ export async function deleteChatMessagesRequest(
 
   return response.deleted_messages_count;
 }
+
+export async function sendPhoneVerificationRequest(
+  token: string,
+  phone: string,
+  channel: "whatsapp" | "sms",
+): Promise<{ message: string; channel: string | null }> {
+  const response = await request<{
+    success: true;
+    message: string;
+    channel: string | null;
+  }>("/api/mobile/phone/send", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ phone, channel }),
+  });
+
+  return { message: response.message, channel: response.channel };
+}
+
+export async function verifyPhoneRequest(
+  token: string,
+  phone: string,
+  code: string,
+): Promise<AuthUser> {
+  const response = await request<{
+    success: true;
+    message: string;
+    user: AuthUser;
+  }>("/api/mobile/phone/verify", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ phone, code }),
+  });
+
+  return response.user;
+}

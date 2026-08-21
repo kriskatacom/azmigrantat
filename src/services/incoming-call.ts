@@ -13,6 +13,7 @@ import {
 
 import type { CallServerPayload, CallType } from "@/services/video-call";
 import { parseCallType } from "@/services/video-call";
+import { getCallNotificationVibrationOptions } from "@/services/user-settings";
 
 export const INCOMING_CALL_CATEGORY = "incoming_call";
 export const INCOMING_CALL_CHANNEL = "incoming_calls";
@@ -247,8 +248,7 @@ export async function setupIncomingCallNotifications(): Promise<void> {
       bypassDnd: true,
       lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       sound: "incoming_call.wav",
-      vibrationPattern: [0, 400, 200, 400, 200, 400],
-      enableVibrate: true,
+      ...getCallNotificationVibrationOptions(),
     });
   }
 

@@ -14,6 +14,24 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, FlatList, RefreshControl, StyleSheet, View } from "react-native";
 
+function conversationActivityAt(conversation: Conversation): number {
+  const raw =
+    conversation.last_message?.created_at ?? conversation.updated_at ?? "";
+  const time = Date.parse(raw);
+  return Number.isFinite(time) ? time : 0;
+}
+
+function sortConversations(items: Conversation[]): Conversation[] {
+  return [...items].sort((left, right) => {
+    const timeDiff = conversationActivityAt(right) - conversationActivityAt(left);
+    if (timeDiff !== 0) {
+      return timeDiff;
+    }
+
+    return Number(right.id) - Number(left.id);
+  });
+}
+
 type LoadMode = "initial" | "refresh" | "silent";
 
 export default function InboxScreen() {
@@ -37,7 +55,7 @@ export default function InboxScreen() {
     try {
       if (mode === "refresh") setIsRefreshing(true);
       else if (mode === "initial") setIsLoading(true);
-      setConversations(await getConversations(token));
+      setConversations(sortConversations(await getConversations(token)));
     } catch (error) {
       Alert.alert("Грешка", error instanceof Error ? error.message : "Разговорите не можаха да бъдат заредени.");
     } finally {
@@ -67,9 +85,31 @@ export default function InboxScreen() {
         updated_at: lastReceivedMessage.created_at ?? currentConversation.updated_at,
         unread_count: isIncoming ? currentConversation.unread_count + 1 : currentConversation.unread_count,
       };
-      return [updatedConversation, ...currentConversations.filter((_, index) => index !== conversationIndex)];
+      return sortConversations([
+        updatedConversation,
+        ...currentConversations.filter((_, index) => index !== conversationIndex),
+      ]);
     });
   }, [lastReceivedMessage, loadConversations, user?.id]);
+
+  const openCall = (conversation: Conversation) => {
+    const otherUser = conversation.other_user;
+    const recipientUserId = otherUser?.id;
+    if (!recipientUserId || Number(recipientUserId) === Number(user?.id)) {
+      return;
+    }
+
+    router.push({
+      pathname: "/video-call/[userId]",
+      params: {
+        userId: String(recipientUserId),
+        name: otherUser?.name ?? conversation.title ?? "Неизвестен потребител",
+        image: otherUser?.profile_image ?? conversation.image ?? "",
+        callType: "audio",
+        autoStart: "1",
+      },
+    });
+  };
 
   const openConversation = (conversation: Conversation) => {
     const otherUser = conversation.other_user;
@@ -101,7 +141,14 @@ export default function InboxScreen() {
         <FlatList
           data={conversations}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => <ConversationRow conversation={item} isOnline={isUserOnline(item.other_user?.id)} onPress={() => openConversation(item)} />}
+          renderItem={({ item }) => (
+            <ConversationRow
+              conversation={item}
+              isOnline={isUserOnline(item.other_user?.id)}
+              onPress={() => openConversation(item)}
+              onCall={item.other_user?.id ? () => openCall(item) : undefined}
+            />
+          )}
           contentContainerStyle={[styles.listContainer, conversations.length === 0 && styles.emptyList]}
           ListEmptyComponent={<InboxEmpty />}
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => void loadConversations("refresh")} tintColor={theme.colors.primary} colors={[theme.colors.primary]} />}

@@ -9,6 +9,13 @@ import { parseIncomingCallData, setupIncomingCallNotifications } from "@/service
 import "@/services/notificationBackgroundTask";
 import { getActiveConversationId } from "@/services/notificationState";
 import {
+  getAppearancePreference,
+  loadUserSettings,
+  setAppearancePreference,
+  subscribeUserSettings,
+  type AppearancePreference,
+} from "@/services/user-settings";
+import {
   MISSED_CALL_CALLBACK_ACTION,
   MISSED_CALL_CATEGORY,
   MISSED_CALL_OPEN_CHAT_ACTION,
@@ -84,12 +91,14 @@ type ColorScheme = "light" | "dark";
 
 interface ThemeContextValue {
   colorScheme: ColorScheme;
+  appearance: AppearancePreference;
   theme: AppTheme;
   toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue>({
   colorScheme: "light",
+  appearance: "system",
   theme: lightTheme,
   toggleTheme: () => {},
 });
@@ -98,32 +107,45 @@ export function useAppTheme() {
   return useContext(ThemeContext);
 }
 
+function resolveColorScheme(
+  appearance: AppearancePreference,
+  systemTheme: string | null | undefined,
+): ColorScheme {
+  if (appearance === "light" || appearance === "dark") {
+    return appearance;
+  }
+
+  return systemTheme === "dark" ? "dark" : "light";
+}
+
 function ThemeProvider({ children }: PropsWithChildren) {
   const systemTheme = useColorScheme();
-
-  const [colorScheme, setColorScheme] = useState<ColorScheme>(
-    systemTheme === "dark" ? "dark" : "light",
+  const [appearance, setAppearance] = useState<AppearancePreference>(
+    getAppearancePreference,
   );
 
   useEffect(() => {
-    if (systemTheme === "light" || systemTheme === "dark") {
-      setColorScheme(systemTheme);
-    }
-  }, [systemTheme]);
+    void loadUserSettings();
+    return subscribeUserSettings(() => {
+      setAppearance(getAppearancePreference());
+    });
+  }, []);
+
+  const colorScheme = resolveColorScheme(appearance, systemTheme);
+  const theme = colorScheme === "dark" ? darkTheme : lightTheme;
 
   const toggleTheme = () => {
-    setColorScheme((current) => (current === "dark" ? "light" : "dark"));
+    void setAppearancePreference(colorScheme === "dark" ? "light" : "dark");
   };
-
-  const theme = colorScheme === "dark" ? darkTheme : lightTheme;
 
   const contextValue = useMemo(
     () => ({
       colorScheme,
+      appearance,
       theme,
       toggleTheme,
     }),
-    [colorScheme, theme],
+    [appearance, colorScheme, theme],
   );
 
   return (
@@ -398,32 +420,31 @@ function RootNavigator() {
   const { theme, colorScheme } = useAppTheme();
 
   useEffect(() => {
-    console.log("[IncomingCall] checking full screen permission...");
-
-    void setupIncomingCallNotifications().catch((error: unknown) => {
-      console.error(
-        "Категориите за входящи обаждания не се регистрираха:",
-        error
-      );
-    });
-    
-    const checkFullScreenIntent = async () => {
+    void (async () => {
       try {
-        const allowed = await canUseFullScreenIntent();
+        await loadUserSettings();
+      } catch (error: unknown) {
+        console.error("Настройките на потребителя не се заредиха:", error);
+      }
 
-        console.log(
-          "[IncomingCall] canUseFullScreenIntent:",
-          allowed
-        );
-      } catch (error) {
+      console.log("[IncomingCall] checking full screen permission...");
+
+      try {
+        await setupIncomingCallNotifications();
+      } catch (error: unknown) {
         console.error(
-          "[IncomingCall] canUseFullScreenIntent ERROR:",
+          "Категориите за входящи обаждания не се регистрираха:",
           error
         );
       }
-    };
 
-    void checkFullScreenIntent();
+      try {
+        const allowed = await canUseFullScreenIntent();
+        console.log("[IncomingCall] canUseFullScreenIntent:", allowed);
+      } catch (error) {
+        console.error("[IncomingCall] canUseFullScreenIntent ERROR:", error);
+      }
+    })();
   }, []);
 
   return (

@@ -1,16 +1,23 @@
 import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
+import BlockUserSection from "@/components/profile/block-user-section";
 import DeleteChatMessagesForm from "@/components/profile/delete-chat-messages-form";
 import PasswordForm from "@/components/profile/password-form";
+import PhoneVerificationForm from "@/components/profile/phone-verification-form";
 import ProfileDetailsForm from "@/components/profile/profile-details-form";
+import ProfileIdentityCard from "@/components/profile/profile-identity-card";
 import { useAuth } from "@/hooks/useAuth";
 import {
   changePasswordRequest,
   deleteChatMessagesRequest,
+  getCurrentUserRequest,
   updateProfileRequest,
 } from "@/services/auth";
+import { blockUserByCode, updateProfileImageRequest } from "@/services/profile";
 import type { UpdateProfilePayload } from "@/types/auth";
-import { useState } from "react";
+import { FontAwesome } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -29,11 +36,64 @@ const PRIVACY_URL = "https://example.com/privacy";
 export default function ProfileHomeScreen() {
   const { theme } = useAppTheme();
   const { user, token, updateUser, logout } = useAuth();
+  const router = useRouter();
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isDeletingChatMessages, setIsDeletingChatMessages] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isBlocking, setIsBlocking] = useState(false);
+
+  useEffect(() => {
+    if (!token || user?.public_code) {
+      return;
+    }
+
+    void getCurrentUserRequest(token)
+      .then((freshUser) => updateUser(freshUser))
+      .catch(() => undefined);
+  }, [token, user?.public_code, updateUser]);
 
   if (!user || !token) return null;
+
+  const handleChangePhoto = async (file: {
+    uri: string;
+    name: string;
+    mimeType: string;
+  }) => {
+    setIsUploadingPhoto(true);
+    try {
+      const updatedUser = await updateProfileImageRequest(token, file);
+      await updateUser(updatedUser);
+    } catch (error) {
+      Alert.alert(
+        "Грешка",
+        error instanceof Error
+          ? error.message
+          : "Профилната снимка не можа да бъде обновена.",
+      );
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleBlockUser = async (code: string) => {
+    setIsBlocking(true);
+    try {
+      await blockUserByCode(token, code);
+      Alert.alert("Готово", "Потребителят беше блокиран.");
+      return true;
+    } catch (error) {
+      Alert.alert(
+        "Грешка",
+        error instanceof Error
+          ? error.message
+          : "Потребителят не можа да бъде блокиран.",
+      );
+      return false;
+    } finally {
+      setIsBlocking(false);
+    }
+  };
 
   const handleSaveProfile = async (payload: UpdateProfilePayload) => {
     setIsSavingProfile(true);
@@ -124,6 +184,54 @@ export default function ProfileHomeScreen() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
       >
+        <TouchableOpacity
+          onPress={() => router.push("/(profile)/settings")}
+          style={[
+            styles.settingsLink,
+            {
+              backgroundColor: theme.colors.card,
+              borderColor: theme.colors.border,
+            },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Настройки"
+        >
+          <View
+            style={[
+              styles.settingsIcon,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
+            <FontAwesome name="cog" size={20} color={theme.colors.primary} />
+          </View>
+          <View style={styles.settingsText}>
+            <Text style={[styles.settingsTitle, { color: theme.colors.text }]}>
+              Настройки
+            </Text>
+            <Text
+              style={[
+                styles.settingsDescription,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              Известия, вибрация и други предпочитания
+            </Text>
+          </View>
+          <FontAwesome
+            name="chevron-right"
+            size={16}
+            color={theme.colors.textSecondary}
+          />
+        </TouchableOpacity>
+
+        <ProfileIdentityCard
+          name={`${user.firstName} ${user.lastName}`.trim() || user.email}
+          publicCode={user.public_code}
+          imageUri={user.profile_image ?? user.avatar}
+          isUploading={isUploadingPhoto}
+          onPickImage={handleChangePhoto}
+        />
+
         <View style={styles.intro}>
           <Text style={[styles.title, { color: theme.colors.text }]}>
             Лични данни
@@ -145,6 +253,26 @@ export default function ProfileHomeScreen() {
         />
         <View style={styles.intro}>
           <Text style={[styles.title, { color: theme.colors.text }]}>
+            Потвърждение на телефона
+          </Text>
+          <Text
+            style={[styles.description, { color: theme.colors.textSecondary }]}
+          >
+            Изпращаме код първо в WhatsApp. Ако нямате WhatsApp, изберете SMS. Първо запазете номера в профила.
+          </Text>
+        </View>
+        <PhoneVerificationForm
+          token={token}
+          phone={user.phone ?? ""}
+          isVerified={user.phone_verified === true}
+          onVerified={updateUser}
+        />
+
+        <View
+          style={[styles.divider, { backgroundColor: theme.colors.border }]}
+        />
+        <View style={styles.intro}>
+          <Text style={[styles.title, { color: theme.colors.text }]}>
             Сигурност
           </Text>
           <Text
@@ -157,6 +285,11 @@ export default function ProfileHomeScreen() {
           isSaving={isSavingPassword}
           onSave={handleChangePassword}
         />
+
+        <View
+          style={[styles.divider, { backgroundColor: theme.colors.border }]}
+        />
+        <BlockUserSection isBlocking={isBlocking} onBlock={handleBlockUser} />
 
         <View
           style={[styles.divider, { backgroundColor: theme.colors.border }]}
@@ -205,6 +338,26 @@ export default function ProfileHomeScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: 20, paddingBottom: 44, gap: 18 },
+  settingsLink: {
+    minHeight: 72,
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  settingsIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  settingsText: { flex: 1, gap: 2 },
+  settingsTitle: { fontSize: 16, fontWeight: "700" },
+  settingsDescription: { fontSize: 13, lineHeight: 18 },
   intro: { gap: 5 },
   title: { fontSize: 22, fontWeight: "800" },
   description: { fontSize: 14, lineHeight: 20 },
