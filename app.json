@@ -73,6 +73,12 @@
       ],
       "expo-secure-store",
       [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Разрешете Face ID, за да влизате в профила си с биометрия."
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "Разрешете достъп до снимките, за да можете да ги изпращате в чата.",

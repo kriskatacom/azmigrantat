@@ -28,7 +28,8 @@ export interface UpdateProfilePayload {
 }
 
 export interface ChangePasswordPayload {
-  currentPassword: string;
+  currentPassword?: string;
+  verificationMethod?: "password" | "device";
   password: string;
   passwordConfirmation: string;
 }
@@ -41,6 +42,7 @@ export interface DeleteChatMessagesPayload {
 export interface LoginPayload {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface RegisterPayload {

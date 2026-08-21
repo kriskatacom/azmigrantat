@@ -14,7 +14,13 @@ GoogleSignin.configure({
   offlineAccess: false,
 });
 
-export default function GoogleLoginButton() {
+interface GoogleLoginButtonProps {
+  rememberMe?: boolean;
+}
+
+export default function GoogleLoginButton({
+  rememberMe = false,
+}: GoogleLoginButtonProps) {
   const { colorScheme } = useAppTheme();
   const { loginWithGoogle } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,7 +51,7 @@ export default function GoogleLoginButton() {
         throw new Error("Google не върна валиден ID token.");
       }
 
-      await loginWithGoogle(result.data.idToken);
+      await loginWithGoogle(result.data.idToken, rememberMe);
     } catch (error) {
       Alert.alert(
         "Неуспешен Google вход",

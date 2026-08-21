@@ -110,6 +110,7 @@ export async function loginRequest(
       client_id: CLIENT_ID,
       email: payload.email.trim().toLowerCase(),
       password: payload.password,
+      remember_me: Boolean(payload.rememberMe),
     }),
   });
 
@@ -183,6 +184,7 @@ export async function resetPasswordRequest(
 
 export async function googleLoginRequest(
   idToken: string,
+  rememberMe = false,
 ): Promise<AuthResponse> {
   const response = await request<MobileAuthResponse>(
     "/api/mobile/auth/google",
@@ -191,6 +193,7 @@ export async function googleLoginRequest(
       body: JSON.stringify({
         client_id: CLIENT_ID,
         id_token: idToken,
+        remember_me: Boolean(rememberMe),
       }),
     },
   );

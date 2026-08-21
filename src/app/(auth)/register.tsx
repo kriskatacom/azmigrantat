@@ -217,7 +217,7 @@ export default function RegisterScreen() {
               />
             </View>
 
-            <GoogleLoginButton />
+            <GoogleLoginButton rememberMe />
 
             <View style={styles.footer}>
               <Text style={{ color: theme.colors.textSecondary }}>

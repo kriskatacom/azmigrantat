@@ -2,14 +2,12 @@ import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
 import BlockUserSection from "@/components/profile/block-user-section";
 import DeleteChatMessagesForm from "@/components/profile/delete-chat-messages-form";
-import PasswordForm from "@/components/profile/password-form";
 import PhoneVerificationForm from "@/components/profile/phone-verification-form";
 import ProfileDetailsForm from "@/components/profile/profile-details-form";
 import ProfileIdentityCard from "@/components/profile/profile-identity-card";
 import { PRIVACY_URL, TERMS_URL } from "@/constants/legal";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  changePasswordRequest,
   deleteChatMessagesRequest,
   getCurrentUserRequest,
   updateProfileRequest,
@@ -37,7 +35,6 @@ export default function ProfileHomeScreen() {
   const { user, token, updateUser, logout } = useAuth();
   const router = useRouter();
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [isDeletingChatMessages, setIsDeletingChatMessages] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isBlocking, setIsBlocking] = useState(false);
@@ -112,33 +109,6 @@ export default function ProfileHomeScreen() {
       );
     } finally {
       setIsSavingProfile(false);
-    }
-  };
-
-  const handleChangePassword = async (
-    currentPassword: string,
-    password: string,
-    passwordConfirmation: string,
-  ) => {
-    setIsSavingPassword(true);
-    try {
-      await changePasswordRequest(token, {
-        currentPassword,
-        password,
-        passwordConfirmation,
-      });
-      Alert.alert("Готово", "Паролата беше сменена успешно.");
-      return true;
-    } catch (error) {
-      Alert.alert(
-        "Грешка",
-        error instanceof Error
-          ? error.message
-          : "Паролата не можа да бъде сменена.",
-      );
-      return false;
-    } finally {
-      setIsSavingPassword(false);
     }
   };
 
@@ -224,6 +194,46 @@ export default function ProfileHomeScreen() {
           />
         </TouchableOpacity>
 
+        <TouchableOpacity
+          onPress={() => router.push("/(profile)/security")}
+          style={[
+            styles.settingsLink,
+            {
+              backgroundColor: theme.colors.card,
+              borderColor: theme.colors.border,
+            },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Сигурност"
+        >
+          <View
+            style={[
+              styles.settingsIcon,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
+            <FontAwesome name="lock" size={20} color={theme.colors.primary} />
+          </View>
+          <View style={styles.settingsText}>
+            <Text style={[styles.settingsTitle, { color: theme.colors.text }]}>
+              Сигурност
+            </Text>
+            <Text
+              style={[
+                styles.settingsDescription,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              Парола, биометрия и начин на вход
+            </Text>
+          </View>
+          <FontAwesome
+            name="chevron-right"
+            size={16}
+            color={theme.colors.textSecondary}
+          />
+        </TouchableOpacity>
+
         <ProfileIdentityCard
           name={`${user.firstName} ${user.lastName}`.trim() || user.email}
           publicCode={user.public_code}
@@ -266,24 +276,6 @@ export default function ProfileHomeScreen() {
           phone={user.phone ?? ""}
           isVerified={user.phone_verified === true}
           onVerified={updateUser}
-        />
-
-        <View
-          style={[styles.divider, { backgroundColor: theme.colors.border }]}
-        />
-        <View style={styles.intro}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>
-            Сигурност
-          </Text>
-          <Text
-            style={[styles.description, { color: theme.colors.textSecondary }]}
-          >
-            Новата парола трябва да съдържа поне 8 символа.
-          </Text>
-        </View>
-        <PasswordForm
-          isSaving={isSavingPassword}
-          onSave={handleChangePassword}
         />
 
         <View

@@ -1,11 +1,13 @@
 import { useAppTheme } from "@/app/_layout";
 import AuthLegalLinks from "@/components/auth/auth-legal-links";
+import BiometricLoginButton from "@/components/auth/biometric-login-button";
 import GoogleLoginButton from "@/components/auth/google-login-button";
 import AppButton from "@/components/ui/AppButton";
 import AppInput from "@/components/ui/AppInput";
 import { useAuth } from "@/hooks/useAuth";
+import { getBiometricCredentials } from "@/services/biometric";
 import { Link, useLocalSearchParams } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Alert,
   Animated,
@@ -22,15 +24,19 @@ import {
 
 export default function LoginScreen() {
   const { theme } = useAppTheme();
-  const { login } = useAuth();
+  const { login, loginWithBiometrics, canUseBiometricLogin, biometricLabel } =
+    useAuth();
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isBiometricSubmitting, setIsBiometricSubmitting] = useState(false);
 
   const passwordRef = useRef<TextInput>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
+  const biometricPromptedRef = useRef(false);
 
   const fadeOut = () => {
     return new Promise<void>((resolve) => {
@@ -43,6 +49,49 @@ export default function LoginScreen() {
       });
     });
   };
+
+  const fadeIn = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  const handleBiometricLogin = async () => {
+    try {
+      setIsBiometricSubmitting(true);
+      await loginWithBiometrics();
+    } catch (error) {
+      fadeIn();
+
+      const message =
+        error instanceof Error ? error.message : "Възникна неочаквана грешка.";
+
+      if (message !== "Биометричното потвърждение беше отказано.") {
+        Alert.alert("Неуспешен вход", message);
+      }
+    } finally {
+      setIsBiometricSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    void getBiometricCredentials().then((credentials) => {
+      if (credentials?.email) {
+        setEmail((current) => current || credentials.email);
+      }
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!canUseBiometricLogin || biometricPromptedRef.current) {
+      return;
+    }
+
+    biometricPromptedRef.current = true;
+    void handleBiometricLogin();
+  }, [canUseBiometricLogin]);
 
   const handleLogin = async () => {
     const normalizedEmail = email.trim().toLowerCase();
@@ -60,13 +109,10 @@ export default function LoginScreen() {
       await login({
         email: normalizedEmail,
         password,
+        rememberMe,
       });
     } catch (error) {
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 250,
-        useNativeDriver: true,
-      }).start();
+      fadeIn();
 
       Alert.alert(
         "Неуспешен вход",
@@ -141,29 +187,68 @@ export default function LoginScreen() {
               onSubmitEditing={handleLogin}
             />
 
-            <Link
-              href={{
-                pathname: "/(auth)/forgot-password",
-                params: email.trim()
-                  ? { email: email.trim().toLowerCase() }
-                  : {},
-              }}
-              asChild
-            >
-              <TouchableOpacity style={styles.forgotButton}>
-                <Text
-                  style={[styles.forgotText, { color: theme.colors.primary }]}
+            <View style={styles.row}>
+              <TouchableOpacity
+                style={styles.rememberButton}
+                onPress={() => setRememberMe((current) => !current)}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: rememberMe }}
+              >
+                <View
+                  style={[
+                    styles.checkbox,
+                    {
+                      borderColor: theme.colors.primary,
+                      backgroundColor: rememberMe
+                        ? theme.colors.primary
+                        : "transparent",
+                    },
+                  ]}
                 >
-                  Забравена парола?
+                  {rememberMe ? (
+                    <Text style={styles.checkmark}>✓</Text>
+                  ) : null}
+                </View>
+                <Text
+                  style={[styles.rememberText, { color: theme.colors.text }]}
+                >
+                  Запомни ме
                 </Text>
               </TouchableOpacity>
-            </Link>
+
+              <Link
+                href={{
+                  pathname: "/(auth)/forgot-password",
+                  params: email.trim()
+                    ? { email: email.trim().toLowerCase() }
+                    : {},
+                }}
+                asChild
+              >
+                <TouchableOpacity>
+                  <Text
+                    style={[styles.forgotText, { color: theme.colors.primary }]}
+                  >
+                    Забравена парола?
+                  </Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
 
             <AppButton
               title="Вход"
               loading={isSubmitting}
+              disabled={isBiometricSubmitting}
               onPress={handleLogin}
             />
+
+            {canUseBiometricLogin ? (
+              <BiometricLoginButton
+                label={`Вход с ${biometricLabel}`}
+                loading={isBiometricSubmitting}
+                onPress={() => void handleBiometricLogin()}
+              />
+            ) : null}
 
             <View style={styles.separator}>
               <View
@@ -175,7 +260,7 @@ export default function LoginScreen() {
               />
             </View>
 
-            <GoogleLoginButton />
+            <GoogleLoginButton rememberMe={rememberMe} />
 
             <View style={styles.footer}>
               <Text style={{ color: theme.colors.textSecondary }}>
@@ -245,6 +330,38 @@ const styles = StyleSheet.create({
     alignSelf: "flex-end",
     marginTop: -4,
     marginBottom: 18,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginTop: -4,
+    marginBottom: 18,
+  },
+  rememberButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flexShrink: 1,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  checkmark: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 14,
+  },
+  rememberText: {
+    fontWeight: "600",
+    fontSize: 14,
   },
   forgotText: {
     fontWeight: "600",
