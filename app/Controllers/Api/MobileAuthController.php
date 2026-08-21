@@ -425,24 +425,6 @@ final class MobileAuthController extends BaseController
 
     private function serializeUser(User $user): array
     {
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-
-            'firstName' => $user->first_name,
-            'lastName' => $user->last_name,
-
-            'email' => $user->email,
-            'role' => $user->role,
-
-            'gender' => $user->gender,
-            'phone' => $user->phone,
-            'country' => $user->country,
-            'city' => $user->city,
-            'address' => $user->address,
-
-            'avatar' => $user->avatar_url ?? null,
-            'is_active' => (bool) $user->is_active,
-        ];
+        return $user->toMobileUserArray();
     }
 }

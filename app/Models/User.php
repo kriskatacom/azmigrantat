@@ -38,6 +38,7 @@ class User extends Model
         'password_hash',
         'name',
         'username',
+        'public_code',
         'role',
         'gender',
         'options',
@@ -45,6 +46,11 @@ class User extends Model
         'bio',
         'last_login',
         'phone',
+        'phone_verified_at',
+        'phone_verification_hash',
+        'phone_verification_expires_at',
+        'phone_verification_sent_at',
+        'phone_verification_phone',
         'two_factor_verified_at',
         'is_active'
     ];
@@ -172,5 +178,104 @@ class User extends Model
         return is_string($image) && trim($image) !== ''
             ? trim($image)
             : null;
+    }
+
+    public const PUBLIC_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+    public static function normalizePublicCode(?string $code): string
+    {
+        return strtoupper(
+            preg_replace('/[^A-Za-z0-9]/', '', (string) $code) ?? ''
+        );
+    }
+
+    public static function formatPublicCode(string $code): string
+    {
+        $normalized = self::normalizePublicCode($code);
+
+        if (strlen($normalized) === 8) {
+            return substr($normalized, 0, 4) . '-' . substr($normalized, 4);
+        }
+
+        return $normalized;
+    }
+
+    public static function findByPublicCode(string $code): ?self
+    {
+        $normalized = self::normalizePublicCode($code);
+
+        if (strlen($normalized) !== 8) {
+            return null;
+        }
+
+        return self::query()
+            ->where('public_code', $normalized)
+            ->first();
+    }
+
+    public function ensurePublicCode(): string
+    {
+        $existing = self::normalizePublicCode($this->public_code ?? '');
+
+        if (strlen($existing) === 8) {
+            return $existing;
+        }
+
+        do {
+            $code = '';
+            $alphabet = self::PUBLIC_CODE_ALPHABET;
+            $max = strlen($alphabet) - 1;
+
+            for ($i = 0; $i < 8; $i++) {
+                $code .= $alphabet[random_int(0, $max)];
+            }
+        } while (self::query()->where('public_code', $code)->exists());
+
+        $this->public_code = $code;
+        $this->save();
+
+        return $code;
+    }
+
+    public function formattedPublicCode(): string
+    {
+        return self::formatPublicCode($this->ensurePublicCode());
+    }
+
+    public function toChatUserArray(): array
+    {
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'username' => $this->username,
+            'public_code' => $this->formattedPublicCode(),
+            'profile_image' => $this->profile_image_url,
+            'is_active' => (bool) $this->is_active,
+        ];
+    }
+
+    public function toMobileUserArray(): array
+    {
+        $image = $this->profile_image_url;
+
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'firstName' => $this->first_name,
+            'lastName' => $this->last_name,
+            'username' => $this->username,
+            'public_code' => $this->formattedPublicCode(),
+            'email' => $this->email,
+            'role' => $this->role,
+            'gender' => $this->gender,
+            'phone' => $this->phone,
+            'phone_verified' => (bool) $this->phone_verified_at,
+            'country' => $this->country,
+            'city' => $this->city,
+            'address' => $this->address,
+            'profile_image' => $image,
+            'avatar' => $image,
+            'is_active' => (bool) $this->is_active,
+        ];
     }
 }

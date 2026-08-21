@@ -8,6 +8,8 @@ use App\Models\Post;
 use App\Models\User;
 use App\Models\OauthAccessToken;
 use App\Services\BackblazeB2Service;
+use App\Services\BlockService;
+use App\Services\PhoneVerificationService;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends BaseApiController
@@ -90,12 +92,25 @@ class UserController extends BaseApiController
             ]);
         }
 
+        $blockService = new BlockService();
+        $excludedIds = array_values(array_unique([
+            (int) $user->id,
+            ...$blockService->relatedUserIds((int) $user->id),
+        ]));
+
+        $normalizedCode = User::normalizePublicCode($search);
+
         $users = User::query()
             ->where('is_active', true)
-            ->where(function ($query) use ($search) {
+            ->whereNotIn('id', $excludedIds)
+            ->where(function ($query) use ($search, $normalizedCode) {
                 $query
                     ->where('name', 'LIKE', '%' . $search . '%')
                     ->orWhere('username', 'LIKE', '%' . $search . '%');
+
+                if (strlen($normalizedCode) === 8) {
+                    $query->orWhere('public_code', $normalizedCode);
+                }
             })
             ->orderBy('name')
             ->limit(20)
@@ -104,13 +119,7 @@ class UserController extends BaseApiController
         return $this->json([
             'success' => true,
             'data' => $users
-                ->map(fn(User $user) => [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'username' => $user->username,
-                    'profile_image' => $user->profile_image_url,
-                    'is_active' => (bool) $user->is_active,
-                ])
+                ->map(fn(User $found) => $found->toChatUserArray())
                 ->values(),
         ]);
     }
@@ -198,9 +207,18 @@ class UserController extends BaseApiController
                 ? trim($input['gender'])
                 : null;
 
-            $user->phone = !empty($input['phone'])
-                ? trim($input['phone'])
+            $rawPhone = !empty($input['phone']) ? trim((string) $input['phone']) : null;
+            $phone = $rawPhone
+                ? (PhoneVerificationService::make()->normalizePhone($rawPhone) ?? $rawPhone)
                 : null;
+            if ($phone !== $user->phone) {
+                $user->phone = $phone;
+                $user->phone_verified_at = null;
+                $user->phone_verification_hash = null;
+                $user->phone_verification_expires_at = null;
+                $user->phone_verification_sent_at = null;
+                $user->phone_verification_phone = null;
+            }
 
             $user->country = !empty($input['country'])
                 ? trim($input['country'])
@@ -232,6 +250,107 @@ class UserController extends BaseApiController
             return $this->json([
                 'success' => false,
                 'message' => $exception->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function updateProfileImage()
+    {
+        $user = $this->authenticatedUser();
+
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        if (!isset($_FILES['file'])) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Необходимо е да изпратите снимка.',
+            ], 422);
+        }
+
+        $file = $_FILES['file'];
+
+        if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Снимката не беше качена успешно.',
+            ], 422);
+        }
+
+        if (($file['size'] ?? 0) <= 0) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Файлът е празен.',
+            ], 422);
+        }
+
+        if ((int) $file['size'] > 10 * 1024 * 1024) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Изображението не може да бъде по-голямо от 10 MB.',
+            ], 422);
+        }
+
+        $tmpName = (string) ($file['tmp_name'] ?? '');
+        if (!is_file($tmpName)) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Типът на файла не може да бъде определен.',
+            ], 422);
+        }
+
+        $finfo = new \finfo(FILEINFO_MIME_TYPE);
+        $mimeType = $finfo->file($tmpName);
+
+        if (
+            !is_string($mimeType) ||
+            !in_array($mimeType, ['image/jpeg', 'image/png', 'image/webp', 'image/gif'], true)
+        ) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Неподдържан формат на изображението.',
+            ], 422);
+        }
+
+        try {
+            $storage = $this->createBackblazeStorage();
+            $extension = match ($mimeType) {
+                'image/png' => 'png',
+                'image/webp' => 'webp',
+                'image/gif' => 'gif',
+                default => 'jpg',
+            };
+            $remotePath = sprintf(
+                'profile/%s/%s.%s',
+                date('Y/m'),
+                bin2hex(random_bytes(16)),
+                $extension
+            );
+            $result = $storage->upload($tmpName, $remotePath, $mimeType);
+            $url = $storage->url($result['key']);
+
+            $options = is_array($user->options) ? $user->options : [];
+            $options['profile_image'] = $url;
+            $user->options = $options;
+            $user->save();
+
+            return $this->json([
+                'success' => true,
+                'message' => 'Профилната снимка беше обновена.',
+                'user' => $this->serializeMobileUser($user),
+            ]);
+        } catch (\Throwable $exception) {
+            error_log(
+                'Update profile image error: '
+                . $exception->getMessage()
+                . PHP_EOL
+                . $exception->getTraceAsString()
+            );
+
+            return $this->json([
+                'success' => false,
+                'message' => 'Профилната снимка не можа да бъде обновена.',
             ], 500);
         }
     }
@@ -564,21 +683,7 @@ class UserController extends BaseApiController
 
     private function serializeMobileUser(User $user): array
     {
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'firstName' => $user->first_name,
-            'lastName' => $user->last_name,
-            'username' => $user->username,
-            'email' => $user->email,
-            'gender' => $user->gender,
-            'phone' => $user->phone,
-            'country' => $user->country,
-            'city' => $user->city,
-            'address' => $user->address,
-            'profile_image' => $user->profile_image_url,
-            'is_active' => (bool) $user->is_active,
-        ];
+        return $user->toMobileUserArray();
     }
 
     private function jsonInput(): array

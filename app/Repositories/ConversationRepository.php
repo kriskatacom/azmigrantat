@@ -28,6 +28,7 @@ final class ConversationRepository
                 },
                 'participants.user',
             ])
+            ->orderByDesc('last_message_id')
             ->orderByDesc('updated_at')
             ->get();
     }

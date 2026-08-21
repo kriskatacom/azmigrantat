@@ -7,6 +7,7 @@ use App\Models\Message;
 use App\Models\OauthAccessToken;
 use App\Models\User;
 use App\Services\BackblazeB2Service;
+use App\Services\BlockService;
 use App\Services\ConversationService;
 use App\Services\PushNotificationService;
 use App\Services\RealtimeNotifier;
@@ -19,12 +20,14 @@ final class MessageController extends BaseController
     private ConversationService $conversationService;
     private RealtimeNotifier $realtimeNotifier;
     private PushNotificationService $pushNotificationService;
+    private BlockService $blockService;
 
     public function __construct()
     {
         $this->conversationService = new ConversationService();
         $this->realtimeNotifier = new RealtimeNotifier();
         $this->pushNotificationService = new PushNotificationService();
+        $this->blockService = new BlockService();
     }
 
     public function index($conversationId)
@@ -89,6 +92,10 @@ final class MessageController extends BaseController
 
         if (!$conversation) {
             return $this->conversationNotFound();
+        }
+
+        if ($this->blockService->isBlockedInConversation($conversation, (int) $user->id)) {
+            return $this->blockedConversation();
         }
 
         $input = $this->jsonInput();
@@ -267,6 +274,10 @@ final class MessageController extends BaseController
 
         if (!$conversation) {
             return $this->conversationNotFound();
+        }
+
+        if ($this->blockService->isBlockedInConversation($conversation, (int) $user->id)) {
+            return $this->blockedConversation();
         }
 
         $clientMessageId = trim(
@@ -587,13 +598,7 @@ final class MessageController extends BaseController
             return null;
         }
 
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'username' => $user->username,
-            'profile_image' => $user->profile_image_url,
-            'is_active' => (bool) $user->is_active,
-        ];
+        return $user->toChatUserArray();
     }
 
     private function authenticatedUser(): ?User
@@ -655,5 +660,13 @@ final class MessageController extends BaseController
             'message' =>
                 'Разговорът не е намерен или нямате достъп до него.',
         ], 404);
+    }
+
+    private function blockedConversation()
+    {
+        return $this->json([
+            'success' => false,
+            'message' => 'Не можете да пишете на блокиран потребител.',
+        ], 403);
     }
 }

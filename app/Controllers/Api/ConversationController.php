@@ -7,6 +7,7 @@ use App\Models\Conversation;
 use App\Models\OauthAccessToken;
 use App\Models\Participant;
 use App\Models\User;
+use App\Services\BlockService;
 use App\Services\ConversationService;
 use Exception;
 use Illuminate\Support\Facades\Validator;
@@ -14,10 +15,12 @@ use Illuminate\Support\Facades\Validator;
 final class ConversationController extends BaseController
 {
     private ConversationService $conversationService;
+    private BlockService $blockService;
 
     public function __construct()
     {
         $this->conversationService = new ConversationService();
+        $this->blockService = new BlockService();
     }
 
     public function index()
@@ -31,9 +34,20 @@ final class ConversationController extends BaseController
         $conversations = $this->conversationService
             ->getUserConversations($user);
 
+        $blockedIds = $this->blockService->relatedUserIds((int) $user->id);
+
         return $this->json([
             'success' => true,
             'data' => $conversations
+                ->filter(function (Conversation $conversation) use ($user, $blockedIds) {
+                    $otherUserId = $this->blockService->otherUserIdFor(
+                        $conversation,
+                        (int) $user->id
+                    );
+
+                    return $otherUserId === null
+                        || !in_array($otherUserId, $blockedIds, true);
+                })
                 ->map(
                     fn(Conversation $conversation) =>
                     $this->serializeConversation(
@@ -127,6 +141,13 @@ final class ConversationController extends BaseController
             ], 404);
         }
 
+        if ($this->blockService->areBlocked((int) $user->id, $recipientId)) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Не можете да започнете разговор с блокиран потребител.',
+            ], 403);
+        }
+
         try {
             $conversation = $this->conversationService
                 ->createDirectConversation($user, $recipient);
@@ -210,6 +231,10 @@ final class ConversationController extends BaseController
                 $currentParticipant?->last_read_message_id,
 
             'unread_count' => $unreadCount,
+            'is_blocked' => $this->blockService->isBlockedInConversation(
+                $conversation,
+                $currentUserId
+            ),
             'is_muted' => (bool) (
                 $currentParticipant?->is_muted ?? false
             ),
@@ -227,13 +252,7 @@ final class ConversationController extends BaseController
             return null;
         }
 
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'username' => $user->username,
-            'profile_image' => $user->profile_image_url,
-            'is_active' => (bool) $user->is_active,
-        ];
+        return $user->toChatUserArray();
     }
 
     private function authenticatedUser(): ?User

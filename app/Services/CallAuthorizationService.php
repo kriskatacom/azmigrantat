@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Conversation;
 use App\Models\User;
+use App\Services\BlockService;
 
 final class CallAuthorizationService
 {
@@ -20,6 +21,10 @@ final class CallAuthorizationService
             ->count();
 
         if ($activeUsers !== 2) {
+            return ['authorized' => false];
+        }
+
+        if ((new BlockService())->areBlocked($callerId, $recipientId)) {
             return ['authorized' => false];
         }
 

@@ -1,5 +1,6 @@
 <?php
 
+use App\Controllers\Api\BlockController;
 use App\Controllers\Api\CallController;
 use App\Controllers\Api\ConversationController;
 use App\Controllers\Api\InternalMobileController;
@@ -7,6 +8,7 @@ use App\Controllers\Api\LinkPreviewController;
 use App\Controllers\Api\MessageController;
 use App\Controllers\Api\MobileAuthController;
 use App\Controllers\Api\NotificationController;
+use App\Controllers\Api\PhoneVerificationController;
 use App\Controllers\Api\PushTokenController;
 use App\Controllers\Api\TwoFAuthController;
 use App\Controllers\CategoryController;
@@ -64,7 +66,13 @@ $router->post('/api/mobile/auth/google', [MobileAuthController::class, 'google']
 
 $router->get('/api/mobile/users', [UserController::class, 'search']);
 $router->post('/api/mobile/profile', [UserController::class, 'updateProfile']);
+$router->post('/api/mobile/profile/image', [UserController::class, 'updateProfileImage']);
 $router->post('/api/mobile/profile/password', [UserController::class, 'updatePassword']);
+$router->get('/api/mobile/blocks', [BlockController::class, 'index']);
+$router->post('/api/mobile/blocks', [BlockController::class, 'store']);
+$router->post('/api/mobile/blocks/{id}/unblock', [BlockController::class, 'destroy']);
+$router->post('/api/mobile/phone/send', [PhoneVerificationController::class, 'send']);
+$router->post('/api/mobile/phone/verify', [PhoneVerificationController::class, 'verify']);
 $router->get('/api/mobile/link-preview', [LinkPreviewController::class, 'show']);
 
 $router->get('/api/mobile/conversations', [ConversationController::class, 'index']);
