@@ -85,7 +85,27 @@
           "granularPermissions": []
         }
       ],
-      "expo-sharing",
+      [
+        "expo-sharing",
+        {
+          "ios": {
+            "enabled": true,
+            "activationRule": {
+              "supportsText": true,
+              "supportsWebUrlWithMaxCount": 1,
+              "supportsImageWithMaxCount": 5,
+              "supportsMovieWithMaxCount": 5,
+              "supportsFileWithMaxCount": 5
+            }
+          },
+          "android": {
+            "enabled": true,
+            "singleShareMimeTypes": ["*/*"],
+            "multipleShareMimeTypes": ["*/*"]
+          }
+        }
+      ],
+      "./plugins/withShareIntent.js",
       "@react-native-google-signin/google-signin",
       [
         "expo-audio",
