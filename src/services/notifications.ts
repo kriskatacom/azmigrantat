@@ -23,6 +23,13 @@ export async function registerForPushNotifications(
     await Notifications.setNotificationChannelAsync("messages", {
       name: "Съобщения",
       importance: Notifications.AndroidImportance.MAX,
+      sound: "receive_message.wav",
+      ...getNotificationVibrationOptions(),
+    });
+    await Notifications.setNotificationChannelAsync("chat-messages-v4", {
+      name: "Чат съобщения",
+      importance: Notifications.AndroidImportance.MAX,
+      sound: "receive_message.wav",
       ...getNotificationVibrationOptions(),
     });
   }

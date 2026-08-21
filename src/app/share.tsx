@@ -16,6 +16,7 @@ import {
   getSharedAttachments,
   getSharedTextItems,
 } from "@/services/incoming-share";
+import { playAppSound } from "@/services/sounds";
 import type { ChatUser, Conversation } from "@/types/chat";
 import { FontAwesome } from "@expo/vector-icons";
 import * as Crypto from "expo-crypto";
@@ -132,6 +133,7 @@ export default function ShareScreen() {
       }
 
       clearSharedPayloads();
+      playAppSound("sendMessage");
       openChat(conversation);
     } catch (sendError) {
       Alert.alert(

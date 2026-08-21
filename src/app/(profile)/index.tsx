@@ -14,6 +14,7 @@ import {
   updateProfileRequest,
 } from "@/services/auth";
 import { blockUserByCode, updateProfileImageRequest } from "@/services/profile";
+import { playAppSound } from "@/services/sounds";
 import type { UpdateProfilePayload } from "@/types/auth";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -80,6 +81,7 @@ export default function ProfileHomeScreen() {
     setIsBlocking(true);
     try {
       await blockUserByCode(token, code);
+      playAppSound("blockUser");
       Alert.alert("Готово", "Потребителят беше блокиран.");
       return true;
     } catch (error) {

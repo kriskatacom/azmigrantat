@@ -13,6 +13,7 @@ import type { ChatMessage } from "@/types/chat";
 import type { AppNotification, NotificationSocketEvent } from "@/types/notifications";
 
 import { getActiveConversationId } from "@/services/notificationState";
+import { playAppSound } from "@/services/sounds";
 import { vibrateForIncomingAlert } from "@/services/user-settings";
 import {
   createContext,
@@ -156,8 +157,13 @@ export function SocketProvider({ children }: PropsWithChildren) {
         getActiveConversationId() !== null &&
         Number(message.conversation_id) === Number(getActiveConversationId());
 
-      if (isIncoming && !isCurrentConversation) {
-        vibrateForIncomingAlert();
+      if (isIncoming) {
+        if (isCurrentConversation) {
+          playAppSound("receiveMessageInChatRoom");
+        } else {
+          playAppSound("receiveMessage");
+          vibrateForIncomingAlert();
+        }
       }
 
       console.log("Получено message:new:", message);

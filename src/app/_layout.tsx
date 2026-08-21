@@ -76,11 +76,14 @@ Notifications.setNotificationHandler({
       notificationConversationId !== null &&
       activeConversationId !== null &&
       notificationConversationId === activeConversationId;
+    const isChatMessage = data?.type === "chat_message";
+    const appIsActive = AppState.currentState === "active";
 
     return {
       shouldShowBanner: !isCurrentConversation,
       shouldShowList: !isCurrentConversation,
-      shouldPlaySound: !isCurrentConversation,
+      shouldPlaySound:
+        !isCurrentConversation && !(isChatMessage && appIsActive),
       shouldSetBadge: false,
       priority: Notifications.AndroidNotificationPriority.MAX,
     };

@@ -17,7 +17,7 @@ const VIBRATION_KEY = "settings.vibration_enabled";
 
 const MESSAGE_CHANNELS = [
   { id: "messages", name: "Съобщения" },
-  { id: "chat-messages-v3", name: "Чат съобщения" },
+  { id: "chat-messages-v4", name: "Чат съобщения" },
 ] as const;
 
 const INCOMING_CALL_CHANNEL_ID = "incoming_calls";
@@ -248,6 +248,7 @@ async function applyNotificationChannelVibration(
     await replaceNotificationChannel(channel.id, {
       name: channel.name,
       importance: Notifications.AndroidImportance.MAX,
+      sound: "receive_message.wav",
       ...vibration,
     });
   }

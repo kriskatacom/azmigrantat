@@ -54,7 +54,10 @@
       [
         "expo-notifications",
         {
-          "sounds": ["./assets/sounds/incoming_call.wav"],
+          "sounds": [
+            "./assets/sounds/incoming_call.wav",
+            "./assets/sounds/receive_message.wav"
+          ],
           "enableBackgroundRemoteNotifications": true
         }
       ],

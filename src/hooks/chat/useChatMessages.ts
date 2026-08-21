@@ -5,6 +5,7 @@ import {
   sendMessage,
   sendAttachment,
 } from "@/services/chat";
+import { playAppSound } from "@/services/sounds";
 import type { ChatAttachmentUpload, ChatMessage, ChatUser } from "@/types/chat";
 import * as Crypto from "expo-crypto";
 import {
@@ -270,6 +271,7 @@ export function useChatMessages({
         });
 
         scrollToBottom();
+        playAppSound("sendMessage");
 
         requestAnimationFrame(() => {
           inputRef.current?.focus();
@@ -307,6 +309,7 @@ export function useChatMessages({
           );
         }
         scrollToBottom();
+        playAppSound("sendMessage");
         return true;
       } catch (error) {
         Alert.alert(

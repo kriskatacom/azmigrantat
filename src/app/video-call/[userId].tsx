@@ -1,6 +1,7 @@
 import OutgoingCall from "@/components/video/outgoing-call";
 import VideoCallControls from "@/components/video/video-call-controls";
 import VideoCallView from "@/components/video/video-call-view";
+import { useAppTheme } from "@/app/_layout";
 import { useIncomingVideoCall } from "@/contexts/VideoCallContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useVideoCall } from "@/hooks/video/useVideoCall";
@@ -16,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function VideoCallScreen() {
   const router = useRouter();
+  const { theme } = useAppTheme();
   const { user, isLoading: isAuthLoading } = useAuth();
   const params = useLocalSearchParams<{
     userId?: string | string[];
@@ -251,7 +253,14 @@ export default function VideoCallScreen() {
   ].includes(callState);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        showOutgoingOverlay
+          ? { backgroundColor: theme.colors.background }
+          : null,
+      ]}
+    >
       {showOutgoingOverlay ? null : (
         <VideoCallView
           localStream={localStream}
