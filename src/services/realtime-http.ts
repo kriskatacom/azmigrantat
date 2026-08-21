@@ -1,3 +1,4 @@
+import { authorizedJson } from "@/services/session-http";
 import type {
   CallIceCandidate,
   CallServerPayload,
@@ -11,45 +12,17 @@ if (!SOCKET_URL) {
 
 const REALTIME_HTTP_URL = SOCKET_URL.replace(/\/+$/, "");
 
-type ApiErrorResponse = {
-  success?: false;
-  message?: string;
-};
-
 async function request<T>(
   endpoint: string,
   token: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const response = await fetch(`${REALTIME_HTTP_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...(options.headers ?? {}),
-    },
-  });
-
-  const rawResponse = await response.text();
-  let data: T | ApiErrorResponse;
-
-  try {
-    data = JSON.parse(rawResponse) as T | ApiErrorResponse;
-  } catch {
-    throw new Error(
-      `Realtime сървърът върна невалиден JSON: ${rawResponse.slice(0, 300)}`,
-    );
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      (data as ApiErrorResponse).message ??
-        "Възникна грешка при комуникацията с realtime сървъра.",
-    );
-  }
-
-  return data as T;
+  return authorizedJson<T>(
+    `${REALTIME_HTTP_URL}${endpoint}`,
+    token,
+    options,
+    "Realtime сървърът върна невалиден JSON:",
+  );
 }
 
 export async function fetchRingingCall(token: string): Promise<{

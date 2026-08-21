@@ -1,3 +1,4 @@
+import { authorizedJson } from "@/services/session-http";
 import type {
   AppNotification,
   NotificationResponse,
@@ -6,11 +7,6 @@ import type {
 } from "@/types/notifications";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
-
-interface ApiErrorResponse {
-  success?: false;
-  message?: string;
-}
 
 if (!API_URL) {
   throw new Error("Липсва EXPO_PUBLIC_API_URL.");
@@ -21,35 +17,7 @@ async function request<T>(
   token: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...(options.headers ?? {}),
-    },
-  });
-
-  const rawResponse = await response.text();
-  let data: T | ApiErrorResponse;
-
-  try {
-    data = JSON.parse(rawResponse);
-  } catch {
-    throw new Error(
-      `Сървърът върна невалиден JSON: ${rawResponse.slice(0, 300)}`,
-    );
-  }
-
-  if (!response.ok) {
-    throw new Error(
-      (data as ApiErrorResponse).message ??
-        "Възникна грешка при комуникацията със сървъра.",
-    );
-  }
-
-  return data as T;
+  return authorizedJson<T>(`${API_URL}${endpoint}`, token, options);
 }
 
 export async function getNotifications(

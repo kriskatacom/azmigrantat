@@ -1,3 +1,5 @@
+import { authorizedJson } from "@/services/session-http";
+import type { MessageReactionItem, MessageReactionType } from "@/constants/message-reactions";
 import type {
   ChatAttachmentUpload,
   ChatUser,
@@ -12,7 +14,6 @@ import type {
   UserSearchResponse,
   UnreadCountResponse,
 } from "@/types/chat";
-import type { MessageReactionItem, MessageReactionType } from "@/constants/message-reactions";
 import * as Crypto from "expo-crypto";
 import { File } from "expo-file-system";
 import { fetch } from "expo/fetch";
@@ -34,37 +35,7 @@ async function request<T>(
   token: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...(options.headers ?? {}),
-    },
-  });
-
-  const rawResponse = await response.text();
-
-  let data: T | ApiErrorResponse;
-
-  try {
-    data = JSON.parse(rawResponse);
-  } catch {
-    throw new Error(
-      `Сървърът върна невалиден JSON: ${rawResponse.slice(0, 300)}`,
-    );
-  }
-
-  if (!response.ok) {
-    const errorData = data as ApiErrorResponse;
-
-    throw new Error(
-      errorData.message ?? "Възникна грешка при комуникацията със сървъра.",
-    );
-  }
-
-  return data as T;
+  return authorizedJson<T>(`${API_URL}${endpoint}`, token, options);
 }
 
 export async function getConversations(

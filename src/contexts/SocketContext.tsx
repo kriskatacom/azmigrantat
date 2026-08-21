@@ -58,7 +58,7 @@ export const SocketContext = createContext<SocketContextValue | undefined>(
 );
 
 export function SocketProvider({ children }: PropsWithChildren) {
-  const { token, user, isAuthenticated, isLoading } = useAuth();
+  const { token, user, isAuthenticated, isLoading, endLocalSession } = useAuth();
 
   const [socket, setSocket] = useState<AppSocket | null>(null);
 
@@ -255,6 +255,14 @@ export function SocketProvider({ children }: PropsWithChildren) {
       console.log("Socket.IO връзката е прекъсната:", reason);
     };
 
+    const handleAuthRevoked = (payload: { reason: string }) => {
+      if (payload.reason !== "logout") {
+        return;
+      }
+
+      void endLocalSession();
+    };
+
     const handleReconnectAttempt = () => {
       setIsConnecting(true);
     };
@@ -287,6 +295,8 @@ export function SocketProvider({ children }: PropsWithChildren) {
 
     currentSocket.on("disconnect", handleDisconnect);
 
+    currentSocket.on("auth:revoked", handleAuthRevoked);
+
     currentSocket.io.on("reconnect_attempt", handleReconnectAttempt);
 
     return () => {
@@ -318,9 +328,11 @@ export function SocketProvider({ children }: PropsWithChildren) {
 
       currentSocket.off("disconnect", handleDisconnect);
 
+      currentSocket.off("auth:revoked", handleAuthRevoked);
+
       currentSocket.io.off("reconnect_attempt", handleReconnectAttempt);
     };
-  }, [token, user?.id, isAuthenticated, isLoading]);
+  }, [token, user?.id, isAuthenticated, isLoading, endLocalSession]);
 
   const value = useMemo<SocketContextValue>(
     () => ({

@@ -5,6 +5,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -12,17 +13,21 @@ import {
   googleLoginRequest,
   loginRequest,
   logoutRequest,
+  refreshRequest,
   registerRequest,
 } from "@/services/auth";
 
 import { registerForPushNotifications } from "@/services/notifications";
 import { configureIncomingCallNativeSession } from "@/services/incoming-call";
 import { getRealtimeHttpUrl } from "@/services/realtime-http";
+import { bindAuthSessionHandlers } from "@/services/session-http";
 import type { AuthUser, LoginPayload, RegisterPayload } from "@/types/auth";
 
 const TOKEN_KEY = "auth_token";
+const REFRESH_KEY = "auth_refresh_token";
 const USER_KEY = "auth_user";
 const EXPIRES_AT_KEY = "auth_expires_at";
+const REFRESH_SKEW_MS = 60 * 60 * 1000;
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -34,6 +39,7 @@ interface AuthContextValue {
   loginWithGoogle: (idToken: string) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
+  endLocalSession: () => Promise<void>;
   updateUser: (user: AuthUser) => Promise<void>;
 }
 
@@ -41,15 +47,26 @@ export const AuthContext = createContext<AuthContextValue | undefined>(
   undefined,
 );
 
+function applyNativeSession(accessToken: string): void {
+  void configureIncomingCallNativeSession({
+    token: accessToken,
+    socketUrl: getRealtimeHttpUrl(),
+  }).catch((error: unknown) => {
+    console.error("Native incoming call session не се настрои:", error);
+  });
+}
+
 export function AuthProvider({ children }: PropsWithChildren) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const loggingOutRef = useRef(false);
 
   const clearLocalSession = useCallback(async () => {
     await Promise.all([
       SecureStore.deleteItemAsync(TOKEN_KEY),
+      SecureStore.deleteItemAsync(REFRESH_KEY),
       SecureStore.deleteItemAsync(USER_KEY),
       SecureStore.deleteItemAsync(EXPIRES_AT_KEY),
     ]);
@@ -59,27 +76,107 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setExpiresAt(null);
   }, []);
 
+  const saveSession = useCallback(
+    async (
+      newToken: string,
+      newUser: AuthUser,
+      expiresIn: number,
+      refreshToken: string | null,
+    ) => {
+      const newExpiresAt = Date.now() + expiresIn * 1000;
+      const persist = [
+        SecureStore.setItemAsync(TOKEN_KEY, newToken),
+        SecureStore.setItemAsync(USER_KEY, JSON.stringify(newUser)),
+        SecureStore.setItemAsync(EXPIRES_AT_KEY, newExpiresAt.toString()),
+      ];
+
+      if (refreshToken) {
+        persist.push(SecureStore.setItemAsync(REFRESH_KEY, refreshToken));
+      } else {
+        persist.push(SecureStore.deleteItemAsync(REFRESH_KEY));
+      }
+
+      await Promise.all(persist);
+
+      setToken(newToken);
+      setUser(newUser);
+      setExpiresAt(newExpiresAt);
+      applyNativeSession(newToken);
+      loggingOutRef.current = false;
+    },
+    [],
+  );
+
+  const refreshFromStore = useCallback(async (): Promise<string | null> => {
+    const storedRefresh = await SecureStore.getItemAsync(REFRESH_KEY);
+
+    if (!storedRefresh) {
+      return null;
+    }
+
+    try {
+      const response = await refreshRequest(storedRefresh);
+      await saveSession(
+        response.token,
+        response.user,
+        response.expiresIn,
+        response.refreshToken,
+      );
+      return response.token;
+    } catch (error) {
+      console.error("Неуспешно подновяване на сесията:", error);
+      await clearLocalSession();
+      return null;
+    }
+  }, [saveSession, clearLocalSession]);
+
+  useEffect(() => {
+    bindAuthSessionHandlers({
+      refreshAccessToken: refreshFromStore,
+      onUnauthorized: () => {
+        void clearLocalSession();
+      },
+    });
+
+    return () => bindAuthSessionHandlers(null);
+  }, [refreshFromStore, clearLocalSession]);
+
   useEffect(() => {
     const restoreSession = async () => {
       try {
-        const [storedToken, storedUser, storedExpiresAt] = await Promise.all([
-          SecureStore.getItemAsync(TOKEN_KEY),
-          SecureStore.getItemAsync(USER_KEY),
-          SecureStore.getItemAsync(EXPIRES_AT_KEY),
-        ]);
+        const [storedToken, storedUser, storedExpiresAt, storedRefresh] =
+          await Promise.all([
+            SecureStore.getItemAsync(TOKEN_KEY),
+            SecureStore.getItemAsync(USER_KEY),
+            SecureStore.getItemAsync(EXPIRES_AT_KEY),
+            SecureStore.getItemAsync(REFRESH_KEY),
+          ]);
 
-        if (!storedToken || !storedUser || !storedExpiresAt) {
+        if (!storedUser || (!storedToken && !storedRefresh)) {
           await clearLocalSession();
           return;
         }
 
         const parsedExpiresAt = Number(storedExpiresAt);
+        const accessValid =
+          Boolean(storedToken) &&
+          Number.isFinite(parsedExpiresAt) &&
+          parsedExpiresAt > Date.now();
 
-        if (
-          !Number.isFinite(parsedExpiresAt) ||
-          parsedExpiresAt <= Date.now()
-        ) {
-          await clearLocalSession();
+        if (!accessValid) {
+          const refreshed = await refreshFromStore();
+
+          if (!refreshed) {
+            await clearLocalSession();
+          } else {
+            void registerForPushNotifications(refreshed).catch((error) => {
+              console.error(
+                "Неуспешна регистрация на push notifications:",
+                error,
+              );
+            });
+          }
+
           return;
         }
 
@@ -88,17 +185,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setToken(storedToken);
         setUser(parsedUser);
         setExpiresAt(parsedExpiresAt);
+        applyNativeSession(storedToken as string);
 
-        void configureIncomingCallNativeSession({
-          token: storedToken,
-          socketUrl: getRealtimeHttpUrl(),
-        }).catch((error: unknown) => {
-          console.error("Native incoming call session не се настрои:", error);
-        });
-
-        void registerForPushNotifications(storedToken).catch((error: unknown) => {
-          console.error("Неуспешна регистрация на push notifications:", error);
-        });
+        void registerForPushNotifications(storedToken as string).catch(
+          (error: unknown) => {
+            console.error(
+              "Неуспешна регистрация на push notifications:",
+              error,
+            );
+          },
+        );
       } catch (error) {
         console.error("Неуспешно възстановяване на сесията:", error);
 
@@ -109,97 +205,77 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
 
     void restoreSession();
-  }, [clearLocalSession]);
+  }, [clearLocalSession, refreshFromStore]);
 
   useEffect(() => {
     if (!expiresAt) {
       return;
     }
 
-    const remainingTime = expiresAt - Date.now();
-
-    if (remainingTime <= 0) {
-      void clearLocalSession();
-      return;
-    }
-
+    const delay = Math.max(0, expiresAt - REFRESH_SKEW_MS - Date.now());
     const timeout = setTimeout(() => {
-      void clearLocalSession();
-    }, remainingTime);
+      void (async () => {
+        const next = await refreshFromStore();
+
+        if (!next) {
+          await clearLocalSession();
+        }
+      })();
+    }, delay);
 
     return () => clearTimeout(timeout);
-  }, [expiresAt, clearLocalSession]);
+  }, [expiresAt, refreshFromStore, clearLocalSession]);
 
-  const saveSession = useCallback(
-    async (newToken: string, newUser: AuthUser, expiresIn: number) => {
-      const newExpiresAt = Date.now() + expiresIn * 1000;
+  const persistAuthResponse = useCallback(
+    async (response: {
+      token: string;
+      refreshToken: string | null;
+      expiresIn: number;
+      user: AuthUser;
+    }) => {
+      await saveSession(
+        response.token,
+        response.user,
+        response.expiresIn,
+        response.refreshToken,
+      );
 
-      await Promise.all([
-        SecureStore.setItemAsync(TOKEN_KEY, newToken),
-        SecureStore.setItemAsync(USER_KEY, JSON.stringify(newUser)),
-        SecureStore.setItemAsync(EXPIRES_AT_KEY, newExpiresAt.toString()),
-      ]);
-
-      setToken(newToken);
-      setUser(newUser);
-      setExpiresAt(newExpiresAt);
-
-      void configureIncomingCallNativeSession({
-        token: newToken,
-        socketUrl: getRealtimeHttpUrl(),
-      }).catch((error: unknown) => {
-        console.error("Native incoming call session не се настрои:", error);
-      });
+      try {
+        await registerForPushNotifications(response.token);
+      } catch (error) {
+        console.error("Неуспешна регистрация на push notifications:", error);
+      }
     },
-    [],
+    [saveSession],
   );
 
   const login = useCallback(
     async (payload: LoginPayload) => {
-      const response = await loginRequest(payload);
-
-      await saveSession(response.token, response.user, response.expiresIn);
-
-      try {
-        await registerForPushNotifications(response.token);
-      } catch (error) {
-        console.error("Неуспешна регистрация на push notifications:", error);
-      }
+      await persistAuthResponse(await loginRequest(payload));
     },
-    [saveSession],
+    [persistAuthResponse],
   );
 
   const register = useCallback(
     async (payload: RegisterPayload) => {
-      const response = await registerRequest(payload);
-
-      await saveSession(response.token, response.user, response.expiresIn);
-
-      try {
-        await registerForPushNotifications(response.token);
-      } catch (error) {
-        console.error("Неуспешна регистрация на push notifications:", error);
-      }
+      await persistAuthResponse(await registerRequest(payload));
     },
-    [saveSession],
+    [persistAuthResponse],
   );
 
   const loginWithGoogle = useCallback(
     async (idToken: string) => {
-      const response = await googleLoginRequest(idToken);
-
-      await saveSession(response.token, response.user, response.expiresIn);
-
-      try {
-        await registerForPushNotifications(response.token);
-      } catch (error) {
-        console.error("Неуспешна регистрация на push notifications:", error);
-      }
+      await persistAuthResponse(await googleLoginRequest(idToken));
     },
-    [saveSession],
+    [persistAuthResponse],
   );
 
   const logout = useCallback(async () => {
+    if (loggingOutRef.current) {
+      return;
+    }
+
+    loggingOutRef.current = true;
     const currentToken = token;
 
     try {
@@ -210,8 +286,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
       console.error("Неуспешно прекратяване на сесията на сървъра:", error);
     } finally {
       await clearLocalSession();
+      loggingOutRef.current = false;
     }
   }, [token, clearLocalSession]);
+
+  const endLocalSession = useCallback(async () => {
+    loggingOutRef.current = true;
+    await clearLocalSession();
+    loggingOutRef.current = false;
+  }, [clearLocalSession]);
 
   const updateUser = useCallback(async (updatedUser: AuthUser) => {
     await SecureStore.setItemAsync(USER_KEY, JSON.stringify(updatedUser));
@@ -231,6 +314,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       loginWithGoogle,
       register,
       logout,
+      endLocalSession,
       updateUser,
     }),
     [
@@ -242,6 +326,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       loginWithGoogle,
       register,
       logout,
+      endLocalSession,
       updateUser,
     ],
   );

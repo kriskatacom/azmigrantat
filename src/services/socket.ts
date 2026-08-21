@@ -88,6 +88,7 @@ interface ServerToClientEvents {
   "notification:read-all": (payload: { user_id: number }) => void;
   "notification:cleared": (payload: { user_id: number }) => void;
   "notification:deleted": (payload: AppNotification) => void;
+  "auth:revoked": (payload: { reason: string }) => void;
 }
 
 interface ClientToServerEvents {

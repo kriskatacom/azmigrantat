@@ -20,8 +20,10 @@ interface ApiErrorResponse {
 interface MobileAuthResponse {
   success: true;
   access_token: string;
+  refresh_token?: string;
   token_type: "Bearer";
   expires_in: number;
+  refresh_expires_in?: number;
   user: AuthUser;
   message?: string;
 }
@@ -95,6 +97,7 @@ export async function loginRequest(
 
   return {
     token: response.access_token,
+    refreshToken: response.refresh_token ?? null,
     expiresIn: response.expires_in,
     user: response.user,
   };
@@ -117,6 +120,7 @@ export async function registerRequest(
 
   return {
     token: response.access_token,
+    refreshToken: response.refresh_token ?? null,
     expiresIn: response.expires_in,
     user: response.user,
   };
@@ -138,6 +142,24 @@ export async function googleLoginRequest(
 
   return {
     token: response.access_token,
+    refreshToken: response.refresh_token ?? null,
+    expiresIn: response.expires_in,
+    user: response.user,
+  };
+}
+
+export async function refreshRequest(refreshToken: string): Promise<AuthResponse> {
+  const response = await request<MobileAuthResponse>("/api/mobile/refresh", {
+    method: "POST",
+    body: JSON.stringify({
+      client_id: CLIENT_ID,
+      refresh_token: refreshToken,
+    }),
+  });
+
+  return {
+    token: response.access_token,
+    refreshToken: response.refresh_token ?? null,
     expiresIn: response.expires_in,
     user: response.user,
   };
@@ -155,12 +177,20 @@ export async function getCurrentUserRequest(token: string): Promise<AuthUser> {
 }
 
 export async function logoutRequest(token: string): Promise<void> {
-  await request<LogoutResponse>("/api/mobile/logout", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  try {
+    await request<LogoutResponse>("/api/mobile/logout", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Необходима е автентикация.") {
+      return;
+    }
+
+    throw error;
+  }
 }
 
 export async function updateProfileRequest(
