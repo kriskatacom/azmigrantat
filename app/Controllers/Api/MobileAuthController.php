@@ -17,6 +17,7 @@ final class MobileAuthController extends BaseController
 {
     private const ACCESS_TTL_SECONDS = 2592000;
     private const REFRESH_TTL_SECONDS = 5184000;
+    private const SESSION_TTL_SECONDS = 86400;
 
     public function login()
     {
@@ -84,7 +85,11 @@ final class MobileAuthController extends BaseController
 
         $limiter->clear(AuthRateLimiter::ACTION_LOGIN_EMAIL, $email);
 
-        return $this->json($this->authPayload($user, $app));
+        return $this->json($this->authPayload(
+            $user,
+            $app,
+            $this->rememberMeFromInput($input)
+        ));
     }
 
     public function register()
@@ -268,10 +273,14 @@ final class MobileAuthController extends BaseController
         $userId = (int) $current->user_id;
         $tokenHash = (string) $current->token;
         $user = $current->user;
+        $rememberMe = (bool) $current->remember_me;
+        $refreshExpiresAt = $current->refresh_expires_at
+            ? $current->refresh_expires_at->format('Y-m-d H:i:s')
+            : null;
         $current->delete();
         $this->revokeRealtimeSession($userId, $tokenHash, 'rotated');
 
-        return $this->json($this->authPayload($user, $app));
+        return $this->json($this->authPayload($user, $app, $rememberMe, $refreshExpiresAt));
     }
 
     public function google()
@@ -449,7 +458,11 @@ final class MobileAuthController extends BaseController
                 ], 403);
             }
 
-            return $this->json($this->authPayload($user, $oauthApp));
+            return $this->json($this->authPayload(
+                $user,
+                $oauthApp,
+                $this->rememberMeFromInput($input)
+            ));
         } catch (\Throwable $exception) {
             error_log(
                 'Google authentication error: '
@@ -662,13 +675,38 @@ final class MobileAuthController extends BaseController
         return ($options['client_type'] ?? null) === 'public' ? $app : null;
     }
 
-    private function authPayload(User $user, OauthApp $app): array
+    private function rememberMeFromInput(array $input): bool
     {
+        return filter_var($input['remember_me'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    private function authPayload(
+        User $user,
+        OauthApp $app,
+        bool $rememberMe = true,
+        ?string $refreshExpiresAt = null
+    ): array {
+        if ($rememberMe) {
+            $accessTtl = self::ACCESS_TTL_SECONDS;
+            $refreshAt = date('Y-m-d H:i:s', time() + self::REFRESH_TTL_SECONDS);
+        } else {
+            $refreshAt = $refreshExpiresAt
+                ?? date('Y-m-d H:i:s', time() + self::SESSION_TTL_SECONDS);
+            $remaining = strtotime($refreshAt) - time();
+
+            if ($remaining <= 0) {
+                $remaining = 60;
+            }
+
+            $accessTtl = min(self::SESSION_TTL_SECONDS, $remaining);
+        }
+
         $tokens = OauthAccessToken::issue(
             (int) $user->id,
             (int) $app->id,
-            date('Y-m-d H:i:s', time() + self::ACCESS_TTL_SECONDS),
-            date('Y-m-d H:i:s', time() + self::REFRESH_TTL_SECONDS)
+            date('Y-m-d H:i:s', time() + $accessTtl),
+            $refreshAt,
+            $rememberMe
         );
 
         return [
@@ -676,8 +714,8 @@ final class MobileAuthController extends BaseController
             'access_token' => $tokens['access_token'],
             'refresh_token' => $tokens['refresh_token'],
             'token_type' => 'Bearer',
-            'expires_in' => self::ACCESS_TTL_SECONDS,
-            'refresh_expires_in' => self::REFRESH_TTL_SECONDS,
+            'expires_in' => $accessTtl,
+            'refresh_expires_in' => max(0, strtotime($refreshAt) - time()),
             'user' => $this->serializeUser($user),
         ];
     }

@@ -375,11 +375,14 @@ class UserController extends BaseApiController
         }
 
         $input = $this->jsonInput();
+        $verificationMethod = $input['verificationMethod'] ?? 'password';
+        $usingDeviceVerification = $verificationMethod === 'device';
 
         $validator = Validator::make(
             $input,
             [
-                'currentPassword' => 'required|string',
+                'currentPassword' => $usingDeviceVerification ? 'nullable|string' : 'required|string',
+                'verificationMethod' => 'nullable|in:password,device',
                 'password' => 'required|string|min:6',
                 'passwordConfirmation' => 'required|string',
             ],
@@ -387,9 +390,11 @@ class UserController extends BaseApiController
                 'required' => 'Полето :attribute е задължително.',
                 'string' => 'Полето :attribute трябва да бъде текст.',
                 'min' => 'Полето :attribute трябва да съдържа поне :min символа.',
+                'in' => 'Полето :attribute е невалидно.',
             ],
             [
                 'currentPassword' => 'текуща парола',
+                'verificationMethod' => 'метод на потвърждение',
                 'password' => 'нова парола',
                 'passwordConfirmation' => 'потвърждение на паролата',
             ]
@@ -400,10 +405,12 @@ class UserController extends BaseApiController
         }
 
         if (
-            !isset($user->password_hash) ||
-            !password_verify(
-                $input['currentPassword'],
-                $user->password_hash
+            !$usingDeviceVerification && (
+                !isset($user->password_hash) ||
+                !password_verify(
+                    (string) $input['currentPassword'],
+                    $user->password_hash
+                )
             )
         ) {
             return $this->json([

@@ -17,6 +17,7 @@ class OauthAccessToken extends Model
         'app_id',
         'expires_at',
         'refresh_expires_at',
+        'remember_me',
     ];
 
     protected $hidden = [
@@ -29,6 +30,7 @@ class OauthAccessToken extends Model
         'app_id' => 'integer',
         'expires_at' => 'datetime',
         'refresh_expires_at' => 'datetime',
+        'remember_me' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
@@ -65,7 +67,8 @@ class OauthAccessToken extends Model
         int $userId,
         int $appId,
         string $expiresAt,
-        ?string $refreshExpiresAt = null
+        ?string $refreshExpiresAt = null,
+        bool $rememberMe = true
     ): array {
         $plainAccess = bin2hex(random_bytes(40));
         $plainRefresh = bin2hex(random_bytes(40));
@@ -78,6 +81,7 @@ class OauthAccessToken extends Model
             'expires_at' => $expiresAt,
             'refresh_expires_at' => $refreshExpiresAt
                 ?? date('Y-m-d H:i:s', strtotime('+60 days')),
+            'remember_me' => $rememberMe,
         ]);
 
         return [
