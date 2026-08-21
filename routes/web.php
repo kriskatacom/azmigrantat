@@ -65,6 +65,8 @@ $router->get('/api/mobile/me', [MobileAuthController::class, 'me'], [BearerAuthM
 
 $router->post('/api/mobile/auth/google', [MobileAuthController::class, 'google']);
 $router->post('/api/mobile/refresh', [MobileAuthController::class, 'refresh']);
+$router->post('/api/mobile/password/forgot', [MobileAuthController::class, 'forgotPassword']);
+$router->post('/api/mobile/password/reset', [MobileAuthController::class, 'resetPassword']);
 
 $bearer = [BearerAuthMiddleware::class];
 

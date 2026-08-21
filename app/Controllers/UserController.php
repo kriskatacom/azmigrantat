@@ -497,9 +497,6 @@ class UserController extends BaseController
                 [
                     'name' => $user->name,
                     'resetUrl' => $resetUrl,
-                    'siteUrl' => FULL_DOMAIN,
-                    'phone' => COMPANY_PHONE,
-                    'companyName' => COMPANY_NAME,
                 ]
             );
         }

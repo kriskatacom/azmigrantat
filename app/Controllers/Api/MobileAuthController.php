@@ -8,6 +8,7 @@ use App\Models\OauthApp;
 use App\Models\User;
 use App\Models\UserSocialAccount;
 use App\Services\AuthRateLimiter;
+use App\Services\PasswordResetService;
 use App\Services\RealtimeNotifier;
 use Illuminate\Support\Facades\Validator;
 use Google\Client as GoogleClient;
@@ -464,6 +465,186 @@ final class MobileAuthController extends BaseController
                 'message' => 'Google входът не можа да бъде завършен.',
             ], 500);
         }
+    }
+
+    public function forgotPassword()
+    {
+        $input = $this->jsonInput();
+        $limiter = new AuthRateLimiter();
+        $ip = AuthRateLimiter::clientIp();
+        $email = strtolower(trim((string) ($input['email'] ?? '')));
+        $resets = new PasswordResetService();
+
+        $limited = $this->firstTooManyPasswordForgot($limiter, $ip, $email);
+
+        if ($limited !== null) {
+            return $this->jsonTooManyAuthAttempts($limiter, $limited['action'], $limited['identifier']);
+        }
+
+        $validator = Validator::make($input, [
+            'client_id' => 'required|string',
+            'email' => 'required|email',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors()->toArray(),
+            ], 422);
+        }
+
+        $app = $this->resolvePublicApplication($input['client_id']);
+
+        if (!$app) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Невалидно или неактивно мобилно приложение.',
+            ], 401);
+        }
+
+        $limiter->hit(AuthRateLimiter::ACTION_PASSWORD_FORGOT_IP, $ip);
+        $limiter->hit(AuthRateLimiter::ACTION_PASSWORD_FORGOT_EMAIL, $email);
+        $limiter->hit(AuthRateLimiter::ACTION_PASSWORD_FORGOT_COOLDOWN, $email);
+
+        $user = User::where('email', $email)->first();
+
+        if ($user && $user->is_active) {
+            app_log('[PasswordReset] forgot matched user_id=' . (int) $user->id . ' email=' . $email);
+            $resets->issueAndSend($user);
+        } else {
+            app_log(
+                '[PasswordReset] forgot skipped email=' . $email
+                . ' found=' . ($user ? 'yes' : 'no')
+                . ' active=' . ($user && $user->is_active ? 'yes' : 'no')
+            );
+        }
+
+        return $this->json([
+            'success' => true,
+            'message' => $resets->genericRequestMessage(),
+        ]);
+    }
+
+    public function resetPassword()
+    {
+        $input = $this->jsonInput();
+        $limiter = new AuthRateLimiter();
+        $ip = AuthRateLimiter::clientIp();
+        $email = strtolower(trim((string) ($input['email'] ?? '')));
+        $resets = new PasswordResetService();
+
+        if (
+            $limiter->tooMany(AuthRateLimiter::ACTION_PASSWORD_RESET_IP, $ip)
+            || $limiter->tooMany(AuthRateLimiter::ACTION_PASSWORD_RESET_EMAIL, $email)
+        ) {
+            $action = $limiter->tooMany(AuthRateLimiter::ACTION_PASSWORD_RESET_IP, $ip)
+                ? AuthRateLimiter::ACTION_PASSWORD_RESET_IP
+                : AuthRateLimiter::ACTION_PASSWORD_RESET_EMAIL;
+            $identifier = $action === AuthRateLimiter::ACTION_PASSWORD_RESET_IP ? $ip : $email;
+
+            return $this->jsonTooManyAuthAttempts($limiter, $action, $identifier);
+        }
+
+        $validator = Validator::make(
+            $input,
+            [
+                'client_id' => 'required|string',
+                'email' => 'required|email',
+                'code' => 'required|string',
+                'password' => 'required|string|min:6',
+                'passwordConfirmation' => 'required|string',
+            ],
+            [
+                'required' => 'Полето :attribute е задължително.',
+                'email' => 'Полето :attribute трябва да съдържа валиден имейл адрес.',
+                'min' => 'Полето :attribute трябва да съдържа поне :min символа.',
+            ],
+            [
+                'client_id' => 'идентификатор на приложението',
+                'email' => 'имейл',
+                'code' => 'код',
+                'password' => 'парола',
+                'passwordConfirmation' => 'потвърждение на паролата',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return $this->json([
+                'success' => false,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors()->toArray(),
+            ], 422);
+        }
+
+        if ($input['password'] !== $input['passwordConfirmation']) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Паролите не съвпадат.',
+            ], 422);
+        }
+
+        $app = $this->resolvePublicApplication($input['client_id']);
+
+        if (!$app) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Невалидно или неактивно мобилно приложение.',
+            ], 401);
+        }
+
+        $user = User::where('email', $email)->first();
+
+        if (!$user || !$user->is_active) {
+            $limiter->hit(AuthRateLimiter::ACTION_PASSWORD_RESET_IP, $ip);
+            $limiter->hit(AuthRateLimiter::ACTION_PASSWORD_RESET_EMAIL, $email);
+
+            return $this->json([
+                'success' => false,
+                'message' => $resets->genericInvalidCodeMessage(),
+            ], 401);
+        }
+
+        $result = $resets->reset($user, (string) $input['code'], (string) $input['password']);
+
+        if (!$result['ok']) {
+            if ($result['status'] === 401 || $result['status'] === 400) {
+                $limiter->hit(AuthRateLimiter::ACTION_PASSWORD_RESET_IP, $ip);
+                $limiter->hit(AuthRateLimiter::ACTION_PASSWORD_RESET_EMAIL, $email);
+            }
+
+            return $this->json([
+                'success' => false,
+                'message' => $result['message'],
+            ], $result['status']);
+        }
+
+        $limiter->clear(AuthRateLimiter::ACTION_PASSWORD_RESET_EMAIL, $email);
+
+        return $this->json([
+            'success' => true,
+            'message' => $result['message'],
+        ]);
+    }
+
+    /**
+     * @return array{action: string, identifier: string}|null
+     */
+    private function firstTooManyPasswordForgot(AuthRateLimiter $limiter, string $ip, string $email): ?array
+    {
+        $checks = [
+            [AuthRateLimiter::ACTION_PASSWORD_FORGOT_IP, $ip],
+            [AuthRateLimiter::ACTION_PASSWORD_FORGOT_EMAIL, $email],
+            [AuthRateLimiter::ACTION_PASSWORD_FORGOT_COOLDOWN, $email],
+        ];
+
+        foreach ($checks as [$action, $identifier]) {
+            if ($limiter->tooMany($action, $identifier)) {
+                return ['action' => $action, 'identifier' => $identifier];
+            }
+        }
+
+        return null;
     }
 
     private function resolvePublicApplication(string $clientId): ?OauthApp

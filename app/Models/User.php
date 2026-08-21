@@ -52,11 +52,20 @@ class User extends Model
         'phone_verification_sent_at',
         'phone_verification_phone',
         'two_factor_verified_at',
-        'is_active'
+        'is_active',
+        'password_reset_hash',
+        'password_reset_expires_at',
+        'password_reset_sent_at',
+        'password_reset_attempts',
+        'password_reset_locked_until',
     ];
 
     protected $hidden = [
         'password_hash',
+        'password_reset_hash',
+        'reset_token',
+        'verification_token',
+        'phone_verification_hash',
     ];
 
     protected $dateFormat = 'Y-m-d H:i:s.u';

@@ -12,6 +12,11 @@ final class AuthRateLimiter
     public const ACTION_REGISTER_IP = 'register_ip';
     public const ACTION_GOOGLE_IP = 'google_ip';
     public const ACTION_REFRESH_IP = 'refresh_ip';
+    public const ACTION_PASSWORD_FORGOT_IP = 'password_forgot_ip';
+    public const ACTION_PASSWORD_FORGOT_EMAIL = 'password_forgot_email';
+    public const ACTION_PASSWORD_FORGOT_COOLDOWN = 'password_forgot_cooldown';
+    public const ACTION_PASSWORD_RESET_IP = 'password_reset_ip';
+    public const ACTION_PASSWORD_RESET_EMAIL = 'password_reset_email';
 
     public function tooMany(string $action, string $identifier): bool
     {
@@ -44,22 +49,49 @@ final class AuthRateLimiter
             $bucket = $this->bucket($action, $identifier);
             $row = RateLimit::query()->where('bucket', $bucket)->first();
 
-            if (!$row || $this->windowExpired($row, $action, $now)) {
-                RateLimit::query()->updateOrCreate(
-                    ['bucket' => $bucket],
-                    [
-                        'attempts' => 1,
-                        'window_starts_at' => $now,
-                        'updated_at' => $now,
-                    ]
-                );
-                $this->pruneOldWindows();
+            if ($row) {
+                if ($this->windowExpired($row, $action, $now)) {
+                    $row->attempts = 1;
+                    $row->window_starts_at = $now;
+                } else {
+                    $row->attempts = (int) $row->attempts + 1;
+                }
+
+                $row->updated_at = $now;
+                $row->save();
                 return;
             }
 
-            $row->attempts = (int) $row->attempts + 1;
-            $row->updated_at = $now;
-            $row->save();
+            try {
+                RateLimit::query()->create([
+                    'bucket' => $bucket,
+                    'attempts' => 1,
+                    'window_starts_at' => $now,
+                    'updated_at' => $now,
+                ]);
+            } catch (\Illuminate\Database\QueryException $exception) {
+                if (!$this->isDuplicateBucket($exception)) {
+                    throw $exception;
+                }
+
+                $row = RateLimit::query()->where('bucket', $bucket)->first();
+
+                if (!$row) {
+                    return;
+                }
+
+                if ($this->windowExpired($row, $action, $now)) {
+                    $row->attempts = 1;
+                    $row->window_starts_at = $now;
+                } else {
+                    $row->attempts = (int) $row->attempts + 1;
+                }
+
+                $row->updated_at = $now;
+                $row->save();
+            }
+
+            $this->pruneOldWindows();
         } catch (\Throwable $exception) {
             error_log('[AuthRateLimiter] hit failed: ' . $exception->getMessage());
         }
@@ -136,6 +168,11 @@ final class AuthRateLimiter
             self::ACTION_REGISTER_IP => 5,
             self::ACTION_GOOGLE_IP => 10,
             self::ACTION_REFRESH_IP => 20,
+            self::ACTION_PASSWORD_FORGOT_IP => 8,
+            self::ACTION_PASSWORD_FORGOT_EMAIL => 3,
+            self::ACTION_PASSWORD_FORGOT_COOLDOWN => 1,
+            self::ACTION_PASSWORD_RESET_IP => 15,
+            self::ACTION_PASSWORD_RESET_EMAIL => 10,
             default => 5,
         };
     }
@@ -144,8 +181,16 @@ final class AuthRateLimiter
     {
         return match ($action) {
             self::ACTION_REGISTER_IP => 3600,
+            self::ACTION_PASSWORD_FORGOT_COOLDOWN => 60,
             default => 900,
         };
+    }
+
+    private function isDuplicateBucket(\Illuminate\Database\QueryException $exception): bool
+    {
+        $code = (string) ($exception->errorInfo[1] ?? $exception->getCode());
+
+        return $code === '1062' || str_contains($exception->getMessage(), '1062');
     }
 
     private function bucket(string $action, string $identifier): string

@@ -24,7 +24,7 @@ final class CreateRateLimitsTable extends AbstractMigration
                 'identity' => true,
             ])
             ->addColumn('bucket', 'string', [
-                'limit' => 80,
+                'limit' => 191,
                 'null' => false,
             ])
             ->addColumn('attempts', 'integer', [

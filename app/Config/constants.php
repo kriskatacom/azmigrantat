@@ -102,5 +102,11 @@ define('PAGE_TEMPLATES', [
     'default' => 'Стандартен шаблон',
 ]);
 
-define('COMPANY_PHONE', $_ENV['COMPANY_PHONE'] ?? '+359 123 456 789');
 define('COMPANY_NAME', $_ENV['COMPANY_NAME'] ?? 'Аз, мигрантът');
+define('COMPANY_LEGAL_NAME', $_ENV['COMPANY_LEGAL_NAME'] ?? 'АЗ МИГРАНТЪТ ЕООД');
+define('COMPANY_EIK', $_ENV['COMPANY_EIK'] ?? '206860375');
+define('COMPANY_VAT', $_ENV['COMPANY_VAT'] ?? 'BG206860375');
+define('COMPANY_ADDRESS', $_ENV['COMPANY_ADDRESS'] ?? 'ул. Цар Симеон 14, 3400 Монтана, България');
+define('COMPANY_MANAGER', $_ENV['COMPANY_MANAGER'] ?? 'Алеко Валентинов Начов');
+define('COMPANY_PHONE', $_ENV['COMPANY_PHONE'] ?? '');
+define('COMPANY_EMAIL', $_ENV['COMPANY_EMAIL'] ?? ($_ENV['SMTP_USER'] ?? ''));

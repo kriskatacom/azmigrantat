@@ -101,9 +101,38 @@ abstract class BaseController
 
         return $this->json([
             'success' => false,
-            'message' => 'Твърде много опити. Опитайте отново след малко.',
+            'message' => $this->tooManyAuthAttemptsMessage($action, $retryAfter),
             'retry_after' => $retryAfter,
         ], 429);
+    }
+
+    private function tooManyAuthAttemptsMessage(string $action, int $retryAfter): string
+    {
+        $wait = $this->formatRetryAfter($retryAfter);
+
+        return match ($action) {
+            AuthRateLimiter::ACTION_PASSWORD_FORGOT_COOLDOWN =>
+                "Кодът не беше изпратен, защото наскоро вече заявихте такъв. Изчакайте {$wait} и опитайте отново.",
+            AuthRateLimiter::ACTION_PASSWORD_FORGOT_EMAIL =>
+                "Достигнахте лимита за изпращане на код към този имейл. Опитайте отново след {$wait}.",
+            AuthRateLimiter::ACTION_PASSWORD_FORGOT_IP =>
+                "Твърде много заявки за възстановяване на парола. Опитайте отново след {$wait}.",
+            AuthRateLimiter::ACTION_PASSWORD_RESET_EMAIL,
+            AuthRateLimiter::ACTION_PASSWORD_RESET_IP =>
+                "Твърде много опити за смяна на паролата. Опитайте отново след {$wait}.",
+            default => "Твърде много опити. Опитайте отново след {$wait}.",
+        };
+    }
+
+    private function formatRetryAfter(int $seconds): string
+    {
+        if ($seconds >= 60) {
+            $minutes = (int) ceil($seconds / 60);
+
+            return $minutes === 1 ? '1 минута' : $minutes . ' минути';
+        }
+
+        return $seconds === 1 ? '1 секунда' : $seconds . ' секунди';
     }
 
     protected function view(string $view, array $data = [])

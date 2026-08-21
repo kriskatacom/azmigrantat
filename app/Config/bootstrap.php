@@ -52,5 +52,10 @@ if (!is_dir(dirname($logFile))) {
     mkdir(dirname($logFile), 0777, true);
 }
 
+if (!is_file($logFile)) {
+    touch($logFile);
+    @chmod($logFile, 0666);
+}
+
 ini_set('log_errors', 'On');
 ini_set('error_log', $logFile);

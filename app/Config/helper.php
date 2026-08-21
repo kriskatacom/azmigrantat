@@ -28,6 +28,48 @@ if (!function_exists('getTranslatable')) {
     }
 }
 
+if (!function_exists('env')) {
+    function env(string $key, mixed $default = null): mixed
+    {
+        if (array_key_exists($key, $_ENV)) {
+            return $_ENV[$key];
+        }
+
+        if (array_key_exists($key, $_SERVER)) {
+            return $_SERVER[$key];
+        }
+
+        $value = getenv($key);
+
+        return $value === false ? $default : $value;
+    }
+}
+
+if (!function_exists('app_log')) {
+    function app_log(string $message): void
+    {
+        $line = '[' . date('Y-m-d H:i:s') . '] ' . $message . PHP_EOL;
+        $file = defined('ROOT')
+            ? ROOT . '/app/storage/logs/app_errors.log'
+            : __DIR__ . '/../storage/logs/app_errors.log';
+
+        $directory = dirname($file);
+
+        if (!is_dir($directory)) {
+            @mkdir($directory, 0777, true);
+        }
+
+        $written = @file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
+
+        if ($written === false) {
+            error_log('[app_log write failed] ' . $message);
+            return;
+        }
+
+        error_log($message);
+    }
+}
+
 if (!function_exists('getFileIcon')) {
     function getFileIcon($filename)
     {
