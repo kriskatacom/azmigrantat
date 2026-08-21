@@ -19,7 +19,7 @@ final class MessageRepository
 
         $query = Message::query()
             ->where('conversation_id', $conversation->id)
-            ->with('sender')
+            ->with(['sender', 'reactions'])
             ->orderByDesc('id');
 
         if ($beforeId !== null) {
@@ -103,7 +103,7 @@ final class MessageRepository
         int $messageId,
         Carbon $readAt
     ): int {
-        return Message::query()
+        $updated = Message::query()
             ->where('conversation_id', $conversationId)
             ->where('sender_id', '!=', $readerId)
             ->where('id', '<=', $messageId)
@@ -111,7 +111,34 @@ final class MessageRepository
             ->update([
                 'status' => Message::STATUS_READ,
                 'read_at' => $readAt,
+            ]);
+
+        Message::query()
+            ->where('conversation_id', $conversationId)
+            ->where('sender_id', '!=', $readerId)
+            ->where('id', '<=', $messageId)
+            ->whereNull('delivered_at')
+            ->update([
                 'delivered_at' => $readAt,
+            ]);
+
+        return $updated;
+    }
+
+    public function markAsDeliveredUntil(
+        int $conversationId,
+        int $recipientId,
+        int $messageId,
+        Carbon $deliveredAt
+    ): int {
+        return Message::query()
+            ->where('conversation_id', $conversationId)
+            ->where('sender_id', '!=', $recipientId)
+            ->where('id', '<=', $messageId)
+            ->where('status', Message::STATUS_SENT)
+            ->update([
+                'status' => Message::STATUS_DELIVERED,
+                'delivered_at' => $deliveredAt,
             ]);
     }
 

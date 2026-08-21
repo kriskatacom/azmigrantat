@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\MessageReaction;
 use App\Models\User;
 use App\Repositories\ConversationRepository;
 use App\Repositories\MessageRepository;
@@ -203,6 +204,92 @@ final class ConversationService
         );
 
         return $message;
+    }
+
+    public function markConversationAsDelivered(
+        Conversation $conversation,
+        User $user,
+        ?int $messageId = null
+    ): ?array {
+        $message = $this->messageRepository->findInConversation(
+            (int) $conversation->id,
+            $messageId
+        );
+
+        if (!$message) {
+            return null;
+        }
+
+        $participant =
+            $this->conversationRepository->findParticipant(
+                (int) $conversation->id,
+                (int) $user->id
+            );
+
+        if (!$participant) {
+            return null;
+        }
+
+        $deliveredAt = Carbon::now();
+        $updated = $this->messageRepository->markAsDeliveredUntil(
+            (int) $conversation->id,
+            (int) $user->id,
+            (int) $message->id,
+            $deliveredAt
+        );
+
+        return [
+            'message' => $message,
+            'updated' => $updated,
+            'delivered_at' => $deliveredAt,
+        ];
+    }
+
+    public function toggleMessageReaction(
+        Conversation $conversation,
+        User $user,
+        int $messageId,
+        string $type
+    ): ?array {
+        $message = Message::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('id', $messageId)
+            ->first();
+
+        if (!$message || $message->type === Message::TYPE_SYSTEM) {
+            return null;
+        }
+
+        $existing = MessageReaction::query()
+            ->where('message_id', $message->id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        $currentType = $type;
+
+        if ($existing && $existing->type === $type) {
+            $existing->delete();
+            $currentType = null;
+        } else {
+            MessageReaction::query()->updateOrCreate(
+                [
+                    'message_id' => $message->id,
+                    'user_id' => $user->id,
+                ],
+                [
+                    'type' => $type,
+                ]
+            );
+        }
+
+        $message->load('reactions');
+        $summary = MessageReaction::summarize($message->reactions);
+
+        return [
+            'message' => $message,
+            'type' => $currentType,
+            'items' => $summary['items'],
+        ];
     }
 
     public function loadConversationDetails(

@@ -72,10 +72,13 @@ final class RealtimeNotifier
                 'content' => $message->content,
                 'metadata' => $message->metadata,
                 'status' => $message->status,
+                'is_read' => $message->status === Message::STATUS_READ,
                 'delivered_at' => $message->delivered_at?->toISOString(),
                 'read_at' => $message->read_at?->toISOString(),
                 'edited_at' => $message->edited_at?->toISOString(),
                 'created_at' => $message->created_at?->toISOString(),
+                'mine_reaction' => null,
+                'reactions' => [],
                 'sender' => $message->sender
                     ? [
                         'id' => (int) $message->sender->id,
@@ -240,6 +243,69 @@ final class RealtimeNotifier
             'reader_id' => $readerId,
             'last_read_message_id' => $lastReadMessageId,
             'read_at' => $readAt,
+        ]);
+    }
+
+    public function notifyMessageDelivered(
+        Conversation $conversation,
+        int $recipientId,
+        int $lastDeliveredMessageId,
+        string $deliveredAt
+    ): bool {
+        $recipientIds = Participant::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('user_id', '!=', $recipientId)
+            ->whereNull('left_at')
+            ->pluck('user_id')
+            ->map(static fn($userId): int => (int) $userId)
+            ->values()
+            ->all();
+
+        if ($recipientIds === []) {
+            return false;
+        }
+
+        return $this->send('/internal/events/message-delivered', [
+            'recipient_ids' => $recipientIds,
+            'conversation_id' => (int) $conversation->id,
+            'recipient_id' => $recipientId,
+            'last_delivered_message_id' => $lastDeliveredMessageId,
+            'delivered_at' => $deliveredAt,
+        ]);
+    }
+
+    public function notifyMessageReaction(
+        Conversation $conversation,
+        int $userId,
+        int $messageId,
+        ?string $type,
+        array $items
+    ): bool {
+        $recipientIds = Participant::query()
+            ->where('conversation_id', $conversation->id)
+            ->whereNull('left_at')
+            ->pluck('user_id')
+            ->map(static fn($participantId): int => (int) $participantId)
+            ->values()
+            ->all();
+
+        if ($recipientIds === []) {
+            return false;
+        }
+
+        return $this->send('/internal/events/message-reaction', [
+            'recipient_ids' => $recipientIds,
+            'conversation_id' => (int) $conversation->id,
+            'message_id' => $messageId,
+            'user_id' => $userId,
+            'type' => $type,
+            'items' => array_map(
+                static fn(array $item): array => [
+                    'type' => $item['type'],
+                    'count' => (int) $item['count'],
+                ],
+                $items
+            ),
         ]);
     }
 }

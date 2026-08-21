@@ -23,6 +23,7 @@ final class ConversationRepository
             })
             ->with([
                 'lastMessage.sender',
+                'lastMessage.reactions',
                 'participants' => function ($query) {
                     $query->whereNull('left_at');
                 },
@@ -110,6 +111,7 @@ final class ConversationRepository
     ): Conversation {
         return $conversation->load([
             'lastMessage.sender',
+            'lastMessage.reactions',
             'participants' => function ($query) {
                 $query->whereNull('left_at');
             },

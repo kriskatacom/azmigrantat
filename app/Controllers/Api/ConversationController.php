@@ -224,7 +224,8 @@ final class ConversationController extends BaseController
                 : null,
             'last_message' => $conversation->lastMessage
                 ? MessageController::serializeMessage(
-                    $conversation->lastMessage
+                    $conversation->lastMessage,
+                    $currentUserId
                 )
                 : null,
             'last_read_message_id' =>

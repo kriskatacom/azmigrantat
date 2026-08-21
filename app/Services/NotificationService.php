@@ -129,6 +129,75 @@ final class NotificationService
         }
     }
 
+    public function recordMessageReaction(
+        int $recipientId,
+        int $actorId,
+        int $conversationId,
+        int $messageId,
+        string $reactionType,
+        string $emoji,
+        ?string $actorName = null,
+        ?string $actorAvatar = null
+    ): array {
+        $actor = User::query()->find($actorId);
+        $title = $actorName ?: ($actor?->name ?: 'Потребител');
+        $data = array_filter([
+            'conversation_id' => $conversationId,
+            'message_id' => $messageId,
+            'reaction_type' => $reactionType,
+            'emoji' => $emoji,
+            'actor_id' => $actorId,
+            'actor_name' => $title,
+            'actor_avatar' => $actorAvatar ?: $actor?->profile_image_url,
+        ], static fn ($value) => $value !== null && $value !== '');
+
+        $group = Notification::query()
+            ->where('user_id', $recipientId)
+            ->where('type', Notification::TYPE_MESSAGE_REACTION)
+            ->where('actor_id', $actorId)
+            ->where('is_read', false)
+            ->orderByDesc('id')
+            ->first();
+
+        if ($group) {
+            $count = (int) $group->count + 1;
+            $group->fill([
+                'title' => $title,
+                'message' => $this->messageReactionText($emoji, $count),
+                'count' => $count,
+                'entity_id' => (string) $messageId,
+                'data' => array_merge($group->data ?? [], $data, ['count' => $count]),
+            ]);
+            $group->save();
+            $group->load('actor');
+
+            return [
+                'created' => false,
+                'updated' => true,
+                'notification' => $group,
+            ];
+        }
+
+        $notification = Notification::query()->create([
+            'user_id' => $recipientId,
+            'type' => Notification::TYPE_MESSAGE_REACTION,
+            'title' => $title,
+            'message' => $this->messageReactionText($emoji, 1),
+            'count' => 1,
+            'is_read' => false,
+            'actor_id' => $actorId,
+            'entity_id' => (string) $messageId,
+            'data' => $data + ['count' => 1],
+        ]);
+        $notification->load('actor');
+
+        return [
+            'created' => true,
+            'updated' => false,
+            'notification' => $notification,
+        ];
+    }
+
     public function create(array $input): Notification
     {
         $notification = Notification::query()->create([
@@ -250,6 +319,15 @@ final class NotificationService
         return $count === 1
             ? 'Имате 1 пропуснато видео обаждане!'
             : 'Имате ' . $count . ' пропуснати видео обаждания!';
+    }
+
+    public function messageReactionText(string $emoji, int $count): string
+    {
+        if ($count === 1) {
+            return 'Реагира с ' . $emoji . ' на съобщението ти.';
+        }
+
+        return 'Реагира на ' . $count . ' твои съобщения.';
     }
 
     private function storeEvent(int $notificationId, string $eventKey): void

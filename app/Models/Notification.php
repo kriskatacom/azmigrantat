@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Notification extends Model
 {
     public const TYPE_MISSED_VIDEO_CALL = 'missed_video_call';
+    public const TYPE_MESSAGE_REACTION = 'message_reaction';
     public const TYPE_TEXT = 'text';
 
     protected $table = 'notifications';

@@ -4,11 +4,14 @@ namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
 use App\Models\Message;
+use App\Models\MessageReaction;
+use App\Models\Notification;
 use App\Models\OauthAccessToken;
 use App\Models\User;
 use App\Services\BackblazeB2Service;
 use App\Services\BlockService;
 use App\Services\ConversationService;
+use App\Services\NotificationService;
 use App\Services\PushNotificationService;
 use App\Services\RealtimeNotifier;
 use Carbon\Carbon;
@@ -20,6 +23,7 @@ final class MessageController extends BaseController
     private ConversationService $conversationService;
     private RealtimeNotifier $realtimeNotifier;
     private PushNotificationService $pushNotificationService;
+    private NotificationService $notificationService;
     private BlockService $blockService;
 
     public function __construct()
@@ -27,6 +31,7 @@ final class MessageController extends BaseController
         $this->conversationService = new ConversationService();
         $this->realtimeNotifier = new RealtimeNotifier();
         $this->pushNotificationService = new PushNotificationService();
+        $this->notificationService = new NotificationService();
         $this->blockService = new BlockService();
     }
 
@@ -65,7 +70,7 @@ final class MessageController extends BaseController
             'data' => $result['messages']
                 ->map(
                     fn(Message $message) =>
-                    self::serializeMessage($message)
+                    self::serializeMessage($message, (int) $user->id)
                 )
                 ->values(),
             'meta' => [
@@ -166,7 +171,7 @@ final class MessageController extends BaseController
 
             return $this->json([
                 'success' => true,
-                'data' => self::serializeMessage($message),
+                'data' => self::serializeMessage($message, (int) $user->id),
             ], 201);
         } catch (Exception $exception) {
             return $this->json([
@@ -230,9 +235,144 @@ final class MessageController extends BaseController
         ]);
     }
 
+    public function markAsDelivered($conversationId)
+    {
+        $user = $this->authenticatedUser();
+
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $conversation = $this->conversationService
+            ->findUserConversation(
+                (int) $conversationId,
+                (int) $user->id
+            );
+
+        if (!$conversation) {
+            return $this->conversationNotFound();
+        }
+
+        $input = $this->jsonInput();
+
+        $messageId = isset($input['message_id'])
+            ? (int) $input['message_id']
+            : null;
+
+        $result = $this->conversationService
+            ->markConversationAsDelivered(
+                $conversation,
+                $user,
+                $messageId
+            );
+
+        if (!$result) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Съобщението не е намерено.',
+            ], 404);
+        }
+
+        if ((int) $result['updated'] > 0) {
+            $this->realtimeNotifier->notifyMessageDelivered(
+                $conversation,
+                (int) $user->id,
+                (int) $result['message']->id,
+                $result['delivered_at']->toISOString()
+            );
+        }
+
+        return $this->json([
+            'success' => true,
+            'message' =>
+                'Съобщенията са отбелязани като получени.',
+            'last_delivered_message_id' => $result['message']->id,
+        ]);
+    }
+
+    public function react($conversationId, $messageId)
+    {
+        $user = $this->authenticatedUser();
+
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $conversation = $this->conversationService
+            ->findUserConversation(
+                (int) $conversationId,
+                (int) $user->id
+            );
+
+        if (!$conversation) {
+            return $this->conversationNotFound();
+        }
+
+        if ($this->blockService->isBlockedInConversation($conversation, (int) $user->id)) {
+            return $this->blockedConversation();
+        }
+
+        $input = $this->jsonInput();
+        $type = trim((string) ($input['type'] ?? ''));
+
+        if (!MessageReaction::isValidType($type)) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Невалидна реакция.',
+            ], 422);
+        }
+
+        $result = $this->conversationService->toggleMessageReaction(
+            $conversation,
+            $user,
+            (int) $messageId,
+            $type
+        );
+
+        if (!$result) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Съобщението не е намерено.',
+            ], 404);
+        }
+
+        $this->realtimeNotifier->notifyMessageReaction(
+            $conversation,
+            (int) $user->id,
+            (int) $result['message']->id,
+            $result['type'],
+            $result['items']
+        );
+
+        $this->notifyMessageOwnerOfReaction(
+            $result['message'],
+            $user,
+            $result['type']
+        );
+
+        return $this->json([
+            'success' => true,
+            'data' => [
+                'message_id' => (int) $result['message']->id,
+                'type' => $result['type'],
+                'reactions' => MessageReaction::summarize(
+                    $result['message']->reactions,
+                    (int) $user->id
+                ),
+            ],
+        ]);
+    }
+
     public static function serializeMessage(
-        Message $message
+        Message $message,
+        ?int $currentUserId = null
     ): array {
+        $message->loadMissing('reactions');
+        $summary = MessageReaction::summarize(
+            $message->reactions ?? collect(),
+            $currentUserId
+        );
+
         return [
             'id' => $message->id,
             'conversation_id' =>
@@ -244,6 +384,7 @@ final class MessageController extends BaseController
             'content' => $message->content,
             'metadata' => $message->metadata,
             'status' => $message->status,
+            'is_read' => $message->status === Message::STATUS_READ,
             'delivered_at' =>
                 $message->delivered_at?->toISOString(),
             'read_at' =>
@@ -252,6 +393,8 @@ final class MessageController extends BaseController
                 $message->edited_at?->toISOString(),
             'created_at' =>
                 $message->created_at?->toISOString(),
+            'mine_reaction' => $summary['mine'],
+            'reactions' => $summary['items'],
             'sender' => self::serializeUser(
                 $message->sender
             ),
@@ -420,7 +563,7 @@ final class MessageController extends BaseController
 
             return $this->json([
                 'success' => true,
-                'data' => self::serializeMessage($message),
+                'data' => self::serializeMessage($message, (int) $user->id),
             ], 201);
         } catch (\Throwable $exception) {
             error_log(
@@ -589,6 +732,87 @@ final class MessageController extends BaseController
             default =>
             'Файлът не беше качен успешно.',
         };
+    }
+
+    private function notifyMessageOwnerOfReaction(
+        Message $message,
+        User $reactor,
+        ?string $reactionType
+    ): void {
+        if ($reactionType === null || !MessageReaction::isValidType($reactionType)) {
+            return;
+        }
+
+        $recipientId = (int) $message->sender_id;
+        $reactorId = (int) $reactor->id;
+
+        if ($recipientId <= 0 || $recipientId === $reactorId) {
+            return;
+        }
+
+        $recipient = User::query()->find($recipientId);
+
+        if (!$recipient) {
+            return;
+        }
+
+        $emoji = MessageReaction::emoji($reactionType);
+        $actorImage = $reactor->profile_image_url ?? null;
+
+        try {
+            $result = $this->notificationService->recordMessageReaction(
+                $recipientId,
+                $reactorId,
+                (int) $message->conversation_id,
+                (int) $message->id,
+                $reactionType,
+                $emoji,
+                (string) $reactor->name,
+                is_string($actorImage) ? $actorImage : null
+            );
+        } catch (Exception $exception) {
+            error_log('Reaction notification error: ' . $exception->getMessage());
+            return;
+        }
+
+        $payload = $this->notificationService->serialize($result['notification']);
+
+        if (!$payload) {
+            return;
+        }
+
+        $event = $result['created'] ? 'notification:new' : 'notification:updated';
+
+        try {
+            $this->realtimeNotifier->notifyNotification(
+                $recipientId,
+                $payload,
+                $event
+            );
+        } catch (Exception $exception) {
+            error_log('Reaction realtime notification error: ' . $exception->getMessage());
+        }
+
+        try {
+            $this->pushNotificationService->sendToUser(
+                $recipient,
+                (string) ($payload['title'] ?: $reactor->name),
+                (string) ($payload['message'] ?: 'Имате нова реакция.'),
+                [
+                    'type' => Notification::TYPE_MESSAGE_REACTION,
+                    'notification_id' => (string) $payload['id'],
+                    'conversation_id' => (int) $message->conversation_id,
+                    'message_id' => (int) $message->id,
+                    'sender_id' => $reactorId,
+                    'reaction_type' => $reactionType,
+                ],
+                is_string($actorImage) && $actorImage !== '' ? $actorImage : null,
+                'chat_message',
+                'receive_message.wav'
+            );
+        } catch (Exception $exception) {
+            error_log('Reaction push notification error: ' . $exception->getMessage());
+        }
     }
 
     private static function serializeUser(
