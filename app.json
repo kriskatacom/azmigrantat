@@ -73,6 +73,12 @@
       ],
       "expo-secure-store",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Разрешете достъп до камерата, за да сканирате банкова карта."
+        }
+      ],
+      [
         "expo-local-authentication",
         {
           "faceIDPermission": "Разрешете Face ID, за да влизате в профила си с биометрия."

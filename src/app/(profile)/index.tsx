@@ -212,6 +212,46 @@ export default function ProfileHomeScreen() {
         </TouchableOpacity>
 
         <TouchableOpacity
+          onPress={() => router.push("/(profile)/payments")}
+          style={[
+            styles.settingsLink,
+            {
+              backgroundColor: theme.colors.card,
+              borderColor: theme.colors.border,
+            },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Плащания"
+        >
+          <View
+            style={[
+              styles.settingsIcon,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
+            <FontAwesome name="credit-card" size={20} color={theme.colors.primary} />
+          </View>
+          <View style={styles.settingsText}>
+            <Text style={[styles.settingsTitle, { color: theme.colors.text }]}>
+              Плащания
+            </Text>
+            <Text
+              style={[
+                styles.settingsDescription,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              Сканиране и запазване на карти
+            </Text>
+          </View>
+          <FontAwesome
+            name="chevron-right"
+            size={16}
+            color={theme.colors.textSecondary}
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity
           onPress={() => router.push("/(profile)/blocked")}
           style={[
             styles.settingsLink,
