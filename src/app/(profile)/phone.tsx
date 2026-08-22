@@ -23,8 +23,9 @@ export default function PhoneVerificationScreen() {
         contentContainerStyle={styles.content}
       >
         <Text style={[styles.description, { color: theme.colors.textSecondary }]}>
-          Изпращаме 6-цифрен код по WhatsApp или SMS. Избери държавата и въведи
-          само номера, без кода и без водеща нула.
+          {user.phone_verified
+            ? "Този номер е потвърден и може да се използва за защита на профила."
+            : "Изпращаме 6-цифрен код по WhatsApp или SMS. Избери държавата и въведи само номера, без кода и без водеща нула."}
         </Text>
         <PhoneVerificationForm
           token={token}

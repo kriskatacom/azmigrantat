@@ -4,6 +4,7 @@ import ProfileDetailsForm from "@/components/profile/profile-details-form";
 import ProfileIdentityCard from "@/components/profile/profile-identity-card";
 import ProfileNavRow from "@/components/profile/profile-nav-row";
 import { PRIVACY_URL, TERMS_URL } from "@/constants/legal";
+import { phoneDisplayParts } from "@/constants/european-dial-codes";
 import { useAuth } from "@/hooks/useAuth";
 import {
   getCurrentUserRequest,
@@ -118,7 +119,6 @@ export default function ProfileHomeScreen() {
           icon="ban"
           title="Блокирани потребители"
           description="Блокиране по код, преглед и отблокиране"
-          danger
         />
         <ProfileNavRow
           href="/(profile)/phone"
@@ -126,7 +126,7 @@ export default function ProfileHomeScreen() {
           title="Потвърждение на телефона"
           description={
             user.phone_verified
-              ? "Номерът е потвърден"
+              ? phoneDisplayParts(user.phone ?? "").display || "Номерът е потвърден"
               : "Код по WhatsApp или SMS"
           }
         />
@@ -135,14 +135,12 @@ export default function ProfileHomeScreen() {
           icon="comments"
           title="Изтриване на съобщения"
           description="Премахване на цялата чат история"
-          danger
         />
         <ProfileNavRow
           href="/(profile)/delete-account"
           icon="trash"
           title="Изтриване на профила"
           description="Деактивиране на акаунта завинаги"
-          danger
         />
 
         <ProfileIdentityCard

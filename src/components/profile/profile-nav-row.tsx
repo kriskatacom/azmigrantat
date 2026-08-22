@@ -9,7 +9,6 @@ type ProfileNavRowProps = {
   icon: ComponentProps<typeof FontAwesome>["name"];
   title: string;
   description: string;
-  danger?: boolean;
 };
 
 export default function ProfileNavRow({
@@ -17,11 +16,9 @@ export default function ProfileNavRow({
   icon,
   title,
   description,
-  danger = false,
 }: ProfileNavRowProps) {
   const { theme } = useAppTheme();
   const router = useRouter();
-  const accent = danger ? theme.colors.danger : theme.colors.primary;
 
   return (
     <TouchableOpacity
@@ -30,16 +27,16 @@ export default function ProfileNavRow({
         styles.row,
         {
           backgroundColor: theme.colors.card,
-          borderColor: danger ? theme.colors.danger : theme.colors.border,
+          borderColor: theme.colors.border,
         },
       ]}
       accessibilityRole="button"
       accessibilityLabel={title}
     >
       <View
-        style={[styles.icon, { backgroundColor: theme.colors.background }]}
+        style={[styles.icon, { backgroundColor: theme.colors.primary }]}
       >
-        <FontAwesome name={icon} size={20} color={accent} />
+        <FontAwesome name={icon} size={20} color="#ffffff" />
       </View>
       <View style={styles.text}>
         <Text style={[styles.title, { color: theme.colors.text }]}>{title}</Text>

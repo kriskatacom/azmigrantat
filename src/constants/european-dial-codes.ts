@@ -101,3 +101,28 @@ export function composePhone(dial: string, national: string): string {
   }
   return `${dial}${local}`;
 }
+
+export function phoneDisplayParts(stored: string): {
+  e164: string;
+  display: string;
+  country: string;
+  iso: string;
+  flag: string;
+} {
+  const { dial, iso, national } = splitStoredPhone(stored);
+  const grouped = national.replace(/(\d{3})(?=\d)/g, "$1 ").trim();
+  const country =
+    EUROPEAN_DIAL_CODES.find((item) => item.iso === iso)?.name ?? "";
+
+  return {
+    e164: national ? `+${dial}${national}` : "",
+    display: grouped ? `+${dial} ${grouped}` : stored ? `+${digitsFallback(stored)}` : "",
+    country,
+    iso,
+    flag: flagEmoji(iso),
+  };
+}
+
+function digitsFallback(stored: string): string {
+  return stored.replace(/\D/g, "");
+}
