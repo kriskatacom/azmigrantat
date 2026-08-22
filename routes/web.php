@@ -3,6 +3,7 @@
 use App\Controllers\Api\BlockController;
 use App\Controllers\Api\CallController;
 use App\Controllers\Api\ConversationController;
+use App\Controllers\Api\TotpController;
 use App\Controllers\Api\InternalMobileController;
 use App\Controllers\Api\LinkPreviewController;
 use App\Controllers\Api\MessageController;
@@ -68,6 +69,7 @@ $router->post('/api/mobile/auth/google', [MobileAuthController::class, 'google']
 $router->post('/api/mobile/refresh', [MobileAuthController::class, 'refresh']);
 $router->post('/api/mobile/password/forgot', [MobileAuthController::class, 'forgotPassword']);
 $router->post('/api/mobile/password/reset', [MobileAuthController::class, 'resetPassword']);
+$router->post('/api/mobile/login/totp', [TotpController::class, 'completeLogin']);
 
 $bearer = [BearerAuthMiddleware::class];
 
@@ -83,6 +85,10 @@ $router->post('/api/mobile/payment-methods', [PaymentMethodController::class, 's
 $router->post('/api/mobile/payment-methods/settings', [PaymentMethodController::class, 'updateSettings'], $bearer);
 $router->post('/api/mobile/payment-methods/{id}/default', [PaymentMethodController::class, 'setDefault'], $bearer);
 $router->post('/api/mobile/payment-methods/{id}/delete', [PaymentMethodController::class, 'destroy'], $bearer);
+$router->get('/api/mobile/totp', [TotpController::class, 'status'], $bearer);
+$router->post('/api/mobile/totp/start', [TotpController::class, 'start'], $bearer);
+$router->post('/api/mobile/totp/confirm', [TotpController::class, 'confirm'], $bearer);
+$router->post('/api/mobile/totp/disable', [TotpController::class, 'disable'], $bearer);
 $router->post('/api/mobile/phone/send', [PhoneVerificationController::class, 'send'], $bearer);
 $router->post('/api/mobile/phone/verify', [PhoneVerificationController::class, 'verify'], $bearer);
 $router->get('/api/mobile/link-preview', [LinkPreviewController::class, 'show'], $bearer);
@@ -91,6 +97,8 @@ $router->get('/api/mobile/conversations', [ConversationController::class, 'index
 $router->post('/api/mobile/conversations/direct', [ConversationController::class, 'createDirect'], $bearer);
 $router->get('/api/mobile/conversations/unread-count', [ConversationController::class, 'unreadCount'], $bearer);
 $router->delete('/api/mobile/profile/chat-messages', [UserController::class, 'deleteChatMessages'], $bearer);
+$router->post('/api/mobile/profile/delete', [UserController::class, 'deleteAccount'], $bearer);
+$router->post('/api/mobile/conversations/{id}/clear', [ConversationController::class, 'clear'], $bearer);
 $router->get('/api/mobile/conversations/{id}', [ConversationController::class, 'show'], $bearer);
 $router->get('/api/mobile/conversations/{id}/messages', [MessageController::class, 'index'], $bearer);
 $router->post('/api/mobile/conversations/{id}/messages', [MessageController::class, 'store'], $bearer);

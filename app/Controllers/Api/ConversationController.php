@@ -173,6 +173,69 @@ final class ConversationController extends BaseController
         }
     }
 
+    public function clear($conversationId)
+    {
+        $user = $this->authenticatedUser();
+
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $conversation = $this->conversationService
+            ->findUserConversation(
+                (int) $conversationId,
+                (int) $user->id
+            );
+
+        if (!$conversation) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Разговорът не е намерен или нямате достъп до него.',
+            ], 404);
+        }
+
+        $input = $this->jsonInput();
+
+        $validator = Validator::make(
+            $input,
+            [
+                'scope' => 'required|in:me,both',
+                'messages' => 'required|in:mine,all',
+            ],
+            [
+                'required' => 'Полето :attribute е задължително.',
+                'in' => 'Полето :attribute е невалидно.',
+            ],
+            [
+                'scope' => 'за кого',
+                'messages' => 'съобщения',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return $this->validationError($validator);
+        }
+
+        try {
+            $result = $this->conversationService->clearConversation(
+                $conversation,
+                $user,
+                (string) $input['scope'],
+                (string) $input['messages']
+            );
+
+            return $this->json([
+                'success' => true,
+                'data' => $result,
+            ]);
+        } catch (Exception $exception) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Чатът не можа да бъде изтрит.',
+            ], 500);
+        }
+    }
+
     public function unreadCount()
     {
         $user = $this->authenticatedUser();
@@ -210,12 +273,22 @@ final class ConversationController extends BaseController
             $currentParticipant?->last_read_message_id ?? 0
         );
 
-        $unreadCount = $conversation
+        $unreadQuery = $conversation
             ->messages()
             ->where('id', '>', $lastReadMessageId)
             ->where('sender_id', '!=', $currentUserId)
-            ->where('type', '!=', \App\Models\Message::TYPE_SYSTEM)
-            ->count();
+            ->where('type', '!=', \App\Models\Message::TYPE_SYSTEM);
+
+        $clearedBeforeId = (int) ($currentParticipant?->cleared_before_id ?? 0);
+        if ($clearedBeforeId > 0) {
+            $unreadQuery->where('id', '>', $clearedBeforeId);
+        }
+
+        $unreadCount = $unreadQuery->count();
+        $lastMessage = $this->conversationService->visibleLastMessage(
+            $conversation,
+            $currentUserId
+        );
 
         return [
             'id' => $conversation->id,
@@ -229,9 +302,9 @@ final class ConversationController extends BaseController
             'other_user' => $conversation->isDirect()
                 ? $this->serializeUser($otherParticipant?->user)
                 : null,
-            'last_message' => $conversation->lastMessage
+            'last_message' => $lastMessage
                 ? MessageController::serializeMessage(
-                    $conversation->lastMessage,
+                    $lastMessage,
                     $currentUserId
                 )
                 : null,

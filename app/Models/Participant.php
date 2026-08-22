@@ -22,6 +22,8 @@ class Participant extends Model
         'is_archived',
         'joined_at',
         'left_at',
+        'cleared_before_id',
+        'cleared_own_before_id',
     ];
 
     protected $casts = [
@@ -33,6 +35,8 @@ class Participant extends Model
         'last_read_at' => 'datetime',
         'joined_at' => 'datetime',
         'left_at' => 'datetime',
+        'cleared_before_id' => 'integer',
+        'cleared_own_before_id' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

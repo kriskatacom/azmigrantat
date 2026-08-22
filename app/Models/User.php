@@ -286,6 +286,8 @@ class User extends Model
             'avatar' => $image,
             'is_active' => (bool) $this->is_active,
             'auto_renewal' => $this->wantsAutoRenewal(),
+            'totp_enabled' => $this->totpEnabled(),
+            'has_password' => $this->hasPassword(),
         ];
     }
 
@@ -300,6 +302,64 @@ class User extends Model
     {
         $options = is_array($this->options) ? $this->options : [];
         $options['auto_renewal'] = $enabled;
+        $this->options = $options;
+        $this->save();
+    }
+
+    public function hasPassword(): bool
+    {
+        $hash = $this->getAttributes()['password_hash'] ?? '';
+
+        return is_string($hash) && $hash !== '';
+    }
+
+    public function totpEnabled(): bool
+    {
+        $options = is_array($this->options) ? $this->options : [];
+
+        return filter_var($options['totp_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN)
+            && !empty($options['totp_secret']);
+    }
+
+    public function totpSecret(): ?string
+    {
+        $options = is_array($this->options) ? $this->options : [];
+        $secret = $options['totp_secret'] ?? null;
+
+        return is_string($secret) && $secret !== '' ? $secret : null;
+    }
+
+    public function totpPendingSecret(): ?string
+    {
+        $options = is_array($this->options) ? $this->options : [];
+        $secret = $options['totp_pending_secret'] ?? null;
+
+        return is_string($secret) && $secret !== '' ? $secret : null;
+    }
+
+    public function setTotpPendingSecret(string $ciphertext): void
+    {
+        $options = is_array($this->options) ? $this->options : [];
+        $options['totp_pending_secret'] = $ciphertext;
+        $this->options = $options;
+        $this->save();
+    }
+
+    public function enableTotp(string $ciphertext): void
+    {
+        $options = is_array($this->options) ? $this->options : [];
+        $options['totp_secret'] = $ciphertext;
+        $options['totp_enabled'] = true;
+        unset($options['totp_pending_secret']);
+        unset($options['family_proximity']);
+        $this->options = $options;
+        $this->save();
+    }
+
+    public function clearTotp(): void
+    {
+        $options = is_array($this->options) ? $this->options : [];
+        unset($options['totp_secret'], $options['totp_pending_secret'], $options['totp_enabled'], $options['family_proximity']);
         $this->options = $options;
         $this->save();
     }

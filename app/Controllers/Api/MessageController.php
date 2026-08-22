@@ -64,6 +64,7 @@ final class MessageController extends BaseController
 
         $result = $this->conversationService->getMessages(
             $conversation,
+            $user,
             $limit,
             $beforeId
         );

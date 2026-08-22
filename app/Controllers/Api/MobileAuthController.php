@@ -10,6 +10,7 @@ use App\Models\UserSocialAccount;
 use App\Services\AuthRateLimiter;
 use App\Services\PasswordResetService;
 use App\Services\RealtimeNotifier;
+use App\Services\TotpService;
 use Illuminate\Support\Facades\Validator;
 use Google\Client as GoogleClient;
 
@@ -85,7 +86,7 @@ final class MobileAuthController extends BaseController
 
         $limiter->clear(AuthRateLimiter::ACTION_LOGIN_EMAIL, $email);
 
-        return $this->json($this->authPayload(
+        return $this->json($this->finishLogin(
             $user,
             $app,
             $this->rememberMeFromInput($input)
@@ -458,7 +459,7 @@ final class MobileAuthController extends BaseController
                 ], 403);
             }
 
-            return $this->json($this->authPayload(
+            return $this->json($this->finishLogin(
                 $user,
                 $oauthApp,
                 $this->rememberMeFromInput($input)
@@ -673,6 +674,22 @@ final class MobileAuthController extends BaseController
         $options = is_array($app->options) ? $app->options : [];
 
         return ($options['client_type'] ?? null) === 'public' ? $app : null;
+    }
+
+    public function totpAuthJson(User $user, OauthApp $app, bool $rememberMe)
+    {
+        return $this->json($this->authPayload($user, $app, $rememberMe));
+    }
+
+    private function finishLogin(User $user, OauthApp $app, bool $rememberMe): array
+    {
+        $totp = new TotpService();
+
+        if ($totp->isRequired($user)) {
+            return $totp->createPendingAuth($user, $app, $rememberMe);
+        }
+
+        return $this->authPayload($user, $app, $rememberMe);
     }
 
     private function rememberMeFromInput(array $input): bool

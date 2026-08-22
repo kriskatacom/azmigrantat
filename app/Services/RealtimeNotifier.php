@@ -318,6 +318,37 @@ final class RealtimeNotifier
         ]);
     }
 
+    public function notifyConversationCleared(
+        Conversation $conversation,
+        int $actorId,
+        string $scope,
+        string $messagesMode
+    ): bool {
+        $recipientIds = Participant::query()
+            ->where('conversation_id', $conversation->id)
+            ->whereNull('left_at')
+            ->pluck('user_id')
+            ->map(static fn($userId): int => (int) $userId)
+            ->values()
+            ->all();
+
+        if ($scope === 'me') {
+            $recipientIds = [$actorId];
+        }
+
+        if ($recipientIds === []) {
+            return false;
+        }
+
+        return $this->send('/internal/events/conversation-cleared', [
+            'recipient_ids' => $recipientIds,
+            'conversation_id' => (int) $conversation->id,
+            'actor_id' => $actorId,
+            'scope' => $scope,
+            'messages' => $messagesMode,
+        ]);
+    }
+
     public function notifySessionRevoked(
         int $userId,
         string $tokenHash,

@@ -5,11 +5,18 @@ namespace App\Controllers\Api;
 use App\Helpers\AuthHelper;
 use App\Models\Conversation;
 use App\Models\Message;
+use App\Models\OauthAccessToken;
+use App\Models\PaymentMethod;
 use App\Models\Post;
+use App\Models\PushToken;
+use App\Models\TotpAuthPending;
 use App\Models\User;
+use App\Models\UserBlock;
+use App\Models\UserSocialAccount;
 use App\Services\BackblazeB2Service;
 use App\Services\BlockService;
 use App\Services\PhoneVerificationService;
+use App\Services\RealtimeNotifier;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends BaseApiController
@@ -524,100 +531,11 @@ class UserController extends BaseApiController
         }
 
         try {
-            $messages = Message::query()
-                ->where(
-                    'sender_id',
-                    (int) $user->id
-                )
-                ->get();
-
-            $deletedMessagesCount = $messages->count();
-
-            if ($deletedMessagesCount === 0) {
-                return $this->json([
-                    'success' => true,
-                    'deleted_messages_count' => 0,
-                ]);
-            }
-
-            $storage = $this->createBackblazeStorage();
-
-            foreach ($messages as $message) {
-                if (
-                    !in_array(
-                        $message->type,
-                        ['image', 'file', 'video', 'audio'],
-                        true
-                    )
-                ) {
-                    continue;
-                }
-
-                $metadata = $message->metadata;
-
-                if (is_string($metadata)) {
-                    $metadata = json_decode(
-                        $metadata,
-                        true
-                    );
-                }
-
-                if (
-                    !is_array($metadata) ||
-                    empty($metadata['key'])
-                ) {
-                    continue;
-                }
-
-                $deleted = $storage->delete(
-                    $metadata['key']
-                );
-
-                if (!$deleted) {
-                    throw new \RuntimeException(
-                        sprintf(
-                            'Backblaze файлът [%s] не можа да бъде изтрит.',
-                            $metadata['key']
-                        )
-                    );
-                }
-            }
-
-            $conversationIds = $messages
-                ->pluck('conversation_id')
-                ->unique()
-                ->map(fn($id) => (int) $id)
-                ->values()
-                ->all();
-
-            Message::query()
-                ->where(
-                    'sender_id',
-                    (int) $user->id
-                )
-                ->delete();
-
-            foreach ($conversationIds as $conversationId) {
-                $lastMessage = Message::query()
-                    ->where(
-                        'conversation_id',
-                        $conversationId
-                    )
-                    ->orderByDesc('id')
-                    ->first();
-
-                Conversation::query()
-                    ->where('id', $conversationId)
-                    ->update([
-                        'last_message_id' =>
-                            $lastMessage?->id,
-                    ]);
-            }
+            $deletedMessagesCount = $this->purgeUserChatMessages($user);
 
             return $this->json([
                 'success' => true,
-                'deleted_messages_count' =>
-                    $deletedMessagesCount,
+                'deleted_messages_count' => $deletedMessagesCount,
             ]);
         } catch (\Throwable $exception) {
             error_log(
@@ -640,6 +558,204 @@ class UserController extends BaseApiController
                     'Съобщенията не можаха да бъдат изтрити.',
             ], 500);
         }
+    }
+
+    public function deleteAccount()
+    {
+        $user = $this->authenticatedUser();
+
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $input = $this->jsonInput();
+        $passwordHash = (string) ($user->getAttributes()['password_hash'] ?? '');
+        $hasPassword = $passwordHash !== '';
+
+        $rules = [
+            'confirmation' => 'required|string',
+        ];
+
+        if ($hasPassword) {
+            $rules['currentPassword'] = 'required|string';
+        }
+
+        $validator = Validator::make(
+            $input,
+            $rules,
+            [
+                'required' => 'Полето :attribute е задължително.',
+            ],
+            [
+                'currentPassword' => 'текуща парола',
+                'confirmation' => 'потвърждение',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return $this->validationError($validator);
+        }
+
+        if (
+            $hasPassword
+            && !password_verify((string) ($input['currentPassword'] ?? ''), $passwordHash)
+        ) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Текущата парола е грешна.',
+                'errors' => [
+                    'currentPassword' => ['Текущата парола е грешна.'],
+                ],
+            ], 422);
+        }
+
+        if (trim((string) $input['confirmation']) !== 'delete account') {
+            return $this->json([
+                'success' => false,
+                'message' => 'Въведете "delete account", за да потвърдите изтриването.',
+                'errors' => [
+                    'confirmation' => ['Потвърждението трябва да бъде "delete account".'],
+                ],
+            ], 422);
+        }
+
+        if ($user->role === User::ROLE_ADMIN) {
+            $adminCount = User::query()->where('role', User::ROLE_ADMIN)->count();
+
+            if ($adminCount <= 1) {
+                return $this->json([
+                    'success' => false,
+                    'message' => 'Последният администратор не може да бъде изтрит.',
+                ], 422);
+            }
+        }
+
+        try {
+            $this->purgeUserChatMessages($user);
+
+            PaymentMethod::query()->where('user_id', $user->id)->delete();
+            PushToken::query()->where('user_id', $user->id)->delete();
+            UserSocialAccount::query()->where('user_id', $user->id)->delete();
+            TotpAuthPending::query()->where('user_id', $user->id)->delete();
+            UserBlock::query()
+                ->where('blocker_id', $user->id)
+                ->orWhere('blocked_id', $user->id)
+                ->delete();
+
+            $tokens = OauthAccessToken::query()->where('user_id', $user->id)->get();
+            $notifier = new RealtimeNotifier();
+
+            foreach ($tokens as $token) {
+                try {
+                    $notifier->notifySessionRevoked(
+                        (int) $user->id,
+                        (string) $token->token,
+                        'logout'
+                    );
+                } catch (\Throwable) {
+                    // Continue deleting even if realtime is unavailable.
+                }
+
+                $token->delete();
+            }
+
+            $user->email = 'deleted.' . $user->id . '.' . time() . '@deleted.invalid';
+            $user->phone = null;
+            $user->phone_verified_at = null;
+            $user->public_code = null;
+            $user->username = null;
+            $user->is_active = false;
+            $user->profile_image = null;
+            $options = is_array($user->options) ? $user->options : [];
+            unset(
+                $options['totp_secret'],
+                $options['totp_pending_secret'],
+                $options['totp_enabled']
+            );
+            $user->options = $options;
+            $user->save();
+            $user->delete();
+
+            return $this->json([
+                'success' => true,
+                'message' => 'Профилът беше изтрит.',
+            ]);
+        } catch (\Throwable $exception) {
+            error_log(
+                'Delete account error: '
+                . get_class($exception)
+                . ': '
+                . $exception->getMessage()
+            );
+
+            return $this->json([
+                'success' => false,
+                'message' => 'Профилът не можа да бъде изтрит.',
+            ], 500);
+        }
+    }
+
+    private function purgeUserChatMessages(User $user): int
+    {
+        $messages = Message::query()
+            ->where('sender_id', (int) $user->id)
+            ->get();
+
+        $deletedMessagesCount = $messages->count();
+
+        if ($deletedMessagesCount === 0) {
+            return 0;
+        }
+
+        $storage = $this->createBackblazeStorage();
+
+        foreach ($messages as $message) {
+            if (!in_array($message->type, ['image', 'file', 'video', 'audio'], true)) {
+                continue;
+            }
+
+            $metadata = $message->metadata;
+
+            if (is_string($metadata)) {
+                $metadata = json_decode($metadata, true);
+            }
+
+            if (!is_array($metadata) || empty($metadata['key'])) {
+                continue;
+            }
+
+            $deleted = $storage->delete($metadata['key']);
+
+            if (!$deleted) {
+                throw new \RuntimeException(
+                    sprintf('Backblaze файлът [%s] не можа да бъде изтрит.', $metadata['key'])
+                );
+            }
+        }
+
+        $conversationIds = $messages
+            ->pluck('conversation_id')
+            ->unique()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        Message::query()->where('sender_id', (int) $user->id)->delete();
+
+        foreach ($conversationIds as $conversationId) {
+            $lastMessage = Message::query()
+                ->where('conversation_id', $conversationId)
+                ->orderByDesc('id')
+                ->first();
+
+            Conversation::query()
+                ->where('id', $conversationId)
+                ->update([
+                    'last_message_id' => $lastMessage?->id,
+                ]);
+        }
+
+        return $deletedMessagesCount;
     }
 
     private function createBackblazeStorage(): BackblazeB2Service

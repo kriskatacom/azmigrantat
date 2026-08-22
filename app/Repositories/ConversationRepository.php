@@ -21,6 +21,39 @@ final class ConversationRepository
                     ->where('user_id', $user->id)
                     ->whereNull('left_at');
             })
+            ->whereExists(function ($query) use ($user) {
+                $query->from('messages')
+                    ->join('participants as visibility_participants', function ($join) use ($user) {
+                        $join
+                            ->on(
+                                'visibility_participants.conversation_id',
+                                '=',
+                                'messages.conversation_id'
+                            )
+                            ->where('visibility_participants.user_id', $user->id);
+                    })
+                    ->whereColumn('messages.conversation_id', 'conversations.id')
+                    ->whereNull('messages.deleted_at')
+                    ->where(function ($visible) {
+                        $visible
+                            ->whereNull('visibility_participants.cleared_before_id')
+                            ->orWhereColumn(
+                                'messages.id',
+                                '>',
+                                'visibility_participants.cleared_before_id'
+                            );
+                    })
+                    ->where(function ($visible) use ($user) {
+                        $visible
+                            ->whereNull('visibility_participants.cleared_own_before_id')
+                            ->orWhere('messages.sender_id', '!=', $user->id)
+                            ->orWhereColumn(
+                                'messages.id',
+                                '>',
+                                'visibility_participants.cleared_own_before_id'
+                            );
+                    });
+            })
             ->with([
                 'lastMessage.sender',
                 'lastMessage.reactions',
@@ -98,7 +131,7 @@ final class ConversationRepository
 
     public function updateLastMessage(
         Conversation $conversation,
-        int $messageId
+        ?int $messageId
     ): bool {
         return $conversation->update([
             'last_message_id' => $messageId,

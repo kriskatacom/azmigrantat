@@ -85,13 +85,94 @@ final class ConversationService
 
     public function getMessages(
         Conversation $conversation,
+        User $user,
         int $limit = 30,
         ?int $beforeId = null
     ): array {
+        $participant = $this->conversationRepository->findParticipant(
+            (int) $conversation->id,
+            (int) $user->id
+        );
+
         return $this->messageRepository->getForConversation(
             $conversation,
             $limit,
-            $beforeId
+            $beforeId,
+            (int) $user->id,
+            $participant
+        );
+    }
+
+    public function clearConversation(
+        Conversation $conversation,
+        User $user,
+        string $scope,
+        string $messagesMode
+    ): array {
+        $participant = $this->conversationRepository->findParticipant(
+            (int) $conversation->id,
+            (int) $user->id
+        );
+
+        if (!$participant) {
+            throw new \RuntimeException('Участникът в разговора не е намерен.');
+        }
+
+        $connection = (new Message())->getConnection();
+
+        $connection->transaction(function () use (
+            $conversation,
+            $user,
+            $participant,
+            $scope,
+            $messagesMode
+        ) {
+            if ($scope === 'me') {
+                $this->hideMessagesForParticipant(
+                    $conversation,
+                    $user,
+                    $participant,
+                    $messagesMode
+                );
+                return;
+            }
+
+            $this->deleteMessagesForEveryone(
+                $conversation,
+                $user,
+                $messagesMode
+            );
+        });
+
+        $this->realtimeNotifier->notifyConversationCleared(
+            $conversation,
+            (int) $user->id,
+            $scope,
+            $messagesMode
+        );
+
+        return [
+            'scope' => $scope,
+            'messages' => $messagesMode,
+            'leave_conversation' => $messagesMode === 'all',
+        ];
+    }
+
+    public function visibleLastMessage(
+        Conversation $conversation,
+        int $userId
+    ): ?Message {
+        $participant = $conversation->participants
+            ->firstWhere('user_id', $userId)
+            ?? $this->conversationRepository->findParticipant(
+                (int) $conversation->id,
+                $userId
+            );
+
+        return $this->messageRepository->findLatestVisible(
+            (int) $conversation->id,
+            $userId,
+            $participant
         );
     }
 
@@ -247,6 +328,157 @@ final class ConversationService
         }
 
         return sprintf('%d:%02d', $minutes, $rest);
+    }
+
+    private function hideMessagesForParticipant(
+        Conversation $conversation,
+        User $user,
+        $participant,
+        string $messagesMode
+    ): void {
+        if ($messagesMode === 'all') {
+            $latestId = Message::query()
+                ->where('conversation_id', $conversation->id)
+                ->max('id');
+
+            if ($latestId) {
+                $participant->cleared_before_id = (int) $latestId;
+                $participant->save();
+            }
+
+            return;
+        }
+
+        $ownLatestId = Message::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('sender_id', $user->id)
+            ->max('id');
+
+        if ($ownLatestId) {
+            $participant->cleared_own_before_id = (int) $ownLatestId;
+            $participant->save();
+        }
+    }
+
+    private function deleteMessagesForEveryone(
+        Conversation $conversation,
+        User $user,
+        string $messagesMode
+    ): void {
+        $query = Message::query()->where('conversation_id', $conversation->id);
+
+        if ($messagesMode === 'mine') {
+            $query->where('sender_id', $user->id);
+        }
+
+        $messages = $query->get();
+
+        if ($messages->isEmpty()) {
+            if ($messagesMode === 'all') {
+                $this->conversationRepository->updateLastMessage($conversation, null);
+            }
+
+            return;
+        }
+
+        $this->deleteMessageAttachments($messages);
+
+        if ($messagesMode === 'all') {
+            $this->conversationRepository->updateLastMessage($conversation, null);
+        }
+
+        Message::query()
+            ->whereIn('id', $messages->pluck('id')->all())
+            ->delete();
+
+        $lastMessage = Message::query()
+            ->where('conversation_id', $conversation->id)
+            ->orderByDesc('id')
+            ->first();
+
+        $this->conversationRepository->updateLastMessage(
+            $conversation,
+            $lastMessage?->id ? (int) $lastMessage->id : null
+        );
+    }
+
+    private function deleteMessageAttachments($messages): void
+    {
+        $hasAttachments = false;
+
+        foreach ($messages as $message) {
+            if (in_array($message->type, ['image', 'file', 'video', 'audio'], true)) {
+                $hasAttachments = true;
+                break;
+            }
+        }
+
+        if (!$hasAttachments) {
+            return;
+        }
+
+        try {
+            $storage = $this->createBackblazeStorage();
+        } catch (\Throwable $exception) {
+            error_log('[ConversationService] ' . $exception->getMessage());
+            return;
+        }
+
+        foreach ($messages as $message) {
+            if (!in_array($message->type, ['image', 'file', 'video', 'audio'], true)) {
+                continue;
+            }
+
+            $metadata = $message->metadata;
+
+            if (is_string($metadata)) {
+                $metadata = json_decode($metadata, true);
+            }
+
+            if (!is_array($metadata) || empty($metadata['key'])) {
+                continue;
+            }
+
+            $storage->delete((string) $metadata['key']);
+        }
+    }
+
+    private function createBackblazeStorage(): \App\Services\BackblazeB2Service
+    {
+        $keyId = (string) ($_ENV['B2_KEY_ID'] ?? '');
+        $applicationKey = (string) ($_ENV['B2_APPLICATION_KEY'] ?? '');
+        $bucket = (string) ($_ENV['B2_BUCKET'] ?? '');
+        $endpoint = (string) ($_ENV['B2_ENDPOINT'] ?? '');
+        $region = (string) ($_ENV['B2_REGION'] ?? '');
+
+        if (
+            $keyId === '' ||
+            $applicationKey === '' ||
+            $bucket === '' ||
+            $endpoint === '' ||
+            $region === ''
+        ) {
+            throw new \RuntimeException(
+                'Липсва конфигурация за Backblaze B2.'
+            );
+        }
+
+        $storage = new \App\Services\BackblazeB2Service(
+            $keyId,
+            $applicationKey,
+            $bucket,
+            $endpoint,
+            $region
+        );
+
+        $storage->setUseProxy(
+            filter_var(
+                $_ENV['B2_USE_PROXY'] ?? 'false',
+                FILTER_VALIDATE_BOOLEAN
+            )
+        );
+
+        return $storage;
     }
 
     public function markConversationAsRead(
