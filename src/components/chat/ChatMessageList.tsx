@@ -76,6 +76,13 @@ export default function ChatMessageList({
 
           return (
             <View>
+              {showDateSeparator ? (
+                <ChatDateSeparator
+                  label={formatChatDateLabel(item.created_at)}
+                  textColor={colors.textSecondary}
+                  backgroundColor={colors.card}
+                />
+              ) : null}
               <ChatMessage
                 message={item}
                 isMe={Number(item.sender_id) === Number(currentUserId)}
@@ -88,13 +95,6 @@ export default function ChatMessageList({
                 }
                 onOpenReactions={() => setPickerMessage(item)}
               />
-              {showDateSeparator ? (
-                <ChatDateSeparator
-                  label={formatChatDateLabel(item.created_at)}
-                  textColor={colors.textSecondary}
-                  backgroundColor={colors.card}
-                />
-              ) : null}
             </View>
           );
         }}

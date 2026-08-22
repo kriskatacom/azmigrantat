@@ -11,6 +11,9 @@ import {
 import { declineCallViaHttp } from "@/services/realtime-http";
 
 const TASK_NAME = "notification-action-task";
+const TOKEN_STORE_OPTIONS: SecureStore.SecureStoreOptions = {
+  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
+};
 
 TaskManager.defineTask<Notifications.NotificationTaskPayload>(
   TASK_NAME,
@@ -78,7 +81,10 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
       (response.actionIdentifier === INCOMING_CALL_DECLINE_ACTION ||
         response.actionIdentifier === "incoming_call_decline")
     ) {
-      const token = await SecureStore.getItemAsync("auth_token");
+      const token = await SecureStore.getItemAsync(
+        "auth_token",
+        TOKEN_STORE_OPTIONS,
+      );
 
       try {
         if (token) {
@@ -111,7 +117,10 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
       return;
     }
 
-    const token = await SecureStore.getItemAsync("auth_token");
+    const token = await SecureStore.getItemAsync(
+      "auth_token",
+      TOKEN_STORE_OPTIONS,
+    );
 
     if (!token) {
       return;

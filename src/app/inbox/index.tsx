@@ -37,7 +37,7 @@ type LoadMode = "initial" | "refresh" | "silent";
 export default function InboxScreen() {
   const { theme } = useAppTheme();
   const { token, user } = useAuth();
-  const { socket, isConnected, lastReceivedMessage, lastPresenceUpdate, lastPresenceStatus, lastUserBlock } = useSocket();
+  const { socket, isConnected, lastReceivedMessage, lastPresenceUpdate, lastPresenceStatus, lastUserBlock, lastConversationCleared } = useSocket();
   const unreadNotificationCount = useUnreadNotificationCount();
   const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -139,6 +139,14 @@ export default function InboxScreen() {
 
     void loadConversations("silent");
   }, [lastUserBlock, loadConversations]);
+
+  useEffect(() => {
+    if (!lastConversationCleared) {
+      return;
+    }
+
+    void loadConversations("silent");
+  }, [lastConversationCleared, loadConversations]);
 
   const openCall = (conversation: Conversation) => {
     const otherUser = conversation.other_user;

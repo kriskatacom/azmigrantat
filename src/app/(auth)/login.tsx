@@ -5,6 +5,7 @@ import GoogleLoginButton from "@/components/auth/google-login-button";
 import AppButton from "@/components/ui/AppButton";
 import AppInput from "@/components/ui/AppInput";
 import { useAuth } from "@/hooks/useAuth";
+import { TotpRequiredError } from "@/services/auth";
 import { getBiometricCredentials } from "@/services/biometric";
 import { Link, useLocalSearchParams } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -24,7 +25,7 @@ import {
 
 export default function LoginScreen() {
   const { theme } = useAppTheme();
-  const { login, loginWithBiometrics, canUseBiometricLogin, biometricLabel } =
+  const { login, loginWithBiometrics, completeTotpLogin, canUseBiometricLogin, biometricLabel } =
     useAuth();
   const { returnTo } = useLocalSearchParams<{ returnTo?: string }>();
 
@@ -33,10 +34,12 @@ export default function LoginScreen() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBiometricSubmitting, setIsBiometricSubmitting] = useState(false);
+  const [totpPendingToken, setTotpPendingToken] = useState<string | null>(null);
+  const [totpCode, setTotpCode] = useState("");
+  const [isTotpSubmitting, setIsTotpSubmitting] = useState(false);
 
   const passwordRef = useRef<TextInput>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
-  const biometricPromptedRef = useRef(false);
 
   const fadeOut = () => {
     return new Promise<void>((resolve) => {
@@ -61,9 +64,15 @@ export default function LoginScreen() {
   const handleBiometricLogin = async () => {
     try {
       setIsBiometricSubmitting(true);
-      await loginWithBiometrics();
+      await loginWithBiometrics(rememberMe);
     } catch (error) {
       fadeIn();
+
+      if (error instanceof TotpRequiredError) {
+        setTotpPendingToken(error.pendingToken);
+        setTotpCode("");
+        return;
+      }
 
       const message =
         error instanceof Error ? error.message : "Възникна неочаквана грешка.";
@@ -83,15 +92,6 @@ export default function LoginScreen() {
       }
     });
   }, []);
-
-  useEffect(() => {
-    if (!canUseBiometricLogin || biometricPromptedRef.current) {
-      return;
-    }
-
-    biometricPromptedRef.current = true;
-    void handleBiometricLogin();
-  }, [canUseBiometricLogin]);
 
   const handleLogin = async () => {
     const normalizedEmail = email.trim().toLowerCase();
@@ -114,6 +114,12 @@ export default function LoginScreen() {
     } catch (error) {
       fadeIn();
 
+      if (error instanceof TotpRequiredError) {
+        setTotpPendingToken(error.pendingToken);
+        setTotpCode("");
+        return;
+      }
+
       Alert.alert(
         "Неуспешен вход",
         error instanceof Error ? error.message : "Възникна неочаквана грешка.",
@@ -122,6 +128,30 @@ export default function LoginScreen() {
       console.log(error);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleConfirmTotp = async () => {
+    if (!totpPendingToken) {
+      return;
+    }
+
+    const normalized = totpCode.replace(/\D/g, "");
+    if (normalized.length !== 6) {
+      Alert.alert("Липсва код", "Въведете 6-цифрения код от Google Authenticator.");
+      return;
+    }
+
+    try {
+      setIsTotpSubmitting(true);
+      await completeTotpLogin(totpPendingToken, normalized);
+    } catch (error) {
+      Alert.alert(
+        "Неуспешен код",
+        error instanceof Error ? error.message : "Кодът не беше приет.",
+      );
+    } finally {
+      setIsTotpSubmitting(false);
     }
   };
 
@@ -209,11 +239,21 @@ export default function LoginScreen() {
                     <Text style={styles.checkmark}>✓</Text>
                   ) : null}
                 </View>
-                <Text
-                  style={[styles.rememberText, { color: theme.colors.text }]}
-                >
-                  Запомни ме
-                </Text>
+                <View>
+                  <Text
+                    style={[styles.rememberText, { color: theme.colors.text }]}
+                  >
+                    Запомни ме
+                  </Text>
+                  <Text
+                    style={[
+                      styles.rememberHint,
+                      { color: theme.colors.textSecondary },
+                    ]}
+                  >
+                    {rememberMe ? "Сесия за 1 месец" : "Сесия за 1 ден"}
+                  </Text>
+                </View>
               </TouchableOpacity>
 
               <Link
@@ -260,7 +300,60 @@ export default function LoginScreen() {
               />
             </View>
 
-            <GoogleLoginButton rememberMe={rememberMe} />
+            <GoogleLoginButton
+              rememberMe={rememberMe}
+              onTotpRequired={(pendingToken) => {
+                fadeIn();
+                setTotpPendingToken(pendingToken);
+                setTotpCode("");
+              }}
+            />
+
+            {totpPendingToken ? (
+              <View style={styles.totpBox}>
+                <Text style={[styles.totpTitle, { color: theme.colors.text }]}>
+                  Google Authenticator
+                </Text>
+                <Text
+                  style={[
+                    styles.totpHint,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  Въведете 6-цифрения код от приложението.
+                </Text>
+                <AppInput
+                  label="Код"
+                  placeholder="6 цифри"
+                  value={totpCode}
+                  onChangeText={setTotpCode}
+                  keyboardType="number-pad"
+                  textContentType="oneTimeCode"
+                  maxLength={6}
+                  autoFocus
+                />
+                <AppButton
+                  title="Продължи"
+                  loading={isTotpSubmitting}
+                  onPress={() => void handleConfirmTotp()}
+                />
+                <TouchableOpacity
+                  onPress={() => {
+                    setTotpPendingToken(null);
+                    setTotpCode("");
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.footerLink,
+                      { color: theme.colors.textSecondary, textAlign: "center" },
+                    ]}
+                  >
+                    Отказ
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
 
             <View style={styles.footer}>
               <Text style={{ color: theme.colors.textSecondary }}>
@@ -363,6 +456,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 14,
   },
+  rememberHint: {
+    fontSize: 12,
+    marginTop: 2,
+  },
   forgotText: {
     fontWeight: "600",
   },
@@ -380,5 +477,19 @@ const styles = StyleSheet.create({
   separatorLine: { flex: 1, height: StyleSheet.hairlineWidth },
   footerLink: {
     fontWeight: "700",
+  },
+  totpBox: {
+    gap: 10,
+    marginTop: 8,
+  },
+  totpTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  totpHint: {
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: "center",
   },
 });

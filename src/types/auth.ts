@@ -13,6 +13,8 @@ export interface AuthUser {
   avatar?: string | null;
   public_code?: string | null;
   username?: string | null;
+  totp_enabled?: boolean;
+  has_password?: boolean;
 }
 
 export type Gender = "male" | "female" | "other" | "prefer_not_to_say";
@@ -37,6 +39,11 @@ export interface ChangePasswordPayload {
 export interface DeleteChatMessagesPayload {
   currentPassword: string;
   confirmation: "delete chat";
+}
+
+export interface DeleteAccountPayload {
+  currentPassword?: string;
+  confirmation: "delete account";
 }
 
 export interface LoginPayload {

@@ -282,6 +282,32 @@ export async function sendAttachment(
   return (data as MessageResponse).data;
 }
 
+export type ClearChatScope = "me" | "both";
+export type ClearChatMessages = "mine" | "all";
+
+export interface ClearConversationResult {
+  scope: ClearChatScope;
+  messages: ClearChatMessages;
+  leave_conversation: boolean;
+}
+
+export async function clearConversation(
+  token: string,
+  conversationId: number,
+  scope: ClearChatScope,
+  messages: ClearChatMessages,
+): Promise<ClearConversationResult> {
+  const response = await request<{
+    success: true;
+    data: ClearConversationResult;
+  }>(`/api/mobile/conversations/${conversationId}/clear`, token, {
+    method: "POST",
+    body: JSON.stringify({ scope, messages }),
+  });
+
+  return response.data;
+}
+
 export async function getLinkPreview(
   token: string,
   url: string,

@@ -3,6 +3,11 @@ import { useAppTheme } from "@/app/_layout";
 import ChatHeader from "@/components/chat/ChatHeader";
 import ChatInput from "@/components/chat/ChatInput";
 import ChatMessageList from "@/components/chat/ChatMessageList";
+import ChatClearChatModal, {
+  type ClearChatMessages,
+  type ClearChatScope,
+} from "@/components/chat/chat-clear-chat-modal";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
@@ -60,6 +65,7 @@ export default function ChatRoom() {
     lastPresenceUpdate,
     lastPresenceStatus,
     lastUserBlock,
+    lastConversationCleared,
   } = useSocket();
 
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
@@ -99,6 +105,12 @@ export default function ChatRoom() {
 
   const [inputMessage, setInputMessage] = useState("");
 
+  const [clearMenuVisible, setClearMenuVisible] = useState(false);
+  const [pendingClear, setPendingClear] = useState<{
+    scope: ClearChatScope;
+    messages: ClearChatMessages;
+  } | null>(null);
+
   const { keyboardVisible } = useChatKeyboard();
 
   const {
@@ -109,9 +121,12 @@ export default function ChatRoom() {
     isLoading,
     isSending,
     isUploading,
+    isClearing,
+    shouldLeaveAfterClear,
     sendChatMessage,
     sendChatAttachments,
     reactToMessage,
+    clearChat,
     scrollToBottom,
   } = useChatMessages({
     token,
@@ -122,6 +137,7 @@ export default function ChatRoom() {
     lastReadReceipt,
     lastReactionUpdate,
     lastUserBlock,
+    lastConversationCleared,
     otherUserId: routeUserId,
     inputRef,
     flatListRef,
@@ -161,6 +177,19 @@ export default function ChatRoom() {
 
     router.replace("/inbox");
   }, [blockedByOther, router]);
+
+  useEffect(() => {
+    if (!shouldLeaveAfterClear) {
+      return;
+    }
+
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace("/inbox");
+  }, [shouldLeaveAfterClear, router]);
 
   useEffect(() => {
     if (!Number.isInteger(conversationId) || !isAppActive) {
@@ -297,6 +326,7 @@ export default function ChatRoom() {
         onVideoCall={
           !isBlocked && recipientUserId ? () => openCall("video") : undefined
         }
+        onMorePress={() => setClearMenuVisible(true)}
         colors={theme.colors}
       />
 
@@ -344,6 +374,56 @@ export default function ChatRoom() {
           colors={theme.colors}
         />
       )}
+
+      <ChatClearChatModal
+        visible={clearMenuVisible}
+        busy={isClearing}
+        onClose={() => setClearMenuVisible(false)}
+        onConfirm={(scope, messagesMode) => {
+          setClearMenuVisible(false);
+          setPendingClear({ scope, messages: messagesMode });
+        }}
+        colors={theme.colors}
+      />
+
+      <ConfirmModal
+        visible={pendingClear !== null}
+        title={
+          pendingClear?.scope === "both"
+            ? "Изтриване за двамата"
+            : "Изтриване само за мен"
+        }
+        message={
+          pendingClear?.messages === "all"
+            ? pendingClear.scope === "both"
+              ? "Всички съобщения ще бъдат изтрити и за двамата. Това не може да се отмени."
+              : "Цялата история ще се скрие само за вас. Другият ще продължи да я вижда."
+            : pendingClear?.scope === "both"
+              ? "Вашите съобщения ще бъдат изтрити и за другия човек."
+              : "Само вашите съобщения ще се скрият за вас."
+        }
+        confirmText="Изтрий"
+        cancelText="Отказ"
+        destructive
+        onCancel={() => {
+          if (!isClearing) {
+            setPendingClear(null);
+          }
+        }}
+        onConfirm={() => {
+          if (!pendingClear) {
+            return;
+          }
+
+          void clearChat(pendingClear.scope, pendingClear.messages).then(
+            (ok) => {
+              if (ok) {
+                setPendingClear(null);
+              }
+            },
+          );
+        }}
+      />
     </KeyboardAvoidingView>
   );
 }

@@ -1,5 +1,6 @@
 import { useAppTheme } from "@/app/_layout";
 import { useAuth } from "@/hooks/useAuth";
+import { TotpRequiredError } from "@/services/auth";
 import {
   GoogleSignin,
   GoogleSigninButton,
@@ -16,10 +17,12 @@ GoogleSignin.configure({
 
 interface GoogleLoginButtonProps {
   rememberMe?: boolean;
+  onTotpRequired?: (pendingToken: string) => void;
 }
 
 export default function GoogleLoginButton({
   rememberMe = false,
+  onTotpRequired,
 }: GoogleLoginButtonProps) {
   const { colorScheme } = useAppTheme();
   const { loginWithGoogle } = useAuth();
@@ -53,6 +56,13 @@ export default function GoogleLoginButton({
 
       await loginWithGoogle(result.data.idToken, rememberMe);
     } catch (error) {
+      if (error instanceof TotpRequiredError) {
+        if (onTotpRequired) {
+          onTotpRequired(error.pendingToken);
+          return;
+        }
+      }
+
       Alert.alert(
         "Неуспешен Google вход",
         error instanceof Error

@@ -10,6 +10,7 @@ import {
 } from "react";
 
 import {
+  completeTotpLoginRequest,
   googleLoginRequest,
   loginRequest,
   logoutRequest,
@@ -40,6 +41,21 @@ const REFRESH_KEY = "auth_refresh_token";
 const USER_KEY = "auth_user";
 const EXPIRES_AT_KEY = "auth_expires_at";
 const REFRESH_SKEW_MS = 60 * 60 * 1000;
+const STORE_OPTIONS: SecureStore.SecureStoreOptions = {
+  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
+};
+
+async function readStore(key: string): Promise<string | null> {
+  return SecureStore.getItemAsync(key, STORE_OPTIONS);
+}
+
+async function writeStore(key: string, value: string): Promise<void> {
+  await SecureStore.setItemAsync(key, value, STORE_OPTIONS);
+}
+
+async function deleteStore(key: string): Promise<void> {
+  await SecureStore.deleteItemAsync(key, STORE_OPTIONS);
+}
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -53,7 +69,8 @@ interface AuthContextValue {
   biometricLabel: string;
   login: (payload: LoginPayload) => Promise<void>;
   loginWithGoogle: (idToken: string, rememberMe?: boolean) => Promise<void>;
-  loginWithBiometrics: () => Promise<void>;
+  loginWithBiometrics: (rememberMe?: boolean) => Promise<void>;
+  completeTotpLogin: (pendingToken: string, code: string) => Promise<void>;
   enableBiometricLogin: (credentials?: BiometricCredentials) => Promise<void>;
   disableBiometricLogin: () => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
@@ -104,10 +121,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const clearLocalSession = useCallback(async () => {
     await Promise.all([
-      SecureStore.deleteItemAsync(TOKEN_KEY),
-      SecureStore.deleteItemAsync(REFRESH_KEY),
-      SecureStore.deleteItemAsync(USER_KEY),
-      SecureStore.deleteItemAsync(EXPIRES_AT_KEY),
+      deleteStore(TOKEN_KEY),
+      deleteStore(REFRESH_KEY),
+      deleteStore(USER_KEY),
+      deleteStore(EXPIRES_AT_KEY),
     ]);
 
     setToken(null);
@@ -125,15 +142,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
     ) => {
       const newExpiresAt = Date.now() + expiresIn * 1000;
       const persist = [
-        SecureStore.setItemAsync(TOKEN_KEY, newToken),
-        SecureStore.setItemAsync(USER_KEY, JSON.stringify(newUser)),
-        SecureStore.setItemAsync(EXPIRES_AT_KEY, newExpiresAt.toString()),
+        writeStore(TOKEN_KEY, newToken),
+        writeStore(USER_KEY, JSON.stringify(newUser)),
+        writeStore(EXPIRES_AT_KEY, newExpiresAt.toString()),
       ];
 
       if (refreshToken) {
-        persist.push(SecureStore.setItemAsync(REFRESH_KEY, refreshToken));
+        persist.push(writeStore(REFRESH_KEY, refreshToken));
       } else {
-        persist.push(SecureStore.deleteItemAsync(REFRESH_KEY));
+        persist.push(deleteStore(REFRESH_KEY));
       }
 
       await Promise.all(persist);
@@ -149,7 +166,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   );
 
   const refreshFromStore = useCallback(async (): Promise<string | null> => {
-    const storedRefresh = await SecureStore.getItemAsync(REFRESH_KEY);
+    const storedRefresh = await readStore(REFRESH_KEY);
 
     if (!storedRefresh) {
       return null;
@@ -175,10 +192,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const hydrateStoredSession = useCallback(async (): Promise<boolean> => {
     const [storedToken, storedUser, storedExpiresAt, storedRefresh] =
       await Promise.all([
-        SecureStore.getItemAsync(TOKEN_KEY),
-        SecureStore.getItemAsync(USER_KEY),
-        SecureStore.getItemAsync(EXPIRES_AT_KEY),
-        SecureStore.getItemAsync(REFRESH_KEY),
+        readStore(TOKEN_KEY),
+        readStore(USER_KEY),
+        readStore(EXPIRES_AT_KEY),
+        readStore(REFRESH_KEY),
       ]);
 
     if (!storedUser || (!storedToken && !storedRefresh)) {
@@ -232,9 +249,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       try {
         const [storedToken, storedUser, storedRefresh, supported, enabled, credentials] =
           await Promise.all([
-            SecureStore.getItemAsync(TOKEN_KEY),
-            SecureStore.getItemAsync(USER_KEY),
-            SecureStore.getItemAsync(REFRESH_KEY),
+            readStore(TOKEN_KEY),
+            readStore(USER_KEY),
+            readStore(REFRESH_KEY),
             isBiometricSupported(),
             isBiometricLoginEnabled(),
             getBiometricCredentials(),
@@ -243,23 +260,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setBiometricSupported(supported);
         setBiometricEnabled(enabled);
         setBiometricLabel(getBiometricLabel(await getBiometricTypes()));
+        setCanUseBiometricLogin(Boolean(supported && enabled && credentials));
 
         const hasStoredSession = Boolean(
           storedUser && (storedToken || storedRefresh),
         );
 
-        if (enabled && supported && hasStoredSession) {
-          setNeedsBiometricUnlock(true);
-          setCanUseBiometricLogin(true);
-          return;
-        }
-
-        if (enabled && supported && credentials) {
-          setCanUseBiometricLogin(true);
-        }
-
         if (!hasStoredSession) {
-          await clearLocalSession();
           return;
         }
 
@@ -404,6 +411,15 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [persistAuthResponse, offerBiometricLogin],
   );
 
+  const completeTotpLogin = useCallback(
+    async (pendingToken: string, code: string) => {
+      const response = await completeTotpLoginRequest(pendingToken, code);
+      await persistAuthResponse(response);
+      await offerBiometricLogin(response.user.email);
+    },
+    [persistAuthResponse, offerBiometricLogin],
+  );
+
   const loginWithGoogle = useCallback(
     async (idToken: string, rememberMe = false) => {
       const response = await googleLoginRequest(idToken, rememberMe);
@@ -413,7 +429,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [persistAuthResponse, offerBiometricLogin],
   );
 
-  const loginWithBiometrics = useCallback(async () => {
+  const loginWithBiometrics = useCallback(async (rememberMe = false) => {
     const confirmed = await authenticateWithBiometrics("Потвърдете, за да влезете");
 
     if (!confirmed) {
@@ -439,7 +455,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     await persistAuthResponse(
       await loginRequest({
         ...credentials,
-        rememberMe: true,
+        rememberMe,
       }),
     );
   }, [hydrateStoredSession, needsBiometricUnlock, persistAuthResponse]);
@@ -484,7 +500,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [clearLocalSession, syncBiometricLoginAvailability]);
 
   const updateUser = useCallback(async (updatedUser: AuthUser) => {
-    await SecureStore.setItemAsync(USER_KEY, JSON.stringify(updatedUser));
+    await writeStore(USER_KEY, JSON.stringify(updatedUser));
     setUser(updatedUser);
   }, []);
 
@@ -504,6 +520,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       login,
       loginWithGoogle,
       loginWithBiometrics,
+      completeTotpLogin,
       enableBiometricLogin,
       disableBiometricLogin,
       register,
@@ -524,6 +541,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       login,
       loginWithGoogle,
       loginWithBiometrics,
+      completeTotpLogin,
       enableBiometricLogin,
       disableBiometricLogin,
       register,

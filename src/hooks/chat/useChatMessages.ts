@@ -1,5 +1,6 @@
 import { HttpError } from "@/services/session-http";
 import {
+  clearConversation,
   getConversation,
   getMessages,
   markConversationAsDelivered,
@@ -15,7 +16,12 @@ import {
   type MessageReactionItem,
   type MessageReactionType,
 } from "@/constants/message-reactions";
-import type { MessageReactionPayload, UserBlockPayload } from "@/services/socket";
+import type { ClearChatMessages, ClearChatScope } from "@/services/chat";
+import type {
+  ConversationClearedPayload,
+  MessageReactionPayload,
+  UserBlockPayload,
+} from "@/services/socket";
 import * as Crypto from "expo-crypto";
 import {
   type RefObject,
@@ -103,6 +109,7 @@ type UseChatMessagesParams = {
   lastReadReceipt?: ReadReceipt | null;
   lastReactionUpdate?: MessageReactionPayload | null;
   lastUserBlock?: UserBlockPayload | null;
+  lastConversationCleared?: ConversationClearedPayload | null;
   otherUserId?: number | null;
 
   inputRef: RefObject<TextInput | null>;
@@ -120,6 +127,7 @@ export function useChatMessages({
   lastReadReceipt,
   lastReactionUpdate,
   lastUserBlock,
+  lastConversationCleared,
   otherUserId,
   inputRef,
   flatListRef,
@@ -133,6 +141,8 @@ export function useChatMessages({
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const [shouldLeaveAfterClear, setShouldLeaveAfterClear] = useState(false);
 
   const lastReadReceiptRef = useRef(lastReadReceipt);
   const lastDeliveredReceiptRef = useRef(lastDeliveredReceipt);
@@ -279,6 +289,39 @@ export function useChatMessages({
       setBlockedByOther(true);
     }
   }, [lastUserBlock, currentUserId, otherUser?.id, otherUserId]);
+
+  useEffect(() => {
+    if (!lastConversationCleared || currentUserId === undefined) {
+      return;
+    }
+
+    if (
+      Number(lastConversationCleared.conversation_id) !== Number(conversationId)
+    ) {
+      return;
+    }
+
+    const myId = Number(currentUserId);
+    if (
+      lastConversationCleared.scope === "me" &&
+      Number(lastConversationCleared.actor_id) !== myId
+    ) {
+      return;
+    }
+
+    if (lastConversationCleared.messages === "all") {
+      setMessages([]);
+      setShouldLeaveAfterClear(true);
+      return;
+    }
+
+    setMessages((currentMessages) =>
+      currentMessages.filter(
+        (message) =>
+          Number(message.sender_id) !== Number(lastConversationCleared.actor_id),
+      ),
+    );
+  }, [lastConversationCleared, conversationId, currentUserId]);
 
   useEffect(() => {
     if (
@@ -581,6 +624,49 @@ export function useChatMessages({
     [token, conversationId, loadMessages],
   );
 
+  const clearChat = useCallback(
+    async (scope: ClearChatScope, messagesMode: ClearChatMessages) => {
+      if (!token || !Number.isInteger(conversationId) || isClearing) {
+        return false;
+      }
+
+      try {
+        setIsClearing(true);
+        const result = await clearConversation(
+          token,
+          conversationId,
+          scope,
+          messagesMode,
+        );
+
+        if (result.messages === "all") {
+          setMessages([]);
+          setShouldLeaveAfterClear(true);
+        } else {
+          setMessages((currentMessages) =>
+            currentMessages.filter(
+              (message) =>
+                Number(message.sender_id) !== Number(currentUserId),
+            ),
+          );
+        }
+
+        return true;
+      } catch (error) {
+        Alert.alert(
+          "Грешка",
+          error instanceof Error
+            ? error.message
+            : "Чатът не можа да бъде изтрит.",
+        );
+        return false;
+      } finally {
+        setIsClearing(false);
+      }
+    },
+    [token, conversationId, isClearing, currentUserId],
+  );
+
   return {
     messages,
     otherUser,
@@ -589,11 +675,14 @@ export function useChatMessages({
     isLoading,
     isSending,
     isUploading,
+    isClearing,
+    shouldLeaveAfterClear,
 
     loadMessages,
     sendChatMessage,
     sendChatAttachments,
     reactToMessage,
+    clearChat,
     scrollToBottom,
   };
 }

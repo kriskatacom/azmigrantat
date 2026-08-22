@@ -3,6 +3,7 @@ import Header from "@/components/Header";
 import PasswordForm from "@/components/profile/password-form";
 import ProfileField from "@/components/profile/profile-field";
 import AppButton from "@/components/ui/AppButton";
+import TotpSection from "@/components/profile/totp-section";
 import { useAuth } from "@/hooks/useAuth";
 import {
   ApiError,
@@ -377,6 +378,8 @@ export default function SecurityScreen() {
           requireCurrentPassword={!biometricSupported}
           onSave={handleChangePassword}
         />
+
+        <TotpSection />
 
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
           Код по имейл

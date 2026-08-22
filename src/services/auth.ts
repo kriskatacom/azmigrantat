@@ -3,6 +3,7 @@ import type {
   AuthUser,
   ChangePasswordPayload,
   DeleteChatMessagesPayload,
+  DeleteAccountPayload,
   LoginPayload,
   RegisterPayload,
   ResetPasswordPayload,
@@ -40,6 +41,65 @@ interface MobileAuthResponse {
   refresh_expires_in?: number;
   user: AuthUser;
   message?: string;
+}
+
+interface TotpPendingResponse {
+  success: true;
+  requires_totp: true;
+  pending_token: string;
+  expires_in: number;
+}
+
+export class TotpRequiredError extends Error {
+  readonly pendingToken: string;
+  readonly expiresIn: number;
+
+  constructor(pendingToken: string, expiresIn: number) {
+    super("Въведете кода от Google Authenticator.");
+    this.name = "TotpRequiredError";
+    this.pendingToken = pendingToken;
+    this.expiresIn = expiresIn;
+  }
+}
+
+function isTotpPending(
+  data: MobileAuthResponse | TotpPendingResponse,
+): data is TotpPendingResponse {
+  return "requires_totp" in data && data.requires_totp === true;
+}
+
+function toAuthResponse(response: MobileAuthResponse): AuthResponse {
+  return {
+    token: response.access_token,
+    refreshToken: response.refresh_token ?? null,
+    expiresIn: response.expires_in,
+    user: response.user,
+  };
+}
+
+async function finishMobileAuth(
+  response: MobileAuthResponse | TotpPendingResponse,
+): Promise<AuthResponse> {
+  if (isTotpPending(response)) {
+    throw new TotpRequiredError(response.pending_token, response.expires_in);
+  }
+
+  return toAuthResponse(response);
+}
+
+export async function completeTotpLoginRequest(
+  pendingToken: string,
+  code: string,
+): Promise<AuthResponse> {
+  const response = await request<MobileAuthResponse>("/api/mobile/login/totp", {
+    method: "POST",
+    body: JSON.stringify({
+      pending_token: pendingToken,
+      code: code.replace(/\D/g, ""),
+    }),
+  });
+
+  return toAuthResponse(response);
 }
 
 interface MeResponse {
@@ -104,7 +164,7 @@ async function request<T>(
 export async function loginRequest(
   payload: LoginPayload,
 ): Promise<AuthResponse> {
-  const response = await request<MobileAuthResponse>("/api/mobile/login", {
+  const response = await request<MobileAuthResponse | TotpPendingResponse>("/api/mobile/login", {
     method: "POST",
     body: JSON.stringify({
       client_id: CLIENT_ID,
@@ -114,12 +174,7 @@ export async function loginRequest(
     }),
   });
 
-  return {
-    token: response.access_token,
-    refreshToken: response.refresh_token ?? null,
-    expiresIn: response.expires_in,
-    user: response.user,
-  };
+  return finishMobileAuth(response);
 }
 
 export async function registerRequest(
@@ -186,7 +241,7 @@ export async function googleLoginRequest(
   idToken: string,
   rememberMe = false,
 ): Promise<AuthResponse> {
-  const response = await request<MobileAuthResponse>(
+  const response = await request<MobileAuthResponse | TotpPendingResponse>(
     "/api/mobile/auth/google",
     {
       method: "POST",
@@ -198,12 +253,7 @@ export async function googleLoginRequest(
     },
   );
 
-  return {
-    token: response.access_token,
-    refreshToken: response.refresh_token ?? null,
-    expiresIn: response.expires_in,
-    user: response.user,
-  };
+  return finishMobileAuth(response);
 }
 
 export async function refreshRequest(refreshToken: string): Promise<AuthResponse> {
@@ -293,6 +343,20 @@ export async function deleteChatMessagesRequest(
   });
 
   return response.deleted_messages_count;
+}
+
+export async function deleteAccountRequest(
+  token: string,
+  payload: DeleteAccountPayload,
+): Promise<void> {
+  await request<{ success: true; message?: string }>(
+    "/api/mobile/profile/delete",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export async function sendPhoneVerificationRequest(

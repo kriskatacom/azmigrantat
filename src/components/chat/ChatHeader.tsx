@@ -12,6 +12,7 @@ type ChatHeaderProps = {
   onBack: () => void;
   onAudioCall?: () => void;
   onVideoCall?: () => void;
+  onMorePress?: () => void;
 
   colors: {
     card: string;
@@ -32,6 +33,7 @@ export default function ChatHeader({
   onBack,
   onAudioCall,
   onVideoCall,
+  onMorePress,
   colors,
 }: ChatHeaderProps) {
   const formatLastSeen = (value?: string | null): string => {
@@ -151,7 +153,7 @@ export default function ChatHeader({
         </Text>
       </View>
 
-      {onAudioCall || onVideoCall ? (
+      {onAudioCall || onVideoCall || onMorePress ? (
         <View style={styles.headerActions}>
           {onAudioCall ? (
             <TouchableOpacity
@@ -171,6 +173,16 @@ export default function ChatHeader({
               accessibilityLabel={`Видео обаждане с ${name}`}
             >
               <FontAwesome name="video-camera" size={22} color={colors.text} />
+            </TouchableOpacity>
+          ) : null}
+          {onMorePress ? (
+            <TouchableOpacity
+              onPress={onMorePress}
+              style={styles.videoButton}
+              accessibilityRole="button"
+              accessibilityLabel="Още опции за чата"
+            >
+              <FontAwesome name="ellipsis-v" size={22} color={colors.text} />
             </TouchableOpacity>
           ) : null}
         </View>

@@ -34,8 +34,8 @@ export default function ChatDateSeparator({
 const styles = StyleSheet.create({
   row: {
     alignItems: "center",
-    marginBottom: 12,
-    marginTop: 4,
+    marginBottom: 8,
+    marginTop: 12,
   },
   pill: {
     borderRadius: 12,

@@ -1,20 +1,16 @@
 import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
-import DeleteChatMessagesForm from "@/components/profile/delete-chat-messages-form";
-import PhoneVerificationForm from "@/components/profile/phone-verification-form";
 import ProfileDetailsForm from "@/components/profile/profile-details-form";
 import ProfileIdentityCard from "@/components/profile/profile-identity-card";
+import ProfileNavRow from "@/components/profile/profile-nav-row";
 import { PRIVACY_URL, TERMS_URL } from "@/constants/legal";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  deleteChatMessagesRequest,
   getCurrentUserRequest,
   updateProfileRequest,
 } from "@/services/auth";
 import { updateProfileImageRequest } from "@/services/profile";
 import type { UpdateProfilePayload } from "@/types/auth";
-import { FontAwesome } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -31,9 +27,7 @@ import {
 export default function ProfileHomeScreen() {
   const { theme } = useAppTheme();
   const { user, token, updateUser, logout } = useAuth();
-  const router = useRouter();
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [isDeletingChatMessages, setIsDeletingChatMessages] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   useEffect(() => {
@@ -89,36 +83,6 @@ export default function ProfileHomeScreen() {
     }
   };
 
-  const handleDeleteChatMessages = async (
-    currentPassword: string,
-    confirmation: "delete chat",
-  ) => {
-    setIsDeletingChatMessages(true);
-    try {
-      const deletedCount = await deleteChatMessagesRequest(token, {
-        currentPassword,
-        confirmation,
-      });
-      Alert.alert(
-        "Готово",
-        deletedCount === undefined
-          ? "Чат съобщенията бяха изтрити завинаги."
-          : `Изтрити чат съобщения: ${deletedCount}.`,
-      );
-      return true;
-    } catch (error) {
-      Alert.alert(
-        "Грешка",
-        error instanceof Error
-          ? error.message
-          : "Чат съобщенията не могат да бъдат изтрити.",
-      );
-      return false;
-    } finally {
-      setIsDeletingChatMessages(false);
-    }
-  };
-
   return (
     <KeyboardAvoidingView
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
@@ -131,165 +95,55 @@ export default function ProfileHomeScreen() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
       >
-        <TouchableOpacity
-          onPress={() => router.push("/(profile)/settings")}
-          style={[
-            styles.settingsLink,
-            {
-              backgroundColor: theme.colors.card,
-              borderColor: theme.colors.border,
-            },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Настройки"
-        >
-          <View
-            style={[
-              styles.settingsIcon,
-              { backgroundColor: theme.colors.background },
-            ]}
-          >
-            <FontAwesome name="cog" size={20} color={theme.colors.primary} />
-          </View>
-          <View style={styles.settingsText}>
-            <Text style={[styles.settingsTitle, { color: theme.colors.text }]}>
-              Настройки
-            </Text>
-            <Text
-              style={[
-                styles.settingsDescription,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
-              Известия, вибрация и други предпочитания
-            </Text>
-          </View>
-          <FontAwesome
-            name="chevron-right"
-            size={16}
-            color={theme.colors.textSecondary}
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => router.push("/(profile)/security")}
-          style={[
-            styles.settingsLink,
-            {
-              backgroundColor: theme.colors.card,
-              borderColor: theme.colors.border,
-            },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Сигурност"
-        >
-          <View
-            style={[
-              styles.settingsIcon,
-              { backgroundColor: theme.colors.background },
-            ]}
-          >
-            <FontAwesome name="lock" size={20} color={theme.colors.primary} />
-          </View>
-          <View style={styles.settingsText}>
-            <Text style={[styles.settingsTitle, { color: theme.colors.text }]}>
-              Сигурност
-            </Text>
-            <Text
-              style={[
-                styles.settingsDescription,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
-              Парола, биометрия и начин на вход
-            </Text>
-          </View>
-          <FontAwesome
-            name="chevron-right"
-            size={16}
-            color={theme.colors.textSecondary}
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => router.push("/(profile)/payments")}
-          style={[
-            styles.settingsLink,
-            {
-              backgroundColor: theme.colors.card,
-              borderColor: theme.colors.border,
-            },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Плащания"
-        >
-          <View
-            style={[
-              styles.settingsIcon,
-              { backgroundColor: theme.colors.background },
-            ]}
-          >
-            <FontAwesome name="credit-card" size={20} color={theme.colors.primary} />
-          </View>
-          <View style={styles.settingsText}>
-            <Text style={[styles.settingsTitle, { color: theme.colors.text }]}>
-              Плащания
-            </Text>
-            <Text
-              style={[
-                styles.settingsDescription,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
-              Сканиране и запазване на карти
-            </Text>
-          </View>
-          <FontAwesome
-            name="chevron-right"
-            size={16}
-            color={theme.colors.textSecondary}
-          />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={() => router.push("/(profile)/blocked")}
-          style={[
-            styles.settingsLink,
-            {
-              backgroundColor: theme.colors.card,
-              borderColor: theme.colors.border,
-            },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Блокирани потребители"
-        >
-          <View
-            style={[
-              styles.settingsIcon,
-              { backgroundColor: theme.colors.background },
-            ]}
-          >
-            <FontAwesome name="ban" size={20} color={theme.colors.danger} />
-          </View>
-          <View style={styles.settingsText}>
-            <Text style={[styles.settingsTitle, { color: theme.colors.text }]}>
-              Блокирани потребители
-            </Text>
-            <Text
-              style={[
-                styles.settingsDescription,
-                { color: theme.colors.textSecondary },
-              ]}
-            >
-              Блокиране по код, преглед и отблокиране
-            </Text>
-          </View>
-          <FontAwesome
-            name="chevron-right"
-            size={16}
-            color={theme.colors.textSecondary}
-          />
-        </TouchableOpacity>
+        <ProfileNavRow
+          href="/(profile)/settings"
+          icon="cog"
+          title="Настройки"
+          description="Известия, вибрация и други предпочитания"
+        />
+        <ProfileNavRow
+          href="/(profile)/security"
+          icon="lock"
+          title="Сигурност"
+          description="Парола, биометрия и начин на вход"
+        />
+        <ProfileNavRow
+          href="/(profile)/payments"
+          icon="credit-card"
+          title="Плащания"
+          description="Сканиране и запазване на карти"
+        />
+        <ProfileNavRow
+          href="/(profile)/blocked"
+          icon="ban"
+          title="Блокирани потребители"
+          description="Блокиране по код, преглед и отблокиране"
+          danger
+        />
+        <ProfileNavRow
+          href="/(profile)/phone"
+          icon="phone"
+          title="Потвърждение на телефона"
+          description={
+            user.phone_verified
+              ? "Номерът е потвърден"
+              : "Код по WhatsApp или SMS"
+          }
+        />
+        <ProfileNavRow
+          href="/(profile)/messages"
+          icon="comments"
+          title="Изтриване на съобщения"
+          description="Премахване на цялата чат история"
+          danger
+        />
+        <ProfileNavRow
+          href="/(profile)/delete-account"
+          icon="trash"
+          title="Изтриване на профила"
+          description="Деактивиране на акаунта завинаги"
+          danger
+        />
 
         <ProfileIdentityCard
           name={`${user.firstName} ${user.lastName}`.trim() || user.email}
@@ -313,34 +167,6 @@ export default function ProfileHomeScreen() {
           user={user}
           isSaving={isSavingProfile}
           onSave={handleSaveProfile}
-        />
-
-        <View
-          style={[styles.divider, { backgroundColor: theme.colors.border }]}
-        />
-        <View style={styles.intro}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>
-            Потвърждение на телефона
-          </Text>
-          <Text
-            style={[styles.description, { color: theme.colors.textSecondary }]}
-          >
-            Изпращаме код първо в WhatsApp. Ако нямате WhatsApp, изберете SMS. Първо запазете номера в профила.
-          </Text>
-        </View>
-        <PhoneVerificationForm
-          token={token}
-          phone={user.phone ?? ""}
-          isVerified={user.phone_verified === true}
-          onVerified={updateUser}
-        />
-
-        <View
-          style={[styles.divider, { backgroundColor: theme.colors.border }]}
-        />
-        <DeleteChatMessagesForm
-          isDeleting={isDeletingChatMessages}
-          onDelete={handleDeleteChatMessages}
         />
 
         <View style={styles.legalLinks}>
@@ -382,30 +208,9 @@ export default function ProfileHomeScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: 20, paddingBottom: 44, gap: 18 },
-  settingsLink: {
-    minHeight: 72,
-    borderWidth: 1,
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  settingsIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  settingsText: { flex: 1, gap: 2 },
-  settingsTitle: { fontSize: 16, fontWeight: "700" },
-  settingsDescription: { fontSize: 13, lineHeight: 18 },
   intro: { gap: 5 },
   title: { fontSize: 22, fontWeight: "800" },
   description: { fontSize: 14, lineHeight: 20 },
-  divider: { height: 1, marginVertical: 10 },
   legalLinks: {
     flexDirection: "row",
     flexWrap: "wrap",

@@ -8,6 +8,7 @@ import {
   PresencePayload,
   TypingPayload,
   UserBlockPayload,
+  ConversationClearedPayload,
   type AppSocket,
 } from "@/services/socket";
 
@@ -53,6 +54,7 @@ interface SocketContextValue {
   lastNotificationEvent: NotificationSocketEvent | null;
   lastNotificationEventAt: number;
   lastUserBlock: UserBlockPayload | null;
+  lastConversationCleared: ConversationClearedPayload | null;
 }
 
 export const SocketContext = createContext<SocketContextValue | undefined>(
@@ -98,6 +100,8 @@ export function SocketProvider({ children }: PropsWithChildren) {
   const [lastUserBlock, setLastUserBlock] = useState<UserBlockPayload | null>(
     null,
   );
+  const [lastConversationCleared, setLastConversationCleared] =
+    useState<ConversationClearedPayload | null>(null);
 
   useEffect(() => {
     if (isLoading) {
@@ -125,6 +129,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
       setLastNotificationEvent(null);
       setLastNotificationEventAt(0);
       setLastUserBlock(null);
+      setLastConversationCleared(null);
 
       return;
     }
@@ -253,6 +258,10 @@ export function SocketProvider({ children }: PropsWithChildren) {
       setLastUserBlock({ ...payload, blocked: false });
     };
 
+    const handleConversationCleared = (payload: ConversationClearedPayload) => {
+      setLastConversationCleared(payload);
+    };
+
     const handleConnectError = (error: Error) => {
       setIsConnected(false);
       setIsConnecting(false);
@@ -301,6 +310,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
 
     currentSocket.on("user:blocked", handleUserBlocked);
     currentSocket.on("user:unblocked", handleUserUnblocked);
+    currentSocket.on("conversation:cleared", handleConversationCleared);
 
     currentSocket.on("typing:update", handleTypingUpdate);
 
@@ -337,6 +347,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
 
       currentSocket.off("user:blocked", handleUserBlocked);
       currentSocket.off("user:unblocked", handleUserUnblocked);
+      currentSocket.off("conversation:cleared", handleConversationCleared);
 
       currentSocket.off("typing:update", handleTypingUpdate);
 
@@ -374,6 +385,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
       lastNotificationEvent,
       lastNotificationEventAt,
       lastUserBlock,
+      lastConversationCleared,
     }),
     [
       socket,
@@ -395,6 +407,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
       lastNotificationEvent,
       lastNotificationEventAt,
       lastUserBlock,
+      lastConversationCleared,
     ],
   );
 
