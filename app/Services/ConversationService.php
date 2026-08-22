@@ -176,6 +176,30 @@ final class ConversationService
         );
     }
 
+    public function findVisibleMessage(
+        Conversation $conversation,
+        User $user,
+        int $messageId
+    ): ?Message {
+        $participant = $this->conversationRepository->findParticipant(
+            (int) $conversation->id,
+            (int) $user->id
+        );
+
+        $query = Message::query()
+            ->where('conversation_id', $conversation->id)
+            ->where('id', $messageId)
+            ->with(['sender', 'reactions']);
+
+        $this->messageRepository->applyVisibility(
+            $query,
+            (int) $user->id,
+            $participant
+        );
+
+        return $query->first();
+    }
+
     public function sendMessage(
         Conversation $conversation,
         User $sender,

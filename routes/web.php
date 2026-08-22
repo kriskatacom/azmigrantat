@@ -113,6 +113,7 @@ $router->post('/api/mobile/profile/delete', [UserController::class, 'deleteAccou
 $router->post('/api/mobile/conversations/{id}/clear', [ConversationController::class, 'clear'], $bearer);
 $router->get('/api/mobile/conversations/{id}', [ConversationController::class, 'show'], $bearer);
 $router->get('/api/mobile/conversations/{id}/messages', [MessageController::class, 'index'], $bearer);
+$router->get('/api/mobile/conversations/{id}/messages/{messageId}', [MessageController::class, 'show'], $bearer);
 $router->post('/api/mobile/conversations/{id}/messages', [MessageController::class, 'store'], $bearer);
 $router->post('/api/mobile/conversations/{id}/attachments', [MessageController::class, 'storeAttachment'], $bearer);
 $router->post('/api/mobile/conversations/{id}/read', [MessageController::class, 'markAsRead'], $bearer);

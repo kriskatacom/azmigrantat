@@ -85,6 +85,47 @@ final class MessageController extends BaseController
         ]);
     }
 
+    public function show($conversationId, $messageId)
+    {
+        $user = $this->authenticatedUser();
+
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $conversation = $this->conversationService
+            ->findUserConversation(
+                (int) $conversationId,
+                (int) $user->id
+            );
+
+        if (!$conversation) {
+            return $this->conversationNotFound();
+        }
+
+        if ($this->blockService->isBlockedByOtherInConversation($conversation, (int) $user->id)) {
+            return $this->conversationNotFound();
+        }
+
+        $message = $this->conversationService->findVisibleMessage(
+            $conversation,
+            $user,
+            (int) $messageId
+        );
+
+        if (!$message) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Файлът или съобщението не е намерено.',
+            ], 404);
+        }
+
+        return $this->json([
+            'success' => true,
+            'data' => self::serializeMessage($message, (int) $user->id),
+        ]);
+    }
+
     public function store($conversationId)
     {
         $user = $this->authenticatedUser();
