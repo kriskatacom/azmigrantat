@@ -285,6 +285,22 @@ class User extends Model
             'profile_image' => $image,
             'avatar' => $image,
             'is_active' => (bool) $this->is_active,
+            'auto_renewal' => $this->wantsAutoRenewal(),
         ];
+    }
+
+    public function wantsAutoRenewal(): bool
+    {
+        $options = is_array($this->options) ? $this->options : [];
+
+        return filter_var($options['auto_renewal'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public function setAutoRenewal(bool $enabled): void
+    {
+        $options = is_array($this->options) ? $this->options : [];
+        $options['auto_renewal'] = $enabled;
+        $this->options = $options;
+        $this->save();
     }
 }
