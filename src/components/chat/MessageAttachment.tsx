@@ -1,10 +1,14 @@
-import { useSaveChatImage } from "@/hooks/chat/useSaveChatImage";
 import type { ChatMessage } from "@/types/chat";
+import {
+  formatFileSize,
+  getMessageAttachment,
+  isAudioAttachment,
+  isImageAttachment,
+} from "@/utils/chat/attachment";
 import { FontAwesome } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import * as WebBrowser from "expo-web-browser";
+import { useRouter } from "expo-router";
 import {
-  ActivityIndicator,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -12,63 +16,8 @@ import {
   View,
 } from "react-native";
 import AudioMessagePlayer from "./audio-message-player";
-import ChatDownloadOptionsModal from "./chat-download-options-modal";
 
-interface AttachmentData {
-  url: string;
-  name: string;
-  mimeType: string | null;
-  size: number | null;
-}
-
-function metadataString(
-  metadata: Record<string, unknown> | null,
-  keys: string[],
-) {
-  for (const key of keys) {
-    const value = metadata?.[key];
-    if (typeof value === "string" && value.length > 0) return value;
-  }
-  return null;
-}
-
-export function getMessageAttachment(
-  message: ChatMessage,
-): AttachmentData | null {
-  if (
-    message.type !== "image" &&
-    message.type !== "audio" &&
-    message.type !== "file"
-  )
-    return null;
-  const url =
-    metadataString(message.metadata, ["url", "file_url", "download_url"]) ??
-    (message.content?.startsWith("http") ? message.content : null);
-  if (!url) return null;
-
-  return {
-    url,
-    name:
-      metadataString(message.metadata, [
-        "name",
-        "original_name",
-        "file_name",
-      ]) ??
-      decodeURIComponent(
-        url.split("/").at(-1)?.split("?")[0] ||
-          (message.type === "image" ? "Снимка" : "Файл"),
-      ),
-    mimeType: metadataString(message.metadata, ["mime_type", "mimeType"]),
-    size:
-      typeof message.metadata?.size === "number" ? message.metadata.size : null,
-  };
-}
-
-function formatFileSize(size: number | null) {
-  if (!size) return null;
-  if (size < 1024 * 1024) return `${Math.ceil(size / 1024)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-}
+export { getMessageAttachment };
 
 interface MessageAttachmentProps {
   message: ChatMessage;
@@ -87,49 +36,29 @@ export default function MessageAttachment({
   isMe,
   colors,
 }: MessageAttachmentProps) {
+  const router = useRouter();
   const { width, height } = useWindowDimensions();
-
   const attachmentWidth = Math.min(Math.max(width * 0.72, 210), 320);
-
   const imageHeight = Math.min(Math.max(height * 0.24, 160), 240);
-
   const actionButtonSize = Math.min(Math.max(width * 0.09, 34), 40);
-
   const actionButtonRadius = actionButtonSize / 2;
-
   const attachment = getMessageAttachment(message);
-  const isImage =
-    message.type === "image" ||
-    attachment?.mimeType?.startsWith("image/") === true;
-  const isAudio =
-    message.type === "audio" ||
-    attachment?.mimeType?.startsWith("audio/") === true;
-  const {
-    isSaving,
-    isSaveMenuVisible,
-    openSaveMenu,
-    closeSaveMenu,
-    downloadFile,
-    saveToGallery,
-  } = useSaveChatImage({
-    messageId: message.id,
-    url: attachment?.url ?? "",
-    name: attachment?.name ?? "image.jpg",
-    mimeType: attachment?.mimeType ?? null,
-  });
-  if (!attachment) return null;
+  const isImage = isImageAttachment(message.type, attachment?.mimeType ?? null);
+  const isAudio = isAudioAttachment(message.type, attachment?.mimeType ?? null);
 
-  const downloadModal = (
-    <ChatDownloadOptionsModal
-      visible={isSaveMenuVisible}
-      isImage={isImage}
-      fileName={attachment.name}
-      onClose={closeSaveMenu}
-      onDownload={() => void downloadFile()}
-      onSaveToGallery={() => void saveToGallery()}
-      colors={colors}
-    />
-  );
+  if (!attachment) {
+    return null;
+  }
+
+  const openDetails = () => {
+    router.push({
+      pathname: "/file/[id]",
+      params: {
+        id: String(message.id),
+        conversationId: String(message.conversation_id),
+      },
+    });
+  };
 
   if (isAudio) {
     return (
@@ -143,12 +72,10 @@ export default function MessageAttachment({
         ]}
       >
         <AudioMessagePlayer url={attachment.url} isMe={isMe} colors={colors} />
-
         <TouchableOpacity
           accessibilityRole="button"
-          accessibilityLabel={`Свали ${attachment.name}`}
-          disabled={isSaving}
-          onPress={openSaveMenu}
+          accessibilityLabel={`Детайли за ${attachment.name}`}
+          onPress={openDetails}
           style={[
             styles.audioDownload,
             {
@@ -159,88 +86,43 @@ export default function MessageAttachment({
             },
           ]}
         >
-          {isSaving ? (
-            <ActivityIndicator
-              size="small"
-              color={isMe ? "#ffffff" : colors.primary}
-            />
-          ) : (
-            <FontAwesome
-              name="download"
-              size={17}
-              color={isMe ? "#ffffff" : colors.primary}
-            />
-          )}
+          <FontAwesome
+            name="info"
+            size={17}
+            color={isMe ? "#ffffff" : colors.primary}
+          />
         </TouchableOpacity>
-
-        {downloadModal}
       </View>
     );
   }
 
   if (isImage) {
     return (
-      <View
-        style={[
-          styles.imageContainer,
-          {
-            width: attachmentWidth,
-          },
-        ]}
-      >
+      <View style={[styles.imageContainer, { width: attachmentWidth }]}>
         <TouchableOpacity
           accessibilityRole="imagebutton"
-          accessibilityLabel={`Отвори ${attachment.name}`}
+          accessibilityLabel={`Детайли за ${attachment.name}`}
           activeOpacity={0.9}
-          onPress={() => void WebBrowser.openBrowserAsync(attachment.url)}
-          onLongPress={openSaveMenu}
+          onPress={openDetails}
         >
           <Image
             source={{ uri: attachment.url }}
-            style={[
-              styles.image,
-              {
-                width: attachmentWidth,
-                height: imageHeight,
-              },
-            ]}
+            style={[styles.image, { width: attachmentWidth, height: imageHeight }]}
             contentFit="cover"
             transition={150}
           />
         </TouchableOpacity>
-
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Запази снимката"
-          disabled={isSaving}
-          onPress={openSaveMenu}
-          style={[
-            styles.saveButton,
-            {
-              width: actionButtonSize,
-              height: actionButtonSize,
-              borderRadius: actionButtonRadius,
-            },
-          ]}
-        >
-          {isSaving ? (
-            <ActivityIndicator size="small" color="#ffffff" />
-          ) : (
-            <FontAwesome name="download" size={16} color="#ffffff" />
-          )}
-        </TouchableOpacity>
-
-        {downloadModal}
       </View>
     );
   }
 
   const size = formatFileSize(attachment.size);
+
   return (
     <TouchableOpacity
       accessibilityRole="button"
-      onPress={openSaveMenu}
-      disabled={isSaving}
+      accessibilityLabel={`Детайли за ${attachment.name}`}
+      onPress={openDetails}
       style={[
         styles.file,
         {
@@ -286,20 +168,12 @@ export default function MessageAttachment({
         ) : null}
       </View>
       <View style={styles.fileDownloadButton}>
-        {isSaving ? (
-          <ActivityIndicator
-            size="small"
-            color={isMe ? "#ffffff" : colors.primary}
-          />
-        ) : (
-          <FontAwesome
-            name="download"
-            size={16}
-            color={isMe ? "#ffffff" : colors.primary}
-          />
-        )}
+        <FontAwesome
+          name="info-circle"
+          size={16}
+          color={isMe ? "#ffffff" : colors.primary}
+        />
       </View>
-      {downloadModal}
     </TouchableOpacity>
   );
 }
@@ -310,7 +184,6 @@ const styles = StyleSheet.create({
     minHeight: 40,
     justifyContent: "center",
   },
-
   audioDownload: {
     position: "absolute",
     right: 30,
@@ -319,26 +192,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.12)",
   },
-
   imageContainer: {
     position: "relative",
     maxWidth: "100%",
   },
-
   image: {
     borderRadius: 14,
     backgroundColor: "rgba(127,127,127,0.15)",
   },
-
-  saveButton: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: "rgba(0,0,0,0.58)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
   file: {
     minHeight: 64,
     maxWidth: "100%",
@@ -348,7 +209,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
-
   fileIcon: {
     width: 42,
     height: 42,
@@ -357,13 +217,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   fileText: {
     flex: 1,
     minWidth: 0,
     gap: 3,
   },
-
   fileDownloadButton: {
     width: 36,
     height: 42,
@@ -371,7 +229,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-
   fileName: {
     fontSize: 13,
     lineHeight: 17,

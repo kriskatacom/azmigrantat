@@ -133,6 +133,19 @@ export async function getMessages(
   );
 }
 
+export async function getConversationMessage(
+  token: string,
+  conversationId: number,
+  messageId: number,
+): Promise<MessageResponse["data"]> {
+  const response = await request<MessageResponse>(
+    `/api/mobile/conversations/${conversationId}/messages/${messageId}`,
+    token,
+  );
+
+  return response.data;
+}
+
 export async function sendMessage(
   token: string,
   conversationId: number,
