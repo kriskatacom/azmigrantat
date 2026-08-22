@@ -16,6 +16,8 @@ export interface AuthUser {
   totp_enabled?: boolean;
   has_password?: boolean;
   has_pin?: boolean;
+  pin_login_enabled?: boolean;
+  email_login_enabled?: boolean;
 }
 
 export type Gender = "male" | "female" | "other" | "prefer_not_to_say";

@@ -23,6 +23,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -34,6 +35,8 @@ export default function SecurityScreen() {
     user,
     token,
     hasPin,
+    pinLoginEnabled,
+    emailLoginEnabled,
     hasDeviceSecret,
     fingerprintAvailable,
     deviceUnlockAvailable,
@@ -41,6 +44,8 @@ export default function SecurityScreen() {
     deviceLockLoginEnabled,
     setFingerprintLoginEnabledFlag,
     setDeviceLockLoginEnabledFlag,
+    setPinLoginEnabledFlag,
+    setEmailLoginEnabledFlag,
     updateUser,
     endLocalSession,
   } = useAuth();
@@ -146,7 +151,7 @@ export default function SecurityScreen() {
     try {
       setIsSavingPin(true);
       await clearLoginPinRequest(token);
-      await updateUser({ ...user, has_pin: false });
+      await updateUser({ ...user, has_pin: false, pin_login_enabled: false });
       Alert.alert("Готово", "PIN кодът за вход е премахнат.");
     } catch (error) {
       Alert.alert(
@@ -314,6 +319,49 @@ export default function SecurityScreen() {
                 ? "Зададен е PIN за вход от това и другите доверени устройства."
                 : "Задайте 4 до 6 цифри, за да влизате без паролата на профила."}
             </Text>
+            <View style={styles.pinToggleRow}>
+              <View style={styles.pinToggleCopy}>
+                <Text style={[styles.methodTitle, { color: theme.colors.text, fontSize: 15 }]}>
+                  Искай PIN при вход
+                </Text>
+                <Text
+                  style={[
+                    styles.methodDescription,
+                    { color: theme.colors.textSecondary },
+                  ]}
+                >
+                  Изключено по подразбиране. Когато е включено, на доверено
+                  устройство ще се предлага вход с PIN.
+                </Text>
+              </View>
+              <Switch
+                value={hasPin && pinLoginEnabled}
+                onValueChange={(value) => {
+                  if (value && !hasPin) {
+                    Alert.alert(
+                      "Липсва PIN",
+                      "Първо задайте PIN код, след това включете искането му при вход.",
+                    );
+                    return;
+                  }
+
+                  void setPinLoginEnabledFlag(value).catch((error: unknown) => {
+                    Alert.alert(
+                      "Неуспешно",
+                      error instanceof Error
+                        ? error.message
+                        : "Настройката не беше записана.",
+                    );
+                  });
+                }}
+                trackColor={{
+                  false: theme.colors.border,
+                  true: theme.colors.primary,
+                }}
+                thumbColor={theme.colors.buttonText}
+                accessibilityLabel="Искай PIN код при вход"
+              />
+            </View>
             <ProfileField
               label="Нов PIN"
               value={pin}
@@ -489,8 +537,40 @@ export default function SecurityScreen() {
         <Text
           style={[styles.sectionDescription, { color: theme.colors.textSecondary }]}
         >
-          Ще изпратим 6-цифрен код на {user?.email ?? "имейла на профила"}. С
-          него можете да зададете нова парола, без текущата и без биометрия.
+          По подразбиране е изключено. Когато е включено, след парола или Google
+          ще искаме 6-цифрен код на {user?.email ?? "имейла на профила"}.
+        </Text>
+        <View style={styles.pinToggleRow}>
+          <View style={styles.pinToggleCopy}>
+            <Text style={[styles.methodTitle, { color: theme.colors.text, fontSize: 15 }]}>
+              Искай код по имейл при вход
+            </Text>
+          </View>
+          <Switch
+            value={emailLoginEnabled}
+            onValueChange={(value) => {
+              void setEmailLoginEnabledFlag(value).catch((error: unknown) => {
+                Alert.alert(
+                  "Неуспешно",
+                  error instanceof Error
+                    ? error.message
+                    : "Настройката не беше записана.",
+                );
+              });
+            }}
+            trackColor={{
+              false: theme.colors.border,
+              true: theme.colors.primary,
+            }}
+            thumbColor={theme.colors.buttonText}
+            accessibilityLabel="Искай код по имейл при вход"
+          />
+        </View>
+        <Text
+          style={[styles.sectionDescription, { color: theme.colors.textSecondary }]}
+        >
+          Същият тип код може да се използва и за нова парола, без текущата и
+          без биометрия.
         </Text>
 
         <AppButton
@@ -586,6 +666,16 @@ const styles = StyleSheet.create({
   methodText: { flex: 1, gap: 8 },
   methodTitle: { fontSize: 16, fontWeight: "700" },
   methodDescription: { fontSize: 13, lineHeight: 18 },
+  pinToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginTop: 4,
+  },
+  pinToggleCopy: {
+    flex: 1,
+    gap: 4,
+  },
   radio: {
     width: 20,
     height: 20,

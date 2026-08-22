@@ -54,6 +54,13 @@ interface TotpPendingResponse {
   expires_in: number;
 }
 
+interface EmailCodePendingResponse {
+  success: true;
+  requires_email_code: true;
+  pending_token: string;
+  expires_in: number;
+}
+
 interface DevicePendingResponse {
   success: true;
   requires_device_verification: true;
@@ -63,13 +70,13 @@ interface DevicePendingResponse {
   device_name?: string | null;
 }
 
-export class TotpRequiredError extends Error {
+export class EmailCodeRequiredError extends Error {
   readonly pendingToken: string;
   readonly expiresIn: number;
 
   constructor(pendingToken: string, expiresIn: number) {
-    super("Въведете кода от Google Authenticator.");
-    this.name = "TotpRequiredError";
+    super("Въведете кода, изпратен на имейла ви.");
+    this.name = "EmailCodeRequiredError";
     this.pendingToken = pendingToken;
     this.expiresIn = expiresIn;
   }
@@ -97,13 +104,31 @@ export class DeviceVerificationRequiredError extends Error {
 }
 
 function isTotpPending(
-  data: MobileAuthResponse | TotpPendingResponse | DevicePendingResponse,
+  data:
+    | MobileAuthResponse
+    | TotpPendingResponse
+    | EmailCodePendingResponse
+    | DevicePendingResponse,
 ): data is TotpPendingResponse {
   return "requires_totp" in data && data.requires_totp === true;
 }
 
+function isEmailCodePending(
+  data:
+    | MobileAuthResponse
+    | TotpPendingResponse
+    | EmailCodePendingResponse
+    | DevicePendingResponse,
+): data is EmailCodePendingResponse {
+  return "requires_email_code" in data && data.requires_email_code === true;
+}
+
 function isDevicePending(
-  data: MobileAuthResponse | TotpPendingResponse | DevicePendingResponse,
+  data:
+    | MobileAuthResponse
+    | TotpPendingResponse
+    | EmailCodePendingResponse
+    | DevicePendingResponse,
 ): data is DevicePendingResponse {
   return (
     "requires_device_verification" in data &&
@@ -130,7 +155,11 @@ async function withDevice<T extends Record<string, unknown>>(
 }
 
 async function finishMobileAuth(
-  response: MobileAuthResponse | TotpPendingResponse | DevicePendingResponse,
+  response:
+    | MobileAuthResponse
+    | TotpPendingResponse
+    | EmailCodePendingResponse
+    | DevicePendingResponse,
 ): Promise<AuthResponse> {
   if (isDevicePending(response)) {
     throw new DeviceVerificationRequiredError(
@@ -145,6 +174,10 @@ async function finishMobileAuth(
     throw new TotpRequiredError(response.pending_token, response.expires_in);
   }
 
+  if (isEmailCodePending(response)) {
+    throw new EmailCodeRequiredError(response.pending_token, response.expires_in);
+  }
+
   return toAuthResponse(response);
 }
 
@@ -152,7 +185,26 @@ export async function completeTotpLoginRequest(
   pendingToken: string,
   code: string,
 ): Promise<AuthResponse> {
-  const response = await request<MobileAuthResponse>("/api/mobile/login/totp", {
+  const response = await request<
+    MobileAuthResponse | EmailCodePendingResponse
+  >("/api/mobile/login/totp", {
+    method: "POST",
+    body: JSON.stringify(
+      await withDevice({
+        pending_token: pendingToken,
+        code: code.replace(/\D/g, ""),
+      }),
+    ),
+  });
+
+  return finishMobileAuth(response);
+}
+
+export async function completeEmailLoginRequest(
+  pendingToken: string,
+  code: string,
+): Promise<AuthResponse> {
+  const response = await request<MobileAuthResponse>("/api/mobile/login/email", {
     method: "POST",
     body: JSON.stringify(
       await withDevice({
@@ -163,6 +215,20 @@ export async function completeTotpLoginRequest(
   });
 
   return toAuthResponse(response);
+}
+
+export async function resendEmailLoginCodeRequest(
+  pendingToken: string,
+): Promise<{ message: string }> {
+  const response = await request<{ success: true; message: string }>(
+    "/api/mobile/login/email/resend",
+    {
+      method: "POST",
+      body: JSON.stringify({ pending_token: pendingToken }),
+    },
+  );
+
+  return { message: response.message };
 }
 
 interface MeResponse {
@@ -228,7 +294,7 @@ export async function loginRequest(
   payload: LoginPayload,
 ): Promise<AuthResponse> {
   const response = await request<
-    MobileAuthResponse | TotpPendingResponse | DevicePendingResponse
+    MobileAuthResponse | TotpPendingResponse | DevicePendingResponse | EmailCodePendingResponse
   >("/api/mobile/login", {
     method: "POST",
     body: JSON.stringify(
@@ -425,6 +491,42 @@ export async function setLoginPinRequest(
   );
 }
 
+export async function setPinLoginEnabledRequest(
+  token: string,
+  enabled: boolean,
+): Promise<{ hasPin: boolean; pinLoginEnabled: boolean }> {
+  const response = await request<{
+    success: true;
+    has_pin: boolean;
+    pin_login_enabled: boolean;
+  }>("/api/mobile/device/pin/enabled", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ enabled }),
+  });
+
+  return {
+    hasPin: response.has_pin,
+    pinLoginEnabled: response.pin_login_enabled,
+  };
+}
+
+export async function setEmailLoginEnabledRequest(
+  token: string,
+  enabled: boolean,
+): Promise<{ emailLoginEnabled: boolean }> {
+  const response = await request<{
+    success: true;
+    email_login_enabled: boolean;
+  }>("/api/mobile/device/email-login/enabled", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ enabled }),
+  });
+
+  return { emailLoginEnabled: response.email_login_enabled };
+}
+
 export async function clearLoginPinRequest(token: string): Promise<void> {
   await request<{ success: true; has_pin: boolean }>(
     "/api/mobile/device/pin/clear",
@@ -497,7 +599,7 @@ export async function googleLoginRequest(
   rememberMe = false,
 ): Promise<AuthResponse> {
   const response = await request<
-    MobileAuthResponse | TotpPendingResponse | DevicePendingResponse
+    MobileAuthResponse | TotpPendingResponse | DevicePendingResponse | EmailCodePendingResponse
   >(
     "/api/mobile/auth/google",
     {

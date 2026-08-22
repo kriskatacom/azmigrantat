@@ -11,6 +11,7 @@ import {
 
 import {
   completeDevicePendingRequest,
+  completeEmailLoginRequest,
   completeTotpLoginRequest,
   deviceSecretLoginRequest,
   googleLoginRequest,
@@ -19,6 +20,8 @@ import {
   pinLoginRequest,
   refreshRequest,
   registerRequest,
+  setEmailLoginEnabledRequest,
+  setPinLoginEnabledRequest,
   verifyDeviceEmailCodeRequest,
 } from "@/services/auth";
 import {
@@ -75,6 +78,8 @@ interface AuthContextValue {
   lastLoginEmail: string | null;
   hasDeviceSecret: boolean;
   hasPin: boolean;
+  pinLoginEnabled: boolean;
+  emailLoginEnabled: boolean;
   fingerprintAvailable: boolean;
   deviceUnlockAvailable: boolean;
   fingerprintLoginEnabled: boolean;
@@ -89,8 +94,11 @@ interface AuthContextValue {
   completeTotpLogin: (pendingToken: string, code: string) => Promise<void>;
   completeDevicePending: (pendingToken: string) => Promise<void>;
   completeDeviceEmailCode: (pendingToken: string, code: string) => Promise<void>;
+  completeEmailLogin: (pendingToken: string, code: string) => Promise<void>;
   setFingerprintLoginEnabledFlag: (enabled: boolean) => Promise<void>;
   setDeviceLockLoginEnabledFlag: (enabled: boolean) => Promise<void>;
+  setPinLoginEnabledFlag: (enabled: boolean) => Promise<void>;
+  setEmailLoginEnabledFlag: (enabled: boolean) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   endLocalSession: () => Promise<void>;
@@ -155,6 +163,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setToken(null);
     setUser(null);
     setExpiresAt(null);
+    setHasPin(false);
   }, []);
 
   const saveSession = useCallback(
@@ -390,6 +399,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [persistAuthResponse],
   );
 
+  const completeEmailLogin = useCallback(
+    async (pendingToken: string, code: string) => {
+      const response = await completeEmailLoginRequest(pendingToken, code);
+      await persistAuthResponse(response);
+    },
+    [persistAuthResponse],
+  );
+
   const loginWithGoogle = useCallback(
     async (idToken: string, rememberMe = false) => {
       const response = await googleLoginRequest(idToken, rememberMe);
@@ -515,6 +532,37 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setHasPin(Boolean(updatedUser.has_pin));
   }, []);
 
+  const setPinLoginEnabledFlag = useCallback(
+    async (enabled: boolean) => {
+      if (!token || !user) {
+        return;
+      }
+
+      const result = await setPinLoginEnabledRequest(token, enabled);
+      await updateUser({
+        ...user,
+        has_pin: result.hasPin,
+        pin_login_enabled: result.pinLoginEnabled,
+      });
+    },
+    [token, updateUser, user],
+  );
+
+  const setEmailLoginEnabledFlag = useCallback(
+    async (enabled: boolean) => {
+      if (!token || !user) {
+        return;
+      }
+
+      const result = await setEmailLoginEnabledRequest(token, enabled);
+      await updateUser({
+        ...user,
+        email_login_enabled: result.emailLoginEnabled,
+      });
+    },
+    [token, updateUser, user],
+  );
+
   const canUseFingerprintLogin = Boolean(
     hasDeviceSecret && fingerprintAvailable && fingerprintLoginEnabled && lastLoginEmail,
   );
@@ -534,6 +582,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
       lastLoginEmail,
       hasDeviceSecret,
       hasPin,
+      pinLoginEnabled: Boolean(user?.pin_login_enabled),
+      emailLoginEnabled: Boolean(user?.email_login_enabled),
       fingerprintAvailable,
       deviceUnlockAvailable,
       fingerprintLoginEnabled,
@@ -548,8 +598,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       completeTotpLogin,
       completeDevicePending,
       completeDeviceEmailCode,
+      completeEmailLogin,
       setFingerprintLoginEnabledFlag,
       setDeviceLockLoginEnabledFlag,
+      setPinLoginEnabledFlag,
+      setEmailLoginEnabledFlag,
       register,
       logout,
       endLocalSession,
@@ -578,8 +631,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
       completeTotpLogin,
       completeDevicePending,
       completeDeviceEmailCode,
+      completeEmailLogin,
       setFingerprintLoginEnabledFlag,
       setDeviceLockLoginEnabledFlag,
+      setPinLoginEnabledFlag,
+      setEmailLoginEnabledFlag,
       register,
       logout,
       endLocalSession,

@@ -7,9 +7,11 @@ import AppInput from "@/components/ui/AppInput";
 import { useAuth } from "@/hooks/useAuth";
 import {
   DeviceVerificationRequiredError,
+  EmailCodeRequiredError,
   TotpRequiredError,
   devicePendingStatusRequest,
   loginOptionsRequest,
+  resendEmailLoginCodeRequest,
   sendDeviceEmailCodeRequest,
 } from "@/services/auth";
 import { getLastLoginEmail } from "@/services/device-identity";
@@ -36,7 +38,8 @@ type LoginStep =
   | "pin"
   | "device"
   | "email"
-  | "totp";
+  | "totp"
+  | "loginEmail";
 
 export default function LoginScreen() {
   const { theme } = useAppTheme();
@@ -48,8 +51,8 @@ export default function LoginScreen() {
     completeTotpLogin,
     completeDevicePending,
     completeDeviceEmailCode,
+    completeEmailLogin,
     lastLoginEmail,
-    hasPin,
     canUseFingerprintLogin,
     canUseDeviceLockLogin,
   } = useAuth();
@@ -71,6 +74,10 @@ export default function LoginScreen() {
   const [emailCodeSent, setEmailCodeSent] = useState(false);
   const [totpPendingToken, setTotpPendingToken] = useState<string | null>(null);
   const [totpCode, setTotpCode] = useState("");
+  const [loginEmailPendingToken, setLoginEmailPendingToken] = useState<
+    string | null
+  >(null);
+  const [loginEmailCode, setLoginEmailCode] = useState("");
 
   const passwordRef = useRef<TextInput>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -80,7 +87,6 @@ export default function LoginScreen() {
     trustedDevice &&
     (canUseFingerprintLogin ||
       canUseDeviceLockLogin ||
-      hasPin ||
       serverHasPin);
 
   const applyOptions = useCallback(
@@ -210,6 +216,13 @@ export default function LoginScreen() {
       return;
     }
 
+    if (error instanceof EmailCodeRequiredError) {
+      setLoginEmailPendingToken(error.pendingToken);
+      setLoginEmailCode("");
+      setStep("loginEmail");
+      return;
+    }
+
     const message =
       error instanceof Error ? error.message : "Възникна неочаквана грешка.";
 
@@ -260,6 +273,53 @@ export default function LoginScreen() {
     }
   };
 
+  const handleConfirmEmailLogin = async () => {
+    if (!loginEmailPendingToken) {
+      return;
+    }
+
+    const normalized = loginEmailCode.replace(/\D/g, "");
+    if (normalized.length !== 6) {
+      Alert.alert("Липсва код", "Въведете 6-цифрения код от имейла.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await completeEmailLogin(loginEmailPendingToken, normalized);
+    } catch (error) {
+      if (error instanceof EmailCodeRequiredError) {
+        handleAuthError(error);
+        return;
+      }
+      Alert.alert(
+        "Неуспешен код",
+        error instanceof Error ? error.message : "Кодът не беше приет.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResendLoginEmail = async () => {
+    if (!loginEmailPendingToken) {
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const response = await resendEmailLoginCodeRequest(loginEmailPendingToken);
+      Alert.alert("Проверете имейла", response.message);
+    } catch (error) {
+      Alert.alert(
+        "Неуспешно изпращане",
+        error instanceof Error ? error.message : "Кодът не беше изпратен.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleConfirmTotp = async () => {
     if (!totpPendingToken) {
       return;
@@ -275,10 +335,7 @@ export default function LoginScreen() {
       setIsSubmitting(true);
       await completeTotpLogin(totpPendingToken, normalized);
     } catch (error) {
-      Alert.alert(
-        "Неуспешен код",
-        error instanceof Error ? error.message : "Кодът не беше приет.",
-      );
+      handleAuthError(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -408,7 +465,9 @@ export default function LoginScreen() {
                 ? "Потвърдете новото устройство."
                 : step === "methods"
                   ? "Изберете как да влезете от това устройство."
-                  : "Влезте в своя профил, за да продължите."}
+                  : step === "loginEmail"
+                    ? "Потвърдете входа с кода от имейла."
+                    : "Влезте в своя профил, за да продължите."}
             </Text>
 
             {step === "methods" ? (
@@ -417,7 +476,7 @@ export default function LoginScreen() {
                   title="Имейл и парола"
                   onPress={() => setStep("password")}
                 />
-                {hasPin || serverHasPin ? (
+                {serverHasPin ? (
                   <AppButton
                     title="PIN код на приложението"
                     onPress={() => setStep("pin")}
@@ -664,6 +723,61 @@ export default function LoginScreen() {
               </View>
             ) : null}
 
+            {step === "loginEmail" ? (
+              <View style={styles.totpBox}>
+                <Text style={[styles.totpTitle, { color: theme.colors.text }]}>
+                  Код по имейл
+                </Text>
+                <Text
+                  style={[styles.totpHint, { color: theme.colors.textSecondary }]}
+                >
+                  Изпратихме 6-цифрен код на имейла на профила. Въведете го, за
+                  да влезете.
+                </Text>
+                <AppInput
+                  label="Код"
+                  placeholder="6 цифри"
+                  value={loginEmailCode}
+                  onChangeText={setLoginEmailCode}
+                  keyboardType="number-pad"
+                  textContentType="oneTimeCode"
+                  maxLength={6}
+                  autoFocus
+                />
+                <AppButton
+                  title="Продължи"
+                  loading={isSubmitting}
+                  onPress={() => void handleConfirmEmailLogin()}
+                />
+                <TouchableOpacity onPress={() => void handleResendLoginEmail()}>
+                  <Text
+                    style={[
+                      styles.footerLink,
+                      { color: theme.colors.primary, textAlign: "center" },
+                    ]}
+                  >
+                    Изпрати кода отново
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    setLoginEmailPendingToken(null);
+                    setLoginEmailCode("");
+                    setStep(showMethodPicker ? "methods" : "password");
+                  }}
+                >
+                  <Text
+                    style={[
+                      styles.footerLink,
+                      { color: theme.colors.textSecondary, textAlign: "center" },
+                    ]}
+                  >
+                    Отказ
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
+
             {step === "password" || step === "methods" ? (
               <>
                 <View style={styles.separator}>
@@ -694,6 +808,12 @@ export default function LoginScreen() {
                     setDevicePendingToken(pendingToken);
                     setDeviceName(name);
                     setStep("device");
+                  }}
+                  onEmailCodeRequired={(pendingToken) => {
+                    fadeIn();
+                    setLoginEmailPendingToken(pendingToken);
+                    setLoginEmailCode("");
+                    setStep("loginEmail");
                   }}
                 />
               </>
