@@ -79,6 +79,13 @@ final class ConversationController extends BaseController
             ], 404);
         }
 
+        if ($this->blockService->isBlockedByOtherInConversation($conversation, (int) $user->id)) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Разговорът не е намерен или нямате достъп до него.',
+            ], 404);
+        }
+
         $conversation = $this->conversationService
             ->loadConversationDetails($conversation);
 

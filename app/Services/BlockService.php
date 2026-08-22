@@ -32,6 +32,26 @@ final class BlockService
             ->exists();
     }
 
+    public function isBlockedBy(int $blockerId, int $blockedId): bool
+    {
+        if ($blockerId <= 0 || $blockedId <= 0 || $blockerId === $blockedId) {
+            return false;
+        }
+
+        return UserBlock::query()
+            ->where('blocker_id', $blockerId)
+            ->where('blocked_id', $blockedId)
+            ->exists();
+    }
+
+    public function isBlockedByOtherInConversation(Conversation $conversation, int $currentUserId): bool
+    {
+        $otherUserId = $this->otherUserIdFor($conversation, $currentUserId);
+
+        return $otherUserId !== null
+            && $this->isBlockedBy($otherUserId, $currentUserId);
+    }
+
     /**
      * @return int[]
      */
@@ -101,7 +121,7 @@ final class BlockService
         ]);
     }
 
-    public function unblock(User $blocker, int $blockId): bool
+    public function unblock(User $blocker, int $blockId): ?int
     {
         $block = UserBlock::query()
             ->where('id', $blockId)
@@ -109,11 +129,12 @@ final class BlockService
             ->first();
 
         if (!$block) {
-            return false;
+            return null;
         }
 
+        $blockedId = (int) $block->blocked_id;
         $block->delete();
 
-        return true;
+        return $blockedId;
     }
 }

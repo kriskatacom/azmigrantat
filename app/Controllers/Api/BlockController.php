@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Services\BlockService;
+use App\Services\RealtimeNotifier;
 use Illuminate\Support\Facades\Validator;
 use RuntimeException;
 
@@ -86,6 +87,7 @@ final class BlockController extends BaseController
         try {
             $block = $this->blockService->blockByCode($user, (string) $input['code']);
             $block->load('blocked');
+            $this->notifyBlockChange((int) $user->id, (int) $block->blocked_id, true);
 
             return $this->json([
                 'success' => true,
@@ -108,19 +110,34 @@ final class BlockController extends BaseController
             return $this->unauthorized();
         }
 
-        $unblocked = $this->blockService->unblock($user, (int) $id);
+        $unblockedUserId = $this->blockService->unblock($user, (int) $id);
 
-        if (!$unblocked) {
+        if ($unblockedUserId === null) {
             return $this->json([
                 'success' => false,
                 'message' => 'Блокирането не е намерено.',
             ], 404);
         }
 
+        $this->notifyBlockChange((int) $user->id, $unblockedUserId, false);
+
         return $this->json([
             'success' => true,
             'message' => 'Потребителят беше отблокиран.',
         ]);
+    }
+
+    private function notifyBlockChange(int $blockerId, int $blockedId, bool $blocked): void
+    {
+        try {
+            (new RealtimeNotifier())->notifyUserBlock(
+                $blockerId,
+                $blockedId,
+                $blocked
+            );
+        } catch (\Throwable $exception) {
+            error_log('[BlockController] realtime block notify failed: ' . $exception->getMessage());
+        }
     }
 
     private function serializeBlock(UserBlock $block): array

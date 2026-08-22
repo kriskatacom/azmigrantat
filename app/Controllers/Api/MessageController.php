@@ -52,6 +52,10 @@ final class MessageController extends BaseController
             return $this->conversationNotFound();
         }
 
+        if ($this->blockService->isBlockedByOtherInConversation($conversation, (int) $user->id)) {
+            return $this->conversationNotFound();
+        }
+
         $limit = (int) ($_GET['limit'] ?? 30);
 
         $beforeId = isset($_GET['before_id'])

@@ -309,6 +309,15 @@ final class RealtimeNotifier
         ]);
     }
 
+    public function notifyUserBlock(int $blockerId, int $blockedId, bool $blocked): bool
+    {
+        return $this->send('/internal/events/user-block', [
+            'blocker_id' => $blockerId,
+            'blocked_id' => $blockedId,
+            'blocked' => $blocked,
+        ]);
+    }
+
     public function notifySessionRevoked(
         int $userId,
         string $tokenHash,
