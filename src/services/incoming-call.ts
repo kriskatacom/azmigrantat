@@ -8,6 +8,8 @@ import {
   dismissIncomingCallNative,
   displayIncomingCallNative,
   setIncomingCallNativeForeground,
+  startOngoingCallNative,
+  stopOngoingCallNative,
   subscribeIncomingCallLaunchNative,
 } from "../../modules/incoming-call";
 
@@ -373,6 +375,24 @@ export async function setIncomingCallAppForeground(
   isForeground: boolean,
 ): Promise<void> {
   await setIncomingCallNativeForeground(isForeground);
+}
+
+export async function startOngoingCallNotification(options: {
+  callId: string;
+  callerId: number;
+  callerName: string;
+  callType?: CallType;
+}): Promise<void> {
+  await startOngoingCallNative({
+    callId: options.callId,
+    callerId: options.callerId,
+    callerName: options.callerName,
+    callType: options.callType,
+  });
+}
+
+export async function stopOngoingCallNotification(): Promise<void> {
+  await stopOngoingCallNative();
 }
 
 export async function consumeNativeIncomingCallLaunch(): Promise<PendingIncomingCallAction | null> {

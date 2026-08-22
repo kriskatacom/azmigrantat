@@ -1,6 +1,8 @@
 import IncomingCall from "@/components/video/incoming-call";
+import ActiveCallBar from "@/components/video/active-call-bar";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
+import { ACTIVE_CALL_STATES, useVideoCall } from "@/hooks/video/useVideoCall";
 import { getConversations } from "@/services/chat";
 import {
   consumePendingIncomingCallAction,
@@ -13,6 +15,8 @@ import {
   rememberCallEvent,
   setIncomingCallAppForeground,
   setPendingIncomingCallAction,
+  startOngoingCallNotification,
+  stopOngoingCallNotification,
   subscribeNativeIncomingCallLaunch,
   subscribePendingIncomingCallAction,
   toIncomingCallPayload,
@@ -24,8 +28,11 @@ import {
   CALL_NO_ANSWER_MS,
   type CallIceCandidate,
   type CallServerPayload,
+  type CallState,
   type CallStatePayload,
+  type CallType,
 } from "@/services/video-call";
+import { parseCallType } from "@/services/video-call";
 import * as Linking from "expo-linking";
 import * as Notifications from "expo-notifications";
 import { useRootNavigationState, useRouter } from "expo-router";
@@ -40,10 +47,19 @@ import {
   type PropsWithChildren,
 } from "react";
 import { AppState, View, type AppStateStatus } from "react-native";
+import type { MediaStream } from "react-native-webrtc";
 
 export type AcceptedIncomingCall = {
   call: CallServerPayload;
   pendingIceCandidates: CallIceCandidate[];
+};
+
+export type ActiveCallUi = {
+  recipientId: number;
+  name: string;
+  image: string;
+  callType: CallType;
+  direction: "incoming" | "outgoing";
 };
 
 type VideoCallContextValue = {
@@ -51,6 +67,26 @@ type VideoCallContextValue = {
   clearAcceptedIncomingCall: (callId: string) => void;
   claimActiveCall: (callId: string) => boolean;
   releaseActiveCall: (callId: string) => void;
+  callUi: ActiveCallUi | null;
+  isCallMinimized: boolean;
+  attachCallSession: (ui: ActiveCallUi) => void;
+  minimizeActiveCall: () => void;
+  restoreActiveCall: () => void;
+  localStream: MediaStream | null;
+  remoteStream: MediaStream | null;
+  isInCall: boolean;
+  callState: CallState;
+  callDurationSeconds: number;
+  isMicrophoneEnabled: boolean;
+  isCameraEnabled: boolean;
+  isRemoteCameraEnabled: boolean;
+  startCamera: () => Promise<MediaStream>;
+  stopCamera: () => void;
+  startCall: (recipientId?: number) => Promise<void>;
+  endCall: () => void;
+  toggleMicrophone: () => void;
+  toggleCamera: () => void;
+  switchCamera: () => void;
 };
 
 const VideoCallContext = createContext<VideoCallContextValue | undefined>(
@@ -91,6 +127,8 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
   const [acceptedIncomingCall, setAcceptedIncomingCall] =
     useState<AcceptedIncomingCall | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
+  const [callUi, setCallUi] = useState<ActiveCallUi | null>(null);
+  const [isCallMinimized, setIsCallMinimized] = useState(false);
   const incomingCallRef = useRef<CallServerPayload | null>(null);
   const acceptedIncomingCallRef = useRef<AcceptedIncomingCall | null>(null);
   const pendingCandidatesRef = useRef<Map<string, CallIceCandidate[]>>(
@@ -105,6 +143,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
   const pendingCallIdRef = useRef<string | null>(null);
   const acceptingCallRef = useRef<CallServerPayload | null>(null);
   const dismissedIncomingUiRef = useRef(new Set<string>());
+  const mediaCallStateRef = useRef<CallState>("idle");
 
   const updateIncomingCall = useCallback((call: CallServerPayload | null) => {
     incomingCallRef.current = call;
@@ -755,7 +794,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
 
         if (!callId) {
           console.log("[CALL] reconciliation skipped: no active call");
-        } else if (token) {
+        } else if (token && !ACTIVE_CALL_STATES.includes(mediaCallStateRef.current)) {
           console.log("[CALL] reconciling call state callId=" + callId);
           void fetchCallById(token, callId)
             .then((result) => {
@@ -1060,6 +1099,14 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
 
     navigatedAcceptRef.current = accepted.call.call_id;
     pendingAcceptRef.current = false;
+    setCallUi({
+      recipientId: accepted.call.sender_id,
+      name: accepted.call.caller_name ?? "Потребител",
+      image: accepted.call.caller_avatar ?? "",
+      callType: parseCallType(accepted.call.call_type),
+      direction: "incoming",
+    });
+    setIsCallMinimized(false);
     console.log("[CALL] active call navigation", {
       callId: accepted.call.call_id,
     });
@@ -1107,20 +1154,133 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     }
   }, []);
 
+  const mediaCall = useVideoCall({
+    recipientId: callUi?.recipientId ?? 0,
+    currentUserId: user ? Number(user.id) : undefined,
+    callType: callUi?.callType ?? "video",
+    acceptedIncomingCall: acceptedIncomingCall?.call ?? null,
+    pendingIncomingIceCandidates: acceptedIncomingCall?.pendingIceCandidates ?? [],
+    onIncomingCallAccepted: clearAcceptedIncomingCall,
+    claimActiveCall,
+    releaseActiveCall,
+  });
+
+  mediaCallStateRef.current = mediaCall.callState;
+
+  const attachCallSession = useCallback((ui: ActiveCallUi) => {
+    setCallUi(ui);
+    setIsCallMinimized(false);
+  }, []);
+
+  const restoreActiveCall = useCallback(() => {
+    if (!callUi) {
+      return;
+    }
+    setIsCallMinimized(false);
+    router.push({
+      pathname: "/video-call/[userId]",
+      params: {
+        userId: String(callUi.recipientId),
+        name: callUi.name,
+        image: callUi.image,
+        callType: callUi.callType,
+        direction: callUi.direction,
+      },
+    });
+  }, [callUi, router]);
+
+  const minimizeActiveCall = useCallback(() => {
+    if (!ACTIVE_CALL_STATES.includes(mediaCall.callState)) {
+      return;
+    }
+    setIsCallMinimized(true);
+  }, [mediaCall.callState]);
+
+  useEffect(() => {
+    if (!ACTIVE_CALL_STATES.includes(mediaCall.callState) || !callUi) {
+      void stopOngoingCallNotification();
+      return;
+    }
+
+    void startOngoingCallNotification({
+      callId: acceptedIncomingCall?.call.call_id ?? `active-${callUi.recipientId}`,
+      callerId: callUi.recipientId,
+      callerName: callUi.name,
+      callType: callUi.callType,
+    });
+
+    return () => {
+      void stopOngoingCallNotification();
+    };
+  }, [
+    acceptedIncomingCall?.call.call_id,
+    callUi,
+    mediaCall.callState,
+  ]);
+
+  useEffect(() => {
+    if (mediaCall.callState === "idle") {
+      setIsCallMinimized(false);
+    }
+  }, [mediaCall.callState]);
+
   const value = useMemo(
     () => ({
       acceptedIncomingCall,
       clearAcceptedIncomingCall,
       claimActiveCall,
       releaseActiveCall,
+      callUi,
+      isCallMinimized,
+      attachCallSession,
+      minimizeActiveCall,
+      restoreActiveCall,
+      localStream: mediaCall.localStream,
+      remoteStream: mediaCall.remoteStream,
+      isInCall: mediaCall.isInCall,
+      callState: mediaCall.callState,
+      callDurationSeconds: mediaCall.callDurationSeconds,
+      isMicrophoneEnabled: mediaCall.isMicrophoneEnabled,
+      isCameraEnabled: mediaCall.isCameraEnabled,
+      isRemoteCameraEnabled: mediaCall.isRemoteCameraEnabled,
+      startCamera: mediaCall.startCamera,
+      stopCamera: mediaCall.stopCamera,
+      startCall: mediaCall.startCall,
+      endCall: mediaCall.endCall,
+      toggleMicrophone: mediaCall.toggleMicrophone,
+      toggleCamera: mediaCall.toggleCamera,
+      switchCamera: mediaCall.switchCamera,
     }),
     [
       acceptedIncomingCall,
+      attachCallSession,
       claimActiveCall,
       clearAcceptedIncomingCall,
+      callUi,
+      isCallMinimized,
+      mediaCall.callDurationSeconds,
+      mediaCall.callState,
+      mediaCall.endCall,
+      mediaCall.isCameraEnabled,
+      mediaCall.isInCall,
+      mediaCall.isMicrophoneEnabled,
+      mediaCall.isRemoteCameraEnabled,
+      mediaCall.localStream,
+      mediaCall.remoteStream,
+      mediaCall.startCall,
+      mediaCall.startCamera,
+      mediaCall.stopCamera,
+      mediaCall.switchCamera,
+      mediaCall.toggleCamera,
+      mediaCall.toggleMicrophone,
+      minimizeActiveCall,
       releaseActiveCall,
+      restoreActiveCall,
     ],
   );
+
+  const showActiveCallBar =
+    isCallMinimized && ACTIVE_CALL_STATES.includes(mediaCall.callState) && callUi !== null;
 
   return (
     <VideoCallContext.Provider value={value}>
@@ -1138,6 +1298,15 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
             }
           }}
           onReject={rejectIncomingCall}
+        />
+        <ActiveCallBar
+          visible={showActiveCallBar}
+          name={callUi?.name ?? "Обаждане"}
+          image={callUi?.image}
+          durationSeconds={mediaCall.callDurationSeconds}
+          connected={mediaCall.callState === "connected"}
+          onPress={restoreActiveCall}
+          onEndCall={mediaCall.endCall}
         />
       </View>
     </VideoCallContext.Provider>

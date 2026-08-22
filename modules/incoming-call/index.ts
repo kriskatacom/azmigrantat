@@ -24,6 +24,8 @@ type IncomingCallNativeModule = {
   openFullScreenIntentSettings(): Promise<void>;
   setForeground(isForeground: boolean): Promise<void>;
   consumeLaunchAction(): Promise<IncomingCallLaunchAction | null>;
+  startOngoingCall(options: IncomingCallDisplayOptions): Promise<void>;
+  stopOngoingCall(): Promise<void>;
   addListener?(
     eventName: "onLaunchAction",
     listener: (event: IncomingCallLaunchAction) => void,
@@ -98,6 +100,16 @@ export async function consumeIncomingCallLaunchNative(): Promise<IncomingCallLau
   }
 
   return nativeModule.consumeLaunchAction();
+}
+
+export async function startOngoingCallNative(
+  options: IncomingCallDisplayOptions,
+): Promise<void> {
+  await nativeModule?.startOngoingCall?.(options);
+}
+
+export async function stopOngoingCallNative(): Promise<void> {
+  await nativeModule?.stopOngoingCall?.();
 }
 
 export function subscribeIncomingCallLaunchNative(

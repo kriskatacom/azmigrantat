@@ -59,12 +59,13 @@ const PEER_CONFIG = {
 const NO_ANSWER_MS = 30_000;
 const CONNECTION_MS = 15_000;
 const RESET_MS = 2_000;
-const ACTIVE_STATES: CallState[] = [
+export const ACTIVE_CALL_STATES: CallState[] = [
   "calling",
   "ringing",
   "connecting",
   "connected",
 ];
+const ACTIVE_STATES: CallState[] = ACTIVE_CALL_STATES;
 const TERMINAL_STATES: CallState[] = [
   "rejected",
   "busy",
@@ -132,6 +133,7 @@ export function useVideoCall({
   const connectionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const durationRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const iceFailRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callTypeRef = useRef<CallType>(parseCallType(callType));
 
   const changeState = useCallback((value: CallState) => {
@@ -166,12 +168,17 @@ export function useVideoCall({
     if (durationRef.current) clearInterval(durationRef.current);
     durationRef.current = null;
   }, []);
+  const clearIceFail = useCallback(() => {
+    if (iceFailRef.current) clearTimeout(iceFailRef.current);
+    iceFailRef.current = null;
+  }, []);
   const clearTimers = useCallback(() => {
     clearNoAnswer();
     clearConnection();
     clearReset();
     clearDuration();
-  }, [clearConnection, clearDuration, clearNoAnswer, clearReset]);
+    clearIceFail();
+  }, [clearConnection, clearDuration, clearIceFail, clearNoAnswer, clearReset]);
 
   const cleanup = useCallback(
     (expectedId?: string) => {
@@ -342,10 +349,14 @@ export function useVideoCall({
       peer.onconnectionstatechange = () => {
         if (peerRef.current !== peer || callIdRef.current !== callId) return;
         if (peer.connectionState === "connected") {
+          clearIceFail();
           clearConnection();
           clearNoAnswer();
+          const alreadyConnected = stateRef.current === "connected";
           changeState("connected");
-          setCallDurationSeconds(0);
+          if (!alreadyConnected) {
+            setCallDurationSeconds(0);
+          }
           clearDuration();
           const videoSender = peer.getSenders().find((sender) => sender.track?.kind === "video");
           emitCameraState(Boolean(videoSender?.track?.enabled));
@@ -354,20 +365,40 @@ export function useVideoCall({
               setCallDurationSeconds((value) => value + 1);
             }
           }, 1_000);
-        } else if (peer.connectionState === "failed") {
-          emitEnd(callId, targetId, "failed");
-          finish(callId, "failed");
+          return;
+        }
+
+        if (
+          peer.connectionState === "disconnected" ||
+          peer.connectionState === "connecting"
+        ) {
+          return;
+        }
+
+        if (peer.connectionState === "failed") {
+          clearIceFail();
+          iceFailRef.current = setTimeout(() => {
+            iceFailRef.current = null;
+            if (peerRef.current !== peer || callIdRef.current !== callId) return;
+            if (peer.connectionState === "connected") return;
+            emitEnd(callId, targetId, "failed");
+            finish(callId, "failed");
+          }, 12_000);
         }
       };
       return peer;
     },
-    [changeState, clearConnection, clearDuration, clearNoAnswer, emitCameraState, emitEnd, finish, startCamera],
+    [changeState, clearConnection, clearDuration, clearIceFail, clearNoAnswer, emitCameraState, emitEnd, finish, startCamera],
   );
 
-  const startCall = useCallback(async () => {
+  const startCall = useCallback(async (overrideRecipientId?: number) => {
     const socket = getSocket();
     if (!socket?.connected) throw new Error("Socket връзката не е налична.");
-    if (!Number.isInteger(recipientId) || recipientId <= 0) {
+    const targetRecipientId =
+      Number.isInteger(overrideRecipientId) && (overrideRecipientId ?? 0) > 0
+        ? overrideRecipientId!
+        : recipientId;
+    if (!Number.isInteger(targetRecipientId) || targetRecipientId <= 0) {
       throw new Error("Получателят на видео обаждането е невалиден.");
     }
     if (
@@ -384,11 +415,11 @@ export function useVideoCall({
       return;
     }
     callIdRef.current = callId;
-    targetIdRef.current = recipientId;
+    targetIdRef.current = targetRecipientId;
     callTypeRef.current = parseCallType(callType);
     changeState("calling");
     try {
-      const peer = await createPeer(recipientId, callId);
+      const peer = await createPeer(targetRecipientId, callId);
       if (callIdRef.current !== callId) return;
       const offer = await peer.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
       if (callIdRef.current !== callId) return;
@@ -397,7 +428,7 @@ export function useVideoCall({
       if (!offer.sdp) throw new Error("Неуспешно създаване на SDP offer.");
       socket.emit("call:offer", {
         call_id: callId,
-        recipient_id: recipientId,
+        recipient_id: targetRecipientId,
         call_type: callTypeRef.current,
         description: { type: "offer", sdp: offer.sdp },
       });
@@ -405,14 +436,14 @@ export function useVideoCall({
       noAnswerRef.current = setTimeout(() => {
         noAnswerRef.current = null;
         if (callIdRef.current === callId && stateRef.current === "calling") {
-          emitEnd(callId, recipientId, "timeout");
+          emitEnd(callId, targetRecipientId, "timeout");
           finish(callId, "timeout");
         }
       }, NO_ANSWER_MS);
     } catch (error) {
       if (callIdRef.current !== callId) return;
       if (callIdRef.current === callId) {
-        emitEnd(callId, recipientId, "failed");
+        emitEnd(callId, targetRecipientId, "failed");
         finish(callId, "failed");
       }
       throw error;
@@ -603,8 +634,8 @@ export function useVideoCall({
       finish(payload.call_id, stateForReason(payload.reason));
     };
     const onDisconnect = () => {
-      const callId = callIdRef.current;
-      if (callId && ACTIVE_STATES.includes(stateRef.current)) finish(callId, "failed");
+      // Socket.io reconnects in the background; ending the media session here
+      // drops the call when the user leaves the screen or uses the phone.
     };
     const onAccepted = (payload: CallServerPayload) => {
       console.log("[CALL] received call:accepted callId=" + payload.call_id);
@@ -643,6 +674,14 @@ export function useVideoCall({
   useEffect(() => () => {
     mountedRef.current = false;
     const callId = callIdRef.current;
+    const targetId = targetIdRef.current;
+    if (
+      callId &&
+      targetId &&
+      ACTIVE_STATES.includes(stateRef.current)
+    ) {
+      emitEnd(callId, targetId, "hangup");
+    }
     clearTimers();
     peerRef.current?.close();
     peerRef.current = null;
@@ -653,7 +692,7 @@ export function useVideoCall({
     callIdRef.current = null;
     candidatesRef.current = [];
     candidateKeysRef.current.clear();
-  }, [clearTimers, releaseActiveCall, stopCamera]);
+  }, [clearTimers, emitEnd, releaseActiveCall, stopCamera]);
 
   const toggleMicrophone = useCallback(() => {
     if (stateRef.current !== "connected" || !localStream) return;

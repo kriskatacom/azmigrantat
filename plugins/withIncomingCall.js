@@ -19,6 +19,10 @@ function withIncomingCallManifest(config) {
     addPermission(androidManifest, "android.permission.TURN_SCREEN_ON");
     addPermission(androidManifest, "android.permission.DISABLE_KEYGUARD");
     addPermission(androidManifest, "android.permission.POST_NOTIFICATIONS");
+    addPermission(androidManifest, "android.permission.FOREGROUND_SERVICE");
+    addPermission(androidManifest, "android.permission.FOREGROUND_SERVICE_MICROPHONE");
+    addPermission(androidManifest, "android.permission.FOREGROUND_SERVICE_CAMERA");
+    addPermission(androidManifest, "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK");
 
     const mainActivity =
       AndroidConfig.Manifest.getMainActivityOrThrow(androidManifest);
@@ -82,6 +86,7 @@ function withIncomingCallMainActivity(config) {
 function withIncomingCallIos(config) {
   return withInfoPlist(config, (config) => {
     const modes = new Set(config.modResults.UIBackgroundModes ?? []);
+    modes.add("audio");
     modes.add("remote-notification");
     modes.add("voip");
     config.modResults.UIBackgroundModes = [...modes];

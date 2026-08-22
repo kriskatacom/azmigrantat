@@ -157,6 +157,23 @@ class IncomingCallModule : Module() {
       launch
     }
 
+    AsyncFunction("startOngoingCall") { options: IncomingCallDisplayOptions ->
+      try {
+        OngoingCallService.start(
+          context(),
+          options.callerName.ifBlank { "Обаждане в ход" },
+          if (options.callType == "audio") "Аудио обаждане" else "Видео обаждане",
+          options.callType != "audio",
+        )
+      } catch (error: Exception) {
+        Log.e(TAG, "[CALL] ongoing service failed: ${error.message}")
+      }
+    }
+
+    AsyncFunction("stopOngoingCall") {
+      OngoingCallService.stop(context())
+    }
+
     AsyncFunction("openFullScreenIntentSettings") {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
         val context = context()
@@ -704,7 +721,7 @@ class IncomingCallModule : Module() {
         ?: intent.data?.getQueryParameter("callId")
     }
 
-    private fun pendingFlags(): Int {
+    fun pendingIntentFlags(): Int {
       var flags = PendingIntent.FLAG_UPDATE_CURRENT
 
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -746,11 +763,11 @@ class IncomingCallModule : Module() {
       if (kind == "full") {
         Log.i(
           TAG,
-          "[CALL] fullScreenActivity=${launch.component} intentFlags=${launch.flags} pendingFlags=${pendingFlags()}",
+          "[CALL] fullScreenActivity=${launch.component} intentFlags=${launch.flags} pendingFlags=${pendingIntentFlags()}",
         )
       }
 
-      return PendingIntent.getActivity(context, requestCode, launch, pendingFlags())
+      return PendingIntent.getActivity(context, requestCode, launch, pendingIntentFlags())
     }
 
     fun backgroundStartOptions(): Bundle? {
@@ -787,7 +804,7 @@ class IncomingCallModule : Module() {
       }
 
       val requestCode = notificationId("$action:${options.callId}")
-      return PendingIntent.getBroadcast(context, requestCode, intent, pendingFlags())
+      return PendingIntent.getBroadcast(context, requestCode, intent, pendingIntentFlags())
     }
 
     fun postCallAction(

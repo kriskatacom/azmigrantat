@@ -6,6 +6,10 @@
   <uses-permission android:name="android.permission.TURN_SCREEN_ON" />
   <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
   <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
   <application>
@@ -17,6 +21,11 @@
         <action android:name="expo.modules.incomingcall.ACTION_DECLINE" />
       </intent-filter>
     </receiver>
+
+    <service
+      android:name=".OngoingCallService"
+      android:exported="false"
+      android:foregroundServiceType="camera|microphone|mediaPlayback" />
 
     <service
       android:name=".IncomingCallFirebaseMessagingService"

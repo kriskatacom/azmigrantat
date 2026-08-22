@@ -5,7 +5,7 @@ import { useAppTheme } from "@/app/_layout";
 import { useIncomingVideoCall } from "@/contexts/VideoCallContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
-import { useVideoCall } from "@/hooks/video/useVideoCall";
+import { ACTIVE_CALL_STATES } from "@/hooks/video/useVideoCall";
 import { parseCallType } from "@/services/video-call";
 import {
   useLocalSearchParams,
@@ -13,7 +13,7 @@ import {
   useRouter,
 } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { StyleSheet, Text, TouchableOpacity } from "react-native";
+import { BackHandler, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function VideoCallScreen() {
@@ -62,9 +62,23 @@ export default function VideoCallScreen() {
     "1";
   const {
     acceptedIncomingCall,
-    claimActiveCall,
-    clearAcceptedIncomingCall,
-    releaseActiveCall,
+    attachCallSession,
+    callState,
+    callDurationSeconds,
+    endCall,
+    isCameraEnabled,
+    isInCall,
+    isMicrophoneEnabled,
+    isRemoteCameraEnabled,
+    localStream,
+    minimizeActiveCall,
+    remoteStream,
+    startCall,
+    startCamera,
+    stopCamera,
+    switchCamera,
+    toggleCamera,
+    toggleMicrophone,
   } = useIncomingVideoCall();
   const matchingIncomingCall =
     direction === "incoming" &&
@@ -82,33 +96,27 @@ export default function VideoCallScreen() {
     user !== null &&
     Number(user.id) !== recipientId;
 
-  const {
-    localStream,
-    remoteStream,
-    isInCall,
-    callState,
-    callDurationSeconds,
-    isMicrophoneEnabled,
-    isCameraEnabled,
-    isRemoteCameraEnabled,
-    startCamera,
-    stopCamera,
-    startCall,
-    endCall,
-    toggleMicrophone,
-    toggleCamera,
-    switchCamera,
-  } = useVideoCall({
-    recipientId,
-    currentUserId: user ? Number(user.id) : undefined,
+  useEffect(() => {
+    if (!isValidRecipient) {
+      return;
+    }
+
+    attachCallSession({
+      recipientId,
+      name: recipientName ?? "Потребител",
+      image: recipientImage ?? "",
+      callType,
+      direction: direction === "incoming" ? "incoming" : "outgoing",
+    });
+  }, [
+    attachCallSession,
     callType,
-    acceptedIncomingCall: matchingIncomingCall?.call,
-    pendingIncomingIceCandidates:
-      matchingIncomingCall?.pendingIceCandidates ?? [],
-    onIncomingCallAccepted: clearAcceptedIncomingCall,
-    claimActiveCall,
-    releaseActiveCall,
-  });
+    direction,
+    isValidRecipient,
+    recipientId,
+    recipientImage,
+    recipientName,
+  ]);
 
   useEffect(() => {
     if (!lastUserBlock?.blocked || !user?.id || !Number.isInteger(recipientId)) {
@@ -185,6 +193,21 @@ export default function VideoCallScreen() {
     router.replace("/inbox");
   }, [rootNavigationState?.key, router]);
 
+  const hideCallScreen = useCallback(() => {
+    if (ACTIVE_CALL_STATES.includes(callState)) {
+      minimizeActiveCall();
+    }
+    leaveVideoCallScreen();
+  }, [callState, leaveVideoCallScreen, minimizeActiveCall]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      hideCallScreen();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [hideCallScreen]);
+
   useEffect(() => {
     if (
       direction !== "incoming" ||
@@ -228,17 +251,37 @@ export default function VideoCallScreen() {
       direction === "incoming" ||
       isAuthLoading ||
       !isValidRecipient ||
-      hasStartedCallRef.current
+      hasStartedCallRef.current ||
+      ACTIVE_CALL_STATES.includes(callState)
     ) {
       return;
     }
 
     hasStartedCallRef.current = true;
-    void startCall().catch((error: unknown) => {
+    attachCallSession({
+      recipientId,
+      name: recipientName ?? "Потребител",
+      image: recipientImage ?? "",
+      callType,
+      direction: "outgoing",
+    });
+    void startCall(recipientId).catch((error: unknown) => {
       hasStartedCallRef.current = false;
       console.error("Видео обаждането не можа да стартира автоматично:", error);
     });
-  }, [autoStart, direction, isAuthLoading, isValidRecipient, startCall]);
+  }, [
+    attachCallSession,
+    autoStart,
+    callState,
+    callType,
+    direction,
+    isAuthLoading,
+    isValidRecipient,
+    recipientId,
+    recipientImage,
+    recipientName,
+    startCall,
+  ]);
 
   if (!isAuthLoading && !isValidRecipient) {
     return (
@@ -306,6 +349,17 @@ export default function VideoCallScreen() {
       />
 
       {callState === "connected" ? (
+        <TouchableOpacity
+          accessibilityLabel="Намали обаждането"
+          accessibilityRole="button"
+          onPress={hideCallScreen}
+          style={styles.minimizeButton}
+        >
+          <Text style={styles.minimizeButtonText}>Намали</Text>
+        </TouchableOpacity>
+      ) : null}
+
+      {callState === "connected" ? (
         <Text selectable style={styles.duration}>
           {formattedDuration}
         </Text>
@@ -318,7 +372,7 @@ export default function VideoCallScreen() {
           isCameraEnabled={isCameraEnabled}
           onStartCamera={startCamera}
           onStopCamera={stopCamera}
-          onStartCall={startCall}
+          onStartCall={() => void startCall(recipientId)}
           onEndCall={handleEndCall}
           onToggleMicrophone={toggleMicrophone}
           onToggleCamera={toggleCamera}
@@ -365,6 +419,20 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: "#ffffff",
     fontSize: 16,
+    fontWeight: "700",
+  },
+  minimizeButton: {
+    position: "absolute",
+    top: 24,
+    left: 16,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  minimizeButtonText: {
+    color: "#ffffff",
+    fontSize: 15,
     fontWeight: "700",
   },
   duration: {
