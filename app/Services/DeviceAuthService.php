@@ -295,6 +295,28 @@ final class DeviceAuthService
         return is_string($hash) && $hash !== '';
     }
 
+    public function isPinLoginEnabled(User $user): bool
+    {
+        $options = is_array($user->options) ? $user->options : [];
+
+        return $this->hasPin($user)
+            && filter_var($options['login_pin_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public function setPinLoginEnabled(User $user, bool $enabled): void
+    {
+        if ($enabled && !$this->hasPin($user)) {
+            throw new InvalidArgumentException(
+                'Първо задайте PIN код, преди да го изисквате при вход.'
+            );
+        }
+
+        $options = is_array($user->options) ? $user->options : [];
+        $options['login_pin_enabled'] = $enabled;
+        $user->options = $options;
+        $user->save();
+    }
+
     public function setPin(User $user, string $pin): void
     {
         $normalized = preg_replace('/\D/', '', $pin) ?? '';
@@ -326,7 +348,7 @@ final class DeviceAuthService
     public function clearPin(User $user): void
     {
         $options = is_array($user->options) ? $user->options : [];
-        unset($options['login_pin_hash']);
+        unset($options['login_pin_hash'], $options['login_pin_enabled']);
         $user->options = $options;
         $user->save();
     }

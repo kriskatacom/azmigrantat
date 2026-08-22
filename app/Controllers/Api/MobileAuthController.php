@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\UserSocialAccount;
 use App\Services\AuthRateLimiter;
 use App\Services\DeviceAuthService;
+use App\Services\EmailLoginService;
 use App\Services\PasswordResetService;
 use App\Services\RealtimeNotifier;
 use App\Services\TotpService;
@@ -697,6 +698,21 @@ final class MobileAuthController extends BaseController
                 $app,
                 $rememberMe,
                 $this->deviceInfoFromInput($input),
+                true,
+                false
+            )
+        );
+    }
+
+    public function emailAuthJson(User $user, OauthApp $app, bool $rememberMe, array $input = [])
+    {
+        return $this->json(
+            $this->completeAuthenticatedLogin(
+                $user,
+                $app,
+                $rememberMe,
+                $this->deviceInfoFromInput($input),
+                true,
                 true
             )
         );
@@ -710,7 +726,14 @@ final class MobileAuthController extends BaseController
         bool $skipTotp
     ) {
         return $this->json(
-            $this->completeAuthenticatedLogin($user, $app, $rememberMe, $deviceInfo, $skipTotp)
+            $this->completeAuthenticatedLogin(
+                $user,
+                $app,
+                $rememberMe,
+                $deviceInfo,
+                $skipTotp,
+                $skipTotp
+            )
         );
     }
 
@@ -736,7 +759,7 @@ final class MobileAuthController extends BaseController
         }
 
         return $this->json(
-            $this->completeAuthenticatedLogin($user, $app, $rememberMe, $deviceInfo, false)
+            $this->completeAuthenticatedLogin($user, $app, $rememberMe, $deviceInfo, false, false)
         );
     }
 
@@ -745,13 +768,22 @@ final class MobileAuthController extends BaseController
         OauthApp $app,
         bool $rememberMe,
         ?array $deviceInfo,
-        bool $skipTotp
+        bool $skipTotp,
+        bool $skipEmail = false
     ): array {
         if (!$skipTotp) {
             $totp = new TotpService();
 
             if ($totp->isRequired($user)) {
                 return $totp->createPendingAuth($user, $app, $rememberMe);
+            }
+        }
+
+        if (!$skipEmail) {
+            $emailLogin = new EmailLoginService();
+
+            if ($emailLogin->isRequired($user)) {
+                return $emailLogin->createPendingAuth($user, $app, $rememberMe);
             }
         }
 

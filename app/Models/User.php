@@ -289,6 +289,8 @@ class User extends Model
             'totp_enabled' => $this->totpEnabled(),
             'has_password' => $this->hasPassword(),
             'has_pin' => $this->hasLoginPin(),
+            'pin_login_enabled' => $this->pinLoginEnabled(),
+            'email_login_enabled' => $this->emailLoginEnabled(),
         ];
     }
 
@@ -320,6 +322,21 @@ class User extends Model
         $hash = $options['login_pin_hash'] ?? '';
 
         return is_string($hash) && $hash !== '';
+    }
+
+    public function pinLoginEnabled(): bool
+    {
+        $options = is_array($this->options) ? $this->options : [];
+
+        return $this->hasLoginPin()
+            && filter_var($options['login_pin_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public function emailLoginEnabled(): bool
+    {
+        $options = is_array($this->options) ? $this->options : [];
+
+        return filter_var($options['email_login_enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
     }
 
     public function totpEnabled(): bool

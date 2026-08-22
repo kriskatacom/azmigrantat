@@ -7,7 +7,7 @@ use App\Controllers\Api\TotpController;
 use App\Controllers\Api\InternalMobileController;
 use App\Controllers\Api\LinkPreviewController;
 use App\Controllers\Api\MessageController;
-use App\Controllers\Api\DeviceAuthController;
+use App\Controllers\Api\EmailLoginController;
 use App\Controllers\Api\MobileAuthController;
 use App\Controllers\Api\NotificationController;
 use App\Controllers\Api\PaymentMethodController;
@@ -71,6 +71,8 @@ $router->post('/api/mobile/refresh', [MobileAuthController::class, 'refresh']);
 $router->post('/api/mobile/password/forgot', [MobileAuthController::class, 'forgotPassword']);
 $router->post('/api/mobile/password/reset', [MobileAuthController::class, 'resetPassword']);
 $router->post('/api/mobile/login/totp', [TotpController::class, 'completeLogin']);
+$router->post('/api/mobile/login/email', [EmailLoginController::class, 'completeLogin']);
+$router->post('/api/mobile/login/email/resend', [EmailLoginController::class, 'resend']);
 $router->post('/api/mobile/login/options', [DeviceAuthController::class, 'options']);
 $router->post('/api/mobile/login/pin', [DeviceAuthController::class, 'loginPin']);
 $router->post('/api/mobile/login/device', [DeviceAuthController::class, 'loginDevice']);
@@ -81,6 +83,8 @@ $router->post('/api/mobile/device/pending/email/verify', [DeviceAuthController::
 $router->get('/api/mobile/device/pending', [DeviceAuthController::class, 'listPending'], [BearerAuthMiddleware::class]);
 $router->post('/api/mobile/device/pending/approve', [DeviceAuthController::class, 'approve'], [BearerAuthMiddleware::class]);
 $router->post('/api/mobile/device/pin', [DeviceAuthController::class, 'setPin'], [BearerAuthMiddleware::class]);
+$router->post('/api/mobile/device/pin/enabled', [DeviceAuthController::class, 'setPinLoginEnabled'], [BearerAuthMiddleware::class]);
+$router->post('/api/mobile/device/email-login/enabled', [EmailLoginController::class, 'setEnabled'], [BearerAuthMiddleware::class]);
 $router->post('/api/mobile/device/pin/clear', [DeviceAuthController::class, 'clearPin'], [BearerAuthMiddleware::class]);
 
 $bearer = [BearerAuthMiddleware::class];

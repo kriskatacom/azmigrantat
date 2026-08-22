@@ -58,7 +58,7 @@ final class DeviceAuthController extends BaseController
         return $this->json([
             'success' => true,
             'trusted' => $this->devices->isTrusted($user, $deviceUuid),
-            'has_pin' => $this->devices->hasPin($user),
+            'has_pin' => $this->devices->isPinLoginEnabled($user),
         ]);
     }
 
@@ -233,7 +233,40 @@ final class DeviceAuthController extends BaseController
         return $this->json([
             'success' => true,
             'has_pin' => true,
+            'pin_login_enabled' => $this->devices->isPinLoginEnabled($user),
             'message' => 'PIN кодът за вход е записан.',
+        ]);
+    }
+
+    public function setPinLoginEnabled()
+    {
+        $user = $this->authenticatedUser();
+
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $input = $this->jsonInput();
+        $enabled = filter_var($input['enabled'] ?? false, FILTER_VALIDATE_BOOLEAN);
+
+        try {
+            $this->devices->setPinLoginEnabled($user, $enabled);
+        } catch (InvalidArgumentException $exception) {
+            return $this->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+
+        $user->refresh();
+
+        return $this->json([
+            'success' => true,
+            'has_pin' => $this->devices->hasPin($user),
+            'pin_login_enabled' => $this->devices->isPinLoginEnabled($user),
+            'message' => $enabled
+                ? 'При вход ще се иска PIN код.'
+                : 'При вход няма да се иска PIN код.',
         ]);
     }
 
@@ -250,6 +283,7 @@ final class DeviceAuthController extends BaseController
         return $this->json([
             'success' => true,
             'has_pin' => false,
+            'pin_login_enabled' => false,
             'message' => 'PIN кодът за вход е премахнат.',
         ]);
     }
@@ -270,6 +304,7 @@ final class DeviceAuthController extends BaseController
             !$user
             || !$user->is_active
             || !$this->devices->isTrusted($user, $deviceInfo['uuid'])
+            || !$this->devices->isPinLoginEnabled($user)
             || !$this->devices->verifyPin($user, (string) ($input['pin'] ?? ''))
         ) {
             return $this->json([
