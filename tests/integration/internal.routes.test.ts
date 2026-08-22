@@ -839,4 +839,31 @@ describe('internal routes', () => {
             expect(createdSockets[0]?.disconnect).not.toHaveBeenCalled();
         });
     });
+
+    describe('POST /internal/events/user-block', () => {
+        it('изпраща user:blocked към двамата потребители', async () => {
+            const { app, emit } = createTestApp();
+
+            const response = await request(app)
+                .post('/internal/events/user-block')
+                .set('X-Internal-Secret', 'test-internal-secret')
+                .send({
+                    blocker_id: 3,
+                    blocked_id: 9,
+                    blocked: true,
+                });
+
+            expect(response.status).toBe(200);
+            expect(emit).toHaveBeenCalledWith('user:3', 'user:blocked', {
+                blocker_id: 3,
+                blocked_id: 9,
+                blocked: true,
+            });
+            expect(emit).toHaveBeenCalledWith('user:9', 'user:blocked', {
+                blocker_id: 3,
+                blocked_id: 9,
+                blocked: true,
+            });
+        });
+    });
 });

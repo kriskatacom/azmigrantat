@@ -458,6 +458,60 @@ export function registerInternalRoutes(app: Express, io: RealtimeServer): void {
         });
     });
 
+    app.post('/internal/events/user-block', async (request, response) => {
+        const providedSecret = request.header('X-Internal-Secret');
+
+        if (!providedSecret || providedSecret !== config.internalApiSecret) {
+            response.status(401).json({
+                success: false,
+                message: 'Невалиден вътрешен ключ.',
+            });
+
+            return;
+        }
+
+        const { blocker_id, blocked_id, blocked } = request.body as {
+            blocker_id?: unknown;
+            blocked_id?: unknown;
+            blocked?: unknown;
+        };
+
+        if (
+            !Number.isInteger(blocker_id) ||
+            (blocker_id as number) <= 0 ||
+            !Number.isInteger(blocked_id) ||
+            (blocked_id as number) <= 0 ||
+            typeof blocked !== 'boolean'
+        ) {
+            response.status(422).json({
+                success: false,
+                message: 'Невалидни данни за блокиране.',
+            });
+
+            return;
+        }
+
+        const payload = {
+            blocker_id: blocker_id as number,
+            blocked_id: blocked_id as number,
+            blocked,
+        };
+
+        const recipientIds = [...new Set([payload.blocker_id, payload.blocked_id])];
+        const eventName = blocked ? 'user:blocked' : 'user:unblocked';
+
+        for (const recipientId of recipientIds) {
+            io.to(`user:${recipientId}`).emit(eventName, payload);
+        }
+
+        console.log(`${eventName} ${blocker_id} → ${blocked_id}`);
+
+        response.json({
+            success: true,
+            recipient_count: recipientIds.length,
+        });
+    });
+
     app.post('/internal/events/session-revoke', async (request, response) => {
         const providedSecret = request.header('X-Internal-Secret');
 
