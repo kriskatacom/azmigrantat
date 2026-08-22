@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\AppSetting;
 use App\Models\User;
 
 final class PhoneVerificationService
@@ -10,6 +11,8 @@ final class PhoneVerificationService
     private const SEND_COOLDOWN_SECONDS = 60;
     private const MAX_ATTEMPTS = 5;
     private const LOCK_MINUTES = 15;
+
+    private ?string $lastDeliveryError = null;
 
     public function __construct(
         private readonly SmsApiService $smsApi,
@@ -24,7 +27,10 @@ final class PhoneVerificationService
 
     public function isTestMode(): bool
     {
-        return filter_var($_ENV['PHONE_VERIFY_TEST_MODE'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        return AppSetting::bool(
+            AppSetting::PHONE_VERIFY_TEST_MODE,
+            filter_var($_ENV['PHONE_VERIFY_TEST_MODE'] ?? false, FILTER_VALIDATE_BOOLEAN)
+        );
     }
 
     public function normalizePhone(string $raw): ?string
@@ -112,13 +118,6 @@ final class PhoneVerificationService
             ? '123456'
             : str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-        $user->phone_verification_phone = $phone;
-        $user->phone_verification_hash = hash('sha256', $this->pepper() . $code);
-        $user->phone_verification_expires_at = date('Y-m-d H:i:s', time() + self::CODE_TTL_SECONDS);
-        $user->phone_verification_sent_at = date('Y-m-d H:i:s');
-        $user->two_factor_attempts = 0;
-        $user->save();
-
         $channel = $this->isTestMode()
             ? ($preferredChannel === 'sms' ? 'sms' : 'whatsapp')
             : $this->deliver($phone, $code, $preferredChannel);
@@ -127,11 +126,28 @@ final class PhoneVerificationService
             return [
                 'ok' => false,
                 'status' => 502,
-                'message' => 'Кодът не можа да бъде изпратен. Проверете SMSAPI и WhatsApp настройките.',
+                'message' => $this->lastDeliveryError
+                    ?? 'Кодът не можа да бъде изпратен. Проверете SMSAPI и WhatsApp настройките.',
             ];
         }
 
+        $user->phone_verification_phone = $phone;
+        $user->phone_verification_hash = hash('sha256', $this->pepper() . $code);
+        $user->phone_verification_expires_at = date('Y-m-d H:i:s', time() + self::CODE_TTL_SECONDS);
+        $user->phone_verification_sent_at = date('Y-m-d H:i:s');
+        $user->two_factor_attempts = 0;
+        $user->save();
+
         $label = $channel === 'whatsapp' ? 'WhatsApp' : 'SMS';
+
+        if ($this->isTestMode()) {
+            return [
+                'ok' => true,
+                'status' => 200,
+                'message' => 'Тестов режим: въведете код 123456. SMS и WhatsApp не се изпращат.',
+                'channel' => $channel,
+            ];
+        }
 
         return [
             'ok' => true,
@@ -163,6 +179,10 @@ final class PhoneVerificationService
                 'status' => 422,
                 'message' => 'Въведете 6-цифрения код и валиден телефонен номер.',
             ];
+        }
+
+        if ($this->isTestMode() && $normalizedCode === '123456') {
+            return $this->markVerified($user, $phone);
         }
 
         if (
@@ -202,6 +222,35 @@ final class PhoneVerificationService
             ];
         }
 
+        return $this->markVerified($user, $phone);
+    }
+
+    public function isPhoneVerified(User $user): bool
+    {
+        return $user->phone
+            && $user->phone_verified_at
+            && $user->phone_verification_phone === null;
+    }
+
+    /**
+     * @return array{ok: bool, status: int, message: string}
+     */
+    private function markVerified(User $user, string $phone): array
+    {
+        $taken = User::query()
+            ->where('id', '!=', (int) $user->id)
+            ->where('phone', $phone)
+            ->whereNotNull('phone_verified_at')
+            ->exists();
+
+        if ($taken) {
+            return [
+                'ok' => false,
+                'status' => 409,
+                'message' => 'Този телефонен номер вече е потвърден от друг профил.',
+            ];
+        }
+
         $user->phone = $phone;
         $user->phone_verified_at = date('Y-m-d H:i:s');
         $user->phone_verification_hash = null;
@@ -219,15 +268,9 @@ final class PhoneVerificationService
         ];
     }
 
-    public function isPhoneVerified(User $user): bool
-    {
-        return $user->phone
-            && $user->phone_verified_at
-            && $user->phone_verification_phone === null;
-    }
-
     private function deliver(string $phone, string $code, string $preferredChannel): ?string
     {
+        $this->lastDeliveryError = null;
         $message = 'Ето ме: кодът за потвърждение е ' . $code . '. Валиден 10 минути.';
         $wantWhatsApp = $preferredChannel !== 'sms';
 
@@ -235,9 +278,12 @@ final class PhoneVerificationService
             return 'whatsapp';
         }
 
-        if ($this->smsApi->sendSms($phone, $message)) {
+        $sms = $this->smsApi->sendSms($phone, $message);
+        if ($sms['ok']) {
             return 'sms';
         }
+
+        $this->lastDeliveryError = $sms['message'] ?? null;
 
         return null;
     }

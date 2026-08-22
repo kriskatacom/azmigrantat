@@ -40,7 +40,6 @@ abstract class BaseController
 
     protected function renderWithSeo(string $viewPath, array $seoData, array $additionalData = [])
     {
-        $data['currentPageId'] = $data['currentPageId'] ?? null;
         $this->executeRender($viewPath, $seoData, $additionalData, 'main');
     }
 

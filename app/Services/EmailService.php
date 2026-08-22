@@ -31,6 +31,7 @@ class EmailService
             $mail->Password = (string) env('SMTP_PASS', '');
             $mail->Port = $port;
             $mail->CharSet = 'UTF-8';
+            $mail->Encoding = PHPMailer::ENCODING_QUOTED_PRINTABLE;
             $mail->Timeout = 20;
             $mail->Hostname = (string) env('SMTP_DOMAIN', '');
             $mail->Helo = (string) env('SMTP_DOMAIN', '');

@@ -8,6 +8,7 @@ use App\Controllers\Api\InternalMobileController;
 use App\Controllers\Api\LinkPreviewController;
 use App\Controllers\Api\MessageController;
 use App\Controllers\Api\EmailLoginController;
+use App\Controllers\Api\DeviceAuthController;
 use App\Controllers\Api\MobileAuthController;
 use App\Controllers\Api\NotificationController;
 use App\Controllers\Api\PaymentMethodController;

@@ -30,7 +30,7 @@ class App
         $dotenv = Dotenv::createImmutable(BASE_PATH);
         $dotenv->load();
 
-        header("Access-Control-Allow-Origin: " . $_ENV['ETOME_BASE_URL']);
+        header("Access-Control-Allow-Origin: " . ($_ENV['ETOME_BASE_URL'] ?? '*'));
         header("Access-Control-Allow-Headers: Content-Type, Accept, Authorization");
         header("Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS");
 

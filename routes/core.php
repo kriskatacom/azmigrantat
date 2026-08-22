@@ -1,6 +1,7 @@
 <?php
 
 use App\Controllers\AdminController;
+use App\Controllers\AdminSettingsController;
 use App\Controllers\InstallController;
 use App\Controllers\StorageController;
 use App\Controllers\UserController;
@@ -32,6 +33,8 @@ $router->post('/users/logout', [UserController::class, 'logout'], [AuthMiddlewar
 
 $router->get('/admin/dashboard', [AdminController::class, 'dashboard'], $adminAuth);
 $router->post('/admin/sidebar-toggle', [AdminController::class, 'sidebarToggle'], $adminAuth);
+$router->get('/admin/settings', [AdminSettingsController::class, 'edit'], $adminAuth);
+$router->post('/admin/settings', [AdminSettingsController::class, 'update'], $adminAuth);
 
 $router->get('/admin/users', [UserController::class, 'index'], $adminAuth);
 $router->get('/admin/users/create', [UserController::class, 'create'], $adminAuth);

@@ -18,6 +18,10 @@ class TwoFAuthController extends BaseController
     public function send2faCode()
     {
         $user = Auth::user();
+        if (!$user) {
+            return $this->json(['error' => 'Необходима е автентикация.'], 401);
+        }
+
         $input = json_decode(file_get_contents('php://input'), true);
         $phone = is_array($input) ? (string) ($input['phone'] ?? $user->phone ?? '') : (string) ($user->phone ?? '');
 
@@ -40,6 +44,10 @@ class TwoFAuthController extends BaseController
         $input = json_decode(file_get_contents('php://input'), true);
         $code = is_array($input) ? (string) ($input['code'] ?? '') : '';
         $user = Auth::user();
+        if (!$user) {
+            return $this->json(['error' => 'Необходима е автентикация.'], 401);
+        }
+
         $phone = (string) ($_SESSION['2fa_phone'] ?? $user->phone ?? '');
 
         $result = $this->verification->verify($user, $phone, $code);
