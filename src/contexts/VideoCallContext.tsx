@@ -567,13 +567,16 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       }
 
       handleOffer(payload.call);
-      if (payload.status === "accepted") {
+      if (payload.status === "accepted" && pendingAcceptRef.current) {
         applyCallState(payload.call.call_id, "accepted");
       }
     };
 
     const handleAccepted = (payload: CallServerPayload) => {
       console.log("[CALL] received call:accepted callId=" + payload.call_id);
+      if (!pendingAcceptRef.current) {
+        return;
+      }
       applyCallState(payload.call_id, "accepted");
     };
 
@@ -712,11 +715,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
           callId: result.call.call_id,
         });
 
-        if (
-          result.status === "accepted" ||
-          result.status === "active" ||
-          pendingAcceptRef.current
-        ) {
+        if (pendingAcceptRef.current) {
           applyCallState(result.call.call_id, "accepted");
         }
       })
@@ -768,7 +767,9 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
                   });
                   beginIncomingCall(result.call);
                 }
-                applyCallState(callId, "accepted");
+                if (pendingAcceptRef.current) {
+                  applyCallState(callId, "accepted");
+                }
                 return;
               }
 

@@ -3,6 +3,7 @@ package expo.modules.incomingcall
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.util.Log
 
 class IncomingCallActionReceiver : BroadcastReceiver() {
@@ -11,6 +12,8 @@ class IncomingCallActionReceiver : BroadcastReceiver() {
     val callerId = intent.getIntExtra(IncomingCallModule.EXTRA_CALLER_ID, 0)
     val callerName = intent.getStringExtra(IncomingCallModule.EXTRA_CALLER_NAME)
     val callerAvatar = intent.getStringExtra(IncomingCallModule.EXTRA_CALLER_AVATAR)
+    val callType = intent.getStringExtra(IncomingCallModule.EXTRA_CALL_TYPE) ?: "video"
+    val timestamp = intent.getLongExtra(IncomingCallModule.EXTRA_TIMESTAMP, 0L)
 
     when (intent.action) {
       IncomingCallModule.ACTION_ACCEPT -> {
@@ -21,9 +24,26 @@ class IncomingCallActionReceiver : BroadcastReceiver() {
           callerId,
           callerName,
           callerAvatar,
-          context = context,
+          callType,
+          timestamp,
+          context,
         )
         IncomingCallModule.dismiss(context, callId)
+        val launch = IncomingCallModule.launchIntent(
+          context,
+          callId,
+          "accept",
+          callerId,
+          callerName,
+          callerAvatar,
+          callType,
+          timestamp,
+        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+          context.startActivity(launch, IncomingCallModule.backgroundStartOptions())
+        } else {
+          context.startActivity(launch)
+        }
       }
 
       IncomingCallModule.ACTION_DECLINE -> {

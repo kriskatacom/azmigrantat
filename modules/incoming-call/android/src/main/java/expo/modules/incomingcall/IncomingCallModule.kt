@@ -83,7 +83,7 @@ class IncomingCallModule : Module() {
 
     OnNewIntent { intent ->
       val launch = captureIntent(intent, appContext.currentActivity?.applicationContext)
-      if (launch != null) {
+      if (launch != null && isAcceptAction(launch["action"] as? String)) {
         Log.i(
           TAG,
           "[CALL] launch action received action=${launch["action"]} callId=${launch["callId"]}",
@@ -583,7 +583,10 @@ class IncomingCallModule : Module() {
     }
 
     fun buildNotification(context: Context, options: IncomingCallDisplayOptions): Notification {
-      val acceptIntent = activityPendingIntent(context, "accept", options, "accept")
+      // Accept/decline go through a BroadcastReceiver. CallStyle.forIncomingCall uses the
+      // same MainActivity as the full-screen intent; on a locked screen some OEMs treat
+      // that FSI as "Answer" and auto-accept before WebRTC is ready.
+      val acceptIntent = actionIntent(context, ACTION_ACCEPT, options)
       val declineIntent = actionIntent(context, ACTION_DECLINE, options)
       val contentIntent = activityPendingIntent(context, "open", options)
       val fullScreenIntent = activityPendingIntent(context, "full", options)
@@ -625,15 +628,9 @@ class IncomingCallModule : Module() {
         .addPerson(caller)
       Log.i(TAG, "[CALL] fullScreenIntentConfigured=true")
 
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        builder.setStyle(
-          NotificationCompat.CallStyle.forIncomingCall(caller, declineIntent, acceptIntent)
-        )
-      } else {
-        builder
-          .addAction(0, "Откажи", declineIntent)
-          .addAction(0, "Приеми", acceptIntent)
-      }
+      builder
+        .addAction(0, "Откажи", declineIntent)
+        .addAction(0, "Приеми", acceptIntent)
 
       return builder.build()
     }
@@ -678,7 +675,11 @@ class IncomingCallModule : Module() {
       }
 
       activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
+      val action = intent?.getStringExtra(EXTRA_ACTION)
+        ?: intent?.data?.getQueryParameter("action")
+        ?: "open"
+      if (isAcceptAction(action) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         activity.getSystemService(KeyguardManager::class.java)
           ?.requestDismissKeyguard(activity, null)
       }
@@ -752,7 +753,7 @@ class IncomingCallModule : Module() {
       return PendingIntent.getActivity(context, requestCode, launch, pendingFlags())
     }
 
-    private fun backgroundStartOptions(): Bundle? {
+    fun backgroundStartOptions(): Bundle? {
       if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
         return null
       }

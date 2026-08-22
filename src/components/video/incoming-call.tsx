@@ -101,11 +101,20 @@ export default function IncomingCall({
   const avatarSize = compact ? 128 : 156;
   const isAudio = callType === "audio";
   const [closedByAccept, setClosedByAccept] = useState(false);
+  const [actionsEnabled, setActionsEnabled] = useState(false);
 
   useEffect(() => {
     if (!visible) {
       setClosedByAccept(false);
+      setActionsEnabled(false);
+      return;
     }
+
+    const timer = setTimeout(() => {
+      setActionsEnabled(true);
+    }, 800);
+
+    return () => clearTimeout(timer);
   }, [visible]);
 
   useEffect(() => {
@@ -218,12 +227,12 @@ export default function IncomingCall({
           <TouchableOpacity
             accessibilityLabel="Откажи обаждането"
             accessibilityRole="button"
-            disabled={connecting}
+            disabled={connecting || !actionsEnabled}
             onPress={onReject}
             style={[
               styles.circleButton,
               styles.declineButton,
-              connecting && styles.disabledButton,
+              (connecting || !actionsEnabled) && styles.disabledButton,
             ]}
           >
             <Ionicons name="close" size={36} color="#ffffff" />
@@ -237,7 +246,7 @@ export default function IncomingCall({
               isAudio ? "Приеми аудио обаждането" : "Приеми видео обаждането"
             }
             accessibilityRole="button"
-            disabled={connecting}
+            disabled={connecting || !actionsEnabled}
             onPress={() => {
               setClosedByAccept(true);
               onAccept();
@@ -245,7 +254,7 @@ export default function IncomingCall({
             style={[
               styles.circleButton,
               styles.acceptButton,
-              connecting && styles.disabledButton,
+              (connecting || !actionsEnabled) && styles.disabledButton,
             ]}
           >
             <Ionicons name={isAudio ? "call" : "videocam"} size={32} color="#082f49" />
