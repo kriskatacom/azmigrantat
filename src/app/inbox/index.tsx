@@ -37,7 +37,7 @@ type LoadMode = "initial" | "refresh" | "silent";
 export default function InboxScreen() {
   const { theme } = useAppTheme();
   const { token, user } = useAuth();
-  const { socket, isConnected, lastReceivedMessage, lastPresenceUpdate, lastPresenceStatus } = useSocket();
+  const { socket, isConnected, lastReceivedMessage, lastPresenceUpdate, lastPresenceStatus, lastUserBlock } = useSocket();
   const unreadNotificationCount = useUnreadNotificationCount();
   const router = useRouter();
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -116,6 +116,29 @@ export default function InboxScreen() {
       ]);
     });
   }, [lastReceivedMessage, loadConversations, user?.id]);
+
+  useEffect(() => {
+    if (!lastUserBlock) {
+      return;
+    }
+
+    const relatedIds = [
+      Number(lastUserBlock.blocker_id),
+      Number(lastUserBlock.blocked_id),
+    ];
+
+    if (lastUserBlock.blocked) {
+      setConversations((current) =>
+        current.filter((conversation) => {
+          const otherId = Number(conversation.other_user?.id);
+          return !relatedIds.includes(otherId);
+        }),
+      );
+      return;
+    }
+
+    void loadConversations("silent");
+  }, [lastUserBlock, loadConversations]);
 
   const openCall = (conversation: Conversation) => {
     const otherUser = conversation.other_user;

@@ -3,6 +3,16 @@ interface ApiErrorResponse {
   message?: string;
 }
 
+export class HttpError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "HttpError";
+    this.status = status;
+  }
+}
+
 type SessionHandlers = {
   refreshAccessToken: () => Promise<string | null>;
   onUnauthorized: () => void;
@@ -73,9 +83,10 @@ export async function authorizedJson<T>(
   }
 
   if (!result.response.ok) {
-    throw new Error(
+    throw new HttpError(
       (result.data as ApiErrorResponse).message ??
         "Възникна грешка при комуникацията със сървъра.",
+      result.response.status,
     );
   }
 

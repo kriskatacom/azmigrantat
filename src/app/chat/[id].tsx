@@ -59,6 +59,7 @@ export default function ChatRoom() {
     lastTypingUpdate,
     lastPresenceUpdate,
     lastPresenceStatus,
+    lastUserBlock,
   } = useSocket();
 
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
@@ -104,6 +105,7 @@ export default function ChatRoom() {
     messages,
     otherUser,
     isBlocked,
+    blockedByOther,
     isLoading,
     isSending,
     isUploading,
@@ -119,13 +121,15 @@ export default function ChatRoom() {
     lastDeliveredReceipt,
     lastReadReceipt,
     lastReactionUpdate,
+    lastUserBlock,
+    otherUserId: routeUserId,
     inputRef,
     flatListRef,
     isAppActive,
   });
 
   const { takePhoto, choosePhotos, chooseFiles } = useChatAttachments({
-    disabled: isSending || isUploading,
+    disabled: isSending || isUploading || isBlocked,
     onSend: sendChatAttachments,
   });
 
@@ -133,17 +137,30 @@ export default function ChatRoom() {
     socket,
     conversationId,
     currentUserId: user?.id,
-    otherUserId: otherUser?.id,
+    otherUserId: isBlocked ? undefined : otherUser?.id ?? routeUserId,
     lastTypingUpdate,
   });
 
   const { isOtherUserOnline, lastSeenAt } = useChatPresence({
     socket,
     isConnected,
-    otherUserId: otherUser?.id,
+    otherUserId: isBlocked ? undefined : otherUser?.id ?? routeUserId,
     lastPresenceUpdate,
     lastPresenceStatus,
   });
+
+  useEffect(() => {
+    if (!blockedByOther) {
+      return;
+    }
+
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+
+    router.replace("/inbox");
+  }, [blockedByOther, router]);
 
   useEffect(() => {
     if (!Number.isInteger(conversationId) || !isAppActive) {
@@ -220,9 +237,13 @@ export default function ChatRoom() {
     );
   }
 
-  const displayedName = otherUser?.name ?? routeTitle ?? "Разговор";
+  const displayedName = blockedByOther
+    ? "Потребител"
+    : (otherUser?.name ?? routeTitle ?? "Разговор");
 
-  const displayedImage = otherUser?.profile_image ?? routeImage ?? null;
+  const displayedImage = blockedByOther
+    ? null
+    : (otherUser?.profile_image ?? routeImage ?? null);
 
   const recipientUserId = otherUser?.id ?? routeUserId;
 
@@ -265,10 +286,10 @@ export default function ChatRoom() {
       <ChatHeader
         name={displayedName}
         image={displayedImage}
-        isOnline={isOtherUserOnline}
-        lastSeenAt={lastSeenAt}
-        isTyping={isOtherUserTyping}
-        publicCode={otherUser?.public_code}
+        isOnline={!isBlocked && isOtherUserOnline}
+        lastSeenAt={isBlocked ? null : lastSeenAt}
+        isTyping={!isBlocked && isOtherUserTyping}
+        publicCode={isBlocked ? undefined : otherUser?.public_code}
         onBack={() => router.back()}
         onAudioCall={
           !isBlocked && recipientUserId ? () => openCall("audio") : undefined

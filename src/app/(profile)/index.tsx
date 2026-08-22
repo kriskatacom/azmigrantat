@@ -1,6 +1,5 @@
 import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
-import BlockUserSection from "@/components/profile/block-user-section";
 import DeleteChatMessagesForm from "@/components/profile/delete-chat-messages-form";
 import PhoneVerificationForm from "@/components/profile/phone-verification-form";
 import ProfileDetailsForm from "@/components/profile/profile-details-form";
@@ -12,8 +11,7 @@ import {
   getCurrentUserRequest,
   updateProfileRequest,
 } from "@/services/auth";
-import { blockUserByCode, updateProfileImageRequest } from "@/services/profile";
-import { playAppSound } from "@/services/sounds";
+import { updateProfileImageRequest } from "@/services/profile";
 import type { UpdateProfilePayload } from "@/types/auth";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -37,7 +35,6 @@ export default function ProfileHomeScreen() {
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isDeletingChatMessages, setIsDeletingChatMessages] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const [isBlocking, setIsBlocking] = useState(false);
 
   useEffect(() => {
     if (!token || user?.public_code) {
@@ -69,26 +66,6 @@ export default function ProfileHomeScreen() {
       );
     } finally {
       setIsUploadingPhoto(false);
-    }
-  };
-
-  const handleBlockUser = async (code: string) => {
-    setIsBlocking(true);
-    try {
-      await blockUserByCode(token, code);
-      playAppSound("blockUser");
-      Alert.alert("Готово", "Потребителят беше блокиран.");
-      return true;
-    } catch (error) {
-      Alert.alert(
-        "Грешка",
-        error instanceof Error
-          ? error.message
-          : "Потребителят не можа да бъде блокиран.",
-      );
-      return false;
-    } finally {
-      setIsBlocking(false);
     }
   };
 
@@ -234,6 +211,46 @@ export default function ProfileHomeScreen() {
           />
         </TouchableOpacity>
 
+        <TouchableOpacity
+          onPress={() => router.push("/(profile)/blocked")}
+          style={[
+            styles.settingsLink,
+            {
+              backgroundColor: theme.colors.card,
+              borderColor: theme.colors.border,
+            },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel="Блокирани потребители"
+        >
+          <View
+            style={[
+              styles.settingsIcon,
+              { backgroundColor: theme.colors.background },
+            ]}
+          >
+            <FontAwesome name="ban" size={20} color={theme.colors.danger} />
+          </View>
+          <View style={styles.settingsText}>
+            <Text style={[styles.settingsTitle, { color: theme.colors.text }]}>
+              Блокирани потребители
+            </Text>
+            <Text
+              style={[
+                styles.settingsDescription,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              Блокиране по код, преглед и отблокиране
+            </Text>
+          </View>
+          <FontAwesome
+            name="chevron-right"
+            size={16}
+            color={theme.colors.textSecondary}
+          />
+        </TouchableOpacity>
+
         <ProfileIdentityCard
           name={`${user.firstName} ${user.lastName}`.trim() || user.email}
           publicCode={user.public_code}
@@ -277,11 +294,6 @@ export default function ProfileHomeScreen() {
           isVerified={user.phone_verified === true}
           onVerified={updateUser}
         />
-
-        <View
-          style={[styles.divider, { backgroundColor: theme.colors.border }]}
-        />
-        <BlockUserSection isBlocking={isBlocking} onBlock={handleBlockUser} />
 
         <View
           style={[styles.divider, { backgroundColor: theme.colors.border }]}

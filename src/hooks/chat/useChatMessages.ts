@@ -1,3 +1,4 @@
+import { HttpError } from "@/services/session-http";
 import {
   getConversation,
   getMessages,
@@ -14,7 +15,7 @@ import {
   type MessageReactionItem,
   type MessageReactionType,
 } from "@/constants/message-reactions";
-import type { MessageReactionPayload } from "@/services/socket";
+import type { MessageReactionPayload, UserBlockPayload } from "@/services/socket";
 import * as Crypto from "expo-crypto";
 import {
   type RefObject,
@@ -101,6 +102,8 @@ type UseChatMessagesParams = {
   lastDeliveredReceipt?: DeliveredReceipt | null;
   lastReadReceipt?: ReadReceipt | null;
   lastReactionUpdate?: MessageReactionPayload | null;
+  lastUserBlock?: UserBlockPayload | null;
+  otherUserId?: number | null;
 
   inputRef: RefObject<TextInput | null>;
   flatListRef: RefObject<FlatList<ChatMessage> | null>;
@@ -116,6 +119,8 @@ export function useChatMessages({
   lastDeliveredReceipt,
   lastReadReceipt,
   lastReactionUpdate,
+  lastUserBlock,
+  otherUserId,
   inputRef,
   flatListRef,
   isAppActive,
@@ -123,6 +128,7 @@ export function useChatMessages({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [otherUser, setOtherUser] = useState<ChatUser | null>(null);
   const [isBlocked, setIsBlocked] = useState(false);
+  const [blockedByOther, setBlockedByOther] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
@@ -131,6 +137,7 @@ export function useChatMessages({
   const lastReadReceiptRef = useRef(lastReadReceipt);
   const lastDeliveredReceiptRef = useRef(lastDeliveredReceipt);
   const isAppActiveRef = useRef(isAppActive);
+  const isBlockedRef = useRef(false);
 
   useEffect(() => {
     lastReadReceiptRef.current = lastReadReceipt;
@@ -143,6 +150,10 @@ export function useChatMessages({
   useEffect(() => {
     isAppActiveRef.current = isAppActive;
   }, [isAppActive]);
+
+  useEffect(() => {
+    isBlockedRef.current = isBlocked || blockedByOther;
+  }, [isBlocked, blockedByOther]);
 
   const resolveOtherUser = useCallback(
     (items: ChatMessage[]) => {
@@ -194,6 +205,7 @@ export function useChatMessages({
         resolveOtherUser(response.data);
       }
       setIsBlocked(conversation?.is_blocked === true);
+      setBlockedByOther(false);
 
       const lastMessage = response.data.at(-1);
 
@@ -210,6 +222,12 @@ export function useChatMessages({
       }
 
     } catch (error) {
+      if (error instanceof HttpError && error.status === 404) {
+        setBlockedByOther(true);
+        setIsBlocked(true);
+        return;
+      }
+
       Alert.alert(
         "Грешка",
         error instanceof Error
@@ -231,9 +249,42 @@ export function useChatMessages({
   }, [loadMessages]);
 
   useEffect(() => {
+    if (!lastUserBlock || currentUserId === undefined) {
+      return;
+    }
+
+    const myId = Number(currentUserId);
+    const otherId = Number(otherUser?.id ?? otherUserId);
+    const involvesOther =
+      Number.isInteger(otherId) &&
+      otherId > 0 &&
+      (Number(lastUserBlock.blocker_id) === otherId ||
+        Number(lastUserBlock.blocked_id) === otherId);
+    const involvesMe =
+      Number(lastUserBlock.blocker_id) === myId ||
+      Number(lastUserBlock.blocked_id) === myId;
+
+    if (!involvesMe || !involvesOther) {
+      return;
+    }
+
+    if (!lastUserBlock.blocked) {
+      setIsBlocked(false);
+      setBlockedByOther(false);
+      return;
+    }
+
+    setIsBlocked(true);
+    if (Number(lastUserBlock.blocked_id) === myId) {
+      setBlockedByOther(true);
+    }
+  }, [lastUserBlock, currentUserId, otherUser?.id, otherUserId]);
+
+  useEffect(() => {
     if (
       !lastReceivedMessage ||
-      Number(lastReceivedMessage.conversation_id) !== Number(conversationId)
+      Number(lastReceivedMessage.conversation_id) !== Number(conversationId) ||
+      isBlockedRef.current
     ) {
       return;
     }
@@ -431,6 +482,14 @@ export function useChatMessages({
 
         return true;
       } catch (error) {
+        if (error instanceof HttpError && (error.status === 403 || error.status === 404)) {
+          setIsBlocked(true);
+          if (error.status === 404) {
+            setBlockedByOther(true);
+          }
+          return false;
+        }
+
         Alert.alert(
           "Неуспешно изпращане",
           error instanceof Error
@@ -526,6 +585,7 @@ export function useChatMessages({
     messages,
     otherUser,
     isBlocked,
+    blockedByOther,
     isLoading,
     isSending,
     isUploading,

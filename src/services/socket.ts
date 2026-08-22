@@ -50,6 +50,12 @@ export interface TypingPayload {
   is_typing: boolean;
 }
 
+export interface UserBlockPayload {
+  blocker_id: number;
+  blocked_id: number;
+  blocked: boolean;
+}
+
 export interface TypingClientPayload {
   conversation_id: number;
   recipient_ids: number[];
@@ -88,6 +94,8 @@ interface ServerToClientEvents {
   "notification:read-all": (payload: { user_id: number }) => void;
   "notification:cleared": (payload: { user_id: number }) => void;
   "notification:deleted": (payload: AppNotification) => void;
+  "user:blocked": (payload: UserBlockPayload) => void;
+  "user:unblocked": (payload: UserBlockPayload) => void;
   "auth:revoked": (payload: { reason: string }) => void;
 }
 

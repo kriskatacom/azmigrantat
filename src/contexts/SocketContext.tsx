@@ -7,6 +7,7 @@ import {
   MessageReactionPayload,
   PresencePayload,
   TypingPayload,
+  UserBlockPayload,
   type AppSocket,
 } from "@/services/socket";
 
@@ -51,6 +52,7 @@ interface SocketContextValue {
   lastNotification: AppNotification | null;
   lastNotificationEvent: NotificationSocketEvent | null;
   lastNotificationEventAt: number;
+  lastUserBlock: UserBlockPayload | null;
 }
 
 export const SocketContext = createContext<SocketContextValue | undefined>(
@@ -93,6 +95,9 @@ export function SocketProvider({ children }: PropsWithChildren) {
   const [lastNotificationEvent, setLastNotificationEvent] =
     useState<NotificationSocketEvent | null>(null);
   const [lastNotificationEventAt, setLastNotificationEventAt] = useState(0);
+  const [lastUserBlock, setLastUserBlock] = useState<UserBlockPayload | null>(
+    null,
+  );
 
   useEffect(() => {
     if (isLoading) {
@@ -119,6 +124,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
       setLastNotification(null);
       setLastNotificationEvent(null);
       setLastNotificationEventAt(0);
+      setLastUserBlock(null);
 
       return;
     }
@@ -239,6 +245,14 @@ export function SocketProvider({ children }: PropsWithChildren) {
       setLastNotificationEventAt(Date.now());
     };
 
+    const handleUserBlocked = (payload: UserBlockPayload) => {
+      setLastUserBlock({ ...payload, blocked: true });
+    };
+
+    const handleUserUnblocked = (payload: UserBlockPayload) => {
+      setLastUserBlock({ ...payload, blocked: false });
+    };
+
     const handleConnectError = (error: Error) => {
       setIsConnected(false);
       setIsConnecting(false);
@@ -285,6 +299,9 @@ export function SocketProvider({ children }: PropsWithChildren) {
     currentSocket.on("notification:cleared", handleNotificationCleared);
     currentSocket.on("notification:deleted", handleNotificationDeleted);
 
+    currentSocket.on("user:blocked", handleUserBlocked);
+    currentSocket.on("user:unblocked", handleUserUnblocked);
+
     currentSocket.on("typing:update", handleTypingUpdate);
 
     currentSocket.on("presence:update", handlePresenceUpdate);
@@ -317,6 +334,9 @@ export function SocketProvider({ children }: PropsWithChildren) {
       currentSocket.off("notification:read-all", handleNotificationReadAll);
       currentSocket.off("notification:cleared", handleNotificationCleared);
       currentSocket.off("notification:deleted", handleNotificationDeleted);
+
+      currentSocket.off("user:blocked", handleUserBlocked);
+      currentSocket.off("user:unblocked", handleUserUnblocked);
 
       currentSocket.off("typing:update", handleTypingUpdate);
 
@@ -353,6 +373,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
       lastNotification,
       lastNotificationEvent,
       lastNotificationEventAt,
+      lastUserBlock,
     }),
     [
       socket,
@@ -373,6 +394,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
       lastNotification,
       lastNotificationEvent,
       lastNotificationEventAt,
+      lastUserBlock,
     ],
   );
 

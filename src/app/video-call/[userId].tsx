@@ -4,6 +4,7 @@ import VideoCallView from "@/components/video/video-call-view";
 import { useAppTheme } from "@/app/_layout";
 import { useIncomingVideoCall } from "@/contexts/VideoCallContext";
 import { useAuth } from "@/hooks/useAuth";
+import { useSocket } from "@/hooks/useSocket";
 import { useVideoCall } from "@/hooks/video/useVideoCall";
 import { parseCallType } from "@/services/video-call";
 import {
@@ -19,6 +20,7 @@ export default function VideoCallScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
   const { user, isLoading: isAuthLoading } = useAuth();
+  const { lastUserBlock } = useSocket();
   const params = useLocalSearchParams<{
     userId?: string | string[];
     name?: string | string[];
@@ -107,6 +109,24 @@ export default function VideoCallScreen() {
     claimActiveCall,
     releaseActiveCall,
   });
+
+  useEffect(() => {
+    if (!lastUserBlock?.blocked || !user?.id || !Number.isInteger(recipientId)) {
+      return;
+    }
+
+    const relatedIds = [
+      Number(lastUserBlock.blocker_id),
+      Number(lastUserBlock.blocked_id),
+    ];
+
+    if (
+      relatedIds.includes(Number(user.id)) &&
+      relatedIds.includes(Number(recipientId))
+    ) {
+      endCall();
+    }
+  }, [lastUserBlock, user?.id, recipientId, endCall]);
 
   const terminalStatus = useMemo(() => {
     switch (callState) {

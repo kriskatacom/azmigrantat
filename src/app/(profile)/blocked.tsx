@@ -1,8 +1,10 @@
 import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
+import BlockUserSection from "@/components/profile/block-user-section";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import { useAuth } from "@/hooks/useAuth";
-import { getBlockedUsers, unblockUser } from "@/services/profile";
+import { blockUserByCode, getBlockedUsers, unblockUser } from "@/services/profile";
+import { playAppSound } from "@/services/sounds";
 import type { BlockedUser } from "@/types/blocks";
 import { FontAwesome } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
@@ -28,6 +30,7 @@ export default function BlockedUsersScreen() {
   const [hasMore, setHasMore] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [pendingUnblock, setPendingUnblock] = useState<BlockedUser | null>(null);
+  const [isBlocking, setIsBlocking] = useState(false);
 
   const loadBlocked = useCallback(
     async (mode: "initial" | "refresh" = "initial") => {
@@ -91,6 +94,31 @@ export default function BlockedUsersScreen() {
     }
   };
 
+  const handleBlockUser = async (code: string) => {
+    if (!token) {
+      return false;
+    }
+
+    setIsBlocking(true);
+    try {
+      await blockUserByCode(token, code);
+      playAppSound("blockUser");
+      Alert.alert("Готово", "Потребителят беше блокиран.");
+      await loadBlocked("refresh");
+      return true;
+    } catch (error) {
+      Alert.alert(
+        "Грешка",
+        error instanceof Error
+          ? error.message
+          : "Потребителят не можа да бъде блокиран.",
+      );
+      return false;
+    } finally {
+      setIsBlocking(false);
+    }
+  };
+
   const handleUnblock = async () => {
     if (!token || !pendingUnblock) {
       return;
@@ -113,28 +141,30 @@ export default function BlockedUsersScreen() {
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <Header title="Блокирани" hideSearchButton hideAuthButton />
-      {isLoading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
-        </View>
-      ) : (
-        <FlatList
-          data={blocked}
-          keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={
-            blocked.length === 0 ? styles.emptyContent : styles.listContent
-          }
-          refreshControl={
-            <RefreshControl
-              refreshing={isRefreshing}
-              onRefresh={() => void loadBlocked("refresh")}
-              tintColor={theme.colors.primary}
-            />
-          }
-          onEndReached={() => void loadMore()}
-          onEndReachedThreshold={0.4}
-          ListEmptyComponent={
+      <Header title="Блокирани потребители" hideSearchButton hideAuthButton />
+      <FlatList
+        data={blocked}
+        keyExtractor={(item) => String(item.id)}
+        contentContainerStyle={styles.listContent}
+        keyboardShouldPersistTaps="handled"
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => void loadBlocked("refresh")}
+            tintColor={theme.colors.primary}
+          />
+        }
+        onEndReached={() => void loadMore()}
+        onEndReachedThreshold={0.4}
+        ListHeaderComponent={
+          <BlockUserSection isBlocking={isBlocking} onBlock={handleBlockUser} />
+        }
+        ListEmptyComponent={
+          isLoading ? (
+            <View style={styles.centered}>
+              <ActivityIndicator size="large" color={theme.colors.primary} />
+            </View>
+          ) : (
             <View style={styles.empty}>
               <FontAwesome
                 name="ban"
@@ -153,80 +183,80 @@ export default function BlockedUsersScreen() {
                 Когато блокирате някого по код, той ще се появи тук.
               </Text>
             </View>
-          }
-          ListFooterComponent={
-            isLoadingMore ? (
-              <ActivityIndicator
-                style={styles.footer}
-                color={theme.colors.primary}
+          )
+        }
+        ListFooterComponent={
+          isLoadingMore ? (
+            <ActivityIndicator
+              style={styles.footer}
+              color={theme.colors.primary}
+            />
+          ) : null
+        }
+        renderItem={({ item }) => (
+          <View
+            style={[
+              styles.row,
+              {
+                backgroundColor: theme.colors.card,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            {item.profile_image ? (
+              <Image
+                source={{ uri: item.profile_image }}
+                style={styles.avatar}
               />
-            ) : null
-          }
-          renderItem={({ item }) => (
-            <View
-              style={[
-                styles.row,
-                {
-                  backgroundColor: theme.colors.card,
-                  borderColor: theme.colors.border,
-                },
-              ]}
-            >
-              {item.profile_image ? (
-                <Image
-                  source={{ uri: item.profile_image }}
-                  style={styles.avatar}
-                />
-              ) : (
-                <View
-                  style={[
-                    styles.avatar,
-                    styles.placeholder,
-                    { backgroundColor: theme.colors.background },
-                  ]}
-                >
-                  <FontAwesome
-                    name="user"
-                    size={20}
-                    color={theme.colors.textSecondary}
-                  />
-                </View>
-              )}
-              <View style={styles.details}>
-                <Text
-                  style={[styles.name, { color: theme.colors.text }]}
-                  numberOfLines={1}
-                >
-                  {item.name ?? "Потребител"}
-                </Text>
-                {item.public_code ? (
-                  <Text
-                    selectable
-                    style={[styles.code, { color: theme.colors.textSecondary }]}
-                  >
-                    {item.public_code}
-                  </Text>
-                ) : null}
-              </View>
-              <TouchableOpacity
-                onPress={() => setPendingUnblock(item)}
+            ) : (
+              <View
                 style={[
-                  styles.unblock,
-                  { borderColor: theme.colors.primary },
+                  styles.avatar,
+                  styles.placeholder,
+                  { backgroundColor: theme.colors.background },
                 ]}
-                accessibilityRole="button"
-                accessibilityLabel={`Отблокирай ${item.name ?? "потребителя"}`}
               >
+                <FontAwesome
+                  name="user"
+                  size={20}
+                  color={theme.colors.textSecondary}
+                />
+              </View>
+            )}
+            <View style={styles.details}>
+              <Text
+                style={[styles.name, { color: theme.colors.text }]}
+                numberOfLines={1}
+              >
+                {item.name ?? "Потребител"}
+              </Text>
+              {item.public_code ? (
                 <Text
-                  style={[styles.unblockText, { color: theme.colors.primary }]}
+                  selectable
+                  style={[styles.code, { color: theme.colors.textSecondary }]}
                 >
-                  Отблокирай
+                  {item.public_code}
                 </Text>
-              </TouchableOpacity>
+              ) : null}
             </View>
-          )}
-        />
-      )}
+            <TouchableOpacity
+              onPress={() => setPendingUnblock(item)}
+              style={[
+                styles.unblock,
+                { borderColor: theme.colors.primary },
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={`Отблокирай ${item.name ?? "потребителя"}`}
+            >
+              <Text
+                style={[styles.unblockText, { color: theme.colors.primary }]}
+              >
+                Отблокирай
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      />
       <ConfirmModal
         visible={pendingUnblock !== null}
         title="Отблокиране"
@@ -241,9 +271,8 @@ export default function BlockedUsersScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
   listContent: { padding: 20, gap: 10, paddingBottom: 40 },
-  emptyContent: { flexGrow: 1, justifyContent: "center", padding: 20 },
+  centered: { paddingVertical: 32, alignItems: "center" },
   empty: { alignItems: "center", paddingHorizontal: 24 },
   emptyTitle: { fontSize: 18, fontWeight: "700", marginTop: 14, textAlign: "center" },
   emptyDescription: {

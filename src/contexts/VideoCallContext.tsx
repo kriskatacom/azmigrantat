@@ -83,7 +83,7 @@ function mergeCall(
 export function VideoCallProvider({ children }: PropsWithChildren) {
   const router = useRouter();
   const navigationState = useRootNavigationState();
-  const { socket, isConnected } = useSocket();
+  const { socket, isConnected, lastUserBlock } = useSocket();
   const { token, user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [incomingCall, setIncomingCall] = useState<CallServerPayload | null>(
     null,
@@ -407,6 +407,36 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
 
     clearCallArtifacts(call.call_id);
   }, [clearCallArtifacts, socket, token, user]);
+
+  useEffect(() => {
+    if (!lastUserBlock?.blocked || !user?.id) {
+      return;
+    }
+
+    const relatedIds = new Set([
+      Number(lastUserBlock.blocker_id),
+      Number(lastUserBlock.blocked_id),
+    ]);
+
+    if (!relatedIds.has(Number(user.id))) {
+      return;
+    }
+
+    const incoming = incomingCallRef.current;
+    if (incoming && relatedIds.has(Number(incoming.sender_id))) {
+      rejectIncomingCall();
+    }
+
+    const accepted = acceptedIncomingCallRef.current;
+    if (accepted && relatedIds.has(Number(accepted.call.sender_id))) {
+      socket?.emit("call:end", {
+        call_id: accepted.call.call_id,
+        recipient_id: accepted.call.sender_id,
+        reason: "blocked",
+      });
+      clearCallArtifacts(accepted.call.call_id);
+    }
+  }, [lastUserBlock, user?.id, rejectIncomingCall, socket, clearCallArtifacts]);
 
   const applyPendingAction = useCallback(
     (pending: PendingIncomingCallAction | null) => {
