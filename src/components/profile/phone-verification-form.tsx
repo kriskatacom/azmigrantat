@@ -1,5 +1,6 @@
 import { useAppTheme } from "@/app/_layout";
 import AppButton from "@/components/ui/AppButton";
+import PhoneNumberField from "@/components/profile/phone-number-field";
 import ProfileField from "@/components/profile/profile-field";
 import {
   sendPhoneVerificationRequest,
@@ -23,14 +24,15 @@ export default function PhoneVerificationForm({
   onVerified,
 }: PhoneVerificationFormProps) {
   const { theme } = useAppTheme();
+  const [phoneValue, setPhoneValue] = useState(phone);
   const [code, setCode] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [sentChannel, setSentChannel] = useState<string | null>(null);
 
   const sendCode = async (channel: "whatsapp" | "sms") => {
-    if (!phone.trim()) {
-      Alert.alert("Липсва номер", "Въведете телефонен номер и го запазете.");
+    if (!phoneValue.trim()) {
+      Alert.alert("Липсва номер", "Изберете държава и въведете телефонния номер.");
       return;
     }
 
@@ -38,7 +40,7 @@ export default function PhoneVerificationForm({
     try {
       const result = await sendPhoneVerificationRequest(
         token,
-        phone.trim(),
+        phoneValue.trim(),
         channel,
       );
       setSentChannel(result.channel);
@@ -61,7 +63,7 @@ export default function PhoneVerificationForm({
 
     setIsVerifying(true);
     try {
-      const user = await verifyPhoneRequest(token, phone.trim(), code.trim());
+      const user = await verifyPhoneRequest(token, phoneValue.trim(), code.trim());
       setCode("");
       await onVerified(user);
       Alert.alert("Готово", "Телефонният номер е потвърден.");
@@ -82,6 +84,7 @@ export default function PhoneVerificationForm({
       </Text>
       {!isVerified ? (
         <>
+          <PhoneNumberField value={phoneValue} onChange={setPhoneValue} />
           <AppButton
             title="Изпрати код по WhatsApp"
             loading={isSending}

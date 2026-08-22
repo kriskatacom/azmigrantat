@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import CountryField from "./country-field";
 import GenderField from "./gender-field";
+import PhoneNumberField from "./phone-number-field";
 import ProfileField from "./profile-field";
 
 interface ProfileDetailsFormProps {
@@ -58,14 +59,7 @@ export default function ProfileDetailsForm({
         </View>
       </View>
       <GenderField value={gender} onChange={setGender} />
-      <ProfileField
-        label="Телефон"
-        value={phone}
-        onChangeText={setPhone}
-        keyboardType="phone-pad"
-        autoComplete="tel"
-        placeholder="Например: +359 88 123 4567"
-      />
+      <PhoneNumberField value={phone} onChange={setPhone} />
       <CountryField value={country} onChange={setCountry} />
       <ProfileField
         label="Град"

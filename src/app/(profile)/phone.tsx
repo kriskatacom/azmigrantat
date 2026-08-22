@@ -23,8 +23,8 @@ export default function PhoneVerificationScreen() {
         contentContainerStyle={styles.content}
       >
         <Text style={[styles.description, { color: theme.colors.textSecondary }]}>
-          Изпращаме код първо в WhatsApp. Ако нямате WhatsApp, изберете SMS.
-          Номерът трябва да е запазен в личните данни.
+          Изпращаме 6-цифрен код по WhatsApp или SMS. Избери държавата и въведи
+          само номера, без кода и без водеща нула.
         </Text>
         <PhoneVerificationForm
           token={token}
