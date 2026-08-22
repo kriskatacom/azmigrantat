@@ -10,31 +10,40 @@ import {
 } from "react";
 
 import {
+  completeDevicePendingRequest,
   completeTotpLoginRequest,
+  deviceSecretLoginRequest,
   googleLoginRequest,
   loginRequest,
   logoutRequest,
+  pinLoginRequest,
   refreshRequest,
   registerRequest,
+  verifyDeviceEmailCodeRequest,
 } from "@/services/auth";
 import {
-  authenticateWithBiometrics,
-  clearBiometricCredentials,
-  getBiometricCredentials,
-  getBiometricLabel,
-  getBiometricTypes,
-  isBiometricLoginEnabled,
-  isBiometricSupported,
-  saveBiometricCredentials,
-  setBiometricLoginEnabled,
-  type BiometricCredentials,
+  authenticateDeviceUnlock,
+  authenticateFingerprint,
+  isDeviceUnlockAvailable,
+  isFingerprintAvailable,
 } from "@/services/biometric";
+import {
+  clearDeviceSecret,
+  getDeviceSecret,
+  getLastLoginEmail,
+  isDeviceLockLoginEnabled,
+  isFingerprintLoginEnabled,
+  setDeviceLockLoginEnabled,
+  setDeviceSecret,
+  setFingerprintLoginEnabled,
+  setLastLoginEmail,
+} from "@/services/device-identity";
 
 import { registerForPushNotifications } from "@/services/notifications";
 import { configureIncomingCallNativeSession } from "@/services/incoming-call";
 import { getRealtimeHttpUrl } from "@/services/realtime-http";
 import { bindAuthSessionHandlers } from "@/services/session-http";
-import type { AuthUser, LoginPayload, RegisterPayload } from "@/types/auth";
+import type { AuthResponse, AuthUser, LoginPayload, RegisterPayload } from "@/types/auth";
 
 const TOKEN_KEY = "auth_token";
 const REFRESH_KEY = "auth_refresh_token";
@@ -63,21 +72,30 @@ interface AuthContextValue {
   expiresAt: number | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  biometricSupported: boolean;
-  biometricLoginEnabled: boolean;
-  canUseBiometricLogin: boolean;
-  biometricLabel: string;
+  lastLoginEmail: string | null;
+  hasDeviceSecret: boolean;
+  hasPin: boolean;
+  fingerprintAvailable: boolean;
+  deviceUnlockAvailable: boolean;
+  fingerprintLoginEnabled: boolean;
+  deviceLockLoginEnabled: boolean;
+  canUseFingerprintLogin: boolean;
+  canUseDeviceLockLogin: boolean;
   login: (payload: LoginPayload) => Promise<void>;
   loginWithGoogle: (idToken: string, rememberMe?: boolean) => Promise<void>;
-  loginWithBiometrics: (rememberMe?: boolean) => Promise<void>;
+  loginWithPin: (pin: string, rememberMe?: boolean) => Promise<void>;
+  loginWithFingerprint: (rememberMe?: boolean) => Promise<void>;
+  loginWithDeviceLock: (rememberMe?: boolean) => Promise<void>;
   completeTotpLogin: (pendingToken: string, code: string) => Promise<void>;
-  enableBiometricLogin: (credentials?: BiometricCredentials) => Promise<void>;
-  disableBiometricLogin: () => Promise<void>;
+  completeDevicePending: (pendingToken: string) => Promise<void>;
+  completeDeviceEmailCode: (pendingToken: string, code: string) => Promise<void>;
+  setFingerprintLoginEnabledFlag: (enabled: boolean) => Promise<void>;
+  setDeviceLockLoginEnabledFlag: (enabled: boolean) => Promise<void>;
   register: (payload: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   endLocalSession: () => Promise<void>;
   updateUser: (user: AuthUser) => Promise<void>;
-  updateBiometricCredentials: (credentials: BiometricCredentials) => Promise<void>;
+  clearLocalQuickLogin: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(
@@ -98,25 +116,32 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const [token, setToken] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [biometricSupported, setBiometricSupported] = useState(false);
-  const [biometricEnabled, setBiometricEnabled] = useState(false);
-  const [canUseBiometricLogin, setCanUseBiometricLogin] = useState(false);
-  const [biometricLabel, setBiometricLabel] = useState("биометрия и PIN");
-  const [needsBiometricUnlock, setNeedsBiometricUnlock] = useState(false);
+  const [lastLoginEmail, setLastLoginEmailState] = useState<string | null>(null);
+  const [hasDeviceSecret, setHasDeviceSecret] = useState(false);
+  const [hasPin, setHasPin] = useState(false);
+  const [fingerprintAvailable, setFingerprintAvailable] = useState(false);
+  const [deviceUnlockAvailable, setDeviceUnlockAvailable] = useState(false);
+  const [fingerprintLoginEnabled, setFingerprintEnabled] = useState(true);
+  const [deviceLockLoginEnabled, setDeviceLockEnabled] = useState(true);
   const loggingOutRef = useRef(false);
 
-  const syncBiometricLoginAvailability = useCallback(async () => {
-    const [supported, enabled, types, credentials] = await Promise.all([
-      isBiometricSupported(),
-      isBiometricLoginEnabled(),
-      getBiometricTypes(),
-      getBiometricCredentials(),
-    ]);
+  const syncLocalLoginAvailability = useCallback(async () => {
+    const [secret, email, fingerprint, unlock, fingerprintOn, lockOn] =
+      await Promise.all([
+        getDeviceSecret(),
+        getLastLoginEmail(),
+        isFingerprintAvailable(),
+        isDeviceUnlockAvailable(),
+        isFingerprintLoginEnabled(),
+        isDeviceLockLoginEnabled(),
+      ]);
 
-    setBiometricSupported(supported);
-    setBiometricEnabled(enabled);
-    setBiometricLabel(getBiometricLabel(types));
-    setCanUseBiometricLogin(Boolean(supported && enabled && credentials));
+    setHasDeviceSecret(Boolean(secret));
+    setLastLoginEmailState(email);
+    setFingerprintAvailable(fingerprint);
+    setDeviceUnlockAvailable(unlock);
+    setFingerprintEnabled(fingerprintOn);
+    setDeviceLockEnabled(lockOn);
   }, []);
 
   const clearLocalSession = useCallback(async () => {
@@ -130,7 +155,6 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setToken(null);
     setUser(null);
     setExpiresAt(null);
-    setNeedsBiometricUnlock(false);
   }, []);
 
   const saveSession = useCallback(
@@ -158,7 +182,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setToken(newToken);
       setUser(newUser);
       setExpiresAt(newExpiresAt);
-      setNeedsBiometricUnlock(false);
+      setHasPin(Boolean(newUser.has_pin));
       applyNativeSession(newToken);
       loggingOutRef.current = false;
     },
@@ -184,10 +208,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
     } catch (error) {
       console.error("Неуспешно подновяване на сесията:", error);
       await clearLocalSession();
-      await syncBiometricLoginAvailability();
+      await syncLocalLoginAvailability();
       return null;
     }
-  }, [saveSession, clearLocalSession, syncBiometricLoginAvailability]);
+  }, [saveSession, clearLocalSession, syncLocalLoginAvailability]);
 
   const hydrateStoredSession = useCallback(async (): Promise<boolean> => {
     const [storedToken, storedUser, storedExpiresAt, storedRefresh] =
@@ -218,7 +242,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setToken(storedToken);
     setUser(parsedUser);
     setExpiresAt(parsedExpiresAt);
-    setNeedsBiometricUnlock(false);
+    setHasPin(Boolean(parsedUser.has_pin));
     applyNativeSession(storedToken as string);
 
     void registerForPushNotifications(storedToken as string).catch(
@@ -236,31 +260,24 @@ export function AuthProvider({ children }: PropsWithChildren) {
       onUnauthorized: () => {
         void (async () => {
           await clearLocalSession();
-          await syncBiometricLoginAvailability();
+          await syncLocalLoginAvailability();
         })();
       },
     });
 
     return () => bindAuthSessionHandlers(null);
-  }, [refreshFromStore, clearLocalSession, syncBiometricLoginAvailability]);
+  }, [refreshFromStore, clearLocalSession, syncLocalLoginAvailability]);
 
   useEffect(() => {
     const restoreSession = async () => {
       try {
-        const [storedToken, storedUser, storedRefresh, supported, enabled, credentials] =
-          await Promise.all([
-            readStore(TOKEN_KEY),
-            readStore(USER_KEY),
-            readStore(REFRESH_KEY),
-            isBiometricSupported(),
-            isBiometricLoginEnabled(),
-            getBiometricCredentials(),
-          ]);
+        await syncLocalLoginAvailability();
 
-        setBiometricSupported(supported);
-        setBiometricEnabled(enabled);
-        setBiometricLabel(getBiometricLabel(await getBiometricTypes()));
-        setCanUseBiometricLogin(Boolean(supported && enabled && credentials));
+        const [storedToken, storedUser, storedRefresh] = await Promise.all([
+          readStore(TOKEN_KEY),
+          readStore(USER_KEY),
+          readStore(REFRESH_KEY),
+        ]);
 
         const hasStoredSession = Boolean(
           storedUser && (storedToken || storedRefresh),
@@ -285,7 +302,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     };
 
     void restoreSession();
-  }, [clearLocalSession, hydrateStoredSession]);
+  }, [clearLocalSession, hydrateStoredSession, syncLocalLoginAvailability]);
 
   useEffect(() => {
     if (!expiresAt) {
@@ -307,12 +324,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [expiresAt, refreshFromStore, clearLocalSession]);
 
   const persistAuthResponse = useCallback(
-    async (response: {
-      token: string;
-      refreshToken: string | null;
-      expiresIn: number;
-      user: AuthUser;
-    }) => {
+    async (response: AuthResponse) => {
+      if (response.deviceSecret) {
+        await setDeviceSecret(response.deviceSecret);
+        setHasDeviceSecret(true);
+      }
+
+      await setLastLoginEmail(response.user.email);
+      setLastLoginEmailState(response.user.email);
+      setHasPin(Boolean(response.hasPin ?? response.user.has_pin));
+
       await saveSession(
         response.token,
         response.user,
@@ -329,147 +350,131 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [saveSession],
   );
 
-  const enableBiometricLogin = useCallback(
-    async (credentials?: BiometricCredentials) => {
-      if (!(await isBiometricSupported())) {
-        throw new Error(
-          "За бърз вход са нужни и биометрия, и PIN, фигура или парола на телефона.",
-        );
-      }
-
-      const confirmed = await authenticateWithBiometrics(
-        "Потвърдете, за да включите бързия вход",
-      );
-
-      if (!confirmed) {
-        throw new Error("Биометричното потвърждение беше отказано.");
-      }
-
-      await setBiometricLoginEnabled(true);
-
-      if (credentials) {
-        await saveBiometricCredentials(credentials);
-      }
-
-      setBiometricEnabled(true);
-      setBiometricSupported(true);
-      setCanUseBiometricLogin(true);
-    },
-    [],
-  );
-
-  const disableBiometricLogin = useCallback(async () => {
-    await setBiometricLoginEnabled(false);
-    setBiometricEnabled(false);
-    setCanUseBiometricLogin(false);
-    setNeedsBiometricUnlock(false);
-  }, []);
-
-  const offerBiometricLogin = useCallback(
-    async (userEmail: string, credentials?: BiometricCredentials) => {
-      if (!(await isBiometricLoginEnabled())) {
-        return;
-      }
-
-      if (credentials) {
-        await saveBiometricCredentials(credentials);
-      } else {
-        const stored = await getBiometricCredentials();
-
-        if (stored && stored.email !== userEmail.trim().toLowerCase()) {
-          await clearBiometricCredentials();
-        }
-      }
-
-      setBiometricEnabled(true);
-      setCanUseBiometricLogin(true);
-    },
-    [],
-  );
-
   const login = useCallback(
     async (payload: LoginPayload) => {
       const response = await loginRequest(payload);
       await persistAuthResponse(response);
-      await offerBiometricLogin(response.user.email, {
-        email: payload.email,
-        password: payload.password,
-      });
     },
-    [persistAuthResponse, offerBiometricLogin],
+    [persistAuthResponse],
   );
 
   const register = useCallback(
     async (payload: RegisterPayload) => {
       const response = await registerRequest(payload);
       await persistAuthResponse(response);
-      await offerBiometricLogin(response.user.email, {
-        email: payload.email,
-        password: payload.password,
-      });
     },
-    [persistAuthResponse, offerBiometricLogin],
+    [persistAuthResponse],
   );
 
   const completeTotpLogin = useCallback(
     async (pendingToken: string, code: string) => {
       const response = await completeTotpLoginRequest(pendingToken, code);
       await persistAuthResponse(response);
-      await offerBiometricLogin(response.user.email);
     },
-    [persistAuthResponse, offerBiometricLogin],
+    [persistAuthResponse],
+  );
+
+  const completeDevicePending = useCallback(
+    async (pendingToken: string) => {
+      const response = await completeDevicePendingRequest(pendingToken);
+      await persistAuthResponse(response);
+    },
+    [persistAuthResponse],
+  );
+
+  const completeDeviceEmailCode = useCallback(
+    async (pendingToken: string, code: string) => {
+      const response = await verifyDeviceEmailCodeRequest(pendingToken, code);
+      await persistAuthResponse(response);
+    },
+    [persistAuthResponse],
   );
 
   const loginWithGoogle = useCallback(
     async (idToken: string, rememberMe = false) => {
       const response = await googleLoginRequest(idToken, rememberMe);
       await persistAuthResponse(response);
-      await offerBiometricLogin(response.user.email);
     },
-    [persistAuthResponse, offerBiometricLogin],
+    [persistAuthResponse],
   );
 
-  const loginWithBiometrics = useCallback(async (rememberMe = false) => {
-    const confirmed = await authenticateWithBiometrics("Потвърдете, за да влезете");
+  const requireSavedEmail = useCallback(async (): Promise<string> => {
+    const email = lastLoginEmail ?? (await getLastLoginEmail());
 
-    if (!confirmed) {
-      throw new Error("Биометричното потвърждение беше отказано.");
+    if (!email) {
+      throw new Error("Първо влезте с имейл и парола от това устройство.");
     }
 
-    if (needsBiometricUnlock) {
-      const restored = await hydrateStoredSession();
+    return email;
+  }, [lastLoginEmail]);
 
-      if (restored) {
-        return;
+  const loginWithPin = useCallback(
+    async (pin: string, rememberMe = false) => {
+      const email = await requireSavedEmail();
+      await persistAuthResponse(await pinLoginRequest(email, pin, rememberMe));
+    },
+    [persistAuthResponse, requireSavedEmail],
+  );
+
+  const loginWithFingerprint = useCallback(
+    async (rememberMe = false) => {
+      const confirmed = await authenticateFingerprint("Потвърдете с отпечатък");
+
+      if (!confirmed) {
+        throw new Error("Потвърждението с отпечатък беше отказано.");
       }
-    }
 
-    const credentials = await getBiometricCredentials();
+      const [email, secret] = await Promise.all([
+        requireSavedEmail(),
+        getDeviceSecret(),
+      ]);
 
-    if (!credentials) {
-      throw new Error(
-        "Няма запазен бърз вход. Влезте с имейл и парола.",
+      if (!secret) {
+        throw new Error("Това устройство още не е доверено. Влезте с парола.");
+      }
+
+      await persistAuthResponse(
+        await deviceSecretLoginRequest(email, secret, rememberMe),
       );
-    }
+    },
+    [persistAuthResponse, requireSavedEmail],
+  );
 
-    await persistAuthResponse(
-      await loginRequest({
-        ...credentials,
-        rememberMe,
-      }),
-    );
-  }, [hydrateStoredSession, needsBiometricUnlock, persistAuthResponse]);
+  const loginWithDeviceLock = useCallback(
+    async (rememberMe = false) => {
+      const confirmed = await authenticateDeviceUnlock(
+        "Отключете телефона, за да влезете",
+      );
 
-  const updateBiometricCredentials = useCallback(
-    async (credentials: BiometricCredentials) => {
-      if (!(await isBiometricLoginEnabled())) {
-        return;
+      if (!confirmed) {
+        throw new Error("Отключването на телефона беше отказано.");
       }
 
-      await saveBiometricCredentials(credentials);
+      const [email, secret] = await Promise.all([
+        requireSavedEmail(),
+        getDeviceSecret(),
+      ]);
+
+      if (!secret) {
+        throw new Error("Това устройство още не е доверено. Влезте с парола.");
+      }
+
+      await persistAuthResponse(
+        await deviceSecretLoginRequest(email, secret, rememberMe),
+      );
     },
-    [],
+    [persistAuthResponse, requireSavedEmail],
   );
+
+  const setFingerprintLoginEnabledFlag = useCallback(async (enabled: boolean) => {
+    await setFingerprintLoginEnabled(enabled);
+    setFingerprintEnabled(enabled);
+  }, []);
+
+  const setDeviceLockLoginEnabledFlag = useCallback(async (enabled: boolean) => {
+    await setDeviceLockLoginEnabled(enabled);
+    setDeviceLockEnabled(enabled);
+  }, []);
 
   const logout = useCallback(async () => {
     if (loggingOutRef.current) {
@@ -487,22 +492,35 @@ export function AuthProvider({ children }: PropsWithChildren) {
       console.error("Неуспешно прекратяване на сесията на сървъра:", error);
     } finally {
       await clearLocalSession();
-      await syncBiometricLoginAvailability();
+      await syncLocalLoginAvailability();
       loggingOutRef.current = false;
     }
-  }, [token, clearLocalSession, syncBiometricLoginAvailability]);
+  }, [token, clearLocalSession, syncLocalLoginAvailability]);
 
   const endLocalSession = useCallback(async () => {
     loggingOutRef.current = true;
     await clearLocalSession();
-    await syncBiometricLoginAvailability();
+    await syncLocalLoginAvailability();
     loggingOutRef.current = false;
-  }, [clearLocalSession, syncBiometricLoginAvailability]);
+  }, [clearLocalSession, syncLocalLoginAvailability]);
+
+  const clearLocalQuickLogin = useCallback(async () => {
+    await clearDeviceSecret();
+    setHasDeviceSecret(false);
+  }, []);
 
   const updateUser = useCallback(async (updatedUser: AuthUser) => {
     await writeStore(USER_KEY, JSON.stringify(updatedUser));
     setUser(updatedUser);
+    setHasPin(Boolean(updatedUser.has_pin));
   }, []);
+
+  const canUseFingerprintLogin = Boolean(
+    hasDeviceSecret && fingerprintAvailable && fingerprintLoginEnabled && lastLoginEmail,
+  );
+  const canUseDeviceLockLogin = Boolean(
+    hasDeviceSecret && deviceUnlockAvailable && deviceLockLoginEnabled && lastLoginEmail,
+  );
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -513,42 +531,60 @@ export function AuthProvider({ children }: PropsWithChildren) {
       isAuthenticated: Boolean(
         token && user && expiresAt && expiresAt > Date.now(),
       ),
-      biometricSupported,
-      biometricLoginEnabled: biometricEnabled,
-      canUseBiometricLogin,
-      biometricLabel,
+      lastLoginEmail,
+      hasDeviceSecret,
+      hasPin,
+      fingerprintAvailable,
+      deviceUnlockAvailable,
+      fingerprintLoginEnabled,
+      deviceLockLoginEnabled,
+      canUseFingerprintLogin,
+      canUseDeviceLockLogin,
       login,
       loginWithGoogle,
-      loginWithBiometrics,
+      loginWithPin,
+      loginWithFingerprint,
+      loginWithDeviceLock,
       completeTotpLogin,
-      enableBiometricLogin,
-      disableBiometricLogin,
+      completeDevicePending,
+      completeDeviceEmailCode,
+      setFingerprintLoginEnabledFlag,
+      setDeviceLockLoginEnabledFlag,
       register,
       logout,
       endLocalSession,
       updateUser,
-      updateBiometricCredentials,
+      clearLocalQuickLogin,
     }),
     [
       user,
       token,
       expiresAt,
       isLoading,
-      biometricSupported,
-      biometricEnabled,
-      canUseBiometricLogin,
-      biometricLabel,
+      lastLoginEmail,
+      hasDeviceSecret,
+      hasPin,
+      fingerprintAvailable,
+      deviceUnlockAvailable,
+      fingerprintLoginEnabled,
+      deviceLockLoginEnabled,
+      canUseFingerprintLogin,
+      canUseDeviceLockLogin,
       login,
       loginWithGoogle,
-      loginWithBiometrics,
+      loginWithPin,
+      loginWithFingerprint,
+      loginWithDeviceLock,
       completeTotpLogin,
-      enableBiometricLogin,
-      disableBiometricLogin,
+      completeDevicePending,
+      completeDeviceEmailCode,
+      setFingerprintLoginEnabledFlag,
+      setDeviceLockLoginEnabledFlag,
       register,
       logout,
       endLocalSession,
       updateUser,
-      updateBiometricCredentials,
+      clearLocalQuickLogin,
     ],
   );
 

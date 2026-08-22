@@ -8,7 +8,7 @@ import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from "r
 
 export default function DeleteAccountScreen() {
   const { theme } = useAppTheme();
-  const { token, user, disableBiometricLogin, endLocalSession } = useAuth();
+  const { token, user, clearLocalQuickLogin, endLocalSession } = useAuth();
   const [isDeleting, setIsDeleting] = useState(false);
 
   if (!token) {
@@ -25,7 +25,7 @@ export default function DeleteAccountScreen() {
         currentPassword,
         confirmation,
       });
-      await disableBiometricLogin();
+      await clearLocalQuickLogin();
       await endLocalSession();
       return true;
     } catch (error) {

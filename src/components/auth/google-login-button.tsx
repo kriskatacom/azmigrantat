@@ -1,6 +1,6 @@
 import { useAppTheme } from "@/app/_layout";
 import { useAuth } from "@/hooks/useAuth";
-import { TotpRequiredError } from "@/services/auth";
+import { TotpRequiredError, DeviceVerificationRequiredError } from "@/services/auth";
 import {
   GoogleSignin,
   GoogleSigninButton,
@@ -18,11 +18,16 @@ GoogleSignin.configure({
 interface GoogleLoginButtonProps {
   rememberMe?: boolean;
   onTotpRequired?: (pendingToken: string) => void;
+  onDeviceVerificationRequired?: (
+    pendingToken: string,
+    deviceName: string | null,
+  ) => void;
 }
 
 export default function GoogleLoginButton({
   rememberMe = false,
   onTotpRequired,
+  onDeviceVerificationRequired,
 }: GoogleLoginButtonProps) {
   const { colorScheme } = useAppTheme();
   const { loginWithGoogle } = useAuth();
@@ -59,6 +64,13 @@ export default function GoogleLoginButton({
       if (error instanceof TotpRequiredError) {
         if (onTotpRequired) {
           onTotpRequired(error.pendingToken);
+          return;
+        }
+      }
+
+      if (error instanceof DeviceVerificationRequiredError) {
+        if (onDeviceVerificationRequired) {
+          onDeviceVerificationRequired(error.pendingToken, error.deviceName);
           return;
         }
       }

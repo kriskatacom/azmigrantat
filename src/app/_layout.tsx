@@ -1,20 +1,15 @@
 import AppSplash from "@/components/app-splash";
-import { darkTheme, lightTheme, type AppTheme } from "@/constants/theme";
+import DevicePendingApprovals from "@/components/auth/device-pending-approvals";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { SocketProvider } from "@/contexts/SocketContext";
+import { ThemeProvider, useAppTheme } from "@/contexts/ThemeContext";
 import { VideoCallProvider } from "@/contexts/VideoCallContext";
 import { useAuth } from "@/hooks/useAuth";
 import { createDirectConversation, markConversationAsRead } from "@/services/chat";
 import { parseIncomingCallData, setupIncomingCallNotifications } from "@/services/incoming-call";
 import "@/services/notificationBackgroundTask";
 import { getActiveConversationId } from "@/services/notificationState";
-import {
-  getAppearancePreference,
-  loadUserSettings,
-  setAppearancePreference,
-  subscribeUserSettings,
-  type AppearancePreference,
-} from "@/services/user-settings";
+import { loadUserSettings } from "@/services/user-settings";
 import {
   MISSED_CALL_CALLBACK_ACTION,
   MISSED_CALL_CATEGORY,
@@ -26,16 +21,12 @@ import { canUseFullScreenIntent } from "../../modules/incoming-call";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
 import {
-  createContext,
   PropsWithChildren,
   useCallback,
-  useContext,
   useEffect,
-  useMemo,
   useRef,
-  useState,
 } from "react";
-import { AppState, StyleSheet, View, useColorScheme } from "react-native";
+import { AppState, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../../global.css";
 
@@ -91,73 +82,7 @@ Notifications.setNotificationHandler({
   },
 });
 
-type ColorScheme = "light" | "dark";
-
-interface ThemeContextValue {
-  colorScheme: ColorScheme;
-  appearance: AppearancePreference;
-  theme: AppTheme;
-  toggleTheme: () => void;
-}
-
-const ThemeContext = createContext<ThemeContextValue>({
-  colorScheme: "light",
-  appearance: "system",
-  theme: lightTheme,
-  toggleTheme: () => {},
-});
-
-export function useAppTheme() {
-  return useContext(ThemeContext);
-}
-
-function resolveColorScheme(
-  appearance: AppearancePreference,
-  systemTheme: string | null | undefined,
-): ColorScheme {
-  if (appearance === "light" || appearance === "dark") {
-    return appearance;
-  }
-
-  return systemTheme === "dark" ? "dark" : "light";
-}
-
-function ThemeProvider({ children }: PropsWithChildren) {
-  const systemTheme = useColorScheme();
-  const [appearance, setAppearance] = useState<AppearancePreference>(
-    getAppearancePreference,
-  );
-
-  useEffect(() => {
-    void loadUserSettings();
-    return subscribeUserSettings(() => {
-      setAppearance(getAppearancePreference());
-    });
-  }, []);
-
-  const colorScheme = resolveColorScheme(appearance, systemTheme);
-  const theme = colorScheme === "dark" ? darkTheme : lightTheme;
-
-  const toggleTheme = () => {
-    void setAppearancePreference(colorScheme === "dark" ? "light" : "dark");
-  };
-
-  const contextValue = useMemo(
-    () => ({
-      colorScheme,
-      appearance,
-      theme,
-      toggleTheme,
-    }),
-    [appearance, colorScheme, theme],
-  );
-
-  return (
-    <ThemeContext.Provider value={contextValue}>
-      {children}
-    </ThemeContext.Provider>
-  );
-}
+export { useAppTheme } from "@/contexts/ThemeContext";
 
 function NotificationNavigationHandler() {
   const router = useRouter();
@@ -175,7 +100,8 @@ function NotificationNavigationHandler() {
 
       if (
         data?.type === "incoming_call" ||
-        data?.type === "incoming_call_ended"
+        data?.type === "incoming_call_ended" ||
+        data?.type === "device_login_approval"
       ) {
         return;
       }
@@ -456,6 +382,7 @@ function RootNavigator() {
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
 
       <NotificationNavigationHandler />
+      <DevicePendingApprovals />
 
       <Stack
         screenOptions={{

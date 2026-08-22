@@ -8,10 +8,12 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   ApiError,
   changePasswordRequest,
+  clearLoginPinRequest,
   forgotPasswordRequest,
   resetPasswordRequest,
+  setLoginPinRequest,
 } from "@/services/auth";
-import { authenticateWithBiometrics } from "@/services/biometric";
+import { authenticateCurrentUser } from "@/services/biometric";
 import { FontAwesome } from "@expo/vector-icons";
 import { useState } from "react";
 import {
@@ -26,23 +28,23 @@ import {
   View,
 } from "react-native";
 
-type LoginMethod = "password" | "biometrics";
-
 export default function SecurityScreen() {
   const { theme } = useAppTheme();
   const {
     user,
     token,
-    biometricSupported,
-    biometricLoginEnabled,
-    biometricLabel,
-    enableBiometricLogin,
-    disableBiometricLogin,
-    updateBiometricCredentials,
+    hasPin,
+    hasDeviceSecret,
+    fingerprintAvailable,
+    deviceUnlockAvailable,
+    fingerprintLoginEnabled,
+    deviceLockLoginEnabled,
+    setFingerprintLoginEnabledFlag,
+    setDeviceLockLoginEnabledFlag,
+    updateUser,
     endLocalSession,
   } = useAuth();
   const [isSavingPassword, setIsSavingPassword] = useState(false);
-  const [isUpdatingLoginMethod, setIsUpdatingLoginMethod] = useState(false);
   const [isSendingCode, setIsSendingCode] = useState(false);
   const [isResettingWithCode, setIsResettingWithCode] = useState(false);
   const [emailCodeSent, setEmailCodeSent] = useState(false);
@@ -50,43 +52,11 @@ export default function SecurityScreen() {
   const [emailPassword, setEmailPassword] = useState("");
   const [emailPasswordConfirmation, setEmailPasswordConfirmation] =
     useState("");
-
-  const selectedMethod: LoginMethod = biometricLoginEnabled
-    ? "biometrics"
-    : "password";
-
-  const handleSelectLoginMethod = async (method: LoginMethod) => {
-    if (isUpdatingLoginMethod || method === selectedMethod) {
-      return;
-    }
-
-    if (method === "biometrics" && !biometricSupported) {
-      Alert.alert(
-        "Не е налично",
-        "На това устройство са нужни и биометрия, и PIN, фигура или парола.",
-      );
-      return;
-    }
-
-    try {
-      setIsUpdatingLoginMethod(true);
-
-      if (method === "biometrics") {
-        await enableBiometricLogin();
-      } else {
-        await disableBiometricLogin();
-      }
-    } catch (error) {
-      Alert.alert(
-        "Неуспешно",
-        error instanceof Error
-          ? error.message
-          : "Начинът на вход не можа да бъде променен.",
-      );
-    } finally {
-      setIsUpdatingLoginMethod(false);
-    }
-  };
+  const [pin, setPin] = useState("");
+  const [pinConfirmation, setPinConfirmation] = useState("");
+  const [isSavingPin, setIsSavingPin] = useState(false);
+  const canVerifyOnDevice =
+    fingerprintAvailable || deviceUnlockAvailable;
 
   const handleChangePassword = async (
     currentPassword: string | null,
@@ -99,15 +69,15 @@ export default function SecurityScreen() {
 
     setIsSavingPassword(true);
     try {
-      const useDeviceVerification = biometricSupported && currentPassword === null;
+      const useDeviceVerification = canVerifyOnDevice && currentPassword === null;
 
       if (useDeviceVerification) {
-        const confirmed = await authenticateWithBiometrics(
+        const confirmed = await authenticateCurrentUser(
           "Потвърдете, за да смените паролата",
         );
 
         if (!confirmed) {
-          throw new Error("Биометричното потвърждение беше отказано.");
+          throw new Error("Потвърждението беше отказано.");
         }
       }
 
@@ -117,10 +87,6 @@ export default function SecurityScreen() {
           : { currentPassword: currentPassword ?? "", verificationMethod: "password" }),
         password,
         passwordConfirmation,
-      });
-      await updateBiometricCredentials({
-        email: user.email,
-        password,
       });
       Alert.alert("Готово", "Паролата беше сменена успешно.");
       return true;
@@ -134,6 +100,61 @@ export default function SecurityScreen() {
       return false;
     } finally {
       setIsSavingPassword(false);
+    }
+  };
+
+  const handleSavePin = async () => {
+    if (!token || !user) {
+      return;
+    }
+
+    const normalized = pin.replace(/\D/g, "");
+    const confirmed = pinConfirmation.replace(/\D/g, "");
+
+    if (normalized.length < 4 || normalized.length > 6) {
+      Alert.alert("Невалиден PIN", "PIN кодът трябва да е между 4 и 6 цифри.");
+      return;
+    }
+
+    if (normalized !== confirmed) {
+      Alert.alert("Грешка", "PIN кодовете не съвпадат.");
+      return;
+    }
+
+    try {
+      setIsSavingPin(true);
+      await setLoginPinRequest(token, normalized);
+      await updateUser({ ...user, has_pin: true });
+      setPin("");
+      setPinConfirmation("");
+      Alert.alert("Готово", "PIN кодът за вход е записан.");
+    } catch (error) {
+      Alert.alert(
+        "Неуспешно",
+        error instanceof Error ? error.message : "PIN кодът не беше записан.",
+      );
+    } finally {
+      setIsSavingPin(false);
+    }
+  };
+
+  const handleClearPin = async () => {
+    if (!token || !user) {
+      return;
+    }
+
+    try {
+      setIsSavingPin(true);
+      await clearLoginPinRequest(token);
+      await updateUser({ ...user, has_pin: false });
+      Alert.alert("Готово", "PIN кодът за вход е премахнат.");
+    } catch (error) {
+      Alert.alert(
+        "Неуспешно",
+        error instanceof Error ? error.message : "PIN кодът не беше премахнат.",
+      );
+    } finally {
+      setIsSavingPin(false);
     }
   };
 
@@ -202,10 +223,6 @@ export default function SecurityScreen() {
         password: emailPassword,
         passwordConfirmation: emailPasswordConfirmation,
       });
-      await updateBiometricCredentials({
-        email: user.email,
-        password: emailPassword,
-      });
       setEmailCode("");
       setEmailPassword("");
       setEmailPasswordConfirmation("");
@@ -236,46 +253,30 @@ export default function SecurityScreen() {
         contentContainerStyle={styles.content}
       >
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
-          Начин на вход
+          Начини за вход
         </Text>
         <Text
           style={[styles.sectionDescription, { color: theme.colors.textSecondary }]}
         >
-          Изберете с какво да се удостоверявате при следващ вход. Може да е
-          паролата на профила или биометрията и заключването на телефона.
+          От доверено устройство можете да избирате между парола, PIN,
+          отпечатък и отключване на телефона. При първи вход от ново устройство
+          трябва потвърждение от старото или код по имейл.
         </Text>
 
-        <Pressable
-          onPress={() => void handleSelectLoginMethod("password")}
-          disabled={isUpdatingLoginMethod}
+        <View
           style={[
             styles.methodCard,
-            {
-              borderColor:
-                selectedMethod === "password"
-                  ? theme.colors.primary
-                  : theme.colors.border,
-              backgroundColor: theme.colors.card,
-            },
+            { borderColor: theme.colors.border, backgroundColor: theme.colors.card },
           ]}
-          accessibilityRole="radio"
-          accessibilityState={{
-            selected: selectedMethod === "password",
-            disabled: isUpdatingLoginMethod,
-          }}
-          accessibilityLabel="Вход с паролата на профила"
         >
           <View
-            style={[
-              styles.methodIcon,
-              { backgroundColor: theme.colors.background },
-            ]}
+            style={[styles.methodIcon, { backgroundColor: theme.colors.background }]}
           >
             <FontAwesome name="key" size={18} color={theme.colors.primary} />
           </View>
           <View style={styles.methodText}>
             <Text style={[styles.methodTitle, { color: theme.colors.text }]}>
-              Парола на профила
+              Имейл и парола
             </Text>
             <Text
               style={[
@@ -283,7 +284,112 @@ export default function SecurityScreen() {
                 { color: theme.colors.textSecondary },
               ]}
             >
-              Влизате с имейл и текущата парола на акаунта.
+              Винаги налично. При Google Authenticator ще поискаме и този код.
+            </Text>
+          </View>
+        </View>
+
+        <View
+          style={[
+            styles.methodCard,
+            { borderColor: theme.colors.border, backgroundColor: theme.colors.card },
+          ]}
+        >
+          <View
+            style={[styles.methodIcon, { backgroundColor: theme.colors.background }]}
+          >
+            <FontAwesome name="th" size={18} color={theme.colors.primary} />
+          </View>
+          <View style={styles.methodText}>
+            <Text style={[styles.methodTitle, { color: theme.colors.text }]}>
+              PIN код на приложението
+            </Text>
+            <Text
+              style={[
+                styles.methodDescription,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              {hasPin
+                ? "Зададен е PIN за вход от това и другите доверени устройства."
+                : "Задайте 4 до 6 цифри, за да влизате без паролата на профила."}
+            </Text>
+            <ProfileField
+              label="Нов PIN"
+              value={pin}
+              onChangeText={setPin}
+              keyboardType="number-pad"
+              maxLength={6}
+              secureTextEntry
+              placeholder="4 до 6 цифри"
+            />
+            <ProfileField
+              label="Повтори PIN"
+              value={pinConfirmation}
+              onChangeText={setPinConfirmation}
+              keyboardType="number-pad"
+              maxLength={6}
+              secureTextEntry
+            />
+            <AppButton
+              title={hasPin ? "Смени PIN кода" : "Задай PIN код"}
+              loading={isSavingPin}
+              onPress={() => void handleSavePin()}
+            />
+            {hasPin ? (
+              <TouchableOpacity onPress={() => void handleClearPin()}>
+                <Text
+                  style={[styles.cancelCode, { color: theme.colors.textSecondary }]}
+                >
+                  Премахни PIN кода
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        </View>
+
+        <Pressable
+          onPress={() => {
+            if (!fingerprintAvailable || !hasDeviceSecret) {
+              Alert.alert(
+                "Не е налично",
+                !hasDeviceSecret
+                  ? "Първо влезте успешно от това устройство, за да го направите доверено."
+                  : "На това устройство няма записан пръстов отпечатък.",
+              );
+              return;
+            }
+
+            void setFingerprintLoginEnabledFlag(!fingerprintLoginEnabled);
+          }}
+          style={[
+            styles.methodCard,
+            {
+              borderColor: fingerprintLoginEnabled
+                ? theme.colors.primary
+                : theme.colors.border,
+              backgroundColor: theme.colors.card,
+              opacity: fingerprintAvailable && hasDeviceSecret ? 1 : 0.55,
+            },
+          ]}
+        >
+          <View
+            style={[styles.methodIcon, { backgroundColor: theme.colors.background }]}
+          >
+            <FontAwesome name="hand-o-up" size={18} color={theme.colors.primary} />
+          </View>
+          <View style={styles.methodText}>
+            <Text style={[styles.methodTitle, { color: theme.colors.text }]}>
+              Отпечатък
+            </Text>
+            <Text
+              style={[
+                styles.methodDescription,
+                { color: theme.colors.textSecondary },
+              ]}
+            >
+              Само пръстов отпечатък, без PIN на телефона. Работи след първи
+              успешен вход от това устройство.
             </Text>
           </View>
           <View
@@ -292,7 +398,7 @@ export default function SecurityScreen() {
               {
                 borderColor: theme.colors.primary,
                 backgroundColor:
-                  selectedMethod === "password"
+                  fingerprintLoginEnabled && fingerprintAvailable && hasDeviceSecret
                     ? theme.colors.primary
                     : "transparent",
               },
@@ -301,41 +407,38 @@ export default function SecurityScreen() {
         </Pressable>
 
         <Pressable
-          onPress={() => void handleSelectLoginMethod("biometrics")}
-          disabled={isUpdatingLoginMethod || !biometricSupported}
+          onPress={() => {
+            if (!deviceUnlockAvailable || !hasDeviceSecret) {
+              Alert.alert(
+                "Не е налично",
+                !hasDeviceSecret
+                  ? "Първо влезте успешно от това устройство, за да го направите доверено."
+                  : "Задайте PIN, фигура, парола или лицево разпознаване на телефона.",
+              );
+              return;
+            }
+
+            void setDeviceLockLoginEnabledFlag(!deviceLockLoginEnabled);
+          }}
           style={[
             styles.methodCard,
             {
-              borderColor:
-                selectedMethod === "biometrics"
-                  ? theme.colors.primary
-                  : theme.colors.border,
+              borderColor: deviceLockLoginEnabled
+                ? theme.colors.primary
+                : theme.colors.border,
               backgroundColor: theme.colors.card,
-              opacity: biometricSupported ? 1 : 0.55,
+              opacity: deviceUnlockAvailable && hasDeviceSecret ? 1 : 0.55,
             },
           ]}
-          accessibilityRole="radio"
-          accessibilityState={{
-            selected: selectedMethod === "biometrics",
-            disabled: isUpdatingLoginMethod || !biometricSupported,
-          }}
-          accessibilityLabel={`Вход с ${biometricLabel}`}
         >
           <View
-            style={[
-              styles.methodIcon,
-              { backgroundColor: theme.colors.background },
-            ]}
+            style={[styles.methodIcon, { backgroundColor: theme.colors.background }]}
           >
-            <FontAwesome
-              name="lock"
-              size={18}
-              color={theme.colors.primary}
-            />
+            <FontAwesome name="lock" size={18} color={theme.colors.primary} />
           </View>
           <View style={styles.methodText}>
             <Text style={[styles.methodTitle, { color: theme.colors.text }]}>
-              Биометрия и PIN
+              Отключване на телефона
             </Text>
             <Text
               style={[
@@ -343,9 +446,8 @@ export default function SecurityScreen() {
                 { color: theme.colors.textSecondary },
               ]}
             >
-              {biometricSupported
-                ? "Първо пръстов отпечатък или лицево разпознаване, после PIN, фигура или парола на телефона."
-                : "На това устройство липсва биометрия или PIN, фигура и парола."}
+              PIN, фигура, парола или лицево разпознаване, с които отключвате
+              телефона.
             </Text>
           </View>
           <View
@@ -354,7 +456,7 @@ export default function SecurityScreen() {
               {
                 borderColor: theme.colors.primary,
                 backgroundColor:
-                  selectedMethod === "biometrics"
+                  deviceLockLoginEnabled && deviceUnlockAvailable && hasDeviceSecret
                     ? theme.colors.primary
                     : "transparent",
               },
@@ -369,13 +471,13 @@ export default function SecurityScreen() {
           style={[styles.sectionDescription, { color: theme.colors.textSecondary }]}
         >
           Новата парола трябва да съдържа поне 8 символа.
-          {biometricSupported
-            ? " Потвърждавате с биометрия и PIN на телефона, без да пишете старата парола."
+          {canVerifyOnDevice
+            ? " Потвърждавате с отпечатък или отключване на телефона, без да пишете старата парола."
             : " За потвърждение въведете текущата парола на профила."}
         </Text>
         <PasswordForm
           isSaving={isSavingPassword}
-          requireCurrentPassword={!biometricSupported}
+          requireCurrentPassword={!canVerifyOnDevice}
           onSave={handleChangePassword}
         />
 
@@ -470,7 +572,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 12,
   },
   methodIcon: {
@@ -479,8 +581,9 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     alignItems: "center",
     justifyContent: "center",
+    marginTop: 4,
   },
-  methodText: { flex: 1, gap: 4 },
+  methodText: { flex: 1, gap: 8 },
   methodTitle: { fontSize: 16, fontWeight: "700" },
   methodDescription: { fontSize: 13, lineHeight: 18 },
   radio: {
@@ -488,6 +591,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderWidth: 2,
     borderRadius: 10,
+    marginTop: 12,
   },
   emailCodeForm: { gap: 14 },
   cancelCode: {

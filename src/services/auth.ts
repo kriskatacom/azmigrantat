@@ -9,6 +9,7 @@ import type {
   ResetPasswordPayload,
   UpdateProfilePayload,
 } from "@/types/auth";
+import { getDeviceIdentity } from "@/services/device-identity";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL!;
 const CLIENT_ID = process.env.EXPO_PUBLIC_CLIENT_ID!;
@@ -41,6 +42,9 @@ interface MobileAuthResponse {
   refresh_expires_in?: number;
   user: AuthUser;
   message?: string;
+  device_secret?: string;
+  device_trusted?: boolean;
+  has_pin?: boolean;
 }
 
 interface TotpPendingResponse {
@@ -48,6 +52,15 @@ interface TotpPendingResponse {
   requires_totp: true;
   pending_token: string;
   expires_in: number;
+}
+
+interface DevicePendingResponse {
+  success: true;
+  requires_device_verification: true;
+  pending_token: string;
+  expires_in: number;
+  methods?: string[];
+  device_name?: string | null;
 }
 
 export class TotpRequiredError extends Error {
@@ -62,10 +75,40 @@ export class TotpRequiredError extends Error {
   }
 }
 
+export class DeviceVerificationRequiredError extends Error {
+  readonly pendingToken: string;
+  readonly expiresIn: number;
+  readonly methods: string[];
+  readonly deviceName: string | null;
+
+  constructor(
+    pendingToken: string,
+    expiresIn: number,
+    methods: string[] = ["previous_device", "email"],
+    deviceName: string | null = null,
+  ) {
+    super("Потвърдете входа от предишното устройство или с код по имейл.");
+    this.name = "DeviceVerificationRequiredError";
+    this.pendingToken = pendingToken;
+    this.expiresIn = expiresIn;
+    this.methods = methods;
+    this.deviceName = deviceName;
+  }
+}
+
 function isTotpPending(
-  data: MobileAuthResponse | TotpPendingResponse,
+  data: MobileAuthResponse | TotpPendingResponse | DevicePendingResponse,
 ): data is TotpPendingResponse {
   return "requires_totp" in data && data.requires_totp === true;
+}
+
+function isDevicePending(
+  data: MobileAuthResponse | TotpPendingResponse | DevicePendingResponse,
+): data is DevicePendingResponse {
+  return (
+    "requires_device_verification" in data &&
+    data.requires_device_verification === true
+  );
 }
 
 function toAuthResponse(response: MobileAuthResponse): AuthResponse {
@@ -74,12 +117,30 @@ function toAuthResponse(response: MobileAuthResponse): AuthResponse {
     refreshToken: response.refresh_token ?? null,
     expiresIn: response.expires_in,
     user: response.user,
+    deviceSecret: response.device_secret ?? null,
+    hasPin: response.has_pin ?? response.user.has_pin,
   };
 }
 
+async function withDevice<T extends Record<string, unknown>>(
+  payload: T,
+): Promise<T & Awaited<ReturnType<typeof getDeviceIdentity>>> {
+  const device = await getDeviceIdentity();
+  return { ...payload, ...device };
+}
+
 async function finishMobileAuth(
-  response: MobileAuthResponse | TotpPendingResponse,
+  response: MobileAuthResponse | TotpPendingResponse | DevicePendingResponse,
 ): Promise<AuthResponse> {
+  if (isDevicePending(response)) {
+    throw new DeviceVerificationRequiredError(
+      response.pending_token,
+      response.expires_in,
+      response.methods ?? ["previous_device", "email"],
+      response.device_name ?? null,
+    );
+  }
+
   if (isTotpPending(response)) {
     throw new TotpRequiredError(response.pending_token, response.expires_in);
   }
@@ -93,10 +154,12 @@ export async function completeTotpLoginRequest(
 ): Promise<AuthResponse> {
   const response = await request<MobileAuthResponse>("/api/mobile/login/totp", {
     method: "POST",
-    body: JSON.stringify({
-      pending_token: pendingToken,
-      code: code.replace(/\D/g, ""),
-    }),
+    body: JSON.stringify(
+      await withDevice({
+        pending_token: pendingToken,
+        code: code.replace(/\D/g, ""),
+      }),
+    ),
   });
 
   return toAuthResponse(response);
@@ -164,17 +227,212 @@ async function request<T>(
 export async function loginRequest(
   payload: LoginPayload,
 ): Promise<AuthResponse> {
-  const response = await request<MobileAuthResponse | TotpPendingResponse>("/api/mobile/login", {
+  const response = await request<
+    MobileAuthResponse | TotpPendingResponse | DevicePendingResponse
+  >("/api/mobile/login", {
     method: "POST",
-    body: JSON.stringify({
-      client_id: CLIENT_ID,
-      email: payload.email.trim().toLowerCase(),
-      password: payload.password,
-      remember_me: Boolean(payload.rememberMe),
-    }),
+    body: JSON.stringify(
+      await withDevice({
+        client_id: CLIENT_ID,
+        email: payload.email.trim().toLowerCase(),
+        password: payload.password,
+        remember_me: Boolean(payload.rememberMe),
+      }),
+    ),
   });
 
   return finishMobileAuth(response);
+}
+
+export async function pinLoginRequest(
+  email: string,
+  pin: string,
+  rememberMe = false,
+): Promise<AuthResponse> {
+  const response = await request<MobileAuthResponse>("/api/mobile/login/pin", {
+    method: "POST",
+    body: JSON.stringify(
+      await withDevice({
+        client_id: CLIENT_ID,
+        email: email.trim().toLowerCase(),
+        pin: pin.replace(/\D/g, ""),
+        remember_me: Boolean(rememberMe),
+      }),
+    ),
+  });
+
+  return toAuthResponse(response);
+}
+
+export async function deviceSecretLoginRequest(
+  email: string,
+  deviceSecret: string,
+  rememberMe = false,
+): Promise<AuthResponse> {
+  const response = await request<MobileAuthResponse>("/api/mobile/login/device", {
+    method: "POST",
+    body: JSON.stringify(
+      await withDevice({
+        client_id: CLIENT_ID,
+        email: email.trim().toLowerCase(),
+        device_secret: deviceSecret,
+        remember_me: Boolean(rememberMe),
+      }),
+    ),
+  });
+
+  return toAuthResponse(response);
+}
+
+export async function loginOptionsRequest(
+  email: string,
+): Promise<{ trusted: boolean; hasPin: boolean }> {
+  const response = await request<{
+    success: true;
+    trusted: boolean;
+    has_pin: boolean;
+  }>("/api/mobile/login/options", {
+    method: "POST",
+    body: JSON.stringify(
+      await withDevice({
+        client_id: CLIENT_ID,
+        email: email.trim().toLowerCase(),
+      }),
+    ),
+  });
+
+  return { trusted: response.trusted, hasPin: response.has_pin };
+}
+
+export async function devicePendingStatusRequest(
+  pendingToken: string,
+): Promise<{ approved: boolean; expiresIn: number }> {
+  const response = await request<{
+    success: true;
+    approved: boolean;
+    expires_in: number;
+  }>("/api/mobile/device/pending/status", {
+    method: "POST",
+    body: JSON.stringify({ pending_token: pendingToken }),
+  });
+
+  return { approved: response.approved, expiresIn: response.expires_in };
+}
+
+export async function completeDevicePendingRequest(
+  pendingToken: string,
+): Promise<AuthResponse> {
+  const response = await request<MobileAuthResponse>(
+    "/api/mobile/device/pending/complete",
+    {
+      method: "POST",
+      body: JSON.stringify({ pending_token: pendingToken }),
+    },
+  );
+
+  return toAuthResponse(response);
+}
+
+export async function sendDeviceEmailCodeRequest(
+  pendingToken: string,
+): Promise<{ message: string }> {
+  const response = await request<{ success: true; message: string }>(
+    "/api/mobile/device/pending/email",
+    {
+      method: "POST",
+      body: JSON.stringify({ pending_token: pendingToken }),
+    },
+  );
+
+  return { message: response.message };
+}
+
+export async function verifyDeviceEmailCodeRequest(
+  pendingToken: string,
+  code: string,
+): Promise<AuthResponse> {
+  const response = await request<MobileAuthResponse>(
+    "/api/mobile/device/pending/email/verify",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        pending_token: pendingToken,
+        code: code.replace(/\D/g, ""),
+      }),
+    },
+  );
+
+  return toAuthResponse(response);
+}
+
+export async function listDevicePendingRequest(
+  token: string,
+): Promise<
+  Array<{
+    id: number;
+    device_name: string | null;
+    platform: string | null;
+    created_at: string | null;
+    expires_at: string | null;
+  }>
+> {
+  const response = await request<{
+    success: true;
+    pending: Array<{
+      id: number;
+      device_name: string | null;
+      platform: string | null;
+      created_at: string | null;
+      expires_at: string | null;
+    }>;
+  }>("/api/mobile/device/pending", {
+    method: "GET",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  return response.pending;
+}
+
+export async function approveDevicePendingRequest(
+  token: string,
+  pendingId: number,
+): Promise<void> {
+  await request<{ success: true; message: string }>(
+    "/api/mobile/device/pending/approve",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(
+        await withDevice({
+          pending_id: pendingId,
+        }),
+      ),
+    },
+  );
+}
+
+export async function setLoginPinRequest(
+  token: string,
+  pin: string,
+): Promise<void> {
+  await request<{ success: true; has_pin: boolean }>(
+    "/api/mobile/device/pin",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ pin: pin.replace(/\D/g, "") }),
+    },
+  );
+}
+
+export async function clearLoginPinRequest(token: string): Promise<void> {
+  await request<{ success: true; has_pin: boolean }>(
+    "/api/mobile/device/pin/clear",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    },
+  );
 }
 
 export async function registerRequest(
@@ -182,22 +440,19 @@ export async function registerRequest(
 ): Promise<AuthResponse> {
   const response = await request<MobileAuthResponse>("/api/mobile/register", {
     method: "POST",
-    body: JSON.stringify({
-      client_id: CLIENT_ID,
-      firstName: payload.firstName.trim(),
-      lastName: payload.lastName.trim(),
-      email: payload.email.trim().toLowerCase(),
-      password: payload.password,
-      passwordConfirmation: payload.passwordConfirmation,
-    }),
+    body: JSON.stringify(
+      await withDevice({
+        client_id: CLIENT_ID,
+        firstName: payload.firstName.trim(),
+        lastName: payload.lastName.trim(),
+        email: payload.email.trim().toLowerCase(),
+        password: payload.password,
+        passwordConfirmation: payload.passwordConfirmation,
+      }),
+    ),
   });
 
-  return {
-    token: response.access_token,
-    refreshToken: response.refresh_token ?? null,
-    expiresIn: response.expires_in,
-    user: response.user,
-  };
+  return toAuthResponse(response);
 }
 
 export async function forgotPasswordRequest(
@@ -241,15 +496,19 @@ export async function googleLoginRequest(
   idToken: string,
   rememberMe = false,
 ): Promise<AuthResponse> {
-  const response = await request<MobileAuthResponse | TotpPendingResponse>(
+  const response = await request<
+    MobileAuthResponse | TotpPendingResponse | DevicePendingResponse
+  >(
     "/api/mobile/auth/google",
     {
       method: "POST",
-      body: JSON.stringify({
-        client_id: CLIENT_ID,
-        id_token: idToken,
-        remember_me: Boolean(rememberMe),
-      }),
+      body: JSON.stringify(
+        await withDevice({
+          client_id: CLIENT_ID,
+          id_token: idToken,
+          remember_me: Boolean(rememberMe),
+        }),
+      ),
     },
   );
 

@@ -15,6 +15,7 @@ export interface AuthUser {
   username?: string | null;
   totp_enabled?: boolean;
   has_password?: boolean;
+  has_pin?: boolean;
 }
 
 export type Gender = "male" | "female" | "other" | "prefer_not_to_say";
@@ -72,4 +73,6 @@ export interface AuthResponse {
   refreshToken: string | null;
   expiresIn: number;
   user: AuthUser;
+  deviceSecret?: string | null;
+  hasPin?: boolean;
 }
