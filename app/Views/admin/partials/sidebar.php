@@ -12,8 +12,8 @@ $is_open = $_SESSION['sidebar_open'] ?? true;
 
     <div class="p-5 flex items-center justify-between">
         <div class="flex flex-col justify-center items-center mx-auto">
-            <span class="text-xl md:text-2xl font-black uppercase text-secondary">Администрация</span>
-            <span class="text-sm text-gray-400"><?= WEBSITE_DOMAIN_NAME ?></span>
+            <span class="text-xl md:text-2xl font-black uppercase text-secondary"><?= htmlspecialchars(COMPANY_NAME) ?></span>
+            <span class="text-sm text-gray-400"><?= htmlspecialchars(WEBSITE_DOMAIN_NAME) ?></span>
         </div>
         <button onclick="toggleSidebar()" class="lg:hidden fixed top-5 right-5 flex justify-center items-center rounded-md w-12 h-12 bg-gray-800 hover:bg-gray-900 text-slate-400">
             <i class="fa-solid fa-xmark text-2xl"></i>

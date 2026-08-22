@@ -111,7 +111,7 @@ use App\Core\View;
         </div>
 
         <div class="mt-6 flex justify-between px-2 text-xs text-slate-500 dark:text-slate-500">
-            <span>© 2026 <?= WEBSITE_DOMAIN_NAME ?></span>
+            <span>© <?= date('Y') ?> <?= htmlspecialchars(COMPANY_NAME) ?></span>
             <a href="/privacy" class="hover:underline">Политика за поверителност</a>
         </div>
     </div>

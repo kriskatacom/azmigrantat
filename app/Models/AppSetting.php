@@ -8,6 +8,7 @@ use Throwable;
 class AppSetting extends Model
 {
     public const PHONE_VERIFY_TEST_MODE = 'phone_verify_test_mode';
+    public const ENV_SOURCE = 'env_source';
 
     protected $table = 'app_settings';
 

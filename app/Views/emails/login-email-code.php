@@ -11,3 +11,4 @@
 <div class="warning">
     Ако вие не сте заявявали този вход, игнорирайте имейла и не въвеждайте кода.
 </div>
+<p>Поздрави,<br>Екипът на <?= htmlspecialchars((string) $companyName) ?></p>

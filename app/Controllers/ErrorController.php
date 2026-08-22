@@ -10,7 +10,7 @@ class ErrorController extends BaseController
 
         $seoData = [
             'title' => '404 - Страницата не е намерена',
-            'meta_title' => 'Грешка 404 | ' . WEBSITE_DOMAIN_NAME,
+            'meta_title' => 'Грешка 404 | ' . COMPANY_NAME,
             'meta_description' => 'Изглежда, че страницата, която търсите, не съществува или е преместена.'
         ];
 
@@ -25,7 +25,7 @@ class ErrorController extends BaseController
 
         $seoData = [
             'title' => '403 - Достъпът е забранен',
-            'meta_title' => 'Грешка 403 | ' . WEBSITE_DOMAIN_NAME
+            'meta_title' => 'Грешка 403 | ' . COMPANY_NAME
         ];
 
         return $this->renderWithSeo('errors/403', $seoData);
@@ -37,7 +37,7 @@ class ErrorController extends BaseController
 
         $seoData = [
             'title' => '500 - Системна грешка',
-            'meta_title' => 'Грешка 500 | ' . WEBSITE_DOMAIN_NAME
+            'meta_title' => 'Грешка 500 | ' . COMPANY_NAME
         ];
 
         return $this->renderWithSeo('errors/500', $seoData);

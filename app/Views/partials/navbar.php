@@ -8,7 +8,7 @@ use App\Helpers\AuthHelper;
 
         <div class="max-md:px-2 flex justify-between items-center">
             <a href="/" class="shrink-0">
-                <img src="/assets/images/logo.webp" alt="Logo" class="h-14 w-auto">
+                <img src="/assets/images/logo.webp" alt="<?= htmlspecialchars(COMPANY_NAME) ?>" class="h-14 w-auto">
             </a>
 
             <div>
@@ -28,7 +28,7 @@ use App\Helpers\AuthHelper;
         </div>
 
         <div class="container mx-auto flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
-            <a href="https://azmigrantat.com"
+            <a href="<?= htmlspecialchars(COMPANY_WEBSITE) ?>"
                 class="whitespace-nowrap px-5 py-2 rounded-full text-secondary hover:bg-dark-primary text-sm md:text-base lg:text-lg">Начало</a>
             <a href="https://azmigrantat.com/travel"
                 class="whitespace-nowrap px-5 py-2 rounded-full text-secondary hover:bg-dark-primary text-sm md:text-base lg:text-lg">Пътувания</a>

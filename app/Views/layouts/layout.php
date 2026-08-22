@@ -71,7 +71,11 @@ use App\Core\View;
 
     <footer class="text-white bg-black py-5">
         <div class="container mx-auto text-center">
-            <p>2026 All Rights Reversed. <?= COMPANY_NAME ?> - <a href="<?= FULL_DOMAIN ?>" title="I the migrant" class="hover:text-primary"><?= FULL_DOMAIN ?></a></p>
+            <p>
+                <?= date('Y') ?> <?= htmlspecialchars(COMPANY_LEGAL_NAME) ?>
+                · ЕИК <?= htmlspecialchars(COMPANY_EIK) ?>
+                · <a href="<?= htmlspecialchars(COMPANY_WEBSITE) ?>" title="<?= htmlspecialchars(COMPANY_NAME) ?>" class="hover:text-primary"><?= htmlspecialchars(preg_replace('#^https?://#', '', COMPANY_WEBSITE) ?? '') ?></a>
+            </p>
         </div>
     </footer>
 

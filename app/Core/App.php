@@ -2,6 +2,7 @@
 
 namespace App\Core;
 
+use App\Services\EnvConfig;
 use Dotenv\Dotenv;
 
 class App
@@ -30,13 +31,18 @@ class App
         $dotenv = Dotenv::createImmutable(BASE_PATH);
         $dotenv->load();
 
-        header("Access-Control-Allow-Origin: " . ($_ENV['ETOME_BASE_URL'] ?? '*'));
-        header("Access-Control-Allow-Headers: Content-Type, Accept, Authorization");
-        header("Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS");
-
         require_once BASE_PATH . '/app/Config/constants.php';
         require_once BASE_PATH . '/app/Config/helper.php';
         require_once BASE_PATH . '/app/Config/bootstrap.php';
+
+        EnvConfig::apply();
+
+        require_once BASE_PATH . '/app/Config/company.php';
+        require_once BASE_PATH . '/app/Config/sidebar.php';
+
+        header("Access-Control-Allow-Origin: " . ($_ENV['ETOME_BASE_URL'] ?? '*'));
+        header("Access-Control-Allow-Headers: Content-Type, Accept, Authorization");
+        header("Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS");
     }
 
     public function initSession(): void

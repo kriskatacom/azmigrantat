@@ -3,14 +3,16 @@
 namespace App\Services;
 
 use App\Core\View;
+use App\Helpers\Company;
 
 class OpenGraphService
 {
     private array $tags = [];
-    private string $siteName = WEBSITE_DOMAIN_NAME;
+    private string $siteName;
 
     public function __construct(array $data = [])
     {
+        $this->siteName = Company::name();
         $currentUrl = (isset($_SERVER['HTTPS']) ? "https" : "http") . "://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
 
         $imgDesktop = !empty($data['image_desktop']) ? $this->prepareImageUrl($data['image_desktop']) : BASE_URL . '/assets/images/logo.webp';
@@ -91,7 +93,21 @@ class OpenGraphService
             ],
             "publisher" => [
                 "@type" => "Organization",
-                "name" => $this->siteName,
+                "name" => Company::legalName(),
+                "legalName" => Company::legalName(),
+                "alternateName" => Company::name(),
+                "url" => Company::website(),
+                "email" => Company::email(),
+                "telephone" => Company::phone(),
+                "vatID" => Company::vat(),
+                "taxID" => Company::eik(),
+                "address" => [
+                    "@type" => "PostalAddress",
+                    "streetAddress" => Company::address(),
+                    "addressLocality" => "Монтана",
+                    "postalCode" => "3400",
+                    "addressCountry" => "BG",
+                ],
                 "logo" => [
                     "@type" => "ImageObject",
                     "url" => BASE_URL . "/assets/images/logo.webp"

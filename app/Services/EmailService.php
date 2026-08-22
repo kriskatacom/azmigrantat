@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Helpers\Company;
 use PHPMailer\PHPMailer\PHPMailer;
 use Throwable;
 
@@ -23,10 +24,11 @@ class EmailService
             $user = (string) env('SMTP_USER', '');
             $port = (int) env('SMTP_PORT', 587);
             $secure = (string) env('SMTP_SECURE', '');
+            $fromName = Company::name();
 
             $mail->isSMTP();
             $mail->Host = $host;
-            $mail->SMTPAuth = true;
+            $mail->SMTPAuth = filter_var(env('SMTP_AUTH', true), FILTER_VALIDATE_BOOLEAN);
             $mail->Username = $user;
             $mail->Password = (string) env('SMTP_PASS', '');
             $mail->Port = $port;
@@ -47,7 +49,7 @@ class EmailService
                 return false;
             }
 
-            $mail->setFrom($user, (string) (defined('COMPANY_NAME') ? COMPANY_NAME : 'Аз, мигрантът'));
+            $mail->setFrom($user, $fromName);
             $mail->addAddress($to);
 
             if (isset($data['email'])) {
@@ -55,7 +57,7 @@ class EmailService
             }
 
             $mailSubject = $subject;
-            $vars = array_merge(self::companyTemplateData(), $data);
+            $vars = array_merge(Company::emailTemplateData(), $data);
             $vars['emailTitle'] = $vars['emailTitle'] ?? $mailSubject;
             $vars['emailNoReply'] = $vars['emailNoReply'] ?? true;
 
@@ -105,30 +107,6 @@ class EmailService
     }
 
     /**
-     * @return array<string, mixed>
-     */
-    private static function companyTemplateData(): array
-    {
-        $website = defined('MAIN_WEBSITE_URL') ? MAIN_WEBSITE_URL : 'https://azmigrantat.com';
-        $phone = defined('COMPANY_PHONE') ? (string) COMPANY_PHONE : '';
-        $email = defined('COMPANY_EMAIL') ? (string) COMPANY_EMAIL : '';
-
-        return [
-            'companyName' => defined('COMPANY_NAME') ? COMPANY_NAME : 'Аз, мигрантът',
-            'companyLegalName' => defined('COMPANY_LEGAL_NAME') ? COMPANY_LEGAL_NAME : 'АЗ МИГРАНТЪТ ЕООД',
-            'companyEik' => defined('COMPANY_EIK') ? COMPANY_EIK : '206860375',
-            'companyVat' => defined('COMPANY_VAT') ? COMPANY_VAT : 'BG206860375',
-            'companyAddress' => defined('COMPANY_ADDRESS') ? COMPANY_ADDRESS : '',
-            'companyManager' => defined('COMPANY_MANAGER') ? COMPANY_MANAGER : '',
-            'companyPhone' => $phone,
-            'companyEmail' => $email,
-            'companyWebsite' => $website,
-            'siteUrl' => $website,
-            'phone' => $phone,
-        ];
-    }
-
-    /**
      * @param array<string, mixed> $vars
      */
     private static function plainTextBody(string $htmlBody, array $vars): string
@@ -158,7 +136,7 @@ class EmailService
     {
         $hosts = [
             defined('WEBSITE_DOMAIN_NAME') ? WEBSITE_DOMAIN_NAME : 'users.azmigrantat.com',
-            'azmigrantat.com',
+            preg_replace('#^https?://#', '', Company::website()) ?? 'azmigrantat.com',
         ];
 
         $lines = [];

@@ -28,7 +28,7 @@ use App\Core\View; ?>
             ]); ?>
         </form>
 
-        <a href="mailto:<?= $email ?? 'support@kriskata.com' ?>"
+        <a href="mailto:<?= htmlspecialchars($email ?? COMPANY_EMAIL) ?>"
             class="w-full px-8 py-4 border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-bold rounded-2xl transition-all duration-300 uppercase tracking-widest text-sm text-center">
             Помощ
         </a>

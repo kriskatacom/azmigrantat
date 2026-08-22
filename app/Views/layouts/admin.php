@@ -130,10 +130,10 @@ $is_open = $_SESSION['sidebar_open'];
                         class="mt-20 border-t border-slate-200 pt-6 text-center text-xs text-slate-400 font-medium uppercase tracking-widest">
                         <?php if (Auth::isAdmin()): ?>
                             <span>&copy; <?= date('Y') ?></span>
-                            <span><?= WEBSITE_DOMAIN_NAME ?> - Система за управление.</span>
+                            <span><?= htmlspecialchars(COMPANY_NAME) ?> — система за управление</span>
                         <?php else: ?>
                             <span>&copy; <?= date('Y') ?></span>
-                            <span><?= WEBSITE_DOMAIN_NAME ?></span>
+                            <span><?= htmlspecialchars(COMPANY_NAME) ?></span>
                         <?php endif; ?>
                     </footer>
                 </div>

@@ -1,6 +1,7 @@
 <?php
 
 use App\Controllers\AdminController;
+use App\Controllers\AdminEnvVariablesController;
 use App\Controllers\AdminSettingsController;
 use App\Controllers\InstallController;
 use App\Controllers\StorageController;
@@ -35,6 +36,8 @@ $router->get('/admin/dashboard', [AdminController::class, 'dashboard'], $adminAu
 $router->post('/admin/sidebar-toggle', [AdminController::class, 'sidebarToggle'], $adminAuth);
 $router->get('/admin/settings', [AdminSettingsController::class, 'edit'], $adminAuth);
 $router->post('/admin/settings', [AdminSettingsController::class, 'update'], $adminAuth);
+$router->get('/admin/env-variables', [AdminEnvVariablesController::class, 'edit'], $adminAuth);
+$router->post('/admin/env-variables', [AdminEnvVariablesController::class, 'update'], $adminAuth);
 
 $router->get('/admin/users', [UserController::class, 'index'], $adminAuth);
 $router->get('/admin/users/create', [UserController::class, 'create'], $adminAuth);
