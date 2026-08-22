@@ -866,4 +866,35 @@ describe('internal routes', () => {
             });
         });
     });
+
+    describe('POST /internal/events/conversation-cleared', () => {
+        it('изпраща conversation:cleared към участниците', async () => {
+            const { app, emit } = createTestApp();
+
+            const response = await request(app)
+                .post('/internal/events/conversation-cleared')
+                .set('X-Internal-Secret', 'test-internal-secret')
+                .send({
+                    recipient_ids: [3, 9],
+                    conversation_id: 12,
+                    actor_id: 3,
+                    scope: 'both',
+                    messages: 'all',
+                });
+
+            expect(response.status).toBe(200);
+            expect(emit).toHaveBeenCalledWith('user:3', 'conversation:cleared', {
+                conversation_id: 12,
+                actor_id: 3,
+                scope: 'both',
+                messages: 'all',
+            });
+            expect(emit).toHaveBeenCalledWith('user:9', 'conversation:cleared', {
+                conversation_id: 12,
+                actor_id: 3,
+                scope: 'both',
+                messages: 'all',
+            });
+        });
+    });
 });

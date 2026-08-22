@@ -57,6 +57,7 @@ export interface ServerToClientEvents {
     'notification:deleted': (payload: AppNotificationPayload) => void;
     'user:blocked': (payload: UserBlockPayload) => void;
     'user:unblocked': (payload: UserBlockPayload) => void;
+    'conversation:cleared': (payload: ConversationClearedPayload) => void;
     'auth:revoked': (payload: { reason: string }) => void;
 }
 
@@ -237,6 +238,13 @@ export interface UserBlockPayload {
     blocker_id: number;
     blocked_id: number;
     blocked: boolean;
+}
+
+export interface ConversationClearedPayload {
+    conversation_id: number;
+    actor_id: number;
+    scope: 'me' | 'both';
+    messages: 'mine' | 'all';
 }
 
 export interface AppNotificationActor {

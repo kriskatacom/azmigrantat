@@ -3,6 +3,7 @@ import type { Express } from 'express';
 import { config } from '../config';
 import type {
     AppNotificationPayload,
+    ConversationClearedPayload,
     NewMessageEventPayload,
     RealtimeServer,
 } from '../types/events';
@@ -505,6 +506,77 @@ export function registerInternalRoutes(app: Express, io: RealtimeServer): void {
         }
 
         console.log(`${eventName} ${blocker_id} → ${blocked_id}`);
+
+        response.json({
+            success: true,
+            recipient_count: recipientIds.length,
+        });
+    });
+
+    app.post('/internal/events/conversation-cleared', async (request, response) => {
+        const providedSecret = request.header('X-Internal-Secret');
+
+        if (!providedSecret || providedSecret !== config.internalApiSecret) {
+            response.status(401).json({
+                success: false,
+                message: 'Невалиден вътрешен ключ.',
+            });
+
+            return;
+        }
+
+        const { recipient_ids, conversation_id, actor_id, scope, messages } = request.body as {
+            recipient_ids?: unknown;
+            conversation_id?: unknown;
+            actor_id?: unknown;
+            scope?: string;
+            messages?: string;
+        };
+
+        if (
+            !Array.isArray(recipient_ids) ||
+            !Number.isInteger(conversation_id) ||
+            (conversation_id as number) <= 0 ||
+            !Number.isInteger(actor_id) ||
+            (actor_id as number) <= 0 ||
+            (scope !== 'me' && scope !== 'both') ||
+            (messages !== 'mine' && messages !== 'all')
+        ) {
+            response.status(422).json({
+                success: false,
+                message: 'Невалидни данни за изтрит чат.',
+            });
+
+            return;
+        }
+
+        const recipientIds = [
+            ...new Set(recipient_ids.filter((id): id is number => Number.isInteger(id) && id > 0)),
+        ];
+
+        if (recipientIds.length === 0) {
+            response.status(422).json({
+                success: false,
+                message: 'Няма валидни получатели.',
+            });
+
+            return;
+        }
+
+        const payload: ConversationClearedPayload = {
+            conversation_id: conversation_id as number,
+            actor_id: actor_id as number,
+            scope,
+            messages,
+        };
+
+        for (const recipientId of recipientIds) {
+            io.to(`user:${recipientId}`).emit('conversation:cleared', payload);
+        }
+
+        console.log(
+            `conversation:cleared ${conversation_id} ${scope}/${messages} → ${recipientIds.join(', ')}`,
+        );
 
         response.json({
             success: true,
