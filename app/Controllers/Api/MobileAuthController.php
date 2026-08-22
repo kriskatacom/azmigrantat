@@ -8,11 +8,13 @@ use App\Models\OauthApp;
 use App\Models\User;
 use App\Models\UserSocialAccount;
 use App\Services\AuthRateLimiter;
+use App\Services\DeviceAuthService;
 use App\Services\PasswordResetService;
 use App\Services\RealtimeNotifier;
 use App\Services\TotpService;
 use Illuminate\Support\Facades\Validator;
 use Google\Client as GoogleClient;
+use InvalidArgumentException;
 
 final class MobileAuthController extends BaseController
 {
@@ -86,11 +88,12 @@ final class MobileAuthController extends BaseController
 
         $limiter->clear(AuthRateLimiter::ACTION_LOGIN_EMAIL, $email);
 
-        return $this->json($this->finishLogin(
+        return $this->finishInteractiveLogin(
             $user,
             $app,
-            $this->rememberMeFromInput($input)
-        ));
+            $this->rememberMeFromInput($input),
+            $input
+        );
     }
 
     public function register()
@@ -163,6 +166,15 @@ final class MobileAuthController extends BaseController
         $firstName = trim($input['firstName']);
         $lastName = trim($input['lastName']);
 
+        try {
+            $deviceInfo = (new DeviceAuthService())->deviceFromInput($input);
+        } catch (InvalidArgumentException $exception) {
+            return $this->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+
         $user = User::create([
             'name' => $firstName . ' ' . $lastName,
             'first_name' => $firstName,
@@ -175,7 +187,7 @@ final class MobileAuthController extends BaseController
         ]);
 
         return $this->json(
-            $this->authPayload($user, $app) + [
+            $this->completeAuthenticatedLogin($user, $app, true, $deviceInfo, true) + [
                 'message' => 'Профилът беше създаден успешно.',
             ],
             201
@@ -459,11 +471,12 @@ final class MobileAuthController extends BaseController
                 ], 403);
             }
 
-            return $this->json($this->finishLogin(
+            return $this->finishInteractiveLogin(
                 $user,
                 $oauthApp,
-                $this->rememberMeFromInput($input)
-            ));
+                $this->rememberMeFromInput($input),
+                $input
+            );
         } catch (\Throwable $exception) {
             error_log(
                 'Google authentication error: '
@@ -676,20 +689,88 @@ final class MobileAuthController extends BaseController
         return ($options['client_type'] ?? null) === 'public' ? $app : null;
     }
 
-    public function totpAuthJson(User $user, OauthApp $app, bool $rememberMe)
+    public function totpAuthJson(User $user, OauthApp $app, bool $rememberMe, array $input = [])
     {
-        return $this->json($this->authPayload($user, $app, $rememberMe));
+        return $this->json(
+            $this->completeAuthenticatedLogin(
+                $user,
+                $app,
+                $rememberMe,
+                $this->deviceInfoFromInput($input),
+                true
+            )
+        );
     }
 
-    private function finishLogin(User $user, OauthApp $app, bool $rememberMe): array
-    {
-        $totp = new TotpService();
+    public function issueAuthenticatedSession(
+        User $user,
+        OauthApp $app,
+        bool $rememberMe,
+        ?array $deviceInfo,
+        bool $skipTotp
+    ) {
+        return $this->json(
+            $this->completeAuthenticatedLogin($user, $app, $rememberMe, $deviceInfo, $skipTotp)
+        );
+    }
 
-        if ($totp->isRequired($user)) {
-            return $totp->createPendingAuth($user, $app, $rememberMe);
+    private function finishInteractiveLogin(
+        User $user,
+        OauthApp $app,
+        bool $rememberMe,
+        array $input
+    ) {
+        $devices = new DeviceAuthService();
+
+        try {
+            $deviceInfo = $devices->deviceFromInput($input);
+        } catch (InvalidArgumentException $exception) {
+            return $this->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ], 422);
         }
 
-        return $this->authPayload($user, $app, $rememberMe);
+        if ($devices->needsNewDeviceChallenge($user, $deviceInfo['uuid'])) {
+            return $this->json($devices->createPending($user, $app, $rememberMe, $deviceInfo));
+        }
+
+        return $this->json(
+            $this->completeAuthenticatedLogin($user, $app, $rememberMe, $deviceInfo, false)
+        );
+    }
+
+    public function completeAuthenticatedLogin(
+        User $user,
+        OauthApp $app,
+        bool $rememberMe,
+        ?array $deviceInfo,
+        bool $skipTotp
+    ): array {
+        if (!$skipTotp) {
+            $totp = new TotpService();
+
+            if ($totp->isRequired($user)) {
+                return $totp->createPendingAuth($user, $app, $rememberMe);
+            }
+        }
+
+        $devicePayload = [];
+
+        if ($deviceInfo) {
+            $devicePayload = (new DeviceAuthService())->trustDevice($user, $deviceInfo);
+        }
+
+        return $this->authPayload($user, $app, $rememberMe) + $devicePayload;
+    }
+
+    private function deviceInfoFromInput(array $input): ?array
+    {
+        try {
+            return (new DeviceAuthService())->deviceFromInput($input);
+        } catch (InvalidArgumentException) {
+            return null;
+        }
     }
 
     private function rememberMeFromInput(array $input): bool

@@ -288,6 +288,7 @@ class User extends Model
             'auto_renewal' => $this->wantsAutoRenewal(),
             'totp_enabled' => $this->totpEnabled(),
             'has_password' => $this->hasPassword(),
+            'has_pin' => $this->hasLoginPin(),
         ];
     }
 
@@ -309,6 +310,14 @@ class User extends Model
     public function hasPassword(): bool
     {
         $hash = $this->getAttributes()['password_hash'] ?? '';
+
+        return is_string($hash) && $hash !== '';
+    }
+
+    public function hasLoginPin(): bool
+    {
+        $options = is_array($this->options) ? $this->options : [];
+        $hash = $options['login_pin_hash'] ?? '';
 
         return is_string($hash) && $hash !== '';
     }

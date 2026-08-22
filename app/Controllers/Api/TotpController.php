@@ -176,7 +176,7 @@ final class TotpController extends BaseController
 
         $auth = new MobileAuthController();
 
-        return $auth->totpAuthJson($user, $app, $rememberMe);
+        return $auth->totpAuthJson($user, $app, $rememberMe, $input);
     }
 
     private function jsonInput(): array

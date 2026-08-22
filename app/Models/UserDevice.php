@@ -22,16 +22,22 @@ class UserDevice extends Model
         'device_name',
         'app_version',
         'is_active',
+        'is_trusted',
+        'trusted_at',
+        'login_secret_hash',
         'last_seen_at',
     ];
 
     protected $hidden = [
         'push_token',
+        'login_secret_hash',
     ];
 
     protected $casts = [
         'user_id' => 'integer',
         'is_active' => 'boolean',
+        'is_trusted' => 'boolean',
+        'trusted_at' => 'datetime',
         'last_seen_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
