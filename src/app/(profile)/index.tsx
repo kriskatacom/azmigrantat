@@ -1,23 +1,16 @@
 import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
-import ProfileDetailsForm from "@/components/profile/profile-details-form";
 import ProfileIdentityCard from "@/components/profile/profile-identity-card";
 import ProfileNavRow from "@/components/profile/profile-nav-row";
 import { PRIVACY_URL, TERMS_URL } from "@/constants/legal";
 import { phoneDisplayParts } from "@/constants/european-dial-codes";
 import { useAuth } from "@/hooks/useAuth";
-import {
-  getCurrentUserRequest,
-  updateProfileRequest,
-} from "@/services/auth";
+import { getCurrentUserRequest } from "@/services/auth";
 import { updateProfileImageRequest } from "@/services/profile";
-import type { UpdateProfilePayload } from "@/types/auth";
 import { useEffect, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
   Linking,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -28,7 +21,6 @@ import {
 export default function ProfileHomeScreen() {
   const { theme } = useAppTheme();
   const { user, token, updateUser, logout } = useAuth();
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
 
   useEffect(() => {
@@ -64,31 +56,9 @@ export default function ProfileHomeScreen() {
     }
   };
 
-  const handleSaveProfile = async (payload: UpdateProfilePayload) => {
-    setIsSavingProfile(true);
-    try {
-      const updatedUser = await updateProfileRequest(token, payload);
-      await updateUser(updatedUser);
-      Alert.alert("Готово", "Профилът беше обновен успешно.");
-    } catch (error) {
-      console.log(error);
-
-      Alert.alert(
-        "Грешка",
-        error instanceof Error
-          ? error.message
-          : "Профилът не можа да бъде обновен.",
-      );
-    } finally {
-      setIsSavingProfile(false);
-    }
-  };
-
   return (
-    <KeyboardAvoidingView
+    <View
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
     >
       <Header title="Моят профил" hideSearchButton hideAuthButton />
       <ScrollView
@@ -96,6 +66,27 @@ export default function ProfileHomeScreen() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
       >
+        <ProfileNavRow
+          href={{
+            pathname: "/user/[id]",
+            params: { id: String(user.id) },
+          }}
+          icon="id-card"
+          title="Публичен профил"
+          description="Как виждат профила ви другите потребители"
+        />
+        <ProfileNavRow
+          href="/(profile)/personal"
+          icon="user"
+          title="Лични данни"
+          description="Име, пол и биография"
+        />
+        <ProfileNavRow
+          href="/(profile)/contact"
+          icon="map-marker"
+          title="Контакт и адрес"
+          description="Телефон, държава, град и адрес"
+        />
         <ProfileNavRow
           href="/(profile)/settings"
           icon="cog"
@@ -151,22 +142,6 @@ export default function ProfileHomeScreen() {
           onPickImage={handleChangePhoto}
         />
 
-        <View style={styles.intro}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>
-            Лични данни
-          </Text>
-          <Text
-            style={[styles.description, { color: theme.colors.textSecondary }]}
-          >
-            Прегледайте и актуализирайте информацията в профила си.
-          </Text>
-        </View>
-        <ProfileDetailsForm
-          user={user}
-          isSaving={isSavingProfile}
-          onSave={handleSaveProfile}
-        />
-
         <View style={styles.legalLinks}>
           <TouchableOpacity onPress={() => void Linking.openURL(TERMS_URL)}>
             <Text
@@ -199,16 +174,13 @@ export default function ProfileHomeScreen() {
           </Text>
         </TouchableOpacity>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: { padding: 20, paddingBottom: 44, gap: 18 },
-  intro: { gap: 5 },
-  title: { fontSize: 22, fontWeight: "800" },
-  description: { fontSize: 14, lineHeight: 20 },
   legalLinks: {
     flexDirection: "row",
     flexWrap: "wrap",

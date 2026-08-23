@@ -321,6 +321,15 @@ export default function ChatRoom() {
         isTyping={!isBlocked && isOtherUserTyping}
         publicCode={isBlocked ? undefined : otherUser?.public_code}
         onBack={() => router.back()}
+        onProfilePress={
+          recipientUserId
+            ? () =>
+                router.push({
+                  pathname: "/user/[id]",
+                  params: { id: String(recipientUserId) },
+                })
+            : undefined
+        }
         onAudioCall={
           !isBlocked && recipientUserId ? () => openCall("audio") : undefined
         }

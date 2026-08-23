@@ -16,7 +16,7 @@ import {
 export default function HomeScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const unreadMessageCount = useUnreadMessageCount();
   const unreadNotificationCount = useUnreadNotificationCount();
 
@@ -123,7 +123,17 @@ export default function HomeScreen() {
           <NavigationItem
             icon="person-outline"
             label="Профил"
-            onPress={() => router.push("/(auth)/login")}
+            onPress={() => {
+              if (isAuthenticated && user?.id) {
+                router.push({
+                  pathname: "/user/[id]",
+                  params: { id: String(user.id) },
+                });
+                return;
+              }
+
+              router.push("/(auth)/login");
+            }}
           />
         </View>
       </ImageBackground>

@@ -10,6 +10,7 @@ type ChatHeaderProps = {
   isTyping: boolean;
   publicCode?: string | null;
   onBack: () => void;
+  onProfilePress?: () => void;
   onAudioCall?: () => void;
   onVideoCall?: () => void;
   onMorePress?: () => void;
@@ -31,6 +32,7 @@ export default function ChatHeader({
   isTyping,
   publicCode,
   onBack,
+  onProfilePress,
   onAudioCall,
   onVideoCall,
   onMorePress,
@@ -92,22 +94,31 @@ export default function ChatHeader({
         <FontAwesome name="chevron-left" size={20} color={colors.text} />
       </TouchableOpacity>
 
-      {image ? (
-        <Image source={{ uri: image }} style={styles.headerAvatar} />
-      ) : (
-        <View
-          style={[
-            styles.headerAvatarPlaceholder,
-            {
-              backgroundColor: colors.background,
-            },
-          ]}
+        <TouchableOpacity
+          onPress={onProfilePress}
+          disabled={!onProfilePress}
+          style={styles.profileLink}
+          accessibilityRole={onProfilePress ? "button" : undefined}
+          accessibilityLabel={
+            onProfilePress ? `Профил на ${name}` : undefined
+          }
         >
-          <FontAwesome name="user" size={18} color={colors.textSecondary} />
-        </View>
-      )}
+          {image ? (
+            <Image source={{ uri: image }} style={styles.headerAvatar} />
+          ) : (
+            <View
+              style={[
+                styles.headerAvatarPlaceholder,
+                {
+                  backgroundColor: colors.background,
+                },
+              ]}
+            >
+              <FontAwesome name="user" size={18} color={colors.textSecondary} />
+            </View>
+          )}
 
-      <View style={styles.headerTitleContainer}>
+          <View style={styles.headerTitleContainer}>
         <Text
           style={[
             styles.headerName,
@@ -152,6 +163,7 @@ export default function ChatHeader({
               : formatLastSeen(lastSeenAt)}
         </Text>
       </View>
+      </TouchableOpacity>
 
       {onAudioCall || onVideoCall || onMorePress ? (
         <View style={styles.headerActions}>
@@ -204,6 +216,13 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
     marginRight: 8,
+  },
+
+  profileLink: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    minWidth: 0,
   },
 
   headerAvatar: {

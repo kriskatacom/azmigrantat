@@ -1,6 +1,8 @@
 import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
+import { useAuth } from "@/hooks/useAuth";
 import { useUserSettings } from "@/hooks/useUserSettings";
+import { updateProfilePrivacy } from "@/services/profile";
 import {
   setAppearancePreference,
   setChatFontSize,
@@ -10,7 +12,7 @@ import {
   type AppearancePreference,
   type ChatFontSize,
 } from "@/services/user-settings";
-import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Switch, Text, View } from "react-native";
 
 const FONT_OPTIONS: { value: ChatFontSize; label: string }[] = [
   { value: "small", label: "Малък" },
@@ -26,6 +28,7 @@ const THEME_OPTIONS: { value: AppearancePreference; label: string }[] = [
 
 export default function UserSettingsScreen() {
   const { theme } = useAppTheme();
+  const { token, updateUser } = useAuth();
   const userSettings = useUserSettings();
 
   return (
@@ -242,14 +245,31 @@ export default function UserSettingsScreen() {
             <Text
               style={[styles.description, { color: theme.colors.textSecondary }]}
             >
-              Настройката се запазва. Засега номерът не се показва никъде в
-              приложението.
+              Настройката се запазва и важи за публичния ви профил. Номерът се
+              показва само ако е потвърден.
             </Text>
           </View>
           <Switch
             value={userSettings.phoneVisible}
             onValueChange={(value) => {
-              void setPhoneVisible(value);
+              void (async () => {
+                const previous = userSettings.phoneVisible;
+                await setPhoneVisible(value);
+                if (!token) {
+                  return;
+                }
+                try {
+                  await updateUser(await updateProfilePrivacy(token, value));
+                } catch (error) {
+                  await setPhoneVisible(previous);
+                  Alert.alert(
+                    "Грешка",
+                    error instanceof Error
+                      ? error.message
+                      : "Настройката не можа да бъде запазена.",
+                  );
+                }
+              })();
             }}
             trackColor={{
               false: theme.colors.border,

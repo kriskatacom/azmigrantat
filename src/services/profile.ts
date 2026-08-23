@@ -95,3 +95,56 @@ export async function updateProfileImageRequest(
 
   return (data as { user: AuthUser }).user;
 }
+
+export type PublicUserProfile = {
+  id: number;
+  is_self: boolean;
+  name: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  username: string | null;
+  public_code: string | null;
+  profile_image: string | null;
+  gender: "male" | "female" | "other" | "prefer_not_to_say" | null;
+  city: string | null;
+  country: string | null;
+  location: string | null;
+  bio: string | null;
+  is_active: boolean;
+  phone_visible: boolean;
+  phone_verified: boolean;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  is_blocked_by_me: boolean;
+  is_blocked_me: boolean;
+  can_contact: boolean;
+};
+
+export async function getPublicProfile(
+  token: string,
+  userId: number,
+): Promise<PublicUserProfile> {
+  const response = await request<{ success: true; data: PublicUserProfile }>(
+    `/api/mobile/users/${userId}`,
+    token,
+  );
+
+  return response.data;
+}
+
+export async function updateProfilePrivacy(
+  token: string,
+  phoneVisible: boolean,
+): Promise<AuthUser> {
+  const response = await request<{ success: true; user: AuthUser }>(
+    "/api/mobile/profile/privacy",
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify({ phone_visible: phoneVisible }),
+    },
+  );
+
+  return response.user;
+}

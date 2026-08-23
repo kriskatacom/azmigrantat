@@ -24,6 +24,7 @@ import {
   setPinLoginEnabledRequest,
   verifyDeviceEmailCodeRequest,
 } from "@/services/auth";
+import { applyLocalPhoneVisible } from "@/services/user-settings";
 import {
   authenticateDeviceUnlock,
   authenticateFingerprint,
@@ -312,6 +313,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     void restoreSession();
   }, [clearLocalSession, hydrateStoredSession, syncLocalLoginAvailability]);
+
+  useEffect(() => {
+    if (typeof user?.phone_visible !== "boolean") {
+      return;
+    }
+
+    void applyLocalPhoneVisible(user.phone_visible);
+  }, [user?.phone_visible]);
 
   useEffect(() => {
     if (!expiresAt) {

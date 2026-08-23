@@ -9,6 +9,7 @@ export interface AuthUser {
   country?: string | null;
   city?: string | null;
   address?: string | null;
+  bio?: string | null;
   profile_image?: string | null;
   avatar?: string | null;
   public_code?: string | null;
@@ -18,6 +19,7 @@ export interface AuthUser {
   has_pin?: boolean;
   pin_login_enabled?: boolean;
   email_login_enabled?: boolean;
+  phone_visible?: boolean;
 }
 
 export type Gender = "male" | "female" | "other" | "prefer_not_to_say";
@@ -30,6 +32,7 @@ export interface UpdateProfilePayload {
   country: string;
   city: string;
   address: string;
+  bio: string;
 }
 
 export interface ChangePasswordPayload {

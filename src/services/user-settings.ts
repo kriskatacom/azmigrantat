@@ -199,6 +199,14 @@ export async function setPhoneVisible(phoneVisible: boolean): Promise<void> {
   await patchSettings({ phoneVisible });
 }
 
+export async function applyLocalPhoneVisible(phoneVisible: boolean): Promise<void> {
+  if (settings.phoneVisible === phoneVisible) {
+    return;
+  }
+
+  await patchSettings({ phoneVisible });
+}
+
 export async function setShowFullCallDetails(
   showFullCallDetails: boolean,
 ): Promise<void> {
