@@ -1,5 +1,6 @@
 import * as Crypto from "expo-crypto";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { setAudioModeAsync } from "expo-audio";
 import {
   RTCIceCandidate,
   RTCPeerConnection,
@@ -32,6 +33,7 @@ type Options = {
   releaseActiveCall?: (callId: string) => void;
 };
 type SwitchableTrack = MediaStreamTrack & { _switchCamera?: () => void };
+type VolumeTrack = MediaStreamTrack & { _setVolume?: (volume: number) => void };
 type IceEvent = {
   candidate: {
     candidate: string;
@@ -80,6 +82,13 @@ function candidateKey(value: CallIceCandidate) {
   return `${value.candidate}:${value.sdpMid ?? ""}:${value.sdpMLineIndex ?? ""}`;
 }
 
+function applyRemoteListenEnabled(stream: MediaStream | null, enabled: boolean) {
+  stream?.getAudioTracks().forEach((track) => {
+    track.enabled = enabled;
+    (track as VolumeTrack)._setVolume?.(enabled ? 1 : 0);
+  });
+}
+
 function stateForReason(reason?: CallEndReason): CallState {
   if (
     reason === "rejected" ||
@@ -114,6 +123,8 @@ export function useVideoCall({
   const [isRemoteCameraEnabled, setIsRemoteCameraEnabled] = useState(
     callType !== "audio",
   );
+  const [isSpeakerEnabled, setIsSpeakerEnabled] = useState(callType !== "audio");
+  const [isRemoteAudioEnabled, setIsRemoteAudioEnabled] = useState(true);
 
   const peerRef = useRef<RTCPeerConnection | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
@@ -135,6 +146,7 @@ export function useVideoCall({
   const durationRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const iceFailRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callTypeRef = useRef<CallType>(parseCallType(callType));
+  const isRemoteAudioEnabledRef = useRef(true);
 
   const changeState = useCallback((value: CallState) => {
     stateRef.current = value;
@@ -146,6 +158,9 @@ export function useVideoCall({
       const cameraOn = callTypeRef.current === "video";
       setIsCameraEnabled(cameraOn);
       setIsRemoteCameraEnabled(cameraOn);
+      setIsSpeakerEnabled(cameraOn);
+      setIsRemoteAudioEnabled(true);
+      isRemoteAudioEnabledRef.current = true;
     }
   }, [callType]);
   const changeIncoming = useCallback((value: CallServerPayload | null) => {
@@ -207,6 +222,9 @@ export function useVideoCall({
         setIsMicrophoneEnabled(true);
         setIsCameraEnabled(callTypeRef.current === "video");
         setIsRemoteCameraEnabled(callTypeRef.current === "video");
+        setIsSpeakerEnabled(callTypeRef.current !== "audio");
+        setIsRemoteAudioEnabled(true);
+        isRemoteAudioEnabledRef.current = true;
       }
       return true;
     },
@@ -317,6 +335,8 @@ export function useVideoCall({
       if (mountedRef.current) {
         setIsCameraEnabled(enableCamera);
         setIsMicrophoneEnabled(true);
+        setIsRemoteAudioEnabled(true);
+        isRemoteAudioEnabledRef.current = true;
       }
 
       peer.ontrack = (event: { streams?: MediaStream[]; track?: MediaStreamTrack }) => {
@@ -324,6 +344,7 @@ export function useVideoCall({
         const streamValue = event.streams?.[0];
         if (!streamValue) return;
         remoteStreamRef.current = streamValue;
+        applyRemoteListenEnabled(streamValue, isRemoteAudioEnabledRef.current);
         setRemoteStream((current) => current?.id === streamValue.id ? current : streamValue);
         const videoTrack = event.track?.kind === "video"
           ? event.track
@@ -715,6 +736,33 @@ export function useVideoCall({
     if (stateRef.current !== "connected" || !localStream) return;
     (localStream.getVideoTracks()[0] as SwitchableTrack | undefined)?._switchCamera?.();
   }, [localStream]);
+  const toggleSpeaker = useCallback(() => {
+    if (stateRef.current !== "connected") return;
+    setIsSpeakerEnabled((current) => !current);
+  }, []);
+  const toggleRemoteAudio = useCallback(() => {
+    if (stateRef.current !== "connected") return;
+    const next = !isRemoteAudioEnabledRef.current;
+    isRemoteAudioEnabledRef.current = next;
+    applyRemoteListenEnabled(remoteStreamRef.current, next);
+    setIsRemoteAudioEnabled(next);
+  }, []);
+
+  useEffect(() => {
+    if (callState !== "connected") {
+      return;
+    }
+
+    void setAudioModeAsync({
+      allowsRecording: true,
+      playsInSilentMode: true,
+      interruptionMode: "doNotMix",
+      shouldPlayInBackground: true,
+      shouldRouteThroughEarpiece: !isSpeakerEnabled,
+    }).catch((error: unknown) => {
+      console.warn("[CALL] audio route failed", error);
+    });
+  }, [callState, isSpeakerEnabled]);
 
   return {
     localStream,
@@ -727,6 +775,8 @@ export function useVideoCall({
     isMicrophoneEnabled,
     isCameraEnabled,
     isRemoteCameraEnabled,
+    isSpeakerEnabled,
+    isRemoteAudioEnabled,
     startCamera,
     stopCamera,
     startCall,
@@ -736,5 +786,7 @@ export function useVideoCall({
     toggleMicrophone,
     toggleCamera,
     switchCamera,
+    toggleSpeaker,
+    toggleRemoteAudio,
   };
 }

@@ -87,6 +87,10 @@ type VideoCallContextValue = {
   toggleMicrophone: () => void;
   toggleCamera: () => void;
   switchCamera: () => void;
+  isSpeakerEnabled: boolean;
+  isRemoteAudioEnabled: boolean;
+  toggleSpeaker: () => void;
+  toggleRemoteAudio: () => void;
 };
 
 const VideoCallContext = createContext<VideoCallContextValue | undefined>(
@@ -1243,6 +1247,8 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       isMicrophoneEnabled: mediaCall.isMicrophoneEnabled,
       isCameraEnabled: mediaCall.isCameraEnabled,
       isRemoteCameraEnabled: mediaCall.isRemoteCameraEnabled,
+      isSpeakerEnabled: mediaCall.isSpeakerEnabled,
+      isRemoteAudioEnabled: mediaCall.isRemoteAudioEnabled,
       startCamera: mediaCall.startCamera,
       stopCamera: mediaCall.stopCamera,
       startCall: mediaCall.startCall,
@@ -1250,6 +1256,8 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       toggleMicrophone: mediaCall.toggleMicrophone,
       toggleCamera: mediaCall.toggleCamera,
       switchCamera: mediaCall.switchCamera,
+      toggleSpeaker: mediaCall.toggleSpeaker,
+      toggleRemoteAudio: mediaCall.toggleRemoteAudio,
     }),
     [
       acceptedIncomingCall,
@@ -1264,7 +1272,9 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       mediaCall.isCameraEnabled,
       mediaCall.isInCall,
       mediaCall.isMicrophoneEnabled,
+      mediaCall.isRemoteAudioEnabled,
       mediaCall.isRemoteCameraEnabled,
+      mediaCall.isSpeakerEnabled,
       mediaCall.localStream,
       mediaCall.remoteStream,
       mediaCall.startCall,
@@ -1273,6 +1283,8 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       mediaCall.switchCamera,
       mediaCall.toggleCamera,
       mediaCall.toggleMicrophone,
+      mediaCall.toggleRemoteAudio,
+      mediaCall.toggleSpeaker,
       minimizeActiveCall,
       releaseActiveCall,
       restoreActiveCall,

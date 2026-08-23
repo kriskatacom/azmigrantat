@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MediaStream, RTCView } from "react-native-webrtc";
 
 type Props = {
@@ -71,6 +72,39 @@ function CameraOffState({
   );
 }
 
+function ParticipantSurface({
+  stream,
+  showVideo,
+  name,
+  avatarUrl,
+  compact = false,
+  mirror = false,
+  zOrder,
+}: {
+  stream: MediaStream | null;
+  showVideo: boolean;
+  name: string;
+  avatarUrl?: string | null;
+  compact?: boolean;
+  mirror?: boolean;
+  zOrder: number;
+}) {
+  if (showVideo && stream) {
+    return (
+      <RTCView
+        key={`${stream.id}-${compact ? "pip" : "main"}`}
+        streamURL={stream.toURL()}
+        style={compact ? styles.pipVideo : styles.remoteVideo}
+        objectFit="cover"
+        mirror={mirror}
+        zOrder={zOrder}
+      />
+    );
+  }
+
+  return <CameraOffState compact={compact} name={name} avatarUrl={avatarUrl} />;
+}
+
 export default function VideoCallView({
   localStream,
   remoteStream,
@@ -81,51 +115,61 @@ export default function VideoCallView({
   localName = "Вие",
   localAvatarUrl = null,
 }: Props) {
+  const [localIsPrimary, setLocalIsPrimary] = useState(false);
   const showRemoteVideo = Boolean(remoteStream) && isRemoteCameraEnabled;
   const showLocalVideo = Boolean(localStream) && isCameraEnabled;
-  const showLocalPip = Boolean(remoteStream);
-  const showLocalFullscreen = !remoteStream && showLocalVideo;
+  const canSwap = Boolean(remoteStream);
+  const primaryIsLocal = canSwap ? localIsPrimary : showLocalVideo;
 
   return (
     <View style={styles.videoContainer}>
-      {showRemoteVideo ? (
-        <RTCView
-          key={`${remoteStream!.id}-on`}
-          streamURL={remoteStream!.toURL()}
-          style={styles.remoteVideo}
-          objectFit="cover"
-          mirror={false}
-          zOrder={0}
-        />
-      ) : showLocalFullscreen ? (
-        <RTCView
-          streamURL={localStream!.toURL()}
-          style={styles.remoteVideo}
-          objectFit="cover"
+      {primaryIsLocal ? (
+        <ParticipantSurface
+          stream={localStream}
+          showVideo={showLocalVideo}
+          name={localName}
+          avatarUrl={localAvatarUrl}
           mirror
           zOrder={0}
         />
       ) : (
-        <CameraOffState name={displayName} avatarUrl={avatarUrl} />
+        <ParticipantSurface
+          stream={remoteStream}
+          showVideo={showRemoteVideo}
+          name={displayName}
+          avatarUrl={avatarUrl}
+          zOrder={0}
+        />
       )}
 
-      {showLocalPip ? (
-        <View style={styles.localPreview}>
-          {showLocalVideo ? (
-            <RTCView
-              streamURL={localStream!.toURL()}
-              style={styles.localVideo}
-              objectFit="cover"
-              mirror
+      {canSwap ? (
+        <View style={styles.pipPreview}>
+          {primaryIsLocal ? (
+            <ParticipantSurface
+              compact
+              stream={remoteStream}
+              showVideo={showRemoteVideo}
+              name={displayName}
+              avatarUrl={avatarUrl}
               zOrder={1}
             />
           ) : (
-            <CameraOffState
+            <ParticipantSurface
               compact
+              stream={localStream}
+              showVideo={showLocalVideo}
               name={localName}
               avatarUrl={localAvatarUrl}
+              mirror
+              zOrder={1}
             />
           )}
+          <Pressable
+            accessibilityLabel="Размени изгледа на камерите"
+            accessibilityRole="button"
+            onPress={() => setLocalIsPrimary((current) => !current)}
+            style={styles.pipHitArea}
+          />
         </View>
       ) : null}
     </View>
@@ -207,10 +251,10 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  localPreview: {
+  pipPreview: {
     position: "absolute",
-    top: 20,
     right: 16,
+    bottom: 210,
     width: 110,
     height: 160,
     borderRadius: 16,
@@ -221,7 +265,11 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
 
-  localVideo: {
+  pipHitArea: {
+    ...StyleSheet.absoluteFillObject,
+  },
+
+  pipVideo: {
     width: "100%",
     height: "100%",
   },

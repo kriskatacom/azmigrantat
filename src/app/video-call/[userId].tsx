@@ -79,7 +79,9 @@ export default function VideoCallScreen() {
     isCameraEnabled,
     isInCall,
     isMicrophoneEnabled,
+    isRemoteAudioEnabled,
     isRemoteCameraEnabled,
+    isSpeakerEnabled,
     localStream,
     minimizeActiveCall,
     remoteStream,
@@ -89,6 +91,8 @@ export default function VideoCallScreen() {
     switchCamera,
     toggleCamera,
     toggleMicrophone,
+    toggleRemoteAudio,
+    toggleSpeaker,
   } = useIncomingVideoCall();
   const matchingIncomingCall =
     direction === "incoming" &&
@@ -450,6 +454,8 @@ export default function VideoCallScreen() {
           isInCall={isInCall}
           isMicrophoneEnabled={isMicrophoneEnabled}
           isCameraEnabled={isCameraEnabled}
+          isSpeakerEnabled={isSpeakerEnabled}
+          isRemoteAudioEnabled={isRemoteAudioEnabled}
           onStartCamera={startCamera}
           onStopCamera={stopCamera}
           onStartCall={() => void startCall(recipientId)}
@@ -457,6 +463,8 @@ export default function VideoCallScreen() {
           onToggleMicrophone={toggleMicrophone}
           onToggleCamera={toggleCamera}
           onSwitchCamera={switchCamera}
+          onToggleSpeaker={toggleSpeaker}
+          onToggleRemoteAudio={toggleRemoteAudio}
         />
       ) : null}
     </SafeAreaView>

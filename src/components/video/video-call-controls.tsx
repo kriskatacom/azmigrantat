@@ -6,6 +6,8 @@ type VideoCallControlsProps = {
 
   isMicrophoneEnabled: boolean;
   isCameraEnabled: boolean;
+  isSpeakerEnabled: boolean;
+  isRemoteAudioEnabled: boolean;
 
   onStartCamera: () => void | Promise<unknown>;
   onStopCamera: () => void;
@@ -16,76 +18,144 @@ type VideoCallControlsProps = {
   onToggleMicrophone: () => void;
   onToggleCamera: () => void;
   onSwitchCamera: () => void;
+  onToggleSpeaker: () => void;
+  onToggleRemoteAudio: () => void;
 };
 
 export default function VideoCallControls({
   isInCall,
   isMicrophoneEnabled,
   isCameraEnabled,
-  onStartCamera,
-  onStopCamera,
+  isSpeakerEnabled,
+  isRemoteAudioEnabled,
   onStartCall,
   onEndCall,
   onToggleMicrophone,
   onToggleCamera,
   onSwitchCamera,
+  onToggleSpeaker,
+  onToggleRemoteAudio,
 }: VideoCallControlsProps) {
   return (
     <View style={styles.container}>
       {!isInCall && (
-        <>
+        <View style={styles.row}>
           <TouchableOpacity
+            accessibilityLabel="Стартирай обаждането"
+            accessibilityRole="button"
             style={[styles.button, styles.callButton]}
             onPress={() => void onStartCall()}
           >
             <Ionicons name="videocam" size={26} color="#fff" />
           </TouchableOpacity>
-        </>
+        </View>
       )}
 
       {isInCall && (
         <>
-          <TouchableOpacity
-            style={[styles.button, styles.secondaryButton]}
-            onPress={onToggleMicrophone}
-          >
-            <Ionicons
-              name={isMicrophoneEnabled ? "mic" : "mic-off"}
-              size={26}
-              color="#fff"
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, styles.secondaryButton]}
-            onPress={onToggleCamera}
-            accessibilityLabel={
-              isCameraEnabled ? "Изключи камерата" : "Включи камерата"
-            }
-          >
-            <Ionicons
-              name={isCameraEnabled ? "videocam" : "videocam-off"}
-              size={26}
-              color="#fff"
-            />
-          </TouchableOpacity>
-
-          {isCameraEnabled ? (
+          <View style={styles.row}>
             <TouchableOpacity
-              style={[styles.button, styles.secondaryButton]}
-              onPress={onSwitchCamera}
-              accessibilityLabel="Смени камерата"
+              accessibilityLabel={
+                isSpeakerEnabled
+                  ? "Изключи високоговорителя"
+                  : "Включи високоговорителя"
+              }
+              accessibilityRole="button"
+              style={[
+                styles.button,
+                styles.secondaryButton,
+                !isSpeakerEnabled && styles.offButton,
+              ]}
+              onPress={onToggleSpeaker}
             >
-              <Ionicons name="camera-reverse" size={26} color="#fff" />
+              <Ionicons
+                name={isSpeakerEnabled ? "volume-high" : "ear"}
+                size={26}
+                color="#fff"
+              />
             </TouchableOpacity>
-          ) : null}
 
-          <TouchableOpacity
-            style={[styles.button, styles.endButton]}
-            onPress={onEndCall}
-          >
-            <Ionicons name="call" size={26} color="#fff" />
-          </TouchableOpacity>
+            <TouchableOpacity
+              accessibilityLabel={
+                isRemoteAudioEnabled
+                  ? "Заглуши другия участник"
+                  : "Включи звука на другия участник"
+              }
+              accessibilityRole="button"
+              style={[
+                styles.button,
+                styles.secondaryButton,
+                !isRemoteAudioEnabled && styles.offButton,
+              ]}
+              onPress={onToggleRemoteAudio}
+            >
+              <Ionicons
+                name={isRemoteAudioEnabled ? "volume-medium" : "volume-mute"}
+                size={26}
+                color="#fff"
+              />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.row}>
+            <TouchableOpacity
+              accessibilityLabel={
+                isMicrophoneEnabled ? "Заглуши микрофона" : "Включи микрофона"
+              }
+              accessibilityRole="button"
+              style={[
+                styles.button,
+                styles.secondaryButton,
+                !isMicrophoneEnabled && styles.offButton,
+              ]}
+              onPress={onToggleMicrophone}
+            >
+              <Ionicons
+                name={isMicrophoneEnabled ? "mic" : "mic-off"}
+                size={26}
+                color="#fff"
+              />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.button,
+                styles.secondaryButton,
+                !isCameraEnabled && styles.offButton,
+              ]}
+              onPress={onToggleCamera}
+              accessibilityLabel={
+                isCameraEnabled ? "Изключи камерата" : "Включи камерата"
+              }
+              accessibilityRole="button"
+            >
+              <Ionicons
+                name={isCameraEnabled ? "videocam" : "videocam-off"}
+                size={26}
+                color="#fff"
+              />
+            </TouchableOpacity>
+
+            {isCameraEnabled ? (
+              <TouchableOpacity
+                style={[styles.button, styles.secondaryButton]}
+                onPress={onSwitchCamera}
+                accessibilityLabel="Смени камерата"
+                accessibilityRole="button"
+              >
+                <Ionicons name="camera-reverse" size={26} color="#fff" />
+              </TouchableOpacity>
+            ) : null}
+
+            <TouchableOpacity
+              accessibilityLabel="Приключи обаждането"
+              accessibilityRole="button"
+              style={[styles.button, styles.endButton]}
+              onPress={onEndCall}
+            >
+              <Ionicons name="call" size={26} color="#fff" />
+            </TouchableOpacity>
+          </View>
         </>
       )}
     </View>
@@ -97,11 +167,16 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 0,
     right: 0,
-    bottom: 64,
+    bottom: 48,
+    alignItems: "center",
+    gap: 14,
+  },
+
+  row: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 18,
+    gap: 14,
   },
 
   button: {
@@ -122,5 +197,9 @@ const styles = StyleSheet.create({
 
   secondaryButton: {
     backgroundColor: "rgba(255,255,255,0.2)",
+  },
+
+  offButton: {
+    backgroundColor: "rgba(239,68,68,0.45)",
   },
 });
