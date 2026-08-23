@@ -297,6 +297,7 @@ export default function ChatRoom() {
         image: displayedImage ?? "",
         callType,
         autoStart: "1",
+        conversationId: String(conversationId),
       },
     });
   };

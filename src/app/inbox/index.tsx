@@ -163,6 +163,7 @@ export default function InboxScreen() {
         image: otherUser?.profile_image ?? conversation.image ?? "",
         callType: "audio",
         autoStart: "1",
+        conversationId: String(conversation.id),
       },
     });
   };

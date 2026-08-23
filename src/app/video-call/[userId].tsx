@@ -6,6 +6,7 @@ import { useIncomingVideoCall } from "@/contexts/VideoCallContext";
 import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
 import { ACTIVE_CALL_STATES } from "@/hooks/video/useVideoCall";
+import { createDirectConversation } from "@/services/chat";
 import { parseCallType } from "@/services/video-call";
 import {
   useLocalSearchParams,
@@ -13,13 +14,14 @@ import {
   useRouter,
 } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { Ionicons } from "@expo/vector-icons";
 import { BackHandler, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function VideoCallScreen() {
   const router = useRouter();
   const { theme } = useAppTheme();
-  const { user, isLoading: isAuthLoading } = useAuth();
+  const { user, token, isLoading: isAuthLoading } = useAuth();
   const { lastUserBlock } = useSocket();
   const params = useLocalSearchParams<{
     userId?: string | string[];
@@ -28,6 +30,7 @@ export default function VideoCallScreen() {
     autoStart?: string | string[];
     callType?: string | string[];
     image?: string | string[];
+    conversationId?: string | string[];
   }>();
   const hasStartedCallRef = useRef(false);
   const hasLeftScreenRef = useRef(false);
@@ -60,6 +63,13 @@ export default function VideoCallScreen() {
   const autoStart =
     (Array.isArray(params.autoStart) ? params.autoStart[0] : params.autoStart) ===
     "1";
+  const routeConversationId = useMemo(() => {
+    const rawId = Array.isArray(params.conversationId)
+      ? params.conversationId[0]
+      : params.conversationId;
+    const parsedId = rawId ? Number(rawId) : NaN;
+    return Number.isInteger(parsedId) && parsedId > 0 ? parsedId : null;
+  }, [params.conversationId]);
   const {
     acceptedIncomingCall,
     attachCallSession,
@@ -199,6 +209,65 @@ export default function VideoCallScreen() {
     }
     leaveVideoCallScreen();
   }, [callState, leaveVideoCallScreen, minimizeActiveCall]);
+
+  const openChatRoom = useCallback(async () => {
+    if (!token || !Number.isInteger(recipientId) || recipientId <= 0) {
+      return;
+    }
+
+    try {
+      let conversationId = routeConversationId;
+      let chatUserId = String(recipientId);
+      let chatTitle = recipientName ?? "Потребител";
+      let chatImage = recipientImage ?? "";
+
+      if (conversationId === null) {
+        const conversation = await createDirectConversation(token, recipientId);
+        conversationId = conversation.id;
+        chatUserId =
+          conversation.other_user?.id?.toString() ?? String(recipientId);
+        chatTitle =
+          conversation.other_user?.name ??
+          conversation.title ??
+          chatTitle;
+        chatImage =
+          conversation.other_user?.profile_image ??
+          conversation.image ??
+          chatImage;
+      }
+
+      if (ACTIVE_CALL_STATES.includes(callState)) {
+        minimizeActiveCall();
+      }
+
+      if (hasLeftScreenRef.current || !rootNavigationState?.key) {
+        return;
+      }
+
+      hasLeftScreenRef.current = true;
+      router.replace({
+        pathname: "/chat/[id]",
+        params: {
+          id: String(conversationId),
+          userId: chatUserId,
+          title: chatTitle,
+          image: chatImage,
+        },
+      });
+    } catch (error: unknown) {
+      console.error("Чат стаята не можа да бъде отворена:", error);
+    }
+  }, [
+    callState,
+    minimizeActiveCall,
+    recipientId,
+    recipientImage,
+    recipientName,
+    rootNavigationState?.key,
+    routeConversationId,
+    router,
+    token,
+  ]);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -355,7 +424,18 @@ export default function VideoCallScreen() {
           onPress={hideCallScreen}
           style={styles.minimizeButton}
         >
-          <Text style={styles.minimizeButtonText}>Намали</Text>
+          <Ionicons name="chevron-down" size={26} color="#fff" />
+        </TouchableOpacity>
+      ) : null}
+
+      {callState === "connected" ? (
+        <TouchableOpacity
+          accessibilityLabel="Отвори чат стаята"
+          accessibilityRole="button"
+          onPress={() => void openChatRoom()}
+          style={styles.chatButton}
+        >
+          <Ionicons name="chatbubble" size={24} color="#fff" />
         </TouchableOpacity>
       ) : null}
 
@@ -423,21 +503,31 @@ const styles = StyleSheet.create({
   },
   minimizeButton: {
     position: "absolute",
-    top: 24,
+    top: 48,
     left: 16,
-    backgroundColor: "rgba(0,0,0,0.45)",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    zIndex: 2,
   },
-  minimizeButtonText: {
-    color: "#ffffff",
-    fontSize: 15,
-    fontWeight: "700",
+  chatButton: {
+    position: "absolute",
+    top: 48,
+    right: 16,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.2)",
+    zIndex: 2,
   },
   duration: {
     position: "absolute",
-    top: 24,
+    top: 56,
     alignSelf: "center",
     color: "#ffffff",
     fontSize: 17,
