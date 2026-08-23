@@ -427,7 +427,9 @@ final class MessageController extends BaseController
                 $message->client_message_id,
             'type' => $message->type,
             'content' => $message->content,
-            'metadata' => $message->metadata,
+            'metadata' => BackblazeB2Service::serializeAttachmentMetadata(
+                $message->metadata
+            ),
             'status' => $message->status,
             'is_read' => $message->status === Message::STATUS_READ,
             'delivered_at' =>
@@ -684,7 +686,8 @@ final class MessageController extends BaseController
             $applicationKey,
             $bucket,
             $endpoint,
-            $region
+            $region,
+            (string) ($_ENV['B2_CDN_BASE_URL'] ?? '')
         );
 
         $useProxy = filter_var(

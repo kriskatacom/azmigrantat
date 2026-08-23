@@ -10,6 +10,7 @@ class BackblazeB2Service
 {
     private S3Client $client;
     private string $bucket;
+    private string $cdnBaseUrl;
     private bool $useProxy = true;
 
     public function __construct(
@@ -18,8 +19,12 @@ class BackblazeB2Service
         string $bucket,
         string $endpoint,
         string $region,
+        ?string $cdnBaseUrl = null,
     ) {
         $this->bucket = $bucket;
+        $this->cdnBaseUrl = self::normalizeCdnBaseUrl(
+            $cdnBaseUrl ?? self::cdnBaseUrlFromEnv()
+        );
 
         $this->client = new S3Client([
             'version' => 'latest',
@@ -62,6 +67,7 @@ class BackblazeB2Service
             'Key' => $remotePath,
             'SourceFile' => $localFile,
             'ContentType' => $contentType,
+            'CacheControl' => 'public, max-age=31536000, immutable',
         ]);
 
         return [
@@ -129,16 +135,130 @@ class BackblazeB2Service
         );
     }
 
-    public function url(string $remotePath): string
+    public function url(string $key): string
     {
-        if (!$this->useProxy) {
-            return $this->client->getObjectUrl($this->bucket, $remotePath);
+        $baseUrl = rtrim($this->cdnBaseUrl, '/');
+        $key = ltrim($key, '/');
+
+        return $baseUrl . '/' . $key;
+    }
+
+    public static function urlForKey(string $key, ?string $cdnBaseUrl = null): string
+    {
+        $baseUrl = rtrim(
+            self::normalizeCdnBaseUrl($cdnBaseUrl ?? self::cdnBaseUrlFromEnv()),
+            '/'
+        );
+        $key = ltrim($key, '/');
+
+        return $baseUrl . '/' . $key;
+    }
+
+    public static function publicUrl(?string $stored): ?string
+    {
+        if ($stored === null) {
+            return null;
         }
 
-        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
-        $host = $_SERVER['HTTP_HOST'];
+        $stored = trim($stored);
+        if ($stored === '') {
+            return null;
+        }
 
-        return $protocol . $host . '/admin/storage/file?path=' . urlencode(ltrim($remotePath, '/'));
+        $key = self::extractObjectKey($stored);
+        if ($key === null || $key === '') {
+            return $stored;
+        }
+
+        return self::urlForKey($key);
+    }
+
+    public static function extractObjectKey(?string $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        $value = trim($value);
+        if ($value === '') {
+            return null;
+        }
+
+        if (str_contains($value, 'path=')) {
+            $parts = parse_url($value);
+            if (!empty($parts['query'])) {
+                parse_str($parts['query'], $query);
+                if (!empty($query['path']) && is_string($query['path'])) {
+                    return ltrim($query['path'], '/');
+                }
+            }
+        }
+
+        if (!preg_match('#^https?://#i', $value)) {
+            return ltrim($value, '/');
+        }
+
+        $parts = parse_url($value);
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        $path = ltrim((string) ($parts['path'] ?? ''), '/');
+
+        if ($host === '') {
+            return $path !== '' ? $path : null;
+        }
+
+        $cdnHost = strtolower((string) (parse_url(self::cdnBaseUrlFromEnv(), PHP_URL_HOST) ?? ''));
+        if ($cdnHost !== '' && $host === $cdnHost) {
+            return $path !== '' ? $path : null;
+        }
+
+        if (preg_match('#^file/([^/]+)/(.+)$#', $path, $matches)) {
+            return $matches[2];
+        }
+
+        $bucket = self::configuredBucketName();
+        if ($bucket !== '' && str_starts_with($path, $bucket . '/')) {
+            return substr($path, strlen($bucket) + 1);
+        }
+
+        if (preg_match('#^(.+)\.s3[.-]#i', $host)) {
+            return $path !== '' ? $path : null;
+        }
+
+        if (
+            str_contains($host, 'backblazeb2.com')
+            && preg_match('#^[^/]+/(.+)$#', $path, $matches)
+        ) {
+            return $matches[1];
+        }
+
+        return $path !== '' ? $path : null;
+    }
+
+    /**
+     * @param mixed $metadata
+     * @return mixed
+     */
+    public static function serializeAttachmentMetadata($metadata)
+    {
+        if (is_string($metadata)) {
+            $decoded = json_decode($metadata, true);
+            $metadata = is_array($decoded) ? $decoded : $metadata;
+        }
+
+        if (!is_array($metadata)) {
+            return $metadata;
+        }
+
+        if (!empty($metadata['key']) && is_string($metadata['key'])) {
+            $metadata['url'] = self::urlForKey($metadata['key']);
+            return $metadata;
+        }
+
+        if (!empty($metadata['url']) && is_string($metadata['url'])) {
+            $metadata['url'] = self::publicUrl($metadata['url']);
+        }
+
+        return $metadata;
     }
 
     public function getBucketName(): string
@@ -154,5 +274,41 @@ class BackblazeB2Service
         ]);
 
         return (string) $result['Body'];
+    }
+
+    public static function cdnBaseUrlFromEnv(): string
+    {
+        $value = self::firstEnvValue('B2_CDN_BASE_URL', 'B2_CDN_BASE_URL');
+
+        return self::normalizeCdnBaseUrl((string) $value);
+    }
+
+    private static function configuredBucketName(): string
+    {
+        return trim((string) (
+            self::firstEnvValue('B2_BUCKET', 'B2_BUCKET')
+        ));
+    }
+
+
+    private static function firstEnvValue(string ...$keys): string
+    {
+        foreach ($keys as $key) {
+            $value = $_ENV[$key] ?? getenv($key);
+            if (is_string($value) && trim($value) !== '') {
+                return trim($value);
+            }
+        }
+
+        return '';
+    }
+
+    private static function normalizeCdnBaseUrl(string $baseUrl): string
+    {
+        $baseUrl = rtrim(trim($baseUrl), '/');
+
+        return $baseUrl !== ''
+            ? $baseUrl
+            : 'https://cdn.azmigrantat.com';
     }
 }

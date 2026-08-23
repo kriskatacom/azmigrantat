@@ -41,7 +41,7 @@ final class PushNotificationService
             $body = 'Ново съобщение';
         }
 
-        $senderImage = $sender->options['profile_image'] ?? null;
+        $senderImage = $sender->profile_image_url;
 
         return $this->sendToUser(
             $recipient,

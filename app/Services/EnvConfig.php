@@ -159,6 +159,7 @@ final class EnvConfig
             ['key' => 'B2_BUCKET', 'label' => 'Backblaze bucket', 'group' => 'Файлове (Backblaze)', 'secret' => false, 'default' => 'azmigrantat--bucket'],
             ['key' => 'B2_ENDPOINT', 'label' => 'Backblaze endpoint', 'group' => 'Файлове (Backblaze)', 'secret' => false, 'default' => 'https://s3.eu-central-003.backblazeb2.com'],
             ['key' => 'B2_REGION', 'label' => 'Backblaze регион', 'group' => 'Файлове (Backblaze)', 'secret' => false, 'default' => 'eu-central-003'],
+            ['key' => 'B2_CDN_BASE_URL', 'label' => 'Backblaze CDN URL', 'group' => 'Файлове (Backblaze)', 'secret' => false, 'default' => 'https://cdn.azmigrantat.com'],
             ['key' => 'B2_USE_PROXY', 'label' => 'Backblaze през прокси', 'group' => 'Файлове (Backblaze)', 'secret' => false, 'default' => 'false'],
 
             ['key' => 'ETOME_BASE_URL', 'label' => 'Базов URL на приложението', 'group' => 'Realtime и сигурност', 'secret' => false, 'default' => 'http://localhost:8000', 'prod_default' => 'https://users.azmigrantat.com'],

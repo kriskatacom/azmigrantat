@@ -299,7 +299,7 @@ final class NotificationService
             'is_read' => (bool) $notification->is_read,
             'actor_id' => $notification->actor_id !== null ? (int) $notification->actor_id : null,
             'entity_id' => $notification->entity_id,
-            'data' => $notification->data,
+            'data' => $this->normalizeNotificationData($notification->data),
             'created_at' => $notification->created_at?->toISOString(),
             'updated_at' => $notification->updated_at?->toISOString(),
             'actor' => $actor
@@ -328,6 +328,25 @@ final class NotificationService
         }
 
         return 'Реагира на ' . $count . ' твои съобщения.';
+    }
+
+    /**
+     * @param mixed $data
+     * @return mixed
+     */
+    private function normalizeNotificationData($data)
+    {
+        if (!is_array($data)) {
+            return $data;
+        }
+
+        foreach (['caller_avatar', 'actor_avatar'] as $field) {
+            if (!empty($data[$field]) && is_string($data[$field])) {
+                $data[$field] = BackblazeB2Service::publicUrl($data[$field]);
+            }
+        }
+
+        return $data;
     }
 
     private function storeEvent(int $notificationId, string $eventKey): void

@@ -70,7 +70,9 @@ final class RealtimeNotifier
                 'client_message_id' => $message->client_message_id,
                 'type' => $message->type,
                 'content' => $message->content,
-                'metadata' => $message->metadata,
+                'metadata' => BackblazeB2Service::serializeAttachmentMetadata(
+                    $message->metadata
+                ),
                 'status' => $message->status,
                 'is_read' => $message->status === Message::STATUS_READ,
                 'delivered_at' => $message->delivered_at?->toISOString(),
@@ -87,7 +89,7 @@ final class RealtimeNotifier
                         'username' => $message->sender->username,
                         'role' => $message->sender->role,
                         'profile_image' =>
-                            $message->sender->profile_image
+                            $message->sender->profile_image_url
                             ?? $message->sender->avatar
                             ?? null,
                         'is_active' => (bool) $message->sender->is_active,

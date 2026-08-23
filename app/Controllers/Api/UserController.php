@@ -860,7 +860,8 @@ class UserController extends BaseApiController
             $applicationKey,
             $bucket,
             $endpoint,
-            $region
+            $region,
+            (string) ($_ENV['B2_CDN_BASE_URL'] ?? '')
         );
 
         $storage->setUseProxy(

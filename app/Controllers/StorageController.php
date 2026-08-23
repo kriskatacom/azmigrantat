@@ -25,7 +25,8 @@ class StorageController extends BaseController
             $applicationKey,
             $bucket,
             $endpoint,
-            $region
+            $region,
+            (string) ($_ENV['B2_CDN_BASE_URL'] ?? $_SERVER['B2_CDN_BASE_URL'] ?? getenv('B2_CDN_BASE_URL') ?: '')
         );
 
         $useProxy = filter_var($_ENV['B2_USE_PROXY'] ?? $_SERVER['B2_USE_PROXY'] ?? getenv('B2_USE_PROXY') ?? true, FILTER_VALIDATE_BOOLEAN);
@@ -74,28 +75,10 @@ class StorageController extends BaseController
         }
 
         try {
-            $remotePath = $path;
-
-            if (strpos($path, '?path=') !== false) {
-                $urlParts = parse_url($path);
-                parse_str($urlParts['query'] ?? '', $queryParams);
-                if (!empty($queryParams['path'])) {
-                    $remotePath = $queryParams['path'];
-                }
-            } else {
-                if (strpos($path, 'uploads/') !== false) {
-                    $parts = explode('uploads/', $path);
-                    $remotePath = 'uploads/' . end($parts);
-                } else {
-                    $bucket = $this->storageService->getBucketName();
-                    if (strpos($path, $bucket) !== false) {
-                        $parts = explode($bucket . '/', $path);
-                        $remotePath = end($parts);
-                    } else {
-                        $remotePath = ltrim($path, '/');
-                    }
-                }
-            }
+            $extractedKey = BackblazeB2Service::extractObjectKey($path);
+            $remotePath = $extractedKey !== null && $extractedKey !== ''
+                ? $extractedKey
+                : $path;
 
             $deleted = $this->storageService->delete($remotePath);
 

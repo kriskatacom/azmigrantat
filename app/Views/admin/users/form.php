@@ -65,7 +65,7 @@ $isEdit = $user->exists; ?>
     <div class="lg:col-span-1 space-y-6">
         <?php Form::section('Изображение', function () use ($user) { ?>
             <div class="space-y-4">
-                <?php Form::image('Профилна снимка', 'options[profile_image]', $user->options['profile_image'] ?? null); ?>
+                <?php Form::image('Профилна снимка', 'options[profile_image]', $user->profile_image_url); ?>
             </div>
         <?php }, 'fa-camera-retro'); ?>
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\BackblazeB2Service;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -184,9 +185,11 @@ class User extends Model
 
         $image = $options['profile_image'] ?? null;
 
-        return is_string($image) && trim($image) !== ''
-            ? trim($image)
-            : null;
+        if (!is_string($image) || trim($image) === '') {
+            return null;
+        }
+
+        return BackblazeB2Service::publicUrl(trim($image));
     }
 
     public function getBioAttribute($value = null): ?string
