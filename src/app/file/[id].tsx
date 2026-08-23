@@ -2,6 +2,7 @@ import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
 import AudioMessagePlayer from "@/components/chat/audio-message-player";
 import AppButton from "@/components/ui/AppButton";
+import RemoteImage from "@/components/ui/RemoteImage";
 import { useAuth } from "@/hooks/useAuth";
 import { useSaveChatImage } from "@/hooks/chat/useSaveChatImage";
 import { getConversationMessage } from "@/services/chat";
@@ -16,7 +17,6 @@ import {
 } from "@/utils/chat/attachment";
 import { formatChatDateLabel, formatMessageTime } from "@/utils/chat/formatMessageTime";
 import { FontAwesome } from "@expo/vector-icons";
-import { Image } from "expo-image";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -140,8 +140,8 @@ export default function FileDetailsScreen() {
             ]}
           >
             {isImage ? (
-              <Image
-                source={{ uri: attachment.url }}
+              <RemoteImage
+                uri={attachment.url}
                 style={[styles.previewImage, { width: previewWidth }]}
                 contentFit="contain"
               />

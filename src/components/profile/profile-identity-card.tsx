@@ -2,7 +2,8 @@ import { useAppTheme } from "@/app/_layout";
 import { copyText } from "@/utils/copy-text";
 import { FontAwesome } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import RemoteImage from "@/components/ui/RemoteImage";
 
 type ProfileIdentityCardProps = {
   name: string;
@@ -120,7 +121,7 @@ export default function ProfileIdentityCard({
         style={styles.avatarButton}
       >
         {imageUri ? (
-          <Image source={{ uri: imageUri }} style={styles.avatar} />
+          <RemoteImage uri={imageUri} style={styles.avatar} />
         ) : (
           <View
             style={[

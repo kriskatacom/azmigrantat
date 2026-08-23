@@ -19,13 +19,13 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
-  Image,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import RemoteImage from "@/components/ui/RemoteImage";
 
 function formatNotificationDate(value: string | null): string {
   if (!value) return "";
@@ -215,8 +215,8 @@ export default function NotificationDetailScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <View style={styles.identity}>
             {notification.actor?.profile_image ? (
-              <Image
-                source={{ uri: notification.actor.profile_image }}
+              <RemoteImage
+                uri={notification.actor.profile_image}
                 style={styles.avatar}
               />
             ) : (

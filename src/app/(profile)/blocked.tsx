@@ -2,6 +2,7 @@ import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
 import BlockUserSection from "@/components/profile/block-user-section";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import RemoteImage from "@/components/ui/RemoteImage";
 import { useAuth } from "@/hooks/useAuth";
 import { blockUserByCode, getBlockedUsers, unblockUser } from "@/services/profile";
 import { playAppSound } from "@/services/sounds";
@@ -13,7 +14,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   RefreshControl,
   StyleSheet,
   Text,
@@ -204,10 +204,7 @@ export default function BlockedUsersScreen() {
             ]}
           >
             {item.profile_image ? (
-              <Image
-                source={{ uri: item.profile_image }}
-                style={styles.avatar}
-              />
+              <RemoteImage uri={item.profile_image} style={styles.avatar} />
             ) : (
               <View
                 style={[

@@ -3,7 +3,8 @@ import { searchUsers } from "@/services/chat";
 import type { ChatUser } from "@/types/chat";
 import { FontAwesome } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import RemoteImage from "@/components/ui/RemoteImage";
 
 interface UserSearchProps {
   token: string | null;
@@ -74,7 +75,7 @@ export default function UserSearch({ token, onSelectUser, isSelecting }: UserSea
         <View style={[styles.results, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
           {results.map((result) => (
             <TouchableOpacity key={result.id} disabled={isSelecting} onPress={() => onSelectUser(result)} style={[styles.result, { borderBottomColor: theme.colors.border }]}>
-              {result.profile_image ? <Image source={{ uri: result.profile_image }} style={styles.avatar} /> : (
+              {result.profile_image ? <RemoteImage uri={result.profile_image} style={styles.avatar} /> : (
                 <View style={[styles.avatar, styles.avatarPlaceholder, { backgroundColor: theme.colors.surface }]}>
                   <FontAwesome name="user" size={18} color={theme.colors.textSecondary} />
                 </View>

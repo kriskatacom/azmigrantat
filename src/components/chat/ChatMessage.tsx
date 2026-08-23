@@ -191,6 +191,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 20,
+    overflow: "hidden",
   },
 
   bubbleMe: {

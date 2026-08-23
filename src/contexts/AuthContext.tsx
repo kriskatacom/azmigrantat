@@ -48,6 +48,7 @@ import { configureIncomingCallNativeSession } from "@/services/incoming-call";
 import { getRealtimeHttpUrl } from "@/services/realtime-http";
 import { bindAuthSessionHandlers } from "@/services/session-http";
 import type { AuthResponse, AuthUser, LoginPayload, RegisterPayload } from "@/types/auth";
+import { toPublicFileUrl } from "@/utils/public-file-url";
 
 const TOKEN_KEY = "auth_token";
 const REFRESH_KEY = "auth_refresh_token";
@@ -68,6 +69,14 @@ async function writeStore(key: string, value: string): Promise<void> {
 
 async function deleteStore(key: string): Promise<void> {
   await SecureStore.deleteItemAsync(key, STORE_OPTIONS);
+}
+
+function withPublicUserMedia(user: AuthUser): AuthUser {
+  return {
+    ...user,
+    profile_image: toPublicFileUrl(user.profile_image) ?? user.profile_image,
+    avatar: toPublicFileUrl(user.avatar) ?? user.avatar,
+  };
 }
 
 interface AuthContextValue {
@@ -175,9 +184,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       refreshToken: string | null,
     ) => {
       const newExpiresAt = Date.now() + expiresIn * 1000;
+      const publicUser = withPublicUserMedia(newUser);
       const persist = [
         writeStore(TOKEN_KEY, newToken),
-        writeStore(USER_KEY, JSON.stringify(newUser)),
+        writeStore(USER_KEY, JSON.stringify(publicUser)),
         writeStore(EXPIRES_AT_KEY, newExpiresAt.toString()),
       ];
 
@@ -190,9 +200,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       await Promise.all(persist);
 
       setToken(newToken);
-      setUser(newUser);
+      setUser(publicUser);
       setExpiresAt(newExpiresAt);
-      setHasPin(Boolean(newUser.has_pin));
+      setHasPin(Boolean(publicUser.has_pin));
       applyNativeSession(newToken);
       loggingOutRef.current = false;
     },
@@ -247,7 +257,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       return Boolean(refreshed);
     }
 
-    const parsedUser = JSON.parse(storedUser) as AuthUser;
+    const parsedUser = withPublicUserMedia(JSON.parse(storedUser) as AuthUser);
 
     setToken(storedToken);
     setUser(parsedUser);
@@ -536,9 +546,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const updateUser = useCallback(async (updatedUser: AuthUser) => {
-    await writeStore(USER_KEY, JSON.stringify(updatedUser));
-    setUser(updatedUser);
-    setHasPin(Boolean(updatedUser.has_pin));
+    const publicUser = withPublicUserMedia(updatedUser);
+    await writeStore(USER_KEY, JSON.stringify(publicUser));
+    setUser(publicUser);
+    setHasPin(Boolean(publicUser.has_pin));
   }, []);
 
   const setPinLoginEnabledFlag = useCallback(

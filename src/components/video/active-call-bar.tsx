@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
+import RemoteImage from "@/components/ui/RemoteImage";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -45,7 +45,7 @@ export default function ActiveCallBar({
         style={styles.bar}
       >
         {image ? (
-          <Image source={{ uri: image }} style={styles.avatar} />
+          <RemoteImage uri={image} style={styles.avatar} />
         ) : (
           <View style={styles.avatarPlaceholder}>
             <Ionicons name="person" color="#e0f2fe" size={18} />

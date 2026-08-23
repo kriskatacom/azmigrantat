@@ -1,6 +1,7 @@
 import { FontAwesome } from "@expo/vector-icons";
 import { copyText } from "@/utils/copy-text";
-import { Alert, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import RemoteImage from "@/components/ui/RemoteImage";
 
 type ChatHeaderProps = {
   name: string;
@@ -104,7 +105,7 @@ export default function ChatHeader({
           }
         >
           {image ? (
-            <Image source={{ uri: image }} style={styles.headerAvatar} />
+            <RemoteImage uri={image} style={styles.headerAvatar} />
           ) : (
             <View
               style={[
@@ -229,6 +230,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
+    overflow: "hidden",
   },
 
   headerAvatarPlaceholder: {

@@ -3,8 +3,9 @@ import type { AppNotification } from "@/types/notifications";
 import { getMissedCallActorId, isNotificationUnread } from "@/types/notifications";
 import { formatInboxMessageTime } from "@/components/inbox/format-inbox-message-time";
 import { FontAwesome } from "@expo/vector-icons";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Swipeable } from "react-native-gesture-handler";
+import RemoteImage from "@/components/ui/RemoteImage";
 
 interface NotificationRowProps {
   notification: AppNotification;
@@ -56,7 +57,7 @@ export default function NotificationRow({
       >
         <View style={styles.avatarContainer}>
           {profileImage ? (
-            <Image source={{ uri: profileImage }} style={styles.avatar} />
+            <RemoteImage uri={profileImage} style={styles.avatar} />
           ) : (
             <View
               style={[

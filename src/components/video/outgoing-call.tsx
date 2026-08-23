@@ -3,6 +3,7 @@ import type { CallType } from "@/services/video-call";
 import { Ionicons } from "@expo/vector-icons";
 import { createAudioPlayer, setAudioModeAsync } from "expo-audio";
 import { Image } from "expo-image";
+import { toPublicFileUrl } from "@/utils/public-file-url";
 import { useEffect } from "react";
 import {
   StyleSheet,
@@ -145,7 +146,7 @@ export default function OutgoingCall({
             <Image
               accessibilityLabel={`Снимка на ${name}`}
               contentFit="cover"
-              source={{ uri: image }}
+              source={{ uri: toPublicFileUrl(image) ?? image }}
               style={{
                 width: avatarSize,
                 height: avatarSize,

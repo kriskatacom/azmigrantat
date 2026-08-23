@@ -6,7 +6,7 @@ import {
   isImageAttachment,
 } from "@/utils/chat/attachment";
 import { FontAwesome } from "@expo/vector-icons";
-import { Image } from "expo-image";
+import RemoteImage from "@/components/ui/RemoteImage";
 import { useRouter } from "expo-router";
 import {
   StyleSheet,
@@ -38,7 +38,13 @@ export default function MessageAttachment({
 }: MessageAttachmentProps) {
   const router = useRouter();
   const { width, height } = useWindowDimensions();
-  const attachmentWidth = Math.min(Math.max(width * 0.72, 210), 320);
+  const listHorizontalPadding = 16;
+  const columnMaxRatio = 0.75;
+  const bubbleHorizontalPadding = 14;
+  const bubbleInnerWidth =
+    (width - listHorizontalPadding * 2) * columnMaxRatio -
+    bubbleHorizontalPadding * 2;
+  const attachmentWidth = Math.min(Math.max(bubbleInnerWidth, 140), 320);
   const imageHeight = Math.min(Math.max(height * 0.24, 160), 240);
   const actionButtonSize = Math.min(Math.max(width * 0.09, 34), 40);
   const actionButtonRadius = actionButtonSize / 2;
@@ -98,16 +104,24 @@ export default function MessageAttachment({
 
   if (isImage) {
     return (
-      <View style={[styles.imageContainer, { width: attachmentWidth }]}>
+      <View
+        style={[
+          styles.imageContainer,
+          { width: attachmentWidth, maxWidth: "100%" },
+        ]}
+      >
         <TouchableOpacity
           accessibilityRole="imagebutton"
           accessibilityLabel={`Детайли за ${attachment.name}`}
           activeOpacity={0.9}
           onPress={openDetails}
         >
-          <Image
-            source={{ uri: attachment.url }}
-            style={[styles.image, { width: attachmentWidth, height: imageHeight }]}
+          <RemoteImage
+            uri={attachment.url}
+            style={[
+              styles.image,
+              { width: "100%", height: imageHeight },
+            ]}
             contentFit="cover"
             transition={150}
           />
@@ -195,8 +209,11 @@ const styles = StyleSheet.create({
   imageContainer: {
     position: "relative",
     maxWidth: "100%",
+    overflow: "hidden",
+    borderRadius: 14,
   },
   image: {
+    maxWidth: "100%",
     borderRadius: 14,
     backgroundColor: "rgba(127,127,127,0.15)",
   },

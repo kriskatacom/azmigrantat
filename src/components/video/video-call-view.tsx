@@ -3,6 +3,7 @@ import { Image } from "expo-image";
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { MediaStream, RTCView } from "react-native-webrtc";
+import { toPublicFileUrl } from "@/utils/public-file-url";
 
 type Props = {
   localStream: MediaStream | null;
@@ -33,7 +34,7 @@ function CameraOffState({
         <Image
           accessibilityLabel={`Снимка на ${name}`}
           contentFit="cover"
-          source={{ uri: avatarUrl }}
+          source={{ uri: toPublicFileUrl(avatarUrl) ?? avatarUrl }}
           style={{
             width: avatarSize,
             height: avatarSize,

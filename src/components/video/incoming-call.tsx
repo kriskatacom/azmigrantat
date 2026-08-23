@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { createAudioPlayer, setAudioModeAsync } from "expo-audio";
 import { Image } from "expo-image";
+import { toPublicFileUrl } from "@/utils/public-file-url";
 import { useEffect, useState } from "react";
 import {
   Animated,
@@ -187,7 +188,7 @@ export default function IncomingCall({
             <Image
               accessibilityLabel={`Снимка на ${callerName ?? "повикващия"}`}
               contentFit="cover"
-              source={{ uri: callerImage }}
+              source={{ uri: toPublicFileUrl(callerImage) ?? callerImage }}
               style={[
                 styles.avatar,
                 {

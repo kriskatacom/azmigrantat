@@ -1,5 +1,7 @@
 import { useAppTheme } from "@/app/_layout";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import RemoteImage from "@/components/ui/RemoteImage";
+import { toPublicFileUrl } from "@/utils/public-file-url";
 import { phoneDisplayParts } from "@/constants/european-dial-codes";
 import { useAuth } from "@/hooks/useAuth";
 import { createDirectConversation } from "@/services/chat";
@@ -15,7 +17,6 @@ import { useCallback, useEffect, useMemo, useState, type ComponentProps } from "
 import {
   ActivityIndicator,
   Alert,
-  Image,
   ImageBackground,
   Linking,
   Pressable,
@@ -206,7 +207,9 @@ export default function PublicUserProfileScreen() {
           contentContainerStyle={styles.content}
         >
           <ImageBackground
-            source={coverUri ? { uri: coverUri } : undefined}
+            source={
+              coverUri ? { uri: toPublicFileUrl(coverUri) ?? coverUri } : undefined
+            }
             style={styles.cover}
             imageStyle={styles.coverImage}
           >
@@ -248,10 +251,7 @@ export default function PublicUserProfileScreen() {
               ]}
             >
               {profile.profile_image ? (
-                <Image
-                  source={{ uri: profile.profile_image }}
-                  style={styles.avatar}
-                />
+                <RemoteImage uri={profile.profile_image} style={styles.avatar} />
               ) : (
                 <View
                   style={[

@@ -1,4 +1,5 @@
 import type { ChatMessage } from "@/types/chat";
+import { toPublicFileUrl } from "@/utils/public-file-url";
 
 export interface ChatAttachment {
   url: string;
@@ -37,7 +38,9 @@ export function getMessageAttachment(
     metadataString(message.metadata, ["url", "file_url", "download_url"]) ??
     (message.content?.startsWith("http") ? message.content : null);
 
-  if (!url) {
+  const publicUrl = toPublicFileUrl(url);
+
+  if (!publicUrl) {
     return null;
   }
 
@@ -49,10 +52,10 @@ export function getMessageAttachment(
         : "Файл";
 
   return {
-    url,
+    url: publicUrl,
     name:
       metadataString(message.metadata, ["name", "original_name", "file_name"]) ??
-      decodeURIComponent(url.split("/").at(-1)?.split("?")[0] || fallbackName),
+      decodeURIComponent(publicUrl.split("/").at(-1)?.split("?")[0] || fallbackName),
     mimeType: metadataString(message.metadata, ["mime_type", "mimeType"]),
     size:
       typeof message.metadata?.size === "number" ? message.metadata.size : null,

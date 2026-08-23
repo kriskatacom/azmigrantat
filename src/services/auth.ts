@@ -82,6 +82,18 @@ export class EmailCodeRequiredError extends Error {
   }
 }
 
+export class TotpRequiredError extends Error {
+  readonly pendingToken: string;
+  readonly expiresIn: number;
+
+  constructor(pendingToken: string, expiresIn: number) {
+    super("Въведете кода от приложението за автентикация.");
+    this.name = "TotpRequiredError";
+    this.pendingToken = pendingToken;
+    this.expiresIn = expiresIn;
+  }
+}
+
 export class DeviceVerificationRequiredError extends Error {
   readonly pendingToken: string;
   readonly expiresIn: number;

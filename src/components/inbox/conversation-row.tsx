@@ -2,7 +2,8 @@ import { useAppTheme } from "@/app/_layout";
 import type { Conversation } from "@/types/chat";
 import { formatInboxMessageTime } from "@/components/inbox/format-inbox-message-time";
 import { FontAwesome } from "@expo/vector-icons";
-import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import RemoteImage from "@/components/ui/RemoteImage";
 
 interface ConversationRowProps {
   conversation: Conversation;
@@ -28,7 +29,7 @@ export default function ConversationRow({
   return (
     <TouchableOpacity activeOpacity={0.7} onPress={onPress} style={[styles.row, { backgroundColor: theme.colors.background }]}>
       <View style={styles.avatarContainer}>
-        {profileImage ? <Image source={{ uri: profileImage }} style={styles.avatar} /> : (
+        {profileImage ? <RemoteImage uri={profileImage} style={styles.avatar} /> : (
           <View style={[styles.avatarPlaceholder, { backgroundColor: theme.colors.card }]}>
             <FontAwesome name="user" size={26} color={theme.colors.textSecondary} />
           </View>
@@ -66,7 +67,7 @@ export default function ConversationRow({
 const styles = StyleSheet.create({
   row: { flexDirection: "row", paddingHorizontal: 20, paddingVertical: 14, alignItems: "center" },
   avatarContainer: { position: "relative" },
-  avatar: { width: 58, height: 58, borderRadius: 29 },
+  avatar: { width: 58, height: 58, borderRadius: 29, overflow: "hidden" },
   avatarPlaceholder: { width: 58, height: 58, borderRadius: 29, justifyContent: "center", alignItems: "center" },
   status: { position: "absolute", bottom: 0, right: 0, width: 15, height: 15, borderRadius: 7.5, borderWidth: 2.5 },
   details: { flex: 1, marginLeft: 14, justifyContent: "center", borderBottomWidth: 0.5, paddingBottom: 14 },
