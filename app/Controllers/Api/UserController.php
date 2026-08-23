@@ -136,6 +136,75 @@ class UserController extends BaseApiController
         ]);
     }
 
+    public function show($id)
+    {
+        $viewer = $this->authenticatedUser();
+
+        if (!$viewer) {
+            return $this->unauthorized();
+        }
+
+        $userId = (int) $id;
+
+        if ($userId <= 0) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Потребителят не е намерен.',
+            ], 404);
+        }
+
+        $profile = User::query()->find($userId);
+
+        if (!$profile || !$profile->is_active) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Потребителят не е намерен.',
+            ], 404);
+        }
+
+        $blockService = new BlockService();
+
+        return $this->json([
+            'success' => true,
+            'data' => $profile->toPublicProfileArray([
+                'is_self' => (int) $viewer->id === (int) $profile->id,
+                'blocked_by_me' => $blockService->isBlockedBy((int) $viewer->id, (int) $profile->id),
+                'blocked_me' => $blockService->isBlockedBy((int) $profile->id, (int) $viewer->id),
+            ]),
+        ]);
+    }
+
+    public function updatePrivacy()
+    {
+        $user = $this->authenticatedUser();
+
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $input = $this->jsonInput();
+        $validator = Validator::make(
+            $input,
+            ['phone_visible' => 'required|boolean'],
+            [
+                'required' => 'Полето :attribute е задължително.',
+                'boolean' => 'Полето :attribute трябва да бъде да или не.',
+            ],
+            ['phone_visible' => 'видимост на телефона']
+        );
+
+        if ($validator->fails()) {
+            return $this->validationError($validator);
+        }
+
+        $user->setPhoneVisible(filter_var($input['phone_visible'], FILTER_VALIDATE_BOOLEAN));
+
+        return $this->json([
+            'success' => true,
+            'user' => $this->serializeMobileUser($user->fresh() ?? $user),
+        ]);
+    }
+
     private function requestUser(): ?User
     {
         $fromToken = $this->authenticatedUser();
@@ -191,6 +260,7 @@ class UserController extends BaseApiController
                     'country' => 'nullable|string|max:100',
                     'city' => 'nullable|string|max:100',
                     'address' => 'nullable|string|max:255',
+                    'bio' => 'nullable|string|max:280',
                 ],
                 [
                     'required' => 'Полето :attribute е задължително.',
@@ -207,6 +277,7 @@ class UserController extends BaseApiController
                     'country' => 'държава',
                     'city' => 'град',
                     'address' => 'адрес',
+                    'bio' => 'биография',
                 ]
             );
 
@@ -249,6 +320,10 @@ class UserController extends BaseApiController
             $user->address = !empty($input['address'])
                 ? trim($input['address'])
                 : null;
+
+            $user->bio = array_key_exists('bio', $input)
+                ? trim((string) $input['bio'])
+                : ($user->bio ?? '');
 
             $user->save();
 

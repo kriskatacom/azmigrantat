@@ -21,7 +21,7 @@ use App\Controllers\PostController;
 use App\Core\Router;
 
 use App\Controllers\Api\UserController;
-use App\Controllers\PageController;
+use App\Controllers\IndexController;
 use App\Controllers\OauthController;
 
 use App\Middlewares\AuthMiddleware;
@@ -91,7 +91,9 @@ $router->post('/api/mobile/device/pin/clear', [DeviceAuthController::class, 'cle
 $bearer = [BearerAuthMiddleware::class];
 
 $router->get('/api/mobile/users', [UserController::class, 'search'], $bearer);
+$router->get('/api/mobile/users/{id}', [UserController::class, 'show'], $bearer);
 $router->post('/api/mobile/profile', [UserController::class, 'updateProfile'], $bearer);
+$router->post('/api/mobile/profile/privacy', [UserController::class, 'updatePrivacy'], $bearer);
 $router->post('/api/mobile/profile/image', [UserController::class, 'updateProfileImage'], $bearer);
 $router->post('/api/mobile/profile/password', [UserController::class, 'updatePassword'], $bearer);
 $router->get('/api/mobile/blocks', [BlockController::class, 'index'], $bearer);
@@ -154,7 +156,6 @@ $router->get('/api/posts/user/{id}', [PostController::class, 'getUserPosts']);
 $router->get('/api/posts/{id}', [PostController::class, 'getPost']);
 $router->get('/api/categories', [CategoryController::class, 'getCategories']);
 
-$router->get('/', [PageController::class, 'azmigrantat']);
-$router->get('/{slug*}', [PageController::class, 'show']);
+$router->get('/', [IndexController::class, 'home']);
 
 return $router;

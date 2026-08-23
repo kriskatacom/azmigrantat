@@ -189,6 +189,28 @@ class User extends Model
             : null;
     }
 
+    public function getBioAttribute($value = null): ?string
+    {
+        $options = is_array($this->options) ? $this->options : [];
+        $bio = $options['bio'] ?? null;
+
+        return is_string($bio) && trim($bio) !== '' ? trim($bio) : null;
+    }
+
+    public function setBioAttribute($value): void
+    {
+        $options = is_array($this->options) ? $this->options : [];
+        $bio = is_string($value) ? trim($value) : '';
+
+        if ($bio === '') {
+            unset($options['bio']);
+        } else {
+            $options['bio'] = $bio;
+        }
+
+        $this->options = $options;
+    }
+
     public const PUBLIC_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 
     public static function normalizePublicCode(?string $code): string
@@ -282,6 +304,7 @@ class User extends Model
             'country' => $this->country,
             'city' => $this->city,
             'address' => $this->address,
+            'bio' => $this->bio,
             'profile_image' => $image,
             'avatar' => $image,
             'is_active' => (bool) $this->is_active,
@@ -291,6 +314,73 @@ class User extends Model
             'has_pin' => $this->hasLoginPin(),
             'pin_login_enabled' => $this->pinLoginEnabled(),
             'email_login_enabled' => $this->emailLoginEnabled(),
+            'phone_visible' => $this->phoneVisible(),
+        ];
+    }
+
+    public function phoneVisible(): bool
+    {
+        $options = is_array($this->options) ? $this->options : [];
+
+        return filter_var($options['phone_visible'] ?? false, FILTER_VALIDATE_BOOLEAN);
+    }
+
+    public function setPhoneVisible(bool $visible): void
+    {
+        $options = is_array($this->options) ? $this->options : [];
+        $options['phone_visible'] = $visible;
+        $this->options = $options;
+        $this->save();
+    }
+
+    /**
+     * @param array{
+     *   is_self?: bool,
+     *   blocked_by_me?: bool,
+     *   blocked_me?: bool
+     * } $context
+     * @return array<string, mixed>
+     */
+    public function toPublicProfileArray(array $context = []): array
+    {
+        $isSelf = (bool) ($context['is_self'] ?? false);
+        $blockedByMe = (bool) ($context['blocked_by_me'] ?? false);
+        $blockedMe = (bool) ($context['blocked_me'] ?? false);
+        $phoneVisible = $this->phoneVisible();
+        $phoneVerified = (bool) $this->phone_verified_at;
+        $showPhone = $phoneVerified
+            && is_string($this->phone)
+            && $this->phone !== ''
+            && ($isSelf || ($phoneVisible && !$blockedByMe && !$blockedMe));
+
+        $location = trim(implode(', ', array_filter([
+            is_string($this->city) ? trim($this->city) : '',
+            is_string($this->country) ? trim($this->country) : '',
+        ])));
+
+        return [
+            'id' => $this->id,
+            'is_self' => $isSelf,
+            'name' => $this->name,
+            'firstName' => $this->first_name,
+            'lastName' => $this->last_name,
+            'username' => $this->username,
+            'public_code' => $this->formattedPublicCode(),
+            'profile_image' => $this->profile_image_url,
+            'gender' => $this->gender,
+            'city' => $this->city,
+            'country' => $this->country,
+            'location' => $location !== '' ? $location : null,
+            'bio' => $this->bio,
+            'is_active' => (bool) $this->is_active,
+            'phone_visible' => $phoneVisible,
+            'phone_verified' => $phoneVerified,
+            'phone' => $showPhone ? $this->phone : null,
+            'email' => $isSelf ? $this->email : null,
+            'address' => $isSelf ? $this->address : null,
+            'is_blocked_by_me' => $blockedByMe,
+            'is_blocked_me' => $blockedMe,
+            'can_contact' => !$isSelf && !$blockedByMe && !$blockedMe && (bool) $this->is_active,
         ];
     }
 

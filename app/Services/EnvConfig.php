@@ -185,6 +185,7 @@ final class EnvConfig
             ['key' => 'COMPANY_PHONE', 'label' => 'Централен офис телефон', 'group' => 'Компания', 'secret' => false, 'default' => '+359 96 593 333'],
             ['key' => 'COMPANY_EMAIL', 'label' => 'Имейл за контакт', 'group' => 'Компания', 'secret' => false, 'default' => 'i.the.migrant@gmail.com'],
             ['key' => 'COMPANY_WEBSITE', 'label' => 'Уебсайт', 'group' => 'Компания', 'secret' => false, 'default' => 'https://azmigrantat.com'],
+            ['key' => 'HOME_REDIRECT_URL', 'label' => 'Пренасочване от началната страница', 'group' => 'Компания', 'secret' => false, 'default' => 'https://azmigrantat.com'],
 
             ['key' => 'APP_TEST_MODE', 'label' => 'Тестов режим за вход (код 123456)', 'group' => 'Режим', 'secret' => false, 'mode_flag' => true],
             ['key' => 'PASSWORD_RESET_TEST_MODE', 'label' => 'Тестов режим за забравена парола', 'group' => 'Режим', 'secret' => false, 'mode_flag' => true],

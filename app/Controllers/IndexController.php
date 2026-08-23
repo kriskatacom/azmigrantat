@@ -6,6 +6,12 @@ class IndexController extends BaseController
 {
     public function home()
     {
-        $this->redirect('https://azmigrantat.com');
+        $url = trim((string) ($_ENV['HOME_REDIRECT_URL'] ?? getenv('HOME_REDIRECT_URL') ?: ''));
+
+        if ($url === '' || !preg_match('#^https?://#i', $url)) {
+            $this->abort404();
+        }
+
+        $this->redirect($url);
     }
 }
