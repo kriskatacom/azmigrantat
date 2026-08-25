@@ -2,10 +2,12 @@ import { io, type Socket } from "socket.io-client";
 
 import type {
   AppStatePayload,
+  CallBatteryWarningPayload,
   CallClientPayload,
   CallServerPayload,
   CallStatePayload,
   DeviceRegisterPayload,
+  DeviceBatteryPayload,
 } from "@/services/video-call";
 import type { AuthUser } from "@/types/auth";
 import type { ChatMessage } from "@/types/chat";
@@ -96,6 +98,7 @@ interface ServerToClientEvents {
   "call:camera-state": (payload: CallServerPayload) => void;
   "call:end": (payload: CallServerPayload) => void;
   "call:state": (payload: CallStatePayload) => void;
+  "call:battery-warning": (payload: CallBatteryWarningPayload) => void;
   "notification:new": (payload: AppNotification) => void;
   "notification:updated": (payload: AppNotification) => void;
   "notification:read-all": (payload: { user_id: number }) => void;
@@ -121,6 +124,7 @@ interface ClientToServerEvents {
   "call:end": (payload: CallClientPayload) => void;
   "call:sync": () => void;
   "device:register": (payload: DeviceRegisterPayload) => void;
+  "device:battery": (payload: DeviceBatteryPayload) => void;
   "app:state": (payload: AppStatePayload) => void;
 }
 

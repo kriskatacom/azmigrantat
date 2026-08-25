@@ -1,6 +1,6 @@
 import * as Crypto from "expo-crypto";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { setAudioModeAsync } from "expo-audio";
+import { createAudioPlayer, setAudioModeAsync } from "expo-audio";
 import {
   RTCIceCandidate,
   RTCPeerConnection,
@@ -10,10 +10,12 @@ import {
 } from "react-native-webrtc";
 
 import { useLocalMedia } from "@/hooks/video/useLocalMedia";
+import { emitDeviceBattery } from "@/services/device-battery";
 import { getRtcPeerConfig } from "@/services/ice-servers";
 import { getSocket } from "@/services/socket";
 import type {
   CallEndReason,
+  CallBatteryWarningPayload,
   CallIceCandidate,
   CallServerPayload,
   CallState,
@@ -22,6 +24,9 @@ import type {
 import { parseCallType } from "@/services/video-call";
 
 export type { CallState } from "@/services/video-call";
+
+const BATTERY_LOW_SELF_SOUND = require("../../../assets/sounds/call_battery_low_self_bg.mp3");
+const BATTERY_LOW_OTHER_SOUND = require("../../../assets/sounds/call_battery_low_other_bg.mp3");
 
 type Options = {
   recipientId: number;
@@ -221,6 +226,7 @@ export function useVideoCall({
   const [isRemoteAudioEnabled, setIsRemoteAudioEnabled] = useState(true);
 
   const peerRef = useRef<RTCPeerConnection | null>(null);
+  const localMediaStreamRef = useRef<MediaStream | null>(null);
   const remoteStreamRef = useRef<MediaStream | null>(null);
   const callIdRef = useRef<string | null>(null);
   const targetIdRef = useRef<number | null>(null);
@@ -241,6 +247,10 @@ export function useVideoCall({
   const iceFailRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const callTypeRef = useRef<CallType>(parseCallType(callType));
   const isRemoteAudioEnabledRef = useRef(true);
+  const batteryWarningCallIdRef = useRef<string | null>(null);
+  const batteryMediaHoldRef = useRef(false);
+  const batteryWarningPlayerRef = useRef<ReturnType<typeof createAudioPlayer> | null>(null);
+  const batteryWarningTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const changeState = useCallback((value: CallState) => {
     stateRef.current = value;
@@ -289,15 +299,99 @@ export function useVideoCall({
     clearIceFail();
   }, [clearConnection, clearDuration, clearIceFail, clearNoAnswer, clearReset]);
 
+  const stopBatteryWarning = useCallback(() => {
+    if (batteryWarningTimerRef.current) {
+      clearTimeout(batteryWarningTimerRef.current);
+      batteryWarningTimerRef.current = null;
+    }
+    const player = batteryWarningPlayerRef.current;
+    batteryWarningPlayerRef.current = null;
+    player?.pause();
+    player?.release();
+  }, []);
+
+  const releaseBatteryMediaHold = useCallback((callId: string) => {
+    if (batteryWarningCallIdRef.current !== callId) return;
+    batteryMediaHoldRef.current = false;
+    batteryWarningCallIdRef.current = null;
+    localMediaStreamRef.current?.getAudioTracks().forEach((track) => {
+      track.enabled = true;
+    });
+    localMediaStreamRef.current?.getVideoTracks().forEach((track) => {
+      track.enabled = callTypeRef.current === "video";
+    });
+    isRemoteAudioEnabledRef.current = true;
+    applyRemoteListenEnabled(remoteStreamRef.current, true);
+    if (mountedRef.current) {
+      setIsMicrophoneEnabled(true);
+      setIsCameraEnabled(callTypeRef.current === "video");
+      setIsRemoteAudioEnabled(true);
+    }
+    if (stateRef.current === "connected") {
+      void setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
+        interruptionMode: "doNotMix",
+        shouldPlayInBackground: true,
+        shouldRouteThroughEarpiece: !isSpeakerEnabled,
+      });
+    }
+  }, [isSpeakerEnabled]);
+
+  const playBatteryWarning = useCallback((payload: CallBatteryWarningPayload) => {
+    if (batteryWarningCallIdRef.current === payload.call_id) return;
+    stopBatteryWarning();
+    batteryWarningCallIdRef.current = payload.call_id;
+    batteryMediaHoldRef.current = true;
+    localMediaStreamRef.current?.getTracks().forEach((track) => {
+      track.enabled = false;
+    });
+    isRemoteAudioEnabledRef.current = false;
+    applyRemoteListenEnabled(remoteStreamRef.current, false);
+
+    const isOwnBatteryLow =
+      currentUserId !== undefined &&
+      payload.low_battery_user_ids.includes(Number(currentUserId));
+    const player = createAudioPlayer(
+      isOwnBatteryLow ? BATTERY_LOW_SELF_SOUND : BATTERY_LOW_OTHER_SOUND,
+      { keepAudioSessionActive: true },
+    );
+    batteryWarningPlayerRef.current = player;
+    player.loop = false;
+    let finished = false;
+    let subscription: ReturnType<typeof player.addListener> | null = null;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      subscription?.remove();
+      stopBatteryWarning();
+      releaseBatteryMediaHold(payload.call_id);
+    };
+    subscription = player.addListener("playbackStatusUpdate", (status) => {
+      if (status.didJustFinish) finish();
+    });
+    batteryWarningTimerRef.current = setTimeout(finish, 10_000);
+    void setAudioModeAsync({
+      playsInSilentMode: true,
+      interruptionMode: "doNotMix",
+    })
+      .then(() => player.play())
+      .catch(finish);
+  }, [currentUserId, releaseBatteryMediaHold, stopBatteryWarning]);
+
   const cleanup = useCallback(
     (expectedId?: string) => {
       const currentId = callIdRef.current;
       if (expectedId && currentId && currentId !== expectedId) return false;
       clearTimers();
+      stopBatteryWarning();
+      batteryMediaHoldRef.current = false;
+      batteryWarningCallIdRef.current = null;
       const peer = peerRef.current;
       peerRef.current = null;
       peer?.close();
       stopCamera();
+      localMediaStreamRef.current = null;
       remoteStreamRef.current?.getTracks().forEach((track) => track.stop());
       remoteStreamRef.current = null;
       if (currentId) releaseActiveCall?.(currentId);
@@ -322,7 +416,7 @@ export function useVideoCall({
       }
       return true;
     },
-    [changeIncoming, clearTimers, releaseActiveCall, stopCamera],
+    [changeIncoming, clearTimers, releaseActiveCall, stopBatteryWarning, stopCamera],
   );
 
   const finish = useCallback(
@@ -424,21 +518,28 @@ export function useVideoCall({
       peerRef.current = peer;
       targetIdRef.current = targetId;
       const stream = await startCamera();
+      localMediaStreamRef.current = stream;
       if (!mountedRef.current || callIdRef.current !== callId || peerRef.current !== peer) {
         stream.getTracks().forEach((track) => track.stop());
         peer.close();
         throw new Error("Разговорът беше прекратен.");
       }
       stream.getTracks().forEach((track) => peer.addTrack(track, stream));
-      const enableCamera = callTypeRef.current === "video";
+      const batteryHold =
+        batteryMediaHoldRef.current &&
+        batteryWarningCallIdRef.current === callId;
+      stream.getAudioTracks().forEach((track) => {
+        track.enabled = !batteryHold;
+      });
+      const enableCamera = callTypeRef.current === "video" && !batteryHold;
       stream.getVideoTracks().forEach((track) => {
         track.enabled = enableCamera;
       });
       if (mountedRef.current) {
         setIsCameraEnabled(enableCamera);
-        setIsMicrophoneEnabled(true);
-        setIsRemoteAudioEnabled(true);
-        isRemoteAudioEnabledRef.current = true;
+        setIsMicrophoneEnabled(!batteryHold);
+        setIsRemoteAudioEnabled(!batteryHold);
+        isRemoteAudioEnabledRef.current = !batteryHold;
       }
 
       peer.ontrack = (event: { streams?: MediaStream[]; track?: MediaStreamTrack }) => {
@@ -529,6 +630,7 @@ export function useVideoCall({
   const startCall = useCallback(async (overrideRecipientId?: number) => {
     const socket = getSocket();
     if (!socket?.connected) throw new Error("Socket връзката не е налична.");
+    await emitDeviceBattery(socket).catch(() => null);
     const targetRecipientId =
       Number.isInteger(overrideRecipientId) && (overrideRecipientId ?? 0) > 0
         ? overrideRecipientId!
@@ -790,10 +892,14 @@ export function useVideoCall({
       });
       setIsRemoteCameraEnabled(payload.enabled);
     };
+    const onBatteryWarning = (payload: CallBatteryWarningPayload) => {
+      playBatteryWarning(payload);
+    };
     socket.on("call:answer", onAnswer);
     socket.on("call:accepted", onAccepted);
     socket.on("call:ice-candidate", onCandidate);
     socket.on("call:camera-state", onCameraState);
+    socket.on("call:battery-warning", onBatteryWarning);
     socket.on("call:end", onEnd);
     socket.on("disconnect", onDisconnect);
     return () => {
@@ -801,10 +907,11 @@ export function useVideoCall({
       socket.off("call:accepted", onAccepted);
       socket.off("call:ice-candidate", onCandidate);
       socket.off("call:camera-state", onCameraState);
+      socket.off("call:battery-warning", onBatteryWarning);
       socket.off("call:end", onEnd);
       socket.off("disconnect", onDisconnect);
     };
-  }, [changeState, clearNoAnswer, currentUserId, emitCameraState, emitEnd, finish, flushCandidates, localStream, startConnectionTimeout]);
+  }, [changeState, clearNoAnswer, currentUserId, emitCameraState, emitEnd, finish, flushCandidates, localStream, playBatteryWarning, startConnectionTimeout]);
 
   useEffect(() => () => {
     mountedRef.current = false;
@@ -818,19 +925,25 @@ export function useVideoCall({
       emitEnd(callId, targetId, "hangup");
     }
     clearTimers();
+    stopBatteryWarning();
     peerRef.current?.close();
     peerRef.current = null;
     stopCamera();
+    localMediaStreamRef.current = null;
     remoteStreamRef.current?.getTracks().forEach((track) => track.stop());
     remoteStreamRef.current = null;
     if (callId) releaseActiveCall?.(callId);
     callIdRef.current = null;
     candidatesRef.current = [];
     candidateKeysRef.current.clear();
-  }, [clearTimers, emitEnd, releaseActiveCall, stopCamera]);
+  }, [clearTimers, emitEnd, releaseActiveCall, stopBatteryWarning, stopCamera]);
 
   const toggleMicrophone = useCallback(() => {
-    if (stateRef.current !== "connected" || !localStream) return;
+    if (
+      stateRef.current !== "connected" ||
+      batteryMediaHoldRef.current ||
+      !localStream
+    ) return;
     const tracks = localStream.getAudioTracks();
     if (!tracks.length) return;
     const enabled = !tracks[0].enabled;
@@ -838,7 +951,11 @@ export function useVideoCall({
     setIsMicrophoneEnabled(enabled);
   }, [localStream]);
   const toggleCamera = useCallback(() => {
-    if (stateRef.current !== "connected" || !localStream) return;
+    if (
+      stateRef.current !== "connected" ||
+      batteryMediaHoldRef.current ||
+      !localStream
+    ) return;
     const tracks = localStream.getVideoTracks();
     if (!tracks.length) return;
     const enabled = !tracks[0].enabled;
@@ -855,7 +972,7 @@ export function useVideoCall({
     setIsSpeakerEnabled((current) => !current);
   }, []);
   const toggleRemoteAudio = useCallback(() => {
-    if (stateRef.current !== "connected") return;
+    if (stateRef.current !== "connected" || batteryMediaHoldRef.current) return;
     const next = !isRemoteAudioEnabledRef.current;
     isRemoteAudioEnabledRef.current = next;
     applyRemoteListenEnabled(remoteStreamRef.current, next);
@@ -863,7 +980,7 @@ export function useVideoCall({
   }, []);
 
   useEffect(() => {
-    if (callState !== "connected") {
+    if (callState !== "connected" || batteryMediaHoldRef.current) {
       return;
     }
 

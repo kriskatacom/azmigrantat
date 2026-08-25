@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSocket } from "@/hooks/useSocket";
 import { ACTIVE_CALL_STATES, useVideoCall } from "@/hooks/video/useVideoCall";
 import { getConversations } from "@/services/chat";
+import { emitDeviceBattery, readDeviceBattery } from "@/services/device-battery";
 import {
   consumePendingIncomingCallAction,
   consumeNativeIncomingCallLaunch,
@@ -413,21 +414,28 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
         incoming?.sender_id ?? accepted?.call.sender_id ?? held?.sender_id;
       if (callerId && !emittedAcceptRef.current.has(callId)) {
         emittedAcceptRef.current.add(callId);
-        if (socket?.connected) {
-          console.log("[CALL] emitting call:accept callId=" + callId);
-          socket.emit("call:accept", {
-            call_id: callId,
-            recipient_id: callerId,
-          });
-        } else if (token) {
-          console.log("[CALL] accepting call via HTTP callId=" + callId);
-          void acceptCallViaHttp(token, callId).catch((error: unknown) => {
+        void emitDeviceBattery(socket)
+          .catch(() => null)
+          .then(() => {
+            if (socket?.connected) {
+              console.log("[CALL] emitting call:accept callId=" + callId);
+              socket.emit("call:accept", {
+                call_id: callId,
+                recipient_id: callerId,
+              });
+              return;
+            }
+            if (!token) {
+              emittedAcceptRef.current.delete(callId);
+              return;
+            }
+            console.log("[CALL] accepting call via HTTP callId=" + callId);
+            return acceptCallViaHttp(token, callId);
+          })
+          .catch((error: unknown) => {
             emittedAcceptRef.current.delete(callId);
             console.error("Приемането на обаждането не се изпрати:", error);
           });
-        } else {
-          emittedAcceptRef.current.delete(callId);
-        }
       }
 
       pendingAcceptRef.current = true;
@@ -677,11 +685,15 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       socketUrl: getRealtimeHttpUrl(),
     });
 
-    void registerForPushNotifications(token)
-      .then((expoPushToken) => {
+    void Promise.all([
+      registerForPushNotifications(token),
+      readDeviceBattery().catch(() => null),
+    ])
+      .then(([expoPushToken, battery]) => {
         socket.emit("device:register", {
           expo_push_token: expoPushToken ?? undefined,
           app_state: appStateToSocketState(appStateRef.current),
+          ...(battery ?? {}),
         });
       })
       .catch((error: unknown) => {
@@ -691,6 +703,15 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
         });
       });
   }, [isConnected, socket, token]);
+
+  useEffect(() => {
+    if (!socket || !isConnected) return;
+    void emitDeviceBattery(socket).catch(() => {});
+    const timer = setInterval(() => {
+      void emitDeviceBattery(socket).catch(() => {});
+    }, 60_000);
+    return () => clearInterval(timer);
+  }, [isConnected, socket]);
 
   useEffect(() => {
     if (!incomingCall || incomingCall.caller_name || !token) {
@@ -792,6 +813,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       });
 
       if (nextState === "active") {
+        void emitDeviceBattery(socket).catch(() => {});
         void consumeNativeIncomingCallLaunch()
           .then((pending) => {
             if (!pending) return;

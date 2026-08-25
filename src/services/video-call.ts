@@ -71,9 +71,23 @@ export type CallStatePayload = {
   status: "ringing" | "accepted" | "declined" | "cancelled" | "ended" | "timeout" | "busy" | "failed" | "unavailable" | "idle";
 };
 
+export type CallBatteryWarningPayload = {
+  call_id: string;
+  low_battery_user_ids: number[];
+};
+
+export type DeviceBatteryPayload = {
+  batteryLevel: number;
+  isCharging: boolean;
+  updatedAt: number;
+};
+
 export type DeviceRegisterPayload = {
   expo_push_token?: string;
   app_state?: "active" | "background";
+  batteryLevel?: number;
+  isCharging?: boolean;
+  updatedAt?: number;
 };
 
 export type AppStatePayload = {
