@@ -22,6 +22,20 @@ describe('FirebaseFcmSender', () => {
         sendEachForMulticast.mockReset();
     });
 
+    it('проверява дали потребителят има активен FCM token', async () => {
+        const provider = {
+            getActiveFcmTokensForUser: vi
+                .fn()
+                .mockResolvedValueOnce([{ token: 'token-1', platform: 'android', provider: 'fcm' }])
+                .mockResolvedValueOnce([]),
+            deactivateToken: vi.fn(),
+        } satisfies PushTokenProvider;
+        const sender = new FirebaseFcmSender(provider);
+
+        await expect(sender.hasActiveTokenForUser(44)).resolves.toBe(true);
+        await expect(sender.hasActiveTokenForUser(55)).resolves.toBe(false);
+    });
+
     it('fanout-ва data-only high-priority push към всички Android tokens', async () => {
         sendEachForMulticast.mockResolvedValue({
             responses: [{ success: true }, { success: true }],

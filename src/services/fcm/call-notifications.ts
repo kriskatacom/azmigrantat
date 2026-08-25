@@ -3,6 +3,10 @@ import type { FcmSender } from './fcm-client';
 export class CallNotifications {
     constructor(private readonly sender: FcmSender) {}
 
+    hasActiveTokenForUser(userId: number): Promise<boolean> {
+        return this.sender.hasActiveTokenForUser(userId);
+    }
+
     sendIncomingCallPush(input: {
         recipientId: number;
         callId: string;

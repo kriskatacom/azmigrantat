@@ -81,6 +81,20 @@ export class CallService {
             return;
         }
 
+        if (!(await this.hasRecipientDeliveryChannel(payload.recipient_id))) {
+            console.log('[CALL] recipient unavailable', {
+                callId: payload.call_id,
+                callerId: caller.id,
+                recipientId: payload.recipient_id,
+            });
+            socket.emit('call:end', {
+                call_id: payload.call_id,
+                sender_id: payload.recipient_id,
+                reason: 'unavailable',
+            });
+            return;
+        }
+
         const call: PendingCall = {
             callId: payload.call_id,
             callerId: caller.id,
@@ -688,6 +702,24 @@ export class CallService {
                 throw error;
             }
         });
+    }
+
+    private async hasRecipientDeliveryChannel(recipientId: number): Promise<boolean> {
+        const connectedSockets = await this.io.in(`user:${recipientId}`).fetchSockets();
+        if (connectedSockets.length > 0) {
+            return true;
+        }
+
+        if (!this.notifications) {
+            return false;
+        }
+
+        try {
+            return await this.notifications.hasActiveTokenForUser(recipientId);
+        } catch (error) {
+            console.error('[CALL] recipient availability lookup failed:', error);
+            return true;
+        }
     }
 
     private async notify(operation: () => Promise<void> | undefined): Promise<void> {

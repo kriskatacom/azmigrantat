@@ -15,13 +15,19 @@ const candidate = {
 
 function createHarness(initialNow = new Date('2026-08-17T12:00:00.000Z')) {
     let now = initialNow;
+    let connectedSockets: unknown[] = [{}];
     const roomEmit = vi.fn();
     const io = {
         to: vi.fn((room: string) => ({
             emit: (event: string, payload: unknown) => roomEmit(room, event, payload),
         })),
+        in: vi.fn(() => ({
+            fetchSockets: vi.fn(async () => connectedSockets),
+        })),
     } as unknown as RealtimeServer;
+    const hasActiveTokenForUser = vi.fn().mockResolvedValue(true);
     const notifications = {
+        hasActiveTokenForUser,
         sendIncomingCallPush: vi.fn().mockResolvedValue(undefined),
         sendCallCancelledPush: vi.fn().mockResolvedValue(undefined),
         sendCallEndedPush: vi.fn().mockResolvedValue(undefined),
@@ -52,11 +58,15 @@ function createHarness(initialNow = new Date('2026-08-17T12:00:00.000Z')) {
         calls,
         store,
         notifications,
+        hasActiveTokenForUser,
         missedCalls,
         roomEmit,
         socket,
         setNow(value: Date) {
             now = value;
+        },
+        setConnectedSocketCount(count: number) {
+            connectedSockets = Array.from({ length: count }, () => ({}));
         },
     };
 }
@@ -97,6 +107,77 @@ describe('CallService', () => {
             timestamp: new Date('2026-08-17T12:00:00.000Z').getTime(),
         });
         expect(harness.store.get('call-1')?.offer).toEqual(offer);
+    });
+
+    it('връща unavailable веднага, когато получателят няма socket или push token', async () => {
+        const caller = harness.socket(22, 'Caller');
+        harness.setConnectedSocketCount(0);
+        harness.hasActiveTokenForUser.mockResolvedValue(false);
+
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+        });
+
+        expect(caller.socketEmit).toHaveBeenCalledWith('call:end', {
+            call_id: 'call-1',
+            sender_id: 44,
+            reason: 'unavailable',
+        });
+        expect(harness.store.get('call-1')).toBeUndefined();
+        expect(harness.notifications.sendIncomingCallPush).not.toHaveBeenCalled();
+        expect(harness.missedCalls.recordMissedVideoCall).not.toHaveBeenCalled();
+    });
+
+    it('стартира обаждането при активен socket без push token', async () => {
+        const caller = harness.socket(22, 'Caller');
+        harness.hasActiveTokenForUser.mockResolvedValue(false);
+
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+        });
+
+        expect(harness.store.get('call-1')?.status).toBe('pending');
+        expect(caller.socketEmit).not.toHaveBeenCalledWith(
+            'call:end',
+            expect.objectContaining({ reason: 'unavailable' }),
+        );
+    });
+
+    it('стартира обаждането при push token без активен socket', async () => {
+        const caller = harness.socket(22, 'Caller');
+        harness.setConnectedSocketCount(0);
+
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+        });
+
+        expect(harness.hasActiveTokenForUser).toHaveBeenCalledWith(44);
+        expect(harness.store.get('call-1')?.status).toBe('pending');
+        expect(harness.notifications.sendIncomingCallPush).toHaveBeenCalledTimes(1);
+    });
+
+    it('не маркира получателя като unavailable при грешка в token lookup-а', async () => {
+        const caller = harness.socket(22, 'Caller');
+        harness.setConnectedSocketCount(0);
+        harness.hasActiveTokenForUser.mockRejectedValue(new Error('lookup failed'));
+
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+        });
+
+        expect(harness.store.get('call-1')?.status).toBe('pending');
+        expect(caller.socketEmit).not.toHaveBeenCalledWith(
+            'call:end',
+            expect.objectContaining({ reason: 'unavailable' }),
+        );
     });
 
     it('отхвърля второ обаждане с различен call ID, докато участник е зает', async () => {

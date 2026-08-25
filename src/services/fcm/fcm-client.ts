@@ -10,6 +10,7 @@ export interface FcmDataMessage {
 }
 
 export interface FcmSender {
+    hasActiveTokenForUser(userId: number): Promise<boolean>;
     sendToUser(userId: number, message: FcmDataMessage): Promise<void>;
 }
 
@@ -20,6 +21,11 @@ const permanentTokenErrors = new Set([
 
 export class FirebaseFcmSender implements FcmSender {
     constructor(private readonly tokenProvider: PushTokenProvider) {}
+
+    async hasActiveTokenForUser(userId: number): Promise<boolean> {
+        const tokens = await this.tokenProvider.getActiveFcmTokensForUser(userId);
+        return tokens.length > 0;
+    }
 
     async sendToUser(userId: number, message: FcmDataMessage): Promise<void> {
         if (message.expiresAt <= new Date()) {
