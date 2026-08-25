@@ -3,7 +3,6 @@ package expo.modules.incomingcall
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.util.Log
 
 class IncomingCallActionReceiver : BroadcastReceiver() {
@@ -12,40 +11,8 @@ class IncomingCallActionReceiver : BroadcastReceiver() {
     val callerId = intent.getIntExtra(IncomingCallModule.EXTRA_CALLER_ID, 0)
     val callerName = intent.getStringExtra(IncomingCallModule.EXTRA_CALLER_NAME)
     val callerAvatar = intent.getStringExtra(IncomingCallModule.EXTRA_CALLER_AVATAR)
-    val callType = intent.getStringExtra(IncomingCallModule.EXTRA_CALL_TYPE) ?: "video"
-    val timestamp = intent.getLongExtra(IncomingCallModule.EXTRA_TIMESTAMP, 0L)
 
     when (intent.action) {
-      IncomingCallModule.ACTION_ACCEPT -> {
-        Log.i(IncomingCallModule.TAG, "[CALL] accept action callId=$callId")
-        IncomingCallModule.rememberLaunch(
-          callId,
-          "accept",
-          callerId,
-          callerName,
-          callerAvatar,
-          callType,
-          timestamp,
-          context,
-        )
-        IncomingCallModule.dismiss(context, callId)
-        val launch = IncomingCallModule.launchIntent(
-          context,
-          callId,
-          "accept",
-          callerId,
-          callerName,
-          callerAvatar,
-          callType,
-          timestamp,
-        )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-          context.startActivity(launch, IncomingCallModule.backgroundStartOptions())
-        } else {
-          context.startActivity(launch)
-        }
-      }
-
       IncomingCallModule.ACTION_DECLINE -> {
         Log.i(IncomingCallModule.TAG, "[CALL] decline action callId=$callId")
         val pendingResult = goAsync()
@@ -57,8 +24,15 @@ class IncomingCallActionReceiver : BroadcastReceiver() {
           callerAvatar,
           context = context,
         )
-        IncomingCallModule.dismiss(context, callId)
-        IncomingCallModule.postCallAction(context, "/calls/decline", callId) {
+        IncomingCallModule.postCallAction(context, "/calls/decline", callId) { success ->
+          if (success) {
+            IncomingCallModule.dismiss(context, callId)
+          } else {
+            Log.e(
+              IncomingCallModule.TAG,
+              "[CALL] decline action not confirmed; notification kept callId=$callId",
+            )
+          }
           pendingResult.finish()
         }
       }

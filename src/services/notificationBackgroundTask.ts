@@ -3,12 +3,16 @@ import * as SecureStore from "expo-secure-store";
 import * as TaskManager from "expo-task-manager";
 
 import {
+  INCOMING_CALL_ACCEPT_ACTION,
   INCOMING_CALL_DECLINE_ACTION,
   dismissIncomingCallAlert,
   parseIncomingCallData,
   presentIncomingCallAlert,
 } from "@/services/incoming-call";
-import { declineCallViaHttp } from "@/services/realtime-http";
+import {
+  acceptCallViaHttp,
+  declineCallViaHttp,
+} from "@/services/realtime-http";
 
 const TASK_NAME = "notification-action-task";
 const TOKEN_STORE_OPTIONS: SecureStore.SecureStoreOptions = {
@@ -76,11 +80,14 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
     >;
     const incomingCall = parseIncomingCallData(payloadData);
 
-    if (
-      incomingCall &&
-      (response.actionIdentifier === INCOMING_CALL_DECLINE_ACTION ||
-        response.actionIdentifier === "incoming_call_decline")
-    ) {
+    const isAcceptAction =
+      response.actionIdentifier === INCOMING_CALL_ACCEPT_ACTION ||
+      response.actionIdentifier === "incoming_call_accept";
+    const isDeclineAction =
+      response.actionIdentifier === INCOMING_CALL_DECLINE_ACTION ||
+      response.actionIdentifier === "incoming_call_decline";
+
+    if (incomingCall && (isAcceptAction || isDeclineAction)) {
       const token = await SecureStore.getItemAsync(
         "auth_token",
         TOKEN_STORE_OPTIONS,
@@ -88,7 +95,11 @@ TaskManager.defineTask<Notifications.NotificationTaskPayload>(
 
       try {
         if (token) {
-          await declineCallViaHttp(token, incomingCall.call_id);
+          if (isAcceptAction) {
+            await acceptCallViaHttp(token, incomingCall.call_id);
+          } else {
+            await declineCallViaHttp(token, incomingCall.call_id);
+          }
         }
       } catch {
         // Background decline should not crash the headless task.

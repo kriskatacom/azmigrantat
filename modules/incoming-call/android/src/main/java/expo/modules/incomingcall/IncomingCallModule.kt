@@ -2,7 +2,6 @@ package expo.modules.incomingcall
 
 import android.Manifest
 import android.app.Activity
-import android.app.ActivityOptions
 import android.app.KeyguardManager
 import android.app.Notification
 import android.app.NotificationChannel
@@ -298,10 +297,13 @@ class IncomingCallModule : Module() {
       }
 
       if (isAcceptAction(normalizedAction)) {
-        acceptedCallIds.add(callId)
+        val isFirstAccept = acceptedCallIds.add(callId)
         Log.i(TAG, "[CALL] native answer pressed callId=$callId")
         if (context != null) {
           dismiss(context, callId)
+          if (isFirstAccept) {
+            postCallAction(context.applicationContext, "/calls/accept", callId)
+          }
         }
       }
 
@@ -600,10 +602,9 @@ class IncomingCallModule : Module() {
     }
 
     fun buildNotification(context: Context, options: IncomingCallDisplayOptions): Notification {
-      // Accept/decline go through a BroadcastReceiver. CallStyle.forIncomingCall uses the
-      // same MainActivity as the full-screen intent; on a locked screen some OEMs treat
-      // that FSI as "Answer" and auto-accept before WebRTC is ready.
-      val acceptIntent = actionIntent(context, ACTION_ACCEPT, options)
+      // Accept must open MainActivity directly. Android 12+ blocks notification
+      // trampolines that try to start an Activity from a BroadcastReceiver.
+      val acceptIntent = activityPendingIntent(context, "accept", options, "accept")
       val declineIntent = actionIntent(context, ACTION_DECLINE, options)
       val contentIntent = activityPendingIntent(context, "open", options)
       val fullScreenIntent = activityPendingIntent(context, "full", options)
@@ -770,24 +771,6 @@ class IncomingCallModule : Module() {
       return PendingIntent.getActivity(context, requestCode, launch, pendingIntentFlags())
     }
 
-    fun backgroundStartOptions(): Bundle? {
-      if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-        return null
-      }
-
-      val mode =
-        if (Build.VERSION.SDK_INT >= 36) {
-          ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOW_ALWAYS
-        } else {
-          @Suppress("DEPRECATION")
-          ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
-        }
-
-      return ActivityOptions.makeBasic()
-        .setPendingIntentBackgroundActivityStartMode(mode)
-        .toBundle()
-    }
-
     private fun actionIntent(
       context: Context,
       action: String,
@@ -811,38 +794,54 @@ class IncomingCallModule : Module() {
       context: Context,
       path: String,
       callId: String,
-      onComplete: (() -> Unit)? = null,
+      onComplete: ((Boolean) -> Unit)? = null,
     ) {
       val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
       val token = prefs.getString(KEY_TOKEN, null)
       val socketUrl = prefs.getString(KEY_SOCKET_URL, null)
 
       Thread {
+        var success = false
         try {
           if (!token.isNullOrBlank() && !socketUrl.isNullOrBlank()) {
-            val connection = java.net.URL("$socketUrl$path").openConnection() as java.net.HttpURLConnection
-            connection.requestMethod = "POST"
-            connection.connectTimeout = 8_000
-            connection.readTimeout = 8_000
-            connection.doOutput = true
-            connection.setRequestProperty("Authorization", "Bearer $token")
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.setRequestProperty("Accept", "application/json")
+            for (attempt in 1..2) {
+              val connection =
+                java.net.URL("$socketUrl$path").openConnection() as java.net.HttpURLConnection
+              try {
+                connection.requestMethod = "POST"
+                connection.connectTimeout = 2_000
+                connection.readTimeout = 2_000
+                connection.doOutput = true
+                connection.setRequestProperty("Authorization", "Bearer $token")
+                connection.setRequestProperty("Content-Type", "application/json")
+                connection.setRequestProperty("Accept", "application/json")
 
-            java.io.OutputStreamWriter(connection.outputStream, Charsets.UTF_8).use { writer ->
-              writer.write("""{"call_id":"${callId.replace("\"", "")}"}""")
+                java.io.OutputStreamWriter(connection.outputStream, Charsets.UTF_8).use { writer ->
+                  writer.write("""{"call_id":"${callId.replace("\"", "")}"}""")
+                }
+
+                val status = connection.responseCode
+                success = status in 200..299
+                Log.i(TAG, "[CALL] native $path status=$status callId=$callId attempt=$attempt")
+                if (success || status < 500) {
+                  break
+                }
+              } catch (error: Exception) {
+                Log.e(
+                  TAG,
+                  "[CALL] native $path attempt=$attempt failed callId=$callId: ${error.message}",
+                )
+              } finally {
+                connection.disconnect()
+              }
             }
-
-            val status = connection.responseCode
-            Log.i(TAG, "[CALL] native $path status=$status callId=$callId")
-            connection.disconnect()
           } else {
             Log.w(TAG, "[CALL] native $path skipped, missing session callId=$callId")
           }
         } catch (error: Exception) {
           Log.e(TAG, "[CALL] native $path failed callId=$callId: ${error.message}")
         } finally {
-          onComplete?.invoke()
+          onComplete?.invoke(success)
         }
       }.start()
     }

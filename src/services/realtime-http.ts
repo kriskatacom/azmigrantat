@@ -76,6 +76,16 @@ export async function declineCallViaHttp(
   });
 }
 
+export async function acceptCallViaHttp(
+  token: string,
+  callId: string,
+): Promise<void> {
+  await request("/calls/accept", token, {
+    method: "POST",
+    body: JSON.stringify({ call_id: callId }),
+  });
+}
+
 export function getRealtimeHttpUrl(): string {
   return REALTIME_HTTP_URL;
 }

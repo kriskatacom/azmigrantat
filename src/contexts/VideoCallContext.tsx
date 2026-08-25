@@ -23,7 +23,13 @@ import {
   type PendingIncomingCallAction,
 } from "@/services/incoming-call";
 import { registerForPushNotifications } from "@/services/notifications";
-import { declineCallViaHttp, fetchCallById, fetchRingingCall, getRealtimeHttpUrl } from "@/services/realtime-http";
+import {
+  acceptCallViaHttp,
+  declineCallViaHttp,
+  fetchCallById,
+  fetchRingingCall,
+  getRealtimeHttpUrl,
+} from "@/services/realtime-http";
 import {
   CALL_NO_ANSWER_MS,
   type CallIceCandidate,
@@ -405,13 +411,23 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
 
       const callerId =
         incoming?.sender_id ?? accepted?.call.sender_id ?? held?.sender_id;
-      if (socket && callerId && !emittedAcceptRef.current.has(callId)) {
+      if (callerId && !emittedAcceptRef.current.has(callId)) {
         emittedAcceptRef.current.add(callId);
-        console.log("[CALL] emitting call:accept callId=" + callId);
-        socket.emit("call:accept", {
-          call_id: callId,
-          recipient_id: callerId,
-        });
+        if (socket?.connected) {
+          console.log("[CALL] emitting call:accept callId=" + callId);
+          socket.emit("call:accept", {
+            call_id: callId,
+            recipient_id: callerId,
+          });
+        } else if (token) {
+          console.log("[CALL] accepting call via HTTP callId=" + callId);
+          void acceptCallViaHttp(token, callId).catch((error: unknown) => {
+            emittedAcceptRef.current.delete(callId);
+            console.error("Приемането на обаждането не се изпрати:", error);
+          });
+        } else {
+          emittedAcceptRef.current.delete(callId);
+        }
       }
 
       pendingAcceptRef.current = true;
@@ -419,7 +435,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       console.log("[CALL] applying local state accepted callId=" + callId);
       acceptIncomingCall();
     },
-    [acceptIncomingCall, socket],
+    [acceptIncomingCall, socket, token],
   );
 
   const rejectIncomingCall = useCallback(() => {
