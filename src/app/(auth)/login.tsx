@@ -14,6 +14,7 @@ import {
   resendEmailLoginCodeRequest,
   sendDeviceEmailCodeRequest,
 } from "@/services/auth";
+import { isNetworkError } from "@/services/network-guard";
 import { getLastLoginEmail } from "@/services/device-identity";
 import { FontAwesome } from "@expo/vector-icons";
 import { Link, useLocalSearchParams } from "expo-router";
@@ -151,7 +152,7 @@ export default function LoginScreen() {
           } catch (error) {
             completingDeviceRef.current = false;
 
-            if (!cancelled) {
+            if (!cancelled && !isNetworkError(error)) {
               Alert.alert(
                 "Неуспешен вход",
                 error instanceof Error
@@ -220,6 +221,10 @@ export default function LoginScreen() {
       setLoginEmailPendingToken(error.pendingToken);
       setLoginEmailCode("");
       setStep("loginEmail");
+      return;
+    }
+
+    if (isNetworkError(error)) {
       return;
     }
 

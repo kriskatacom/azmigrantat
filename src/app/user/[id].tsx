@@ -13,7 +13,7 @@ import {
 import { copyText } from "@/utils/copy-text";
 import { FontAwesome } from "@expo/vector-icons";
 import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -40,6 +40,8 @@ export default function PublicUserProfileScreen() {
   const { theme } = useAppTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const callNavigationLockedRef = useRef(false);
+  const callNavigationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { token, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const userId = useMemo(() => {
@@ -52,6 +54,14 @@ export default function PublicUserProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
   const [confirmBlock, setConfirmBlock] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (callNavigationTimerRef.current) {
+        clearTimeout(callNavigationTimerRef.current);
+      }
+    };
+  }, []);
 
   const loadProfile = useCallback(async () => {
     if (!token || !Number.isInteger(userId)) {
@@ -135,7 +145,14 @@ export default function PublicUserProfileScreen() {
   };
 
   const openCall = (callType: "audio" | "video") => {
-    if (!profile) return;
+    if (!profile || callNavigationLockedRef.current) return;
+
+    callNavigationLockedRef.current = true;
+    callNavigationTimerRef.current = setTimeout(() => {
+      callNavigationLockedRef.current = false;
+      callNavigationTimerRef.current = null;
+    }, 1_000);
+
     router.push({
       pathname: "/video-call/[userId]",
       params: {

@@ -6,12 +6,13 @@ import InboxLoading from "@/components/inbox/inbox-loading";
 import UserSearch from "@/components/inbox/user-search";
 import { useInboxPresence } from "@/hooks/chat/useInboxPresence";
 import { useAuth } from "@/hooks/useAuth";
+import { isNetworkError } from "@/services/network-guard";
 import { useSocket } from "@/hooks/useSocket";
 import { useUnreadNotificationCount } from "@/hooks/useUnreadNotificationCount";
 import { createDirectConversation, getConversations, markConversationAsDelivered } from "@/services/chat";
 import type { ChatUser, Conversation } from "@/types/chat";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, FlatList, RefreshControl, StyleSheet, View } from "react-native";
 
 function conversationActivityAt(conversation: Conversation): number {
@@ -40,8 +41,18 @@ export default function InboxScreen() {
   const { socket, isConnected, lastReceivedMessage, lastPresenceUpdate, lastPresenceStatus, lastUserBlock, lastConversationCleared } = useSocket();
   const unreadNotificationCount = useUnreadNotificationCount();
   const router = useRouter();
+  const callNavigationLockedRef = useRef(false);
+  const callNavigationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    return () => {
+      if (callNavigationTimerRef.current) {
+        clearTimeout(callNavigationTimerRef.current);
+      }
+    };
+  }, []);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isOpeningConversation, setIsOpeningConversation] = useState(false);
 
@@ -82,6 +93,10 @@ export default function InboxScreen() {
         }),
       );
     } catch (error) {
+      if (isNetworkError(error)) {
+        return;
+      }
+
       Alert.alert("Грешка", error instanceof Error ? error.message : "Разговорите не можаха да бъдат заредени.");
     } finally {
       setIsLoading(false);
@@ -151,9 +166,19 @@ export default function InboxScreen() {
   const openCall = (conversation: Conversation) => {
     const otherUser = conversation.other_user;
     const recipientUserId = otherUser?.id;
-    if (!recipientUserId || Number(recipientUserId) === Number(user?.id)) {
+    if (
+      callNavigationLockedRef.current ||
+      !recipientUserId ||
+      Number(recipientUserId) === Number(user?.id)
+    ) {
       return;
     }
+
+    callNavigationLockedRef.current = true;
+    callNavigationTimerRef.current = setTimeout(() => {
+      callNavigationLockedRef.current = false;
+      callNavigationTimerRef.current = null;
+    }, 1_000);
 
     router.push({
       pathname: "/video-call/[userId]",
@@ -179,6 +204,10 @@ export default function InboxScreen() {
     try {
       openConversation(await createDirectConversation(token, selectedUser.id));
     } catch (error) {
+      if (isNetworkError(error)) {
+        return;
+      }
+
       Alert.alert("Грешка", error instanceof Error ? error.message : "Разговорът не можа да бъде отворен.");
     } finally {
       setIsOpeningConversation(false);

@@ -10,6 +10,7 @@ import {
 } from "react-native-webrtc";
 
 import { useLocalMedia } from "@/hooks/video/useLocalMedia";
+import { getRtcPeerConfig } from "@/services/ice-servers";
 import { getSocket } from "@/services/socket";
 import type {
   CallEndReason,
@@ -25,6 +26,7 @@ export type { CallState } from "@/services/video-call";
 type Options = {
   recipientId: number;
   currentUserId?: number;
+  accessToken?: string | null;
   callType?: CallType;
   acceptedIncomingCall?: CallServerPayload | null;
   pendingIncomingIceCandidates?: CallIceCandidate[];
@@ -55,9 +57,6 @@ function isPeerShutdownError(error: unknown): boolean {
   return /session was shut down|peer connection is closed/i.test(message);
 }
 
-const PEER_CONFIG = {
-  iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-};
 const NO_ANSWER_MS = 30_000;
 const CONNECTION_MS = 15_000;
 const RESET_MS = 2_000;
@@ -80,6 +79,98 @@ const TERMINAL_STATES: CallState[] = [
 
 function candidateKey(value: CallIceCandidate) {
   return `${value.candidate}:${value.sdpMid ?? ""}:${value.sdpMLineIndex ?? ""}`;
+}
+
+function candidateTypeFromSdp(candidate: string): string | null {
+  const match = candidate.match(/\btyp\s+(host|srflx|prflx|relay)\b/i);
+  return match ? match[1].toLowerCase() : null;
+}
+
+function statsRecords(report: unknown): Array<Record<string, unknown>> {
+  if (!report || typeof report !== "object") {
+    return [];
+  }
+
+  const records: Array<Record<string, unknown>> = [];
+  const withForEach = report as { forEach?: (callback: (value: unknown) => void) => void };
+
+  if (typeof withForEach.forEach === "function") {
+    withForEach.forEach((value) => {
+      if (value && typeof value === "object") {
+        records.push(value as Record<string, unknown>);
+      }
+    });
+    return records;
+  }
+
+  return Object.values(report as Record<string, unknown>).filter(
+    (value): value is Record<string, unknown> => Boolean(value) && typeof value === "object",
+  );
+}
+
+function selectedCandidateType(records: Array<Record<string, unknown>>): string | null {
+  const pairs = records.filter((record) => record.type === "candidate-pair");
+  const selected =
+    pairs.find((record) => record.selected === true || record.nominated === true) ??
+    pairs.find((record) => record.state === "succeeded");
+
+  if (!selected) {
+    return null;
+  }
+
+  const localId = selected.localCandidateId ?? selected.localCandidate;
+  const local = records.find(
+    (record) =>
+      (record.type === "local-candidate" || record.type === "localcandidate") &&
+      (record.id === localId || record.candidateId === localId),
+  );
+
+  const fromStats = local?.candidateType ?? local?.type;
+  if (typeof fromStats === "string" && /host|srflx|prflx|relay/i.test(fromStats)) {
+    return fromStats.toLowerCase();
+  }
+
+  const candidate = typeof local?.candidate === "string" ? local.candidate : "";
+  return candidateTypeFromSdp(candidate);
+}
+
+function logIceDiagnostics(peer: RTCPeerConnection, callId: string, reason: string) {
+  if (!__DEV__) {
+    return;
+  }
+
+  console.log("[CALL] ICE", {
+    callId,
+    reason,
+    iceConnectionState: peer.iceConnectionState,
+    connectionState: peer.connectionState,
+  });
+}
+
+function logSelectedIceCandidate(peer: RTCPeerConnection, callId: string) {
+  if (!__DEV__) {
+    return;
+  }
+
+  void peer.getStats().then(
+    (report) => {
+      if (isClosedPeer(peer)) {
+        return;
+      }
+      const type = selectedCandidateType(statsRecords(report));
+      console.log("[CALL] ICE selected candidate", {
+        callId,
+        candidateType: type ?? "unknown",
+        iceConnectionState: peer.iceConnectionState,
+        connectionState: peer.connectionState,
+      });
+    },
+    () => undefined,
+  );
+}
+
+function isClosedPeer(peer: RTCPeerConnection): boolean {
+  return peer.connectionState === "closed" || peer.signalingState === "closed";
 }
 
 function applyRemoteListenEnabled(stream: MediaStream | null, enabled: boolean) {
@@ -106,6 +197,7 @@ function stateForReason(reason?: CallEndReason): CallState {
 export function useVideoCall({
   recipientId,
   currentUserId,
+  accessToken,
   callType = "video",
   acceptedIncomingCall,
   pendingIncomingIceCandidates = [],
@@ -318,7 +410,15 @@ export function useVideoCall({
         candidateKeysRef.current.clear();
       }
       if (mountedRef.current) setRemoteStream(null);
-      const peer = new RTCPeerConnection(PEER_CONFIG);
+      const peerConfig = await getRtcPeerConfig(accessToken);
+      if (callIdRef.current !== callId) throw new Error("Разговорът вече не е активен.");
+      if (__DEV__) {
+        console.log("[CALL] WebRTC ICE policy", {
+          forceTurn: peerConfig.iceTransportPolicy === "relay",
+          iceTransportPolicy: peerConfig.iceTransportPolicy,
+        });
+      }
+      const peer = new RTCPeerConnection(peerConfig);
       peerRef.current = peer;
       targetIdRef.current = targetId;
       const stream = await startCamera();
@@ -357,6 +457,12 @@ export function useVideoCall({
       };
       peer.onicecandidate = (event: IceEvent) => {
         if (!event.candidate || callIdRef.current !== callId) return;
+        if (__DEV__) {
+          const type = candidateTypeFromSdp(event.candidate.candidate);
+          if (type) {
+            console.log("[CALL] ICE local candidate", { callId, candidateType: type });
+          }
+        }
         getSocket()?.emit("call:ice-candidate", {
           call_id: callId,
           recipient_id: targetId,
@@ -367,9 +473,15 @@ export function useVideoCall({
           },
         });
       };
+      peer.oniceconnectionstatechange = () => {
+        if (peerRef.current !== peer || callIdRef.current !== callId) return;
+        logIceDiagnostics(peer, callId, "iceConnectionState");
+      };
       peer.onconnectionstatechange = () => {
         if (peerRef.current !== peer || callIdRef.current !== callId) return;
+        logIceDiagnostics(peer, callId, "connectionState");
         if (peer.connectionState === "connected") {
+          logSelectedIceCandidate(peer, callId);
           clearIceFail();
           clearConnection();
           clearNoAnswer();
@@ -409,7 +521,7 @@ export function useVideoCall({
       };
       return peer;
     },
-    [changeState, clearConnection, clearDuration, clearIceFail, clearNoAnswer, emitCameraState, emitEnd, finish, startCamera],
+    [accessToken, changeState, clearConnection, clearDuration, clearIceFail, clearNoAnswer, emitCameraState, emitEnd, finish, startCamera],
   );
 
   const startCall = useCallback(async (overrideRecipientId?: number) => {

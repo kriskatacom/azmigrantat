@@ -9,6 +9,7 @@ import type {
   ResetPasswordPayload,
   UpdateProfilePayload,
 } from "@/types/auth";
+import { toNetworkError } from "@/services/network-guard";
 import { getDeviceIdentity } from "@/services/device-identity";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL!;
@@ -263,14 +264,24 @@ async function request<T>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      ...(options.headers ?? {}),
-    },
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ...(options.headers ?? {}),
+      },
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw error;
+    }
+
+    throw toNetworkError(error);
+  }
 
   const rawResponse = await response.text();
 

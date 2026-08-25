@@ -324,13 +324,17 @@ export default function VideoCallScreen() {
       direction === "incoming" ||
       isAuthLoading ||
       !isValidRecipient ||
-      hasStartedCallRef.current ||
-      ACTIVE_CALL_STATES.includes(callState)
+      hasStartedCallRef.current
     ) {
       return;
     }
 
+    // Consume this route's auto-start once so it cannot run after the current call ends.
     hasStartedCallRef.current = true;
+    if (ACTIVE_CALL_STATES.includes(callState)) {
+      return;
+    }
+
     attachCallSession({
       recipientId,
       name: recipientName ?? "Потребител",

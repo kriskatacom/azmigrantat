@@ -1,3 +1,5 @@
+import { isNetworkError, toNetworkError } from "@/services/network-guard";
+
 interface ApiErrorResponse {
   success?: false;
   message?: string;
@@ -46,15 +48,25 @@ export async function authorizedJson<T>(
   invalidJsonMessage = "Сървърът върна невалиден JSON:",
 ): Promise<T> {
   const execute = async (accessToken: string) => {
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-        ...(options.headers ?? {}),
-      },
-    });
+    let response: Response;
+
+    try {
+      response = await fetch(url, {
+        ...options,
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          ...(options.headers ?? {}),
+        },
+      });
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        throw error;
+      }
+
+      throw toNetworkError(error);
+    }
 
     const rawResponse = await response.text();
     let data: T | ApiErrorResponse;
@@ -71,10 +83,18 @@ export async function authorizedJson<T>(
   let result = await execute(token);
 
   if (result.response.status === 401) {
-    const nextToken = await refreshOnce();
+    try {
+      const nextToken = await refreshOnce();
 
-    if (nextToken && nextToken !== token) {
-      result = await execute(nextToken);
+      if (nextToken && nextToken !== token) {
+        result = await execute(nextToken);
+      }
+    } catch (error) {
+      if (isNetworkError(error)) {
+        throw toNetworkError(error);
+      }
+
+      throw error;
     }
   }
 

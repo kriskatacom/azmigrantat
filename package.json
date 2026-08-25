@@ -6,6 +6,7 @@
     "@config-plugins/react-native-webrtc": "^15.0.2",
     "@expo/ui": "~57.0.6",
     "@expo/vector-icons": "^15.1.1",
+    "@react-native-community/netinfo": "12.0.1",
     "@react-native-google-signin/google-signin": "^16.1.4",
     "card-ocr": "file:modules/card-ocr",
     "device-lock": "file:./modules/device-lock",

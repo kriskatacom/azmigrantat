@@ -45,6 +45,7 @@ import {
 
 import { registerForPushNotifications } from "@/services/notifications";
 import { configureIncomingCallNativeSession } from "@/services/incoming-call";
+import { isNetworkError, toNetworkError } from "@/services/network-guard";
 import { getRealtimeHttpUrl } from "@/services/realtime-http";
 import { bindAuthSessionHandlers } from "@/services/session-http";
 import type { AuthResponse, AuthUser, LoginPayload, RegisterPayload } from "@/types/auth";
@@ -226,6 +227,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       );
       return response.token;
     } catch (error) {
+      if (isNetworkError(error)) {
+        throw toNetworkError(error);
+      }
+
       console.error("Неуспешно подновяване на сесията:", error);
       await clearLocalSession();
       await syncLocalLoginAvailability();
@@ -252,26 +257,42 @@ export function AuthProvider({ children }: PropsWithChildren) {
       Number.isFinite(parsedExpiresAt) &&
       parsedExpiresAt > Date.now();
 
+    const applyCached = (accessToken: string, expiresAtValue: number) => {
+      const parsedUser = withPublicUserMedia(JSON.parse(storedUser) as AuthUser);
+
+      setToken(accessToken);
+      setUser(parsedUser);
+      setExpiresAt(Number.isFinite(expiresAtValue) ? expiresAtValue : null);
+      setHasPin(Boolean(parsedUser.has_pin));
+      applyNativeSession(accessToken);
+
+      void registerForPushNotifications(accessToken).catch(
+        (error: unknown) => {
+          if (isNetworkError(error)) {
+            return;
+          }
+
+          console.error("Неуспешна регистрация на push notifications:", error);
+        },
+      );
+
+      return true;
+    };
+
     if (!accessValid) {
-      const refreshed = await refreshFromStore();
-      return Boolean(refreshed);
+      try {
+        const refreshed = await refreshFromStore();
+        return Boolean(refreshed);
+      } catch (error) {
+        if (isNetworkError(error) && storedToken) {
+          return applyCached(storedToken, parsedExpiresAt);
+        }
+
+        throw error;
+      }
     }
 
-    const parsedUser = withPublicUserMedia(JSON.parse(storedUser) as AuthUser);
-
-    setToken(storedToken);
-    setUser(parsedUser);
-    setExpiresAt(parsedExpiresAt);
-    setHasPin(Boolean(parsedUser.has_pin));
-    applyNativeSession(storedToken as string);
-
-    void registerForPushNotifications(storedToken as string).catch(
-      (error: unknown) => {
-        console.error("Неуспешна регистрация на push notifications:", error);
-      },
-    );
-
-    return true;
+    return applyCached(storedToken as string, parsedExpiresAt);
   }, [refreshFromStore]);
 
   useEffect(() => {
@@ -313,6 +334,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
           await clearLocalSession();
         }
       } catch (error) {
+        if (isNetworkError(error)) {
+          return;
+        }
+
         console.error("Неуспешно възстановяване на сесията:", error);
 
         await clearLocalSession();
@@ -340,10 +365,16 @@ export function AuthProvider({ children }: PropsWithChildren) {
     const delay = Math.max(0, expiresAt - REFRESH_SKEW_MS - Date.now());
     const timeout = setTimeout(() => {
       void (async () => {
-        const next = await refreshFromStore();
+        try {
+          const next = await refreshFromStore();
 
-        if (!next) {
-          await clearLocalSession();
+          if (!next) {
+            await clearLocalSession();
+          }
+        } catch (error) {
+          if (!isNetworkError(error)) {
+            await clearLocalSession();
+          }
         }
       })();
     }, delay);

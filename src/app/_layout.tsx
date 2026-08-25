@@ -1,6 +1,9 @@
+import { installNetworkGuard } from "@/services/network-guard";
 import AppSplash from "@/components/app-splash";
+import OfflineScreen from "@/components/offline-screen";
 import DevicePendingApprovals from "@/components/auth/device-pending-approvals";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { NetworkProvider } from "@/contexts/NetworkContext";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { ThemeProvider, useAppTheme } from "@/contexts/ThemeContext";
 import { VideoCallProvider } from "@/contexts/VideoCallContext";
@@ -29,6 +32,8 @@ import {
 import { AppState, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../../global.css";
+
+installNetworkGuard();
 
 void SplashScreen.preventAutoHideAsync();
 
@@ -409,6 +414,7 @@ function SplashOverlay({ children }: PropsWithChildren) {
   return (
     <View style={styles.root}>
       {children}
+      <OfflineScreen />
       {isLoading ? (
         <AppSplash
           onReady={() => {
@@ -424,15 +430,17 @@ export default function Layout() {
   return (
     <GestureHandlerRootView style={styles.root}>
       <ThemeProvider>
-        <AuthProvider>
-          <SplashOverlay>
-            <SocketProvider>
-              <VideoCallProvider>
-                <RootNavigator />
-              </VideoCallProvider>
-            </SocketProvider>
-          </SplashOverlay>
-        </AuthProvider>
+        <NetworkProvider>
+          <AuthProvider>
+            <SplashOverlay>
+              <SocketProvider>
+                <VideoCallProvider>
+                  <RootNavigator />
+                </VideoCallProvider>
+              </SocketProvider>
+            </SplashOverlay>
+          </AuthProvider>
+        </NetworkProvider>
       </ThemeProvider>
     </GestureHandlerRootView>
   );

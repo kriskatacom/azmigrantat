@@ -1,4 +1,5 @@
 import { HttpError } from "@/services/session-http";
+import { isNetworkError } from "@/services/network-guard";
 import {
   clearConversation,
   getConversation,
@@ -235,6 +236,10 @@ export function useChatMessages({
       if (error instanceof HttpError && error.status === 404) {
         setBlockedByOther(true);
         setIsBlocked(true);
+        return;
+      }
+
+      if (isNetworkError(error)) {
         return;
       }
 
@@ -533,6 +538,10 @@ export function useChatMessages({
           return false;
         }
 
+        if (isNetworkError(error)) {
+          return false;
+        }
+
         Alert.alert(
           "Неуспешно изпращане",
           error instanceof Error
@@ -566,6 +575,10 @@ export function useChatMessages({
         playAppSound("sendMessage");
         return true;
       } catch (error) {
+        if (isNetworkError(error)) {
+          return false;
+        }
+
         Alert.alert(
           "Неуспешно изпращане",
           error instanceof Error ? error.message : "Файлът не можа да бъде изпратен.",
@@ -612,6 +625,10 @@ export function useChatMessages({
           ),
         );
       } catch (error) {
+        if (isNetworkError(error)) {
+          return;
+        }
+
         Alert.alert(
           "Грешка",
           error instanceof Error
@@ -653,6 +670,10 @@ export function useChatMessages({
 
         return true;
       } catch (error) {
+        if (isNetworkError(error)) {
+          return false;
+        }
+
         Alert.alert(
           "Грешка",
           error instanceof Error

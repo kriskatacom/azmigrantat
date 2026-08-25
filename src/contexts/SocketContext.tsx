@@ -16,6 +16,7 @@ import type { AuthUser } from "@/types/auth";
 import type { ChatMessage } from "@/types/chat";
 import type { AppNotification, NotificationSocketEvent } from "@/types/notifications";
 
+import { isNetworkError, reportOffline, reportOnline } from "@/services/network-guard";
 import { getActiveConversationId } from "@/services/notificationState";
 import { markConversationAsDelivered } from "@/services/chat";
 import { playAppSound } from "@/services/sounds";
@@ -147,6 +148,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
       setIsConnected(true);
       setIsConnecting(false);
       setConnectionError(null);
+      reportOnline();
 
       console.log("Socket.IO връзката е установена.");
     };
@@ -265,6 +267,12 @@ export function SocketProvider({ children }: PropsWithChildren) {
     const handleConnectError = (error: Error) => {
       setIsConnected(false);
       setIsConnecting(false);
+
+      if (isNetworkError(error)) {
+        setConnectionError(null);
+        reportOffline();
+        return;
+      }
 
       setConnectionError(error.message);
 

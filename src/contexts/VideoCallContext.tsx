@@ -1161,6 +1161,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
   const mediaCall = useVideoCall({
     recipientId: callUi?.recipientId ?? 0,
     currentUserId: user ? Number(user.id) : undefined,
+    accessToken: token,
     callType: callUi?.callType ?? "video",
     acceptedIncomingCall: acceptedIncomingCall?.call ?? null,
     pendingIncomingIceCandidates: acceptedIncomingCall?.pendingIceCandidates ?? [],
