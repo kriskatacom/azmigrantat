@@ -99,6 +99,112 @@ describe('CallService', () => {
         expect(harness.store.get('call-1')?.offer).toEqual(offer);
     });
 
+    it('отхвърля второ обаждане с различен call ID, докато участник е зает', async () => {
+        const firstCaller = harness.socket(22, 'First Caller');
+        const secondCaller = harness.socket(33, 'Second Caller');
+
+        await harness.calls.offer(firstCaller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+        });
+        await harness.calls.offer(secondCaller.value, {
+            call_id: 'call-2',
+            recipient_id: 44,
+            description: offer,
+        });
+
+        expect(secondCaller.socketEmit).toHaveBeenCalledWith('call:end', {
+            call_id: 'call-2',
+            sender_id: 44,
+            reason: 'busy',
+        });
+        expect(harness.store.get('call-2')).toBeUndefined();
+        expect(harness.notifications.sendIncomingCallPush).toHaveBeenCalledTimes(1);
+    });
+
+    it('не позволява caller да започне второ обаждане към друг получател', async () => {
+        const caller = harness.socket(22, 'Caller');
+
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+        });
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-2',
+            recipient_id: 55,
+            description: offer,
+        });
+
+        expect(caller.socketEmit).toHaveBeenCalledWith('call:end', {
+            call_id: 'call-2',
+            sender_id: 55,
+            reason: 'busy',
+        });
+        expect(harness.store.get('call-2')).toBeUndefined();
+    });
+
+    it('позволява ново обаждане след приключване на предишното', async () => {
+        const caller = harness.socket(22, 'Caller');
+
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+        });
+        await harness.calls.end(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            reason: 'cancelled',
+        });
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-2',
+            recipient_id: 44,
+            description: offer,
+        });
+
+        expect(harness.store.get('call-2')?.status).toBe('pending');
+        expect(harness.notifications.sendIncomingCallPush).toHaveBeenCalledTimes(2);
+    });
+
+    it('позволява ново обаждане след изтичане на pending сесията', async () => {
+        const caller = harness.socket(22, 'Caller');
+
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+        });
+        harness.setNow(new Date('2026-08-17T12:00:31.000Z'));
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-2',
+            recipient_id: 44,
+            description: offer,
+        });
+
+        expect(harness.store.get('call-2')?.status).toBe('pending');
+        expect(harness.notifications.sendIncomingCallPush).toHaveBeenCalledTimes(2);
+    });
+
+    it('третира повторен offer със същия call ID като idempotent', async () => {
+        const caller = harness.socket(22, 'Caller');
+        const payload = {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+        };
+
+        await harness.calls.offer(caller.value, payload);
+        await harness.calls.offer(caller.value, payload);
+
+        expect(caller.socketEmit).not.toHaveBeenCalledWith(
+            'call:end',
+            expect.objectContaining({ reason: 'busy' }),
+        );
+        expect(harness.notifications.sendIncomingCallPush).toHaveBeenCalledTimes(1);
+    });
+
     it('препраща call:camera-state към другия участник', async () => {
         const caller = harness.socket(22, 'Caller');
         const recipient = harness.socket(44, 'Recipient');

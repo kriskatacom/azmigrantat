@@ -59,6 +59,28 @@ export class CallService {
         }
 
         const createdAt = this.now();
+        if (this.store.get(payload.call_id)) {
+            console.log('[CALL] created skipped duplicate', { callId: payload.call_id });
+            return;
+        }
+
+        const callerActiveCall = this.store.findActiveForUser(caller.id, createdAt);
+        const recipientActiveCall = this.store.findActiveForUser(payload.recipient_id, createdAt);
+        if (callerActiveCall || recipientActiveCall) {
+            console.log('[CALL] rejected active session', {
+                callId: payload.call_id,
+                callerId: caller.id,
+                recipientId: payload.recipient_id,
+                activeCallId: callerActiveCall?.callId ?? recipientActiveCall?.callId,
+            });
+            socket.emit('call:end', {
+                call_id: payload.call_id,
+                sender_id: payload.recipient_id,
+                reason: 'busy',
+            });
+            return;
+        }
+
         const call: PendingCall = {
             callId: payload.call_id,
             callerId: caller.id,

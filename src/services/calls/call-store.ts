@@ -23,6 +23,7 @@ export interface PendingCall {
 export interface CallStore {
     create(call: PendingCall): boolean;
     get(callId: string): PendingCall | undefined;
+    findActiveForUser(userId: number, now: Date): PendingCall | undefined;
     findPendingForRecipient(recipientId: number, now: Date): PendingCall[];
     findIncomingForRecipient(recipientId: number, now: Date): PendingCall[];
     transition(callId: string, from: CallStatus, to: CallStatus): PendingCall | undefined;
@@ -42,6 +43,18 @@ export class InMemoryCallStore implements CallStore {
 
     get(callId: string): PendingCall | undefined {
         return this.calls.get(callId);
+    }
+
+    findActiveForUser(userId: number, now: Date): PendingCall | undefined {
+        return [...this.calls.values()].find((call) => {
+            if (call.callerId !== userId && call.recipientId !== userId) {
+                return false;
+            }
+
+            return (
+                call.status === 'accepted' || (call.status === 'pending' && call.expiresAt > now)
+            );
+        });
     }
 
     findPendingForRecipient(recipientId: number, now: Date): PendingCall[] {
