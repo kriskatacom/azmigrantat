@@ -13,10 +13,25 @@ import {
   useRootNavigationState,
   useRouter,
 } from "expo-router";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { createAudioPlayer, setAudioModeAsync } from "expo-audio";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { BackHandler, StyleSheet, Text, TouchableOpacity } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const TERMINAL_FEEDBACK_SOUNDS = {
+  unavailable: require("../../../assets/sounds/call_unavailable_bg.wav"),
+  timeout: require("../../../assets/sounds/call_user_unreachable_bg.wav"),
+  rejected: require("../../../assets/sounds/call_declined_bg.wav"),
+} as const;
+
+type TerminalFeedbackState = keyof typeof TERMINAL_FEEDBACK_SOUNDS;
+
+function isTerminalFeedbackState(
+  state: string,
+): state is TerminalFeedbackState {
+  return state in TERMINAL_FEEDBACK_SOUNDS;
+}
 
 export default function VideoCallScreen() {
   const router = useRouter();
@@ -34,6 +49,8 @@ export default function VideoCallScreen() {
   }>();
   const hasStartedCallRef = useRef(false);
   const hasLeftScreenRef = useRef(false);
+  const [terminalFeedbackState, setTerminalFeedbackState] =
+    useState<TerminalFeedbackState | null>(null);
   const rootNavigationState = useRootNavigationState();
 
   const recipientId = useMemo(() => {
@@ -109,6 +126,7 @@ export default function VideoCallScreen() {
     recipientId > 0 &&
     user !== null &&
     Number(user.id) !== recipientId;
+  const displayedCallState = terminalFeedbackState ?? callState;
 
   useEffect(() => {
     if (!isValidRecipient) {
@@ -151,11 +169,13 @@ export default function VideoCallScreen() {
   }, [lastUserBlock, user?.id, recipientId, endCall]);
 
   const terminalStatus = useMemo(() => {
-    switch (callState) {
+    switch (displayedCallState) {
       case "busy":
         return "Потребителят е зает";
       case "timeout":
         return "Няма отговор";
+      case "unavailable":
+        return "Потребителят е недостъпен";
       case "rejected":
         return "Обаждането е отказано";
       case "failed":
@@ -173,7 +193,7 @@ export default function VideoCallScreen() {
       default:
         return "Повикване…";
     }
-  }, [callState]);
+  }, [displayedCallState]);
   const formattedDuration = `${Math.floor(callDurationSeconds / 60)
     .toString()
     .padStart(2, "0")}:${(callDurationSeconds % 60)
@@ -282,6 +302,72 @@ export default function VideoCallScreen() {
   }, [hideCallScreen]);
 
   useEffect(() => {
+    if (!isTerminalFeedbackState(callState)) {
+      return;
+    }
+
+    const activationTimer = setTimeout(
+      () => setTerminalFeedbackState(callState),
+      0,
+    );
+    return () => clearTimeout(activationTimer);
+  }, [callState]);
+
+  useEffect(() => {
+    if (!terminalFeedbackState) {
+      return;
+    }
+
+    let cancelled = false;
+    let completed = false;
+    const player = createAudioPlayer(
+      TERMINAL_FEEDBACK_SOUNDS[terminalFeedbackState],
+      {
+        keepAudioSessionActive: true,
+      },
+    );
+    player.loop = false;
+
+    const finishFeedback = () => {
+      if (cancelled || completed) {
+        return;
+      }
+      completed = true;
+      leaveVideoCallScreen();
+    };
+
+    const statusSubscription = player.addListener(
+      "playbackStatusUpdate",
+      (status) => {
+        if (status.didJustFinish) {
+          finishFeedback();
+        }
+      },
+    );
+
+    void setAudioModeAsync({
+      playsInSilentMode: false,
+      interruptionMode: "doNotMix",
+    })
+      .then(() => {
+        if (!cancelled) {
+          player.play();
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("Звукът за статуса на обаждането не стартира:", error);
+        finishFeedback();
+      });
+
+    return () => {
+      cancelled = true;
+      statusSubscription.remove();
+      player.pause();
+      player.release();
+    };
+  }, [leaveVideoCallScreen, terminalFeedbackState]);
+
+  useEffect(() => {
     if (
       direction !== "incoming" ||
       matchingIncomingCall ||
@@ -298,9 +384,7 @@ export default function VideoCallScreen() {
     if (
       ![
         "ended",
-        "rejected",
         "busy",
-        "timeout",
         "cancelled",
         "failed",
         "connection_timeout",
@@ -387,10 +471,11 @@ export default function VideoCallScreen() {
     "timeout",
     "rejected",
     "failed",
+    "unavailable",
     "connection_timeout",
     "cancelled",
     "ended",
-  ].includes(callState);
+  ].includes(displayedCallState);
 
   return (
     <SafeAreaView

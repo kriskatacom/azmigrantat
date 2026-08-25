@@ -99,6 +99,56 @@ export async function registerForPushNotifications(
   return expoPushToken;
 }
 
+export async function unregisterPushNotifications(
+  accessToken: string,
+): Promise<void> {
+  if (!API_URL) {
+    return;
+  }
+
+  const tokens: { token: string; provider: "fcm" | "expo" }[] = [];
+
+  try {
+    const devicePushToken = await Notifications.getDevicePushTokenAsync();
+    if (typeof devicePushToken.data === "string" && devicePushToken.data) {
+      tokens.push({ token: devicePushToken.data, provider: "fcm" });
+    }
+  } catch {
+    // The device may not currently have notification permission.
+  }
+
+  const projectId =
+    Constants.expoConfig?.extra?.eas?.projectId ??
+    Constants.easConfig?.projectId;
+
+  if (projectId) {
+    try {
+      const expoPushToken = (
+        await Notifications.getExpoPushTokenAsync({ projectId })
+      ).data;
+      if (expoPushToken) {
+        tokens.push({ token: expoPushToken, provider: "expo" });
+      }
+    } catch {
+      // FCM removal is enough for call reachability on Android.
+    }
+  }
+
+  await Promise.allSettled(
+    tokens.map(({ token, provider }) =>
+      fetch(`${API_URL}/api/mobile/push-tokens/delete`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ token, provider }),
+      }),
+    ),
+  );
+}
+
 async function savePushToken(
   accessToken: string,
   pushToken: string,

@@ -43,7 +43,10 @@ import {
   setLastLoginEmail,
 } from "@/services/device-identity";
 
-import { registerForPushNotifications } from "@/services/notifications";
+import {
+  registerForPushNotifications,
+  unregisterPushNotifications,
+} from "@/services/notifications";
 import { configureIncomingCallNativeSession } from "@/services/incoming-call";
 import { isNetworkError, toNetworkError } from "@/services/network-guard";
 import { getRealtimeHttpUrl } from "@/services/realtime-http";
@@ -169,6 +172,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       deleteStore(REFRESH_KEY),
       deleteStore(USER_KEY),
       deleteStore(EXPIRES_AT_KEY),
+      configureIncomingCallNativeSession({
+        token: null,
+        socketUrl: null,
+      }),
     ]);
 
     setToken(null);
@@ -553,6 +560,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     try {
       if (currentToken) {
+        await unregisterPushNotifications(currentToken);
         await logoutRequest(currentToken);
       }
     } catch (error) {
@@ -566,10 +574,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const endLocalSession = useCallback(async () => {
     loggingOutRef.current = true;
+    if (token) {
+      await unregisterPushNotifications(token);
+    }
     await clearLocalSession();
     await syncLocalLoginAvailability();
     loggingOutRef.current = false;
-  }, [clearLocalSession, syncLocalLoginAvailability]);
+  }, [token, clearLocalSession, syncLocalLoginAvailability]);
 
   const clearLocalQuickLogin = useCallback(async () => {
     await clearDeviceSecret();

@@ -74,6 +74,7 @@ const TERMINAL_STATES: CallState[] = [
   "cancelled",
   "ended",
   "failed",
+  "unavailable",
   "connection_timeout",
 ];
 
@@ -187,6 +188,7 @@ function stateForReason(reason?: CallEndReason): CallState {
     reason === "timeout" ||
     reason === "cancelled" ||
     reason === "failed" ||
+    reason === "unavailable" ||
     reason === "connection_timeout"
   ) {
     return reason;

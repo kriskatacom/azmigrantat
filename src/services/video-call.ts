@@ -16,6 +16,7 @@ export type CallEndReason =
   | "cancelled"
   | "hangup"
   | "failed"
+  | "unavailable"
   | "connection_timeout"
   | "answered_elsewhere"
   | "rejected_elsewhere";
@@ -32,6 +33,7 @@ export type CallState =
   | "cancelled"
   | "ended"
   | "failed"
+  | "unavailable"
   | "connection_timeout";
 
 export type CallType = "audio" | "video";
@@ -66,7 +68,7 @@ export type CallServerPayload = {
 export type CallStatePayload = {
   call: CallServerPayload | null;
   pending_ice_candidates: CallIceCandidate[];
-  status: "ringing" | "accepted" | "declined" | "cancelled" | "ended" | "timeout" | "busy" | "failed" | "idle";
+  status: "ringing" | "accepted" | "declined" | "cancelled" | "ended" | "timeout" | "busy" | "failed" | "unavailable" | "idle";
 };
 
 export type DeviceRegisterPayload = {
