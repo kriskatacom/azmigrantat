@@ -35,6 +35,10 @@ re-associates the `(token, provider)` row and updates `last_seen_at`.
 Idempotently marks only the authenticated user's matching row inactive with
 reason `logout`. The legacy `POST /api/mobile/push-tokens/delete` route remains.
 
+### `GET /api/mobile/turn-credentials`
+
+Authenticated users receive short-lived Coturn REST credentials (`use-auth-secret`). The response includes STUN + TURN `iceServers` and `expires_at` (unix). The static auth secret is never returned. Rate limits: 20/user and 40/IP per 15 minutes.
+
 ### `POST /api/mobile/calls/{call_id}/action`
 
 Accepts only `{"action":"accept"}` or `{"action":"reject"}`. The PHP server

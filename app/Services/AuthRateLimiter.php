@@ -17,6 +17,8 @@ final class AuthRateLimiter
     public const ACTION_PASSWORD_FORGOT_COOLDOWN = 'password_forgot_cooldown';
     public const ACTION_PASSWORD_RESET_IP = 'password_reset_ip';
     public const ACTION_PASSWORD_RESET_EMAIL = 'password_reset_email';
+    public const ACTION_TURN_CREDENTIALS_USER = 'turn_credentials_user';
+    public const ACTION_TURN_CREDENTIALS_IP = 'turn_credentials_ip';
 
     public function tooMany(string $action, string $identifier): bool
     {
@@ -173,6 +175,8 @@ final class AuthRateLimiter
             self::ACTION_PASSWORD_FORGOT_COOLDOWN => 1,
             self::ACTION_PASSWORD_RESET_IP => 15,
             self::ACTION_PASSWORD_RESET_EMAIL => 10,
+            self::ACTION_TURN_CREDENTIALS_USER => 20,
+            self::ACTION_TURN_CREDENTIALS_IP => 40,
             default => 5,
         };
     }

@@ -119,6 +119,9 @@ abstract class BaseController
             AuthRateLimiter::ACTION_PASSWORD_RESET_EMAIL,
             AuthRateLimiter::ACTION_PASSWORD_RESET_IP =>
                 "Твърде много опити за смяна на паролата. Опитайте отново след {$wait}.",
+            AuthRateLimiter::ACTION_TURN_CREDENTIALS_USER,
+            AuthRateLimiter::ACTION_TURN_CREDENTIALS_IP =>
+                "Твърде много заявки за TURN credentials. Опитайте отново след {$wait}.",
             default => "Твърде много опити. Опитайте отново след {$wait}.",
         };
     }

@@ -167,6 +167,9 @@ final class EnvConfig
             ['key' => 'REALTIME_INTERNAL_SECRET', 'label' => 'Realtime вътрешен секрет', 'group' => 'Realtime и сигурност', 'secret' => true, 'generate' => true],
             ['key' => 'CARD_ENCRYPTION_KEY', 'label' => 'Ключ за криптиране на карти', 'group' => 'Realtime и сигурност', 'secret' => true, 'generate' => true],
             ['key' => 'PASSWORD_RESET_PEPPER', 'label' => 'Pepper за reset на парола', 'group' => 'Realtime и сигурност', 'secret' => true, 'generate' => true],
+            ['key' => 'TURN_STATIC_AUTH_SECRET', 'label' => 'Coturn static-auth-secret', 'group' => 'Realtime и сигурност', 'secret' => true, 'generate' => true],
+            ['key' => 'TURN_HOST', 'label' => 'TURN хост', 'group' => 'Realtime и сигурност', 'secret' => false, 'default' => 'turn.azmigrantat.com', 'prod_default' => 'turn.azmigrantat.com'],
+            ['key' => 'TURN_TTL_SECONDS', 'label' => 'TURN credential TTL (секунди)', 'group' => 'Realtime и сигурност', 'secret' => false, 'default' => '3600'],
 
             ['key' => 'GOOGLE_WEB_CLIENT_ID', 'label' => 'Google Web Client ID', 'group' => 'Google', 'secret' => false],
 

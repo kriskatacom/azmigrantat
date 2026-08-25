@@ -2,6 +2,7 @@
 
 use App\Controllers\Api\BlockController;
 use App\Controllers\Api\CallController;
+use App\Controllers\Api\TurnCredentialsController;
 use App\Controllers\Api\ConversationController;
 use App\Controllers\Api\TotpController;
 use App\Controllers\Api\InternalMobileController;
@@ -132,6 +133,7 @@ $router->delete('/api/mobile/push-tokens', [PushTokenController::class, 'destroy
 $router->post('/api/mobile/push-tokens/delete', [PushTokenController::class, 'destroy'], $bearer);
 $router->post('/api/mobile/push-tokens/delete-all',[PushTokenController::class, 'destroyAll'], $bearer);
 $router->post('/api/mobile/calls/{call_id}/action', [CallController::class, 'action'], $bearer);
+$router->get('/api/mobile/turn-credentials', [TurnCredentialsController::class, 'show'], $bearer);
 
 $router->get('/api/mobile/notifications/unread-count', [NotificationController::class, 'unreadCount'], $bearer);
 $router->get('/api/mobile/notifications/{id}', [NotificationController::class, 'show'], $bearer);
