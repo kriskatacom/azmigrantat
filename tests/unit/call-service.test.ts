@@ -15,7 +15,7 @@ const candidate = {
 
 function createHarness(initialNow = new Date('2026-08-17T12:00:00.000Z')) {
     let now = initialNow;
-    let connectedSockets: unknown[] = [{}];
+    let connectedSockets: unknown[] = [{ id: 'connected-socket', data: {} }];
     const roomEmit = vi.fn();
     const io = {
         to: vi.fn((room: string) => ({
@@ -43,6 +43,7 @@ function createHarness(initialNow = new Date('2026-08-17T12:00:00.000Z')) {
         const socketEmit = vi.fn();
         const toEmit = vi.fn();
         const value = {
+            id: `socket-${userId}`,
             data: {
                 user: { id: userId, name, role: 'user', is_active: true },
             },
@@ -66,7 +67,13 @@ function createHarness(initialNow = new Date('2026-08-17T12:00:00.000Z')) {
             now = value;
         },
         setConnectedSocketCount(count: number) {
-            connectedSockets = Array.from({ length: count }, () => ({}));
+            connectedSockets = Array.from({ length: count }, (_, index) => ({
+                id: `connected-socket-${index}`,
+                data: {},
+            }));
+        },
+        setConnectedSockets(value: unknown[]) {
+            connectedSockets = value;
         },
     };
 }
@@ -629,6 +636,55 @@ describe('CallService', () => {
             call_id: 'call-1',
             sender_id: 44,
         });
+    });
+
+    it('предупреждава и двамата при ниска батерия на участник', async () => {
+        const caller = harness.socket(22, 'Caller');
+        const recipient = harness.socket(44, 'Recipient');
+        const receivedAt = new Date('2026-08-17T12:00:00.000Z').getTime();
+        harness.setConnectedSockets([
+            {
+                id: 'socket-22',
+                data: {
+                    appState: 'active',
+                    battery: {
+                        batteryLevel: 0.1,
+                        isCharging: false,
+                        updatedAt: receivedAt,
+                        receivedAt,
+                    },
+                },
+            },
+            {
+                id: 'socket-44',
+                data: {
+                    appState: 'active',
+                    battery: {
+                        batteryLevel: 0.7,
+                        isCharging: false,
+                        updatedAt: receivedAt,
+                        receivedAt,
+                    },
+                },
+            },
+        ]);
+
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+        });
+        await harness.calls.acceptIntent(recipient.value, {
+            call_id: 'call-1',
+            recipient_id: 22,
+        });
+
+        const warning = {
+            call_id: 'call-1',
+            low_battery_user_ids: [22],
+        };
+        expect(harness.roomEmit).toHaveBeenCalledWith('user:22', 'call:battery-warning', warning);
+        expect(harness.roomEmit).toHaveBeenCalledWith('user:44', 'call:battery-warning', warning);
     });
 
     it('записва детайлите на обаждането в чата при край', async () => {

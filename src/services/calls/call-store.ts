@@ -16,6 +16,10 @@ export interface PendingCall {
     cameraEnabled: boolean;
     conversationId?: number;
     acceptedAt?: Date;
+    callerSocketId?: string;
+    recipientSocketId?: string;
+    batteryWarningEmitted?: boolean;
+    lowBatteryUserIds?: number[];
     bufferedIce: IceCandidatePayload[];
     answered?: boolean;
 }

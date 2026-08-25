@@ -3,6 +3,7 @@ import type { Socket } from 'socket.io';
 import type { CallService } from '../services/calls/call-service';
 import type {
     CallAnswerClientPayload,
+    DeviceBatteryPayload,
     CallIceCandidateClientPayload,
     CallOfferClientPayload,
     ClientToServerEvents,
@@ -17,6 +18,31 @@ type RealtimeSocket = Socket<
     InterServerEvents,
     SocketData
 >;
+
+function applyBatterySnapshot(
+    socket: RealtimeSocket,
+    payload: Partial<DeviceBatteryPayload> | null | undefined,
+): void {
+    if (
+        typeof payload?.batteryLevel !== 'number' ||
+        !Number.isFinite(payload.batteryLevel) ||
+        payload.batteryLevel < 0 ||
+        payload.batteryLevel > 1 ||
+        typeof payload.isCharging !== 'boolean' ||
+        typeof payload.updatedAt !== 'number' ||
+        !Number.isFinite(payload.updatedAt) ||
+        payload.updatedAt <= 0
+    ) {
+        return;
+    }
+
+    socket.data.battery = {
+        batteryLevel: payload.batteryLevel,
+        isCharging: payload.isCharging,
+        updatedAt: payload.updatedAt,
+        receivedAt: Date.now(),
+    };
+}
 
 function hasValidRecipientAndCall(
     payload: { recipient_id?: unknown; call_id?: unknown } | null | undefined,
@@ -119,6 +145,11 @@ export function registerCallEvents(socket: RealtimeSocket, calls: CallService): 
         if (payload?.app_state === 'active' || payload?.app_state === 'background') {
             socket.data.appState = payload.app_state;
         }
+        applyBatterySnapshot(socket, payload);
+    });
+
+    socket.on('device:battery', (payload) => {
+        applyBatterySnapshot(socket, payload);
     });
 
     socket.on('app:state', (payload) => {

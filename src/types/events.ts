@@ -49,6 +49,7 @@ export interface ServerToClientEvents {
     'call:camera-state': (payload: CallCameraStateServerPayload) => void;
     'call:end': (payload: CallEndServerPayload) => void;
     'call:state': (payload: CallStatePayload) => void;
+    'call:battery-warning': (payload: CallBatteryWarningPayload) => void;
 
     'notification:new': (payload: AppNotificationPayload) => void;
     'notification:updated': (payload: AppNotificationPayload) => void;
@@ -75,6 +76,7 @@ export interface ClientToServerEvents {
     'call:end': (payload: CallEndClientPayload) => void;
     'call:sync': () => void;
     'device:register': (payload: DeviceRegisterPayload) => void;
+    'device:battery': (payload: DeviceBatteryPayload) => void;
     'app:state': (payload: AppStatePayload) => void;
 }
 
@@ -84,6 +86,7 @@ export interface SocketData {
     user: AuthenticatedUser;
     tokenHash?: string;
     appState?: 'active' | 'background';
+    battery?: DeviceBatterySnapshot;
 }
 
 export type RealtimeServer = Server<
@@ -187,6 +190,11 @@ export interface CallAcceptClientPayload extends CallClientPayload {}
 
 export interface CallAcceptedServerPayload extends CallServerPayload {}
 
+export interface CallBatteryWarningPayload {
+    call_id: string;
+    low_battery_user_ids: number[];
+}
+
 export interface CallAnswerClientPayload extends CallClientPayload {
     description: SessionDescriptionPayload;
 }
@@ -228,6 +236,19 @@ export interface CallStatePayload {
 export interface DeviceRegisterPayload {
     expo_push_token?: string;
     app_state?: 'active' | 'background';
+    batteryLevel?: number;
+    isCharging?: boolean;
+    updatedAt?: number;
+}
+
+export interface DeviceBatteryPayload {
+    batteryLevel: number;
+    isCharging: boolean;
+    updatedAt: number;
+}
+
+export interface DeviceBatterySnapshot extends DeviceBatteryPayload {
+    receivedAt: number;
 }
 
 export interface AppStatePayload {

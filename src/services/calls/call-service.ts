@@ -107,6 +107,7 @@ export class CallService {
             offer: payload.description,
             callType: payload.call_type === 'audio' ? 'audio' : 'video',
             cameraEnabled: payload.call_type !== 'audio',
+            callerSocketId: socket.id,
             ...(conversationId !== undefined ? { conversationId } : {}),
             bufferedIce: [],
         };
@@ -147,6 +148,8 @@ export class CallService {
             if (call.expiresAt <= this.now()) return;
             if (!this.store.claim(call.callId, 'pending', 'accepted')) return;
             call.acceptedAt = this.now();
+            call.recipientSocketId = socket.id;
+            await this.maybeEmitBatteryWarning(call);
             console.log('[CALL] server state ringing -> accepted callId=' + call.callId);
             const event = {
                 call_id: call.callId,
@@ -204,6 +207,8 @@ export class CallService {
             if (call.expiresAt <= this.now()) return;
             if (!this.store.claim(call.callId, 'pending', 'accepted')) return;
             call.acceptedAt = this.now();
+            call.recipientSocketId = socket.id;
+            await this.maybeEmitBatteryWarning(call);
             console.log('[CALL] server state ringing -> accepted callId=' + call.callId);
         } else if (alreadyAccepted) {
             console.log('[CALL] ignoring duplicate accepted transition', { callId: call.callId });
@@ -367,6 +372,7 @@ export class CallService {
         }
 
         call.acceptedAt = this.now();
+        await this.maybeEmitBatteryWarning(call);
         console.log('[CALL] accepted', { callId: call.callId, userId, source: 'http' });
         const event = { call_id: call.callId, sender_id: userId };
         this.io.to(`user:${call.callerId}`).emit('call:accepted', event);
@@ -446,6 +452,14 @@ export class CallService {
 
         if (!ringing.call) {
             return;
+        }
+
+        const storedCall = this.store.get(ringing.call.call_id);
+        if (storedCall?.lowBatteryUserIds?.length) {
+            socket.emit('call:battery-warning', {
+                call_id: storedCall.callId,
+                low_battery_user_ids: storedCall.lowBatteryUserIds,
+            });
         }
 
         if (status === 'accepted') {
@@ -720,6 +734,59 @@ export class CallService {
             console.error('[CALL] recipient availability lookup failed:', error);
             return true;
         }
+    }
+
+    private async maybeEmitBatteryWarning(call: PendingCall): Promise<void> {
+        if (call.batteryWarningEmitted) {
+            return;
+        }
+        call.batteryWarningEmitted = true;
+
+        const now = this.now().getTime();
+        const resolveBattery = async (userId: number, preferredSocketId?: string) => {
+            const sockets = await this.io.in(`user:${userId}`).fetchSockets();
+            const fresh = sockets.filter(
+                (item) => item.data.battery && now - item.data.battery.receivedAt <= 120_000,
+            );
+            const preferred = fresh.find((item) => item.id === preferredSocketId);
+            const candidates = preferred
+                ? [preferred]
+                : [
+                      ...fresh.filter((item) => item.data.appState === 'active'),
+                      ...fresh.filter((item) => item.data.appState !== 'active'),
+                  ];
+            return candidates.sort(
+                (left, right) =>
+                    (right.data.battery?.receivedAt ?? 0) - (left.data.battery?.receivedAt ?? 0),
+            )[0]?.data.battery;
+        };
+
+        const [callerBattery, recipientBattery] = await Promise.all([
+            resolveBattery(call.callerId, call.callerSocketId),
+            resolveBattery(call.recipientId, call.recipientSocketId),
+        ]);
+        const lowBatteryUserIds = [
+            [call.callerId, callerBattery] as const,
+            [call.recipientId, recipientBattery] as const,
+        ]
+            .filter(([, battery]) => battery && battery.batteryLevel < 0.15 && !battery.isCharging)
+            .map(([userId]) => userId);
+
+        if (lowBatteryUserIds.length === 0) {
+            return;
+        }
+
+        call.lowBatteryUserIds = lowBatteryUserIds;
+        const payload = {
+            call_id: call.callId,
+            low_battery_user_ids: lowBatteryUserIds,
+        };
+        this.io.to(`user:${call.callerId}`).emit('call:battery-warning', payload);
+        this.io.to(`user:${call.recipientId}`).emit('call:battery-warning', payload);
+        console.log('[CALL] battery warning', {
+            callId: call.callId,
+            lowBatteryUserIds,
+        });
     }
 
     private async notify(operation: () => Promise<void> | undefined): Promise<void> {
