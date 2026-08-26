@@ -1,8 +1,10 @@
 import type { CallService } from '../services/calls/call-service';
 import type { TypingAuthorizationProvider } from '../services/conversations/typing-authorization.provider';
+import type { LiveService } from '../services/live/live-service';
 import type { RealtimeServer } from '../types/events';
 import type { SocketConnectionReadyPayload } from '../types/socket';
 import { registerCallEvents } from './call.events';
+import { registerLiveEvents } from './live.events';
 import { registerTypingEvents } from './typing.events';
 
 const lastSeenByUser = new Map<number, string>();
@@ -11,6 +13,7 @@ export function registerSocketConnections(
     io: RealtimeServer,
     calls: CallService,
     typingAuthorization?: TypingAuthorizationProvider,
+    lives?: LiveService,
 ): void {
     io.on('connection', async (socket) => {
         const user = socket.data.user;
@@ -20,6 +23,10 @@ export function registerSocketConnections(
 
         registerTypingEvents(socket, typingAuthorization);
         registerCallEvents(socket, calls);
+
+        if (lives) {
+            registerLiveEvents(socket, lives);
+        }
 
         const socketsInRoom = await io.in(userRoom).fetchSockets();
 
@@ -61,6 +68,10 @@ export function registerSocketConnections(
 
         socket.on('disconnect', async (reason) => {
             console.log(`Потребител ${user.id} прекъсна връзката. Причина: ${reason}`);
+
+            if (lives) {
+                await lives.disconnect(socket);
+            }
 
             const remainingSockets = await io.in(userRoom).fetchSockets();
 

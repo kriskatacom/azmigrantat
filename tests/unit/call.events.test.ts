@@ -43,6 +43,7 @@ describe('registerCallEvents', () => {
             'call:end',
             'call:sync',
             'device:register',
+            'device:battery',
             'app:state',
         ]);
     });

@@ -1,6 +1,17 @@
 import type { Server } from 'socket.io';
 
 import type { AuthenticatedUser } from './socket';
+import type {
+    LiveCommentClientPayload,
+    LiveCommentPayload,
+    LiveEndedPayload,
+    LiveErrorPayload,
+    LiveJoinClientPayload,
+    LiveLeaveClientPayload,
+    LiveReactionClientPayload,
+    LiveReactionPayload,
+    LiveViewerCountPayload,
+} from './live';
 
 export interface RealtimeMessage {
     id: number;
@@ -60,6 +71,12 @@ export interface ServerToClientEvents {
     'user:unblocked': (payload: UserBlockPayload) => void;
     'conversation:cleared': (payload: ConversationClearedPayload) => void;
     'auth:revoked': (payload: { reason: string }) => void;
+
+    'live:viewer-count': (payload: LiveViewerCountPayload) => void;
+    'live:comment': (payload: LiveCommentPayload) => void;
+    'live:reaction': (payload: LiveReactionPayload) => void;
+    'live:ended': (payload: LiveEndedPayload) => void;
+    'live:error': (payload: LiveErrorPayload) => void;
 }
 
 export interface ClientToServerEvents {
@@ -78,6 +95,11 @@ export interface ClientToServerEvents {
     'device:register': (payload: DeviceRegisterPayload) => void;
     'device:battery': (payload: DeviceBatteryPayload) => void;
     'app:state': (payload: AppStatePayload) => void;
+
+    'live:join': (payload: LiveJoinClientPayload) => void;
+    'live:leave': (payload: LiveLeaveClientPayload) => void;
+    'live:comment': (payload: LiveCommentClientPayload) => void;
+    'live:reaction': (payload: LiveReactionClientPayload) => void;
 }
 
 export interface InterServerEvents {}
@@ -87,6 +109,7 @@ export interface SocketData {
     tokenHash?: string;
     appState?: 'active' | 'background';
     battery?: DeviceBatterySnapshot;
+    liveRooms?: number[];
 }
 
 export type RealtimeServer = Server<
