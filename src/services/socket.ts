@@ -11,6 +11,7 @@ import type {
 } from "@/services/video-call";
 import type { AuthUser } from "@/types/auth";
 import type { ChatMessage } from "@/types/chat";
+import type { LiveComment, LiveReactionType } from "@/types/live";
 import type { AppNotification } from "@/types/notifications";
 
 const SOCKET_URL = process.env.EXPO_PUBLIC_SOCKET_URL;
@@ -108,6 +109,16 @@ interface ServerToClientEvents {
   "user:unblocked": (payload: UserBlockPayload) => void;
   "conversation:cleared": (payload: ConversationClearedPayload) => void;
   "auth:revoked": (payload: { reason: string }) => void;
+
+  "live:viewer-count": (payload: { live_id: number; viewer_count: number }) => void;
+  "live:comment": (payload: LiveComment) => void;
+  "live:reaction": (payload: {
+    live_id: number;
+    type: LiveReactionType;
+    user: { id: number; name: string };
+  }) => void;
+  "live:ended": (payload: { live_id: number }) => void;
+  "live:error": (payload: { live_id: number | null; code: string; message: string }) => void;
 }
 
 interface ClientToServerEvents {
@@ -126,6 +137,11 @@ interface ClientToServerEvents {
   "device:register": (payload: DeviceRegisterPayload) => void;
   "device:battery": (payload: DeviceBatteryPayload) => void;
   "app:state": (payload: AppStatePayload) => void;
+
+  "live:join": (payload: { live_id: number }) => void;
+  "live:leave": (payload: { live_id: number }) => void;
+  "live:comment": (payload: { live_id: number; body: string }) => void;
+  "live:reaction": (payload: { live_id: number; type: LiveReactionType }) => void;
 }
 
 export type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;

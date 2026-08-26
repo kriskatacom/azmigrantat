@@ -32,7 +32,20 @@ export default function HomeScreen() {
         <View style={styles.overlay} />
 
         <View style={styles.topBar}>
-          <TouchableOpacity style={[styles.topPill, styles.livePill]}>
+          <TouchableOpacity
+            style={[styles.topPill, styles.livePill]}
+            onPress={() => {
+              if (isAuthenticated) {
+                router.push("/live");
+                return;
+              }
+
+              router.push({
+                pathname: "/(auth)/login",
+                params: { returnTo: "/live" },
+              });
+            }}
+          >
             <View style={styles.liveDot} />
             <Text style={styles.liveText}>LIVE</Text>
           </TouchableOpacity>
