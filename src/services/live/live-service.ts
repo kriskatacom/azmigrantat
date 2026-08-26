@@ -182,7 +182,7 @@ export class LiveService {
             const timer = setTimeout(() => {
                 this.broadcastTimers.delete(liveId);
                 const viewerCount = this.store.viewerCount(liveId);
-                this.io.to(liveRoomName(liveId)).emit('live:viewer-count', {
+                this.io.emit('live:viewer-count', {
                     live_id: liveId,
                     viewer_count: viewerCount,
                 });

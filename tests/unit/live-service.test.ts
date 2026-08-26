@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { LiveAuthorizationProvider } from '../../src/services/live/live-authorization.provider';
 import type { LivePersistenceProvider } from '../../src/services/live/live-persistence.provider';
@@ -76,6 +76,10 @@ describe('LiveService', () => {
         vi.useFakeTimers();
     });
 
+    afterEach(() => {
+        vi.useRealTimers();
+    });
+
     it('слага socket в live room след успешен join', async () => {
         const { lives, authorizer, socket } = createHarness();
         const viewer = socket(7);
@@ -148,5 +152,18 @@ describe('LiveService', () => {
         lives.started(stream);
 
         expect(emit).toHaveBeenCalledWith('live:started', { stream });
+    });
+
+    it('излъчва броя зрители към всички клиенти, не само към стаята', async () => {
+        const { lives, emit, socket } = createHarness();
+        const viewer = socket(7);
+
+        await lives.join(viewer as never, 9);
+        await vi.advanceTimersByTimeAsync(200);
+
+        expect(emit).toHaveBeenCalledWith('live:viewer-count', {
+            live_id: 9,
+            viewer_count: 1,
+        });
     });
 });

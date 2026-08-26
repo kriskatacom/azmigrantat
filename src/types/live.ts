@@ -24,6 +24,7 @@ export interface LiveUserPreview {
     username?: string | null;
     public_code?: string | null;
     profile_image?: string | null;
+    cover_image?: string | null;
     is_active?: boolean;
 }
 
@@ -56,6 +57,7 @@ export interface LiveStreamBroadcastPayload {
     ended_at: string | null;
     created_at: string | null;
     is_owner?: boolean;
+    cover_image?: string | null;
     owner: LiveUserPreview | null;
 }
 
