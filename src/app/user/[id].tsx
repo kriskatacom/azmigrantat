@@ -113,7 +113,7 @@ export default function PublicUserProfileScreen() {
     : profile?.public_code ?? null;
   const phoneParts = profile?.phone ? phoneDisplayParts(profile.phone) : null;
   const shownGender = genderLabel(profile?.gender ?? null);
-  const coverUri = profile?.profile_image ?? null;
+  const coverUri = profile?.cover_image ?? null;
 
   const openChat = async () => {
     if (!token || !profile || isBusy) return;

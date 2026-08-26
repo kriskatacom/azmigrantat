@@ -1,6 +1,6 @@
 import { getLiveMediaProvider } from "@/services/live-media";
 import type { LiveMediaRole, LiveMediaSession, LiveMediaState } from "@/services/live-media";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 const initialState: LiveMediaState = {
   connected: false,
@@ -12,46 +12,63 @@ const initialState: LiveMediaState = {
 export function useLiveMedia() {
   const providerRef = useRef(getLiveMediaProvider());
   const sessionRef = useRef<LiveMediaSession | null>(null);
+  const mountedRef = useRef(false);
   const [state, setState] = useState<LiveMediaState>(initialState);
+
+  useEffect(() => {
+    mountedRef.current = true;
+
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+
+  const updateState = useCallback((next: LiveMediaState | ((current: LiveMediaState) => LiveMediaState)) => {
+    if (!mountedRef.current) {
+      return;
+    }
+
+    setState(next);
+  }, []);
 
   const startStream = useCallback(async (session: LiveMediaSession) => {
     await providerRef.current.startStream(session);
     sessionRef.current = session;
-    setState({ connected: true, muted: false, cameraEnabled: true, session });
-  }, []);
+    updateState({ connected: true, muted: false, cameraEnabled: true, session });
+  }, [updateState]);
 
   const joinStream = useCallback(async (session: LiveMediaSession) => {
     await providerRef.current.joinStream(session);
     sessionRef.current = session;
-    setState({ connected: true, muted: false, cameraEnabled: true, session });
-  }, []);
+    updateState({ connected: true, muted: false, cameraEnabled: true, session });
+  }, [updateState]);
 
   const leaveStream = useCallback(async () => {
     if (sessionRef.current) {
       await providerRef.current.leaveStream(sessionRef.current);
     }
     sessionRef.current = null;
-    setState(initialState);
-  }, []);
+    updateState(initialState);
+  }, [updateState]);
 
   const stopStream = useCallback(async () => {
     if (sessionRef.current) {
       await providerRef.current.stopStream(sessionRef.current);
     }
     sessionRef.current = null;
-    setState(initialState);
-  }, []);
+    updateState(initialState);
+  }, [updateState]);
 
   const muteAudio = useCallback(async (muted: boolean) => {
     await providerRef.current.muteAudio(muted);
-    setState((current) => ({ ...current, muted }));
-  }, []);
+    updateState((current) => ({ ...current, muted }));
+  }, [updateState]);
 
   const toggleCamera = useCallback(async () => {
     const cameraEnabled = await providerRef.current.toggleCamera();
-    setState((current) => ({ ...current, cameraEnabled }));
+    updateState((current) => ({ ...current, cameraEnabled }));
     return cameraEnabled;
-  }, []);
+  }, [updateState]);
 
   return {
     providerName: providerRef.current.name,

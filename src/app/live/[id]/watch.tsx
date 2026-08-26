@@ -2,20 +2,24 @@ import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
 import LiveCommentComposer from "@/components/live/live-comment-composer";
 import LiveCommentList from "@/components/live/live-comment-list";
-import LiveReactions from "@/components/live/live-reactions";
-import LiveViewerCount from "@/components/live/live-viewer-count";
+import LiveStage from "@/components/live/live-stage";
 import { useChatKeyboard } from "@/hooks/chat/useChatKeyboard";
+import { useLiveFullscreenBack } from "@/hooks/live/useLiveFullscreenBack";
 import { useLiveMedia } from "@/hooks/live/useLiveMedia";
 import { useLiveRoom } from "@/hooks/live/useLiveRoom";
 import { useAuth } from "@/hooks/useAuth";
 import { joinLive, leaveLive, listLiveComments } from "@/services/live";
 import { isNetworkError } from "@/services/network-guard";
+import { goToLiveCatalog } from "@/utils/live-navigation";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function LiveViewerScreen() {
-  const { theme } = useAppTheme();
+  const { theme, colorScheme } = useAppTheme();
+  const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();
@@ -23,9 +27,24 @@ export default function LiveViewerScreen() {
   const validLiveId = Number.isInteger(liveId) && liveId > 0 ? liveId : null;
   const media = useLiveMedia();
   const room = useLiveRoom(validLiveId);
-  const { keyboardVisible } = useChatKeyboard();
+  const { keyboardVisible, keyboardHeight } = useChatKeyboard();
+  const leavingRef = useRef(false);
   const [title, setTitle] = useState("");
+  const [coverUri, setCoverUri] = useState<string | null>(null);
   const [comment, setComment] = useState("");
+  const [fullscreen, setFullscreen] = useState(false);
+  const exitFullscreen = useCallback(() => setFullscreen(false), []);
+  useLiveFullscreenBack(fullscreen, exitFullscreen);
+  const composerOffset = fullscreen ? keyboardHeight : 0;
+  const composerSafe = fullscreen && !keyboardVisible ? insets.bottom : 0;
+  const overlayBottom = 64 + composerOffset + composerSafe;
+
+  const openCommenterProfile = useCallback(
+    (userId: number) => {
+      router.push({ pathname: "/user/[id]", params: { id: String(userId) } });
+    },
+    [router],
+  );
 
   useEffect(() => {
     if (!token || validLiveId == null) {
@@ -41,15 +60,23 @@ export default function LiveViewerScreen() {
           return;
         }
 
+        if (stream.status === "ended") {
+          goToLiveCatalog(router);
+          return;
+        }
+
         if (stream.is_owner) {
-          router.replace({
-            pathname: "/live/[id]/stream",
-            params: { id: String(validLiveId) },
+          queueMicrotask(() => {
+            router.replace({
+              pathname: "/live/[id]/stream",
+              params: { id: String(validLiveId) },
+            });
           });
           return;
         }
 
-        setTitle(stream.title || stream.owner?.name || "Live");
+        setTitle(stream.title || stream.owner?.name || "Предаване на живо");
+        setCoverUri(stream.owner?.cover_image ?? stream.owner?.profile_image ?? null);
         room.seedViewerCount(stream.viewer_count);
         await media.joinStream({
           liveId: stream.id,
@@ -63,8 +90,8 @@ export default function LiveViewerScreen() {
         }
       } catch (error) {
         if (!cancelled && !isNetworkError(error)) {
-          Alert.alert("Грешка", error instanceof Error ? error.message : "Live не можа да се отвори.");
-          router.replace("/live");
+          Alert.alert("Грешка", error instanceof Error ? error.message : "Предаването не можа да се отвори.");
+          goToLiveCatalog(router);
         }
       }
     })();
@@ -80,10 +107,13 @@ export default function LiveViewerScreen() {
   }, [token, validLiveId]);
 
   useEffect(() => {
-    if (room.ended) {
-      Alert.alert("Live приключи", "Стриймърът спря предаването.");
-      router.replace("/live");
+    if (!room.ended || leavingRef.current) {
+      return;
     }
+
+    leavingRef.current = true;
+    Alert.alert("Предаването приключи", "Стриймърът спря предаването.");
+    goToLiveCatalog(router);
   }, [room.ended, router]);
 
   const sendComment = () => {
@@ -97,62 +127,94 @@ export default function LiveViewerScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-      behavior="padding"
+      style={[
+        styles.container,
+        { backgroundColor: fullscreen ? "#030712" : theme.colors.background },
+      ]}
+      behavior={fullscreen ? undefined : "padding"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
     >
-      <Header title={title || "Live"} hideSearchButton />
-      <View
-        style={[
-          styles.stage,
-          { backgroundColor: "#0b1220", height: keyboardVisible ? 120 : 200 },
-        ]}
-      >
-        <Text style={styles.stageLabel}>
-          {media.connected ? "Гледаш live (mock media)" : "Присъединяване..."}
-        </Text>
-        <Text style={styles.stageHint}>Медията ще идва от SFU, не от peer-to-peer call.</Text>
-        <View style={styles.stageMeta}>
-          <LiveViewerCount count={room.viewerCount} />
-        </View>
-      </View>
-      <LiveCommentList comments={room.comments} />
-      {room.reactions.length > 0 && !keyboardVisible ? (
-        <Text style={[styles.reactionFlash, { color: theme.colors.textSecondary }]}>
-          {room.reactions[room.reactions.length - 1]?.user.name}:{" "}
-          {room.reactions[room.reactions.length - 1]?.type}
-        </Text>
-      ) : null}
-      <LiveCommentComposer
-        value={comment}
-        placeholder="Напиши коментар"
-        onChangeText={setComment}
-        onSend={sendComment}
-        keyboardVisible={keyboardVisible}
-        colors={theme.colors}
+      <StatusBar
+        hidden={fullscreen}
+        style={colorScheme === "dark" || fullscreen ? "light" : "dark"}
       />
-      {!keyboardVisible ? (
-        <View style={styles.footer}>
-          <LiveReactions onReact={room.sendReaction} />
-        </View>
-      ) : null}
+      {fullscreen ? null : <Header title={title || "Предаване на живо"} hideSearchButton />}
+      <LiveStage
+        connected={media.connected}
+        viewerCount={room.viewerCount}
+        reactions={room.reactions}
+        fullscreen={fullscreen}
+        keyboardVisible={keyboardVisible}
+        label={media.connected ? "Гледаш предаване на живо" : "Присъединяване..."}
+        hint="Медията ще идва от SFU, не от peer-to-peer call."
+        coverUri={coverUri}
+        onToggleFullscreen={() => setFullscreen((value) => !value)}
+        onReact={room.sendReaction}
+        topInset={fullscreen ? insets.top : 0}
+        bottomInset={fullscreen ? overlayBottom : 16}
+      >
+        {fullscreen ? (
+          <View style={[styles.fullscreenComments, { bottom: overlayBottom }]}>
+            <LiveCommentList
+              comments={room.comments}
+              onPressUser={openCommenterProfile}
+              keyboardVisible={keyboardVisible}
+            />
+          </View>
+        ) : null}
+      </LiveStage>
+      {fullscreen ? null : (
+        <LiveCommentList
+          comments={room.comments}
+          onPressUser={openCommenterProfile}
+          keyboardVisible={keyboardVisible}
+        />
+      )}
+      <View
+        style={
+          fullscreen
+            ? [
+                styles.fullscreenComposer,
+                {
+                  bottom: composerOffset,
+                  paddingBottom: composerSafe,
+                  backgroundColor: "#111827",
+                  zIndex: 40,
+                  elevation: 40,
+                },
+              ]
+            : {
+                backgroundColor: theme.colors.card,
+                paddingBottom: keyboardVisible ? 0 : insets.bottom,
+              }
+        }
+      >
+        <LiveCommentComposer
+          value={comment}
+          placeholder="Напиши коментар"
+          onChangeText={setComment}
+          onSend={sendComment}
+          keyboardVisible={keyboardVisible}
+          compact={fullscreen || !keyboardVisible}
+          colors={theme.colors}
+        />
+      </View>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  stage: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
+  fullscreenComments: {
+    position: "absolute",
+    left: 0,
+    right: 70,
+    height: 180,
   },
-  stageLabel: { color: "#ffffff", fontWeight: "700", fontSize: 16 },
-  stageHint: { color: "#94a3b8", marginTop: 8, textAlign: "center" },
-  stageMeta: { position: "absolute", top: 12, right: 12 },
-  reactionFlash: { paddingHorizontal: 16, marginBottom: 8 },
-  footer: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 },
+  fullscreenComposer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
 });

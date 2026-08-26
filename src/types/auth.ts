@@ -11,6 +11,7 @@ export interface AuthUser {
   address?: string | null;
   bio?: string | null;
   profile_image?: string | null;
+  cover_image?: string | null;
   avatar?: string | null;
   public_code?: string | null;
   username?: string | null;

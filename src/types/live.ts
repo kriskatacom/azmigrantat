@@ -10,6 +10,7 @@ export interface LiveUser {
   username?: string | null;
   public_code?: string | null;
   profile_image?: string | null;
+  cover_image?: string | null;
   is_active?: boolean;
 }
 
@@ -25,6 +26,7 @@ export interface LiveStream {
   ended_at: string | null;
   created_at: string | null;
   is_owner: boolean;
+  cover_image?: string | null;
   owner: LiveUser | null;
 }
 

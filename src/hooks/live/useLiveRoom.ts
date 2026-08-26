@@ -2,12 +2,17 @@ import { useSocket } from "@/hooks/useSocket";
 import type { LiveComment, LiveReactionType } from "@/types/live";
 import { useCallback, useEffect, useState } from "react";
 
-type LiveReactionEvent = {
+export type LiveReactionEvent = {
+  id: string;
   live_id: number;
   type: LiveReactionType;
   user: { id: number; name: string };
   at: number;
 };
+
+function reactionId(payload: { live_id: number; type: string; user: { id: number } }): string {
+  return `${payload.live_id}-${payload.user.id}-${payload.type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 export function useLiveRoom(liveId: number | null) {
   const { socket, isConnected } = useSocket();
@@ -54,7 +59,9 @@ export function useLiveRoom(liveId: number | null) {
       }
 
       setReactions((current) =>
-        [...current, { ...payload, at: Date.now() }].slice(-20),
+        [...current, { ...payload, id: reactionId(payload), at: Date.now() }]
+          .filter((item) => Date.now() - item.at < 6_000)
+          .slice(-24),
       );
     };
 

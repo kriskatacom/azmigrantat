@@ -1,5 +1,5 @@
 import { FontAwesome } from "@expo/vector-icons";
-import { Platform, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
 type LiveCommentComposerProps = {
   value: string;
@@ -7,6 +7,7 @@ type LiveCommentComposerProps = {
   onChangeText: (value: string) => void;
   onSend: () => void;
   keyboardVisible: boolean;
+  compact?: boolean;
   colors: {
     card: string;
     text: string;
@@ -24,6 +25,7 @@ export default function LiveCommentComposer({
   onSend,
   keyboardVisible,
   colors,
+  compact = false,
 }: LiveCommentComposerProps) {
   const canSend = value.trim().length > 0;
 
@@ -34,7 +36,7 @@ export default function LiveCommentComposer({
         {
           backgroundColor: colors.card,
           borderTopColor: colors.inputBorder,
-          paddingBottom: Platform.OS === "ios" ? (keyboardVisible ? 8 : 20) : keyboardVisible ? 8 : 16,
+          paddingBottom: keyboardVisible ? 0 : compact ? 8 : 10,
         },
       ]}
     >

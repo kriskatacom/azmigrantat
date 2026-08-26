@@ -79,6 +79,7 @@ function withPublicUserMedia(user: AuthUser): AuthUser {
   return {
     ...user,
     profile_image: toPublicFileUrl(user.profile_image) ?? user.profile_image,
+    cover_image: toPublicFileUrl(user.cover_image) ?? user.cover_image,
     avatar: toPublicFileUrl(user.avatar) ?? user.avatar,
   };
 }

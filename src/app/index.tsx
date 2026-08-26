@@ -47,7 +47,7 @@ export default function HomeScreen() {
             }}
           >
             <View style={styles.liveDot} />
-            <Text style={styles.liveText}>LIVE</Text>
+            <Text style={styles.liveText}>На живо</Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.topPill}>

@@ -2,17 +2,19 @@ import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
 import LiveCommentComposer from "@/components/live/live-comment-composer";
 import LiveCommentList from "@/components/live/live-comment-list";
-import LiveReactions from "@/components/live/live-reactions";
-import LiveViewerCount from "@/components/live/live-viewer-count";
+import LiveStage from "@/components/live/live-stage";
 import AppButton from "@/components/ui/AppButton";
 import { useChatKeyboard } from "@/hooks/chat/useChatKeyboard";
+import { useLiveFullscreenBack } from "@/hooks/live/useLiveFullscreenBack";
 import { useLiveMedia } from "@/hooks/live/useLiveMedia";
 import { useLiveRoom } from "@/hooks/live/useLiveRoom";
 import { useAuth } from "@/hooks/useAuth";
 import { endLive, getLive, listLiveComments } from "@/services/live";
 import { isNetworkError } from "@/services/network-guard";
+import { goToLiveCatalog } from "@/utils/live-navigation";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { StatusBar } from "expo-status-bar";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -22,20 +24,37 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function LiveStreamerScreen() {
-  const { theme } = useAppTheme();
-  const { token } = useAuth();
+  const { theme, colorScheme } = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const { token, user } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();
   const liveId = Number(params.id);
   const validLiveId = Number.isInteger(liveId) && liveId > 0 ? liveId : null;
   const media = useLiveMedia();
   const room = useLiveRoom(validLiveId);
-  const { keyboardVisible } = useChatKeyboard();
+  const { keyboardVisible, keyboardHeight } = useChatKeyboard();
+  const leavingRef = useRef(false);
   const [title, setTitle] = useState("");
+  const [coverUri, setCoverUri] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [ending, setEnding] = useState(false);
+  const [fullscreen, setFullscreen] = useState(false);
+  const exitFullscreen = useCallback(() => setFullscreen(false), []);
+  useLiveFullscreenBack(fullscreen, exitFullscreen);
+  const composerOffset = fullscreen ? keyboardHeight : 0;
+  const composerSafe = fullscreen && !keyboardVisible ? insets.bottom : 0;
+  const overlayBottom = 64 + composerOffset + composerSafe;
+
+  const openCommenterProfile = useCallback(
+    (userId: number) => {
+      router.push({ pathname: "/user/[id]", params: { id: String(userId) } });
+    },
+    [router],
+  );
 
   useEffect(() => {
     if (!token || validLiveId == null) {
@@ -51,15 +70,25 @@ export default function LiveStreamerScreen() {
           return;
         }
 
+        if (stream.status === "ended") {
+          goToLiveCatalog(router);
+          return;
+        }
+
         if (!stream.is_owner) {
-          router.replace({
-            pathname: "/live/[id]/watch",
-            params: { id: String(validLiveId) },
+          queueMicrotask(() => {
+            router.replace({
+              pathname: "/live/[id]/watch",
+              params: { id: String(validLiveId) },
+            });
           });
           return;
         }
 
-        setTitle(stream.title || stream.owner?.name || "Live");
+        setTitle(stream.title || stream.owner?.name || "Предаване на живо");
+        setCoverUri(
+          stream.owner?.cover_image ?? user?.cover_image ?? stream.owner?.profile_image ?? null,
+        );
         room.seedViewerCount(stream.viewer_count);
         await media.startStream({
           liveId: stream.id,
@@ -73,7 +102,7 @@ export default function LiveStreamerScreen() {
         }
       } catch (error) {
         if (!cancelled && !isNetworkError(error)) {
-          Alert.alert("Грешка", error instanceof Error ? error.message : "Live не можа да се отвори.");
+          Alert.alert("Грешка", error instanceof Error ? error.message : "Предаването не можа да се отвори.");
         }
       }
     })();
@@ -86,28 +115,33 @@ export default function LiveStreamerScreen() {
   }, [token, validLiveId]);
 
   useEffect(() => {
-    if (room.ended) {
-      Alert.alert("Live приключи", "Предаването беше спряно.");
-      router.replace("/live");
-    }
-  }, [room.ended, router]);
-
-  const onEnd = async () => {
-    if (!token || validLiveId == null || ending) {
+    if (!room.ended || leavingRef.current) {
       return;
     }
 
+    leavingRef.current = true;
+    Alert.alert("Предаването приключи", "Предаването беше спряно.");
+    goToLiveCatalog(router);
+  }, [room.ended, router]);
+
+  const onEnd = async () => {
+    if (!token || validLiveId == null || ending || leavingRef.current) {
+      return;
+    }
+
+    leavingRef.current = true;
     setEnding(true);
 
     try {
       await endLive(token, validLiveId);
       await media.stopStream();
-      router.replace("/live");
+      goToLiveCatalog(router);
     } catch (error) {
+      leavingRef.current = false;
       if (!isNetworkError(error)) {
         Alert.alert(
           "Грешка",
-          error instanceof Error ? error.message : "Live предаването не можа да приключи.",
+          error instanceof Error ? error.message : "Предаването не можа да приключи.",
         );
       }
     } finally {
@@ -126,26 +160,54 @@ export default function LiveStreamerScreen() {
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: theme.colors.background }]}
-      behavior={Platform.OS === "ios" ? "padding" : "padding"}
+      style={[
+        styles.container,
+        { backgroundColor: fullscreen ? "#030712" : theme.colors.background },
+      ]}
+      behavior={fullscreen ? undefined : "padding"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
     >
-      <Header title={title || "Live"} hideSearchButton />
-      <View
-        style={[
-          styles.stage,
-          { backgroundColor: "#0b1220", height: keyboardVisible ? 120 : 200 },
-        ]}
+      <StatusBar
+        hidden={fullscreen}
+        style={colorScheme === "dark" || fullscreen ? "light" : "dark"}
+      />
+      {fullscreen ? null : <Header title={title || "Предаване на живо"} hideSearchButton />}
+      <LiveStage
+        connected={media.connected}
+        viewerCount={room.viewerCount}
+        reactions={room.reactions}
+        fullscreen={fullscreen}
+        keyboardVisible={keyboardVisible}
+        label={media.connected ? "Предаваш на живо" : "Свързване..."}
+        hint="Тук по-късно влиза LiveKit SFU, не 1:1 WebRTC."
+        coverUri={coverUri}
+        onToggleFullscreen={() => setFullscreen((value) => !value)}
+        onReact={room.sendReaction}
+        topInset={fullscreen ? insets.top : 0}
+        bottomInset={fullscreen ? overlayBottom : 16}
+        topLeft={
+          fullscreen ? (
+            <TouchableOpacity
+              style={styles.endChip}
+              onPress={() => void onEnd()}
+              disabled={ending}
+            >
+              <Text style={styles.endChipText}>{ending ? "..." : "Край"}</Text>
+            </TouchableOpacity>
+          ) : null
+        }
       >
-        <Text style={styles.stageLabel}>
-          {media.connected ? "Mock media · camera ready" : "Свързване с media provider..."}
-        </Text>
-        <Text style={styles.stageHint}>Тук по-късно влиза LiveKit SFU, не 1:1 WebRTC.</Text>
-        <View style={styles.stageMeta}>
-          <LiveViewerCount count={room.viewerCount} />
-        </View>
-      </View>
-      {!keyboardVisible ? (
+        {fullscreen ? (
+          <View style={[styles.fullscreenComments, { bottom: overlayBottom }]}>
+            <LiveCommentList
+              comments={room.comments}
+              onPressUser={openCommenterProfile}
+              keyboardVisible={keyboardVisible}
+            />
+          </View>
+        ) : null}
+      </LiveStage>
+      {fullscreen || keyboardVisible ? null : (
         <View style={styles.controls}>
           <TouchableOpacity
             style={styles.control}
@@ -161,39 +223,69 @@ export default function LiveStreamerScreen() {
             </Text>
           </TouchableOpacity>
         </View>
-      ) : null}
-      <LiveCommentList comments={room.comments} />
-      <LiveCommentComposer
-        value={comment}
-        placeholder="Напиши коментар"
-        onChangeText={setComment}
-        onSend={sendComment}
-        keyboardVisible={keyboardVisible}
-        colors={theme.colors}
-      />
-      {!keyboardVisible ? (
-        <View style={styles.footer}>
-          <LiveReactions onReact={room.sendReaction} />
-          <AppButton title="End Live" loading={ending} onPress={() => void onEnd()} />
+      )}
+      {fullscreen ? null : (
+        <LiveCommentList
+          comments={room.comments}
+          onPressUser={openCommenterProfile}
+          keyboardVisible={keyboardVisible}
+        />
+      )}
+      {fullscreen ? (
+        <View
+          style={[
+            styles.fullscreenComposer,
+            {
+              bottom: composerOffset,
+              paddingBottom: composerSafe,
+              backgroundColor: "#111827",
+              zIndex: 40,
+              elevation: 40,
+            },
+          ]}
+        >
+          <LiveCommentComposer
+            value={comment}
+            placeholder="Напиши коментар"
+            onChangeText={setComment}
+            onSend={sendComment}
+            keyboardVisible={keyboardVisible}
+            compact
+            colors={theme.colors}
+          />
         </View>
-      ) : null}
+      ) : (
+        <View
+          style={[
+            styles.bottomBar,
+            {
+              backgroundColor: theme.colors.card,
+              paddingBottom: keyboardVisible ? 0 : insets.bottom,
+            },
+          ]}
+        >
+          <LiveCommentComposer
+            value={comment}
+            placeholder="Напиши коментар"
+            onChangeText={setComment}
+            onSend={sendComment}
+            keyboardVisible={keyboardVisible}
+            compact
+            colors={theme.colors}
+          />
+          {keyboardVisible ? null : (
+            <View style={styles.footer}>
+              <AppButton title="Приключи предаването" loading={ending} onPress={() => void onEnd()} />
+            </View>
+          )}
+        </View>
+      )}
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  stage: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-  },
-  stageLabel: { color: "#ffffff", fontWeight: "700", fontSize: 16 },
-  stageHint: { color: "#94a3b8", marginTop: 8, textAlign: "center" },
-  stageMeta: { position: "absolute", top: 12, right: 12 },
   controls: { flexDirection: "row", gap: 12, paddingHorizontal: 16, paddingTop: 10 },
   control: {
     paddingHorizontal: 12,
@@ -202,5 +294,27 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(15, 23, 42, 0.08)",
   },
   controlText: { fontWeight: "700" },
-  footer: { paddingHorizontal: 16, gap: 12, paddingTop: 8, paddingBottom: 16 },
+  bottomBar: { width: "100%" },
+  footer: { paddingHorizontal: 16, paddingTop: 8 },
+  fullscreenComments: {
+    position: "absolute",
+    left: 0,
+    right: 70,
+    height: 180,
+  },
+  fullscreenComposer: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  endChip: {
+    paddingHorizontal: 12,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#dc2626",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  endChipText: { color: "#ffffff", fontWeight: "800", fontSize: 12 },
 });

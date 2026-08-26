@@ -6,7 +6,7 @@ import { PRIVACY_URL, TERMS_URL } from "@/constants/legal";
 import { phoneDisplayParts } from "@/constants/european-dial-codes";
 import { useAuth } from "@/hooks/useAuth";
 import { getCurrentUserRequest } from "@/services/auth";
-import { updateProfileImageRequest } from "@/services/profile";
+import { updateCoverImageRequest, updateProfileImageRequest } from "@/services/profile";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -21,7 +21,10 @@ import {
 export default function ProfileHomeScreen() {
   const { theme } = useAppTheme();
   const { user, token, updateUser, logout } = useAuth();
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
 
   useEffect(() => {
     if (!token || user?.public_code) {
@@ -41,6 +44,7 @@ export default function ProfileHomeScreen() {
     mimeType: string;
   }) => {
     setIsUploadingPhoto(true);
+    setPhotoPreview(file.uri);
     try {
       const updatedUser = await updateProfileImageRequest(token, file);
       await updateUser(updatedUser);
@@ -53,6 +57,30 @@ export default function ProfileHomeScreen() {
       );
     } finally {
       setIsUploadingPhoto(false);
+      setPhotoPreview(null);
+    }
+  };
+
+  const handleChangeCover = async (file: {
+    uri: string;
+    name: string;
+    mimeType: string;
+  }) => {
+    setIsUploadingCover(true);
+    setCoverPreview(file.uri);
+    try {
+      const updatedUser = await updateCoverImageRequest(token, file);
+      await updateUser(updatedUser);
+    } catch (error) {
+      Alert.alert(
+        "Грешка",
+        error instanceof Error
+          ? error.message
+          : "Коричната снимка не можа да бъде обновена.",
+      );
+    } finally {
+      setIsUploadingCover(false);
+      setCoverPreview(null);
     }
   };
 
@@ -66,6 +94,16 @@ export default function ProfileHomeScreen() {
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
       >
+        <ProfileIdentityCard
+          name={`${user.firstName} ${user.lastName}`.trim() || user.email}
+          publicCode={user.public_code}
+          imageUri={photoPreview ?? user.profile_image ?? user.avatar}
+          coverUri={coverPreview ?? user.cover_image}
+          isUploading={isUploadingPhoto}
+          isUploadingCover={isUploadingCover}
+          onPickImage={handleChangePhoto}
+          onPickCover={handleChangeCover}
+        />
         <ProfileNavRow
           href={{
             pathname: "/user/[id]",
@@ -132,14 +170,6 @@ export default function ProfileHomeScreen() {
           icon="trash"
           title="Изтриване на профила"
           description="Деактивиране на акаунта завинаги"
-        />
-
-        <ProfileIdentityCard
-          name={`${user.firstName} ${user.lastName}`.trim() || user.email}
-          publicCode={user.public_code}
-          imageUri={user.profile_image ?? user.avatar}
-          isUploading={isUploadingPhoto}
-          onPickImage={handleChangePhoto}
         />
 
         <View style={styles.legalLinks}>

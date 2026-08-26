@@ -1,6 +1,7 @@
 import { useAppTheme } from "@/app/_layout";
 import { useAuth } from "@/hooks/useAuth";
-import { Redirect, Stack } from "expo-router";
+import { Stack, useRouter } from "expo-router";
+import { useEffect } from "react";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 const LIVE_ROUTE = "/live";
@@ -8,23 +9,26 @@ const LIVE_ROUTE = "/live";
 export default function LiveLayout() {
   const { theme } = useAppTheme();
   const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
 
-  if (isLoading) {
+  useEffect(() => {
+    if (isLoading || isAuthenticated) {
+      return;
+    }
+
+    queueMicrotask(() => {
+      router.replace({
+        pathname: "/(auth)/login",
+        params: { returnTo: LIVE_ROUTE },
+      });
+    });
+  }, [isAuthenticated, isLoading, router]);
+
+  if (isLoading || !isAuthenticated) {
     return (
       <View style={[styles.loader, { backgroundColor: theme.colors.background }]}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <Redirect
-        href={{
-          pathname: "/(auth)/login",
-          params: { returnTo: LIVE_ROUTE },
-        }}
-      />
     );
   }
 

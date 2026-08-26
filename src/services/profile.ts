@@ -96,6 +96,43 @@ export async function updateProfileImageRequest(
   return (data as { user: AuthUser }).user;
 }
 
+export async function updateCoverImageRequest(
+  token: string,
+  file: { uri: string; name: string; mimeType: string },
+): Promise<AuthUser> {
+  const formData = new FormData();
+  formData.append("file", new File(file.uri));
+
+  const response = await fetch(`${API_URL}/api/mobile/profile/cover`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  const rawResponse = await response.text();
+  let data: { success: true; user: AuthUser } | ApiErrorResponse;
+
+  try {
+    data = JSON.parse(rawResponse);
+  } catch {
+    throw new Error(
+      `Сървърът върна невалиден JSON: ${rawResponse.slice(0, 300)}`,
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      (data as ApiErrorResponse).message ??
+        "Коричната снимка не можа да бъде обновена.",
+    );
+  }
+
+  return (data as { user: AuthUser }).user;
+}
+
 export type PublicUserProfile = {
   id: number;
   is_self: boolean;
@@ -105,6 +142,7 @@ export type PublicUserProfile = {
   username: string | null;
   public_code: string | null;
   profile_image: string | null;
+  cover_image?: string | null;
   gender: "male" | "female" | "other" | "prefer_not_to_say" | null;
   city: string | null;
   country: string | null;

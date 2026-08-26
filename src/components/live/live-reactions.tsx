@@ -3,11 +3,13 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function LiveReactions({
   onReact,
+  vertical = false,
 }: {
   onReact: (type: LiveReactionType) => void;
+  vertical?: boolean;
 }) {
   return (
-    <View style={styles.row}>
+    <View style={vertical ? styles.column : styles.row}>
       {LIVE_REACTION_TYPES.map((item) => (
         <TouchableOpacity
           key={item.type}
@@ -25,13 +27,14 @@ export default function LiveReactions({
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: 8 },
+  column: { flexDirection: "column", gap: 8, alignItems: "center" },
   button: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(15, 23, 42, 0.72)",
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(8, 12, 24, 0.72)",
     alignItems: "center",
     justifyContent: "center",
   },
-  emoji: { fontSize: 18 },
+  emoji: { fontSize: 20 },
 });
