@@ -2,7 +2,7 @@ import type { Express } from 'express';
 
 import { config } from '../config';
 import type { LiveService } from '../services/live/live-service';
-import type { LiveCommentPayload } from '../types/live';
+import type { LiveCommentPayload, LiveStreamBroadcastPayload } from '../types/live';
 
 function hasInternalSecret(request: { header: (name: string) => string | undefined }): boolean {
     const providedSecret = request.header('X-Internal-Secret');
@@ -36,6 +36,36 @@ export function registerLiveInternalRoutes(app: Express, lives: LiveService): vo
         }
 
         lives.broadcastComment(comment as LiveCommentPayload);
+
+        response.json({ success: true });
+    });
+
+    app.post('/internal/events/live-started', (request, response) => {
+        if (!hasInternalSecret(request)) {
+            response.status(401).json({
+                success: false,
+                message: 'Невалиден вътрешен ключ.',
+            });
+            return;
+        }
+
+        const stream = request.body?.stream as Partial<LiveStreamBroadcastPayload> | undefined;
+
+        if (
+            !stream ||
+            typeof stream.id !== 'number' ||
+            typeof stream.status !== 'string' ||
+            !stream.owner ||
+            typeof stream.owner.id !== 'number'
+        ) {
+            response.status(422).json({
+                success: false,
+                message: 'Невалидни данни за стартирано live предаване.',
+            });
+            return;
+        }
+
+        lives.started(stream as LiveStreamBroadcastPayload);
 
         response.json({ success: true });
     });

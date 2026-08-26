@@ -44,6 +44,25 @@ export interface LiveEndedPayload {
     live_id: number;
 }
 
+export interface LiveStreamBroadcastPayload {
+    id: number;
+    title: string | null;
+    status: string;
+    media_provider: string;
+    media_room_id: string | null;
+    viewer_count: number;
+    peak_viewer_count?: number;
+    started_at: string | null;
+    ended_at: string | null;
+    created_at: string | null;
+    is_owner?: boolean;
+    owner: LiveUserPreview | null;
+}
+
+export interface LiveStartedPayload {
+    stream: LiveStreamBroadcastPayload;
+}
+
 export interface LiveReactionPayload {
     live_id: number;
     type: LiveReactionType;

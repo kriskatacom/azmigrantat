@@ -8,7 +8,9 @@ import type { RealtimeServer } from '../../src/types/events';
 
 function createHarness() {
     const roomEmit = vi.fn();
+    const emit = vi.fn();
     const io = {
+        emit,
         to: vi.fn((room: string) => ({
             emit: (event: string, payload: unknown) => roomEmit(room, event, payload),
         })),
@@ -54,7 +56,7 @@ function createHarness() {
         };
     }
 
-    return { lives, store, authorizer, persistence, roomEmit, socket };
+    return { lives, store, authorizer, persistence, roomEmit, emit, socket };
 }
 
 describe('InMemoryLiveStore', () => {
@@ -117,14 +119,34 @@ describe('LiveService', () => {
         });
     });
 
-    it('излъчва live:ended и чисти occupancy', async () => {
-        const { lives, store, roomEmit, socket } = createHarness();
+    it('излъчва live:ended към всички свързани клиенти и чисти occupancy', async () => {
+        const { lives, store, emit, socket } = createHarness();
         const viewer = socket(7);
         await lives.join(viewer as never, 9);
 
         lives.end(9);
 
-        expect(roomEmit).toHaveBeenCalledWith('live:9', 'live:ended', { live_id: 9 });
+        expect(emit).toHaveBeenCalledWith('live:ended', { live_id: 9 });
         expect(store.viewerCount(9)).toBe(0);
+    });
+
+    it('излъчва live:started към всички свързани клиенти', () => {
+        const { lives, emit } = createHarness();
+        const stream = {
+            id: 9,
+            title: 'Тест',
+            status: 'live',
+            media_provider: 'mock',
+            media_room_id: 'live-9',
+            viewer_count: 0,
+            started_at: '2026-08-26T00:00:00.000Z',
+            ended_at: null,
+            created_at: '2026-08-26T00:00:00.000Z',
+            owner: { id: 1, name: 'Krisi' },
+        };
+
+        lives.started(stream);
+
+        expect(emit).toHaveBeenCalledWith('live:started', { stream });
     });
 });

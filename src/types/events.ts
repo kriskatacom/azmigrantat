@@ -6,6 +6,7 @@ import type {
     LiveCommentPayload,
     LiveEndedPayload,
     LiveErrorPayload,
+    LiveStartedPayload,
     LiveJoinClientPayload,
     LiveLeaveClientPayload,
     LiveReactionClientPayload,
@@ -75,6 +76,7 @@ export interface ServerToClientEvents {
     'live:viewer-count': (payload: LiveViewerCountPayload) => void;
     'live:comment': (payload: LiveCommentPayload) => void;
     'live:reaction': (payload: LiveReactionPayload) => void;
+    'live:started': (payload: LiveStartedPayload) => void;
     'live:ended': (payload: LiveEndedPayload) => void;
     'live:error': (payload: LiveErrorPayload) => void;
 }

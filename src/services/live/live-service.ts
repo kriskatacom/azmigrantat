@@ -7,7 +7,12 @@ import type {
     ServerToClientEvents,
     SocketData,
 } from '../../types/events';
-import type { LiveCommentPayload, LiveReactionType, LiveRole } from '../../types/live';
+import type {
+    LiveCommentPayload,
+    LiveReactionType,
+    LiveRole,
+    LiveStreamBroadcastPayload,
+} from '../../types/live';
 import type { LiveAuthorizationProvider } from './live-authorization.provider';
 import type { LivePersistenceProvider } from './live-persistence.provider';
 import { InMemoryLiveStore } from './live-store';
@@ -145,8 +150,12 @@ export class LiveService {
         this.io.to(liveRoomName(comment.live_id)).emit('live:comment', comment);
     }
 
+    started(stream: LiveStreamBroadcastPayload): void {
+        this.io.emit('live:started', { stream });
+    }
+
     end(liveId: number): void {
-        this.io.to(liveRoomName(liveId)).emit('live:ended', { live_id: liveId });
+        this.io.emit('live:ended', { live_id: liveId });
         this.store.clear(liveId);
         this.clearTimers(liveId);
 
