@@ -1,33 +1,25 @@
 import { useEffect, useState } from "react";
-import { Keyboard, Platform, type KeyboardEvent } from "react-native";
+import { Dimensions, Keyboard, Platform, type KeyboardEvent } from "react-native";
 
 export function useChatKeyboard() {
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [keyboardOverlap, setKeyboardOverlap] = useState(0);
 
   useEffect(() => {
-    let cancelled = false;
-
     const onShow = (event: KeyboardEvent) => {
-      queueMicrotask(() => {
-        if (cancelled) {
-          return;
-        }
+      const windowHeight = Dimensions.get("window").height;
+      const overlap = Math.max(0, Math.round(windowHeight - event.endCoordinates.screenY));
 
-        setKeyboardVisible(true);
-        setKeyboardHeight(event.endCoordinates.height);
-      });
+      setKeyboardVisible(true);
+      setKeyboardHeight(event.endCoordinates.height);
+      setKeyboardOverlap(overlap);
     };
 
     const onHide = () => {
-      queueMicrotask(() => {
-        if (cancelled) {
-          return;
-        }
-
-        setKeyboardVisible(false);
-        setKeyboardHeight(0);
-      });
+      setKeyboardVisible(false);
+      setKeyboardHeight(0);
+      setKeyboardOverlap(0);
     };
 
     const showSubscriptions =
@@ -47,7 +39,6 @@ export function useChatKeyboard() {
         : [Keyboard.addListener("keyboardDidHide", onHide)];
 
     return () => {
-      cancelled = true;
       showSubscriptions.forEach((subscription) => subscription.remove());
       hideSubscriptions.forEach((subscription) => subscription.remove());
     };
@@ -56,6 +47,6 @@ export function useChatKeyboard() {
   return {
     keyboardVisible,
     keyboardHeight,
+    keyboardOverlap,
   };
 }
-

@@ -6,6 +6,7 @@ import {
   subscribeUserSettings,
   type AppearancePreference,
 } from "@/services/user-settings";
+import * as SystemUI from "expo-system-ui";
 import {
   createContext,
   PropsWithChildren,
@@ -62,6 +63,10 @@ export function ThemeProvider({ children }: PropsWithChildren) {
 
   const colorScheme = resolveColorScheme(appearance, systemTheme);
   const theme = colorScheme === "dark" ? darkTheme : lightTheme;
+
+  useEffect(() => {
+    void SystemUI.setBackgroundColorAsync(theme.colors.background);
+  }, [theme.colors.background]);
 
   const toggleTheme = () => {
     void setAppearancePreference(colorScheme === "dark" ? "light" : "dark");

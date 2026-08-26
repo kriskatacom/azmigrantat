@@ -404,6 +404,7 @@ function RootNavigator() {
 
 function SplashOverlay({ children }: PropsWithChildren) {
   const { isLoading } = useAuth();
+  const { theme } = useAppTheme();
 
   useEffect(() => {
     if (!isLoading) {
@@ -412,7 +413,7 @@ function SplashOverlay({ children }: PropsWithChildren) {
   }, [isLoading]);
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
       {children}
       <OfflineScreen />
       {isLoading ? (
@@ -428,8 +429,8 @@ function SplashOverlay({ children }: PropsWithChildren) {
 
 export default function Layout() {
   return (
-    <GestureHandlerRootView style={styles.root}>
-      <ThemeProvider>
+    <ThemeProvider>
+      <ThemedRoot>
         <NetworkProvider>
           <AuthProvider>
             <SplashOverlay>
@@ -441,8 +442,8 @@ export default function Layout() {
             </SplashOverlay>
           </AuthProvider>
         </NetworkProvider>
-      </ThemeProvider>
-    </GestureHandlerRootView>
+      </ThemedRoot>
+    </ThemeProvider>
   );
 }
 
@@ -451,3 +452,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
+
+function ThemedRoot({ children }: PropsWithChildren) {
+  const { theme } = useAppTheme();
+
+  return (
+    <GestureHandlerRootView style={[styles.root, { backgroundColor: theme.colors.background }]}>
+      {children}
+    </GestureHandlerRootView>
+  );
+}

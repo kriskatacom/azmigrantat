@@ -65,7 +65,7 @@ export default function LiveStage({
       <Text style={styles.label}>{label}</Text>
       {!fullscreen && !keyboardVisible ? <Text style={styles.hint}>{hint}</Text> : null}
 
-      <View style={[styles.topBar, { top: 12 + topInset }]}>
+      <View style={[styles.topBar, { top: fullscreen ? 8 : 12 + topInset }]}>
         <View style={styles.topLeft}>
           {topLeft}
           <TouchableOpacity
@@ -84,7 +84,12 @@ export default function LiveStage({
         <LiveViewerCount count={viewerCount} variant="overlay" />
       </View>
 
-      <View style={[styles.reactionRail, { bottom: bottomInset }]}>
+      <View
+        style={[
+          styles.reactionRail,
+          { top: fullscreen ? 44 : 52 + topInset, bottom: bottomInset },
+        ]}
+      >
         <LiveReactions vertical onReact={onReact} />
       </View>
 
@@ -161,6 +166,7 @@ const styles = StyleSheet.create({
   reactionRail: {
     position: "absolute",
     right: 10,
+    width: 48,
     zIndex: 4,
   },
   connecting: {

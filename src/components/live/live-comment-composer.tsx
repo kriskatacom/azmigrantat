@@ -1,3 +1,4 @@
+import { useAppTheme } from "@/app/_layout";
 import { FontAwesome } from "@expo/vector-icons";
 import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
@@ -27,6 +28,7 @@ export default function LiveCommentComposer({
   colors,
   compact = false,
 }: LiveCommentComposerProps) {
+  const { colorScheme } = useAppTheme();
   const canSend = value.trim().length > 0;
 
   return (
@@ -45,6 +47,10 @@ export default function LiveCommentComposer({
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={colors.placeholder}
+        keyboardAppearance={colorScheme}
+        underlineColorAndroid="transparent"
+        cursorColor={colors.primary}
+        selectionColor={colors.primary}
         style={[
           styles.input,
           {

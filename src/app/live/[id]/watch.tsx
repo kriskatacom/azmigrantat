@@ -2,6 +2,7 @@ import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
 import LiveCommentComposer from "@/components/live/live-comment-composer";
 import LiveCommentList from "@/components/live/live-comment-list";
+import LiveScreenRoot from "@/components/live/live-screen-root";
 import LiveStage from "@/components/live/live-stage";
 import { useChatKeyboard } from "@/hooks/chat/useChatKeyboard";
 import { useLiveFullscreenBack } from "@/hooks/live/useLiveFullscreenBack";
@@ -14,7 +15,7 @@ import { goToLiveCatalog } from "@/utils/live-navigation";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, KeyboardAvoidingView, Platform, StyleSheet, View } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function LiveViewerScreen() {
@@ -27,7 +28,7 @@ export default function LiveViewerScreen() {
   const validLiveId = Number.isInteger(liveId) && liveId > 0 ? liveId : null;
   const media = useLiveMedia();
   const room = useLiveRoom(validLiveId);
-  const { keyboardVisible, keyboardHeight } = useChatKeyboard();
+  const { keyboardVisible } = useChatKeyboard();
   const leavingRef = useRef(false);
   const [title, setTitle] = useState("");
   const [coverUri, setCoverUri] = useState<string | null>(null);
@@ -35,9 +36,11 @@ export default function LiveViewerScreen() {
   const [fullscreen, setFullscreen] = useState(false);
   const exitFullscreen = useCallback(() => setFullscreen(false), []);
   useLiveFullscreenBack(fullscreen, exitFullscreen);
-  const composerOffset = fullscreen ? keyboardHeight : 0;
-  const composerSafe = fullscreen && !keyboardVisible ? insets.bottom : 0;
-  const overlayBottom = 64 + composerOffset + composerSafe;
+  const overlayBottom = 16;
+  const composerBarStyle = {
+    backgroundColor: theme.colors.card,
+    paddingBottom: keyboardVisible ? 0 : insets.bottom,
+  };
 
   const openCommenterProfile = useCallback(
     (userId: number) => {
@@ -126,13 +129,12 @@ export default function LiveViewerScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
+    <LiveScreenRoot
+      fullscreen={fullscreen}
       style={[
         styles.container,
-        { backgroundColor: fullscreen ? "#030712" : theme.colors.background },
+        { backgroundColor: theme.colors.background },
       ]}
-      behavior={fullscreen ? undefined : "padding"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
     >
       <StatusBar
         hidden={fullscreen}
@@ -150,7 +152,7 @@ export default function LiveViewerScreen() {
         coverUri={coverUri}
         onToggleFullscreen={() => setFullscreen((value) => !value)}
         onReact={room.sendReaction}
-        topInset={fullscreen ? insets.top : 0}
+        topInset={0}
         bottomInset={fullscreen ? overlayBottom : 16}
       >
         {fullscreen ? (
@@ -170,25 +172,7 @@ export default function LiveViewerScreen() {
           keyboardVisible={keyboardVisible}
         />
       )}
-      <View
-        style={
-          fullscreen
-            ? [
-                styles.fullscreenComposer,
-                {
-                  bottom: composerOffset,
-                  paddingBottom: composerSafe,
-                  backgroundColor: "#111827",
-                  zIndex: 40,
-                  elevation: 40,
-                },
-              ]
-            : {
-                backgroundColor: theme.colors.card,
-                paddingBottom: keyboardVisible ? 0 : insets.bottom,
-              }
-        }
-      >
+      <View style={[fullscreen ? styles.fullscreenComposer : null, composerBarStyle]}>
         <LiveCommentComposer
           value={comment}
           placeholder="Напиши коментар"
@@ -199,7 +183,7 @@ export default function LiveViewerScreen() {
           colors={theme.colors}
         />
       </View>
-    </KeyboardAvoidingView>
+    </LiveScreenRoot>
   );
 }
 
@@ -212,9 +196,6 @@ const styles = StyleSheet.create({
     height: 180,
   },
   fullscreenComposer: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
+    width: "100%",
   },
 });

@@ -2,6 +2,7 @@ import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
 import LiveCommentComposer from "@/components/live/live-comment-composer";
 import LiveCommentList from "@/components/live/live-comment-list";
+import LiveScreenRoot from "@/components/live/live-screen-root";
 import LiveStage from "@/components/live/live-stage";
 import AppButton from "@/components/ui/AppButton";
 import { useChatKeyboard } from "@/hooks/chat/useChatKeyboard";
@@ -17,8 +18,6 @@ import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
-  KeyboardAvoidingView,
-  Platform,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -36,7 +35,7 @@ export default function LiveStreamerScreen() {
   const validLiveId = Number.isInteger(liveId) && liveId > 0 ? liveId : null;
   const media = useLiveMedia();
   const room = useLiveRoom(validLiveId);
-  const { keyboardVisible, keyboardHeight } = useChatKeyboard();
+  const { keyboardVisible } = useChatKeyboard();
   const leavingRef = useRef(false);
   const [title, setTitle] = useState("");
   const [coverUri, setCoverUri] = useState<string | null>(null);
@@ -45,9 +44,11 @@ export default function LiveStreamerScreen() {
   const [fullscreen, setFullscreen] = useState(false);
   const exitFullscreen = useCallback(() => setFullscreen(false), []);
   useLiveFullscreenBack(fullscreen, exitFullscreen);
-  const composerOffset = fullscreen ? keyboardHeight : 0;
-  const composerSafe = fullscreen && !keyboardVisible ? insets.bottom : 0;
-  const overlayBottom = 64 + composerOffset + composerSafe;
+  const overlayBottom = 16;
+  const composerBarStyle = {
+    backgroundColor: theme.colors.card,
+    paddingBottom: keyboardVisible ? 0 : insets.bottom,
+  };
 
   const openCommenterProfile = useCallback(
     (userId: number) => {
@@ -159,13 +160,12 @@ export default function LiveStreamerScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
+    <LiveScreenRoot
+      fullscreen={fullscreen}
       style={[
         styles.container,
-        { backgroundColor: fullscreen ? "#030712" : theme.colors.background },
+        { backgroundColor: theme.colors.background },
       ]}
-      behavior={fullscreen ? undefined : "padding"}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
     >
       <StatusBar
         hidden={fullscreen}
@@ -183,7 +183,7 @@ export default function LiveStreamerScreen() {
         coverUri={coverUri}
         onToggleFullscreen={() => setFullscreen((value) => !value)}
         onReact={room.sendReaction}
-        topInset={fullscreen ? insets.top : 0}
+        topInset={0}
         bottomInset={fullscreen ? overlayBottom : 16}
         topLeft={
           fullscreen ? (
@@ -232,18 +232,7 @@ export default function LiveStreamerScreen() {
         />
       )}
       {fullscreen ? (
-        <View
-          style={[
-            styles.fullscreenComposer,
-            {
-              bottom: composerOffset,
-              paddingBottom: composerSafe,
-              backgroundColor: "#111827",
-              zIndex: 40,
-              elevation: 40,
-            },
-          ]}
-        >
+        <View style={[styles.fullscreenComposer, composerBarStyle]}>
           <LiveCommentComposer
             value={comment}
             placeholder="Напиши коментар"
@@ -255,15 +244,7 @@ export default function LiveStreamerScreen() {
           />
         </View>
       ) : (
-        <View
-          style={[
-            styles.bottomBar,
-            {
-              backgroundColor: theme.colors.card,
-              paddingBottom: keyboardVisible ? 0 : insets.bottom,
-            },
-          ]}
-        >
+        <View style={[styles.bottomBar, composerBarStyle]}>
           <LiveCommentComposer
             value={comment}
             placeholder="Напиши коментар"
@@ -280,7 +261,7 @@ export default function LiveStreamerScreen() {
           )}
         </View>
       )}
-    </KeyboardAvoidingView>
+    </LiveScreenRoot>
   );
 }
 
@@ -303,10 +284,7 @@ const styles = StyleSheet.create({
     height: 180,
   },
   fullscreenComposer: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
+    width: "100%",
   },
   endChip: {
     paddingHorizontal: 12,
