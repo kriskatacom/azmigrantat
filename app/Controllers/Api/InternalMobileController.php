@@ -3,12 +3,16 @@
 namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
+use App\Exceptions\LiveNotFoundException;
+use App\Exceptions\LivePermissionException;
+use App\Exceptions\LiveStateException;
 use App\Models\Conversation;
 use App\Models\Notification;
 use App\Models\Participant;
 use App\Models\User;
 use App\Services\CallAuthorizationService;
 use App\Services\ConversationService;
+use App\Services\LiveStreamService;
 use App\Services\NotificationService;
 use App\Services\BlockService;
 use App\Services\PushNotificationService;
@@ -23,6 +27,7 @@ final class InternalMobileController extends BaseController
     private NotificationService $notifications;
     private ConversationService $conversations;
     private PushNotificationService $pushNotifications;
+    private LiveStreamService $lives;
     private ?RealtimeNotifier $realtimeNotifier = null;
 
     public function __construct()
@@ -32,6 +37,7 @@ final class InternalMobileController extends BaseController
         $this->notifications = new NotificationService();
         $this->conversations = new ConversationService();
         $this->pushNotifications = new PushNotificationService();
+        $this->lives = new LiveStreamService();
     }
 
     public function pushTokens()
@@ -357,6 +363,96 @@ final class InternalMobileController extends BaseController
             'created' => true,
             'notification' => $payload,
         ], 201);
+    }
+
+    public function authorizeLive()
+    {
+        if (!$this->hasValidInternalSecret()) {
+            return $this->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        $input = $this->jsonInput();
+        $validator = Validator::make($input, [
+            'live_id' => 'required|integer|min:1',
+            'user_id' => 'required|integer|min:1',
+            'action' => 'required|string|in:join,leave,comment,reaction,start,end',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator);
+        }
+
+        try {
+            return $this->json(['success' => true] + $this->lives->authorize(
+                (int) $input['user_id'],
+                (int) $input['live_id'],
+                (string) $input['action']
+            ));
+        } catch (\Throwable $exception) {
+            error_log('[InternalLiveAuthorization] failed live_id=' . (int) $input['live_id'] . ' user_id=' . (int) $input['user_id']);
+            return $this->json(['success' => false, 'message' => 'Internal service error.'], 500);
+        }
+    }
+
+    public function storeLiveComment()
+    {
+        if (!$this->hasValidInternalSecret()) {
+            return $this->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        $input = $this->jsonInput();
+        $validator = Validator::make($input, [
+            'live_id' => 'required|integer|min:1',
+            'user_id' => 'required|integer|min:1',
+            'body' => 'required|string|max:280',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator);
+        }
+
+        try {
+            $comment = $this->lives->addCommentForUserId(
+                (int) $input['user_id'],
+                (int) $input['live_id'],
+                (string) $input['body']
+            );
+
+            return $this->json([
+                'success' => true,
+                'comment' => $this->lives->serializeComment($comment),
+            ], 201);
+        } catch (LiveNotFoundException $exception) {
+            return $this->json(['success' => false, 'message' => $exception->getMessage()], 404);
+        } catch (LiveStateException $exception) {
+            return $this->json(['success' => false, 'message' => $exception->getMessage()], 409);
+        } catch (LivePermissionException $exception) {
+            return $this->json(['success' => false, 'message' => $exception->getMessage()], 403);
+        } catch (\Throwable $exception) {
+            error_log('[InternalLiveComment] failed live_id=' . (int) $input['live_id']);
+            return $this->json(['success' => false, 'message' => $exception->getMessage() ?: 'Internal service error.'], 422);
+        }
+    }
+
+    public function syncLiveViewerCount()
+    {
+        if (!$this->hasValidInternalSecret()) {
+            return $this->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        $input = $this->jsonInput();
+        $validator = Validator::make($input, [
+            'live_id' => 'required|integer|min:1',
+            'viewer_count' => 'required|integer|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator);
+        }
+
+        $this->lives->syncViewerCount((int) $input['live_id'], (int) $input['viewer_count']);
+
+        return $this->json(['success' => true]);
     }
 
     private function dispatchNotification(int $userId, ?array $payload, string $event): void

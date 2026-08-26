@@ -362,4 +362,18 @@ final class RealtimeNotifier
             'reason' => $reason,
         ]);
     }
+
+    public function notifyLiveComment(array $comment): bool
+    {
+        return $this->send('/internal/events/live-comment', [
+            'comment' => $comment,
+        ]);
+    }
+
+    public function notifyLiveEnded(int $liveId): bool
+    {
+        return $this->send('/internal/events/live-ended', [
+            'live_id' => $liveId,
+        ]);
+    }
 }

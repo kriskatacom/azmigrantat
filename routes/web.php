@@ -7,6 +7,7 @@ use App\Controllers\Api\ConversationController;
 use App\Controllers\Api\TotpController;
 use App\Controllers\Api\InternalMobileController;
 use App\Controllers\Api\LinkPreviewController;
+use App\Controllers\Api\LiveController;
 use App\Controllers\Api\MessageController;
 use App\Controllers\Api\EmailLoginController;
 use App\Controllers\Api\DeviceAuthController;
@@ -135,6 +136,16 @@ $router->post('/api/mobile/push-tokens/delete-all',[PushTokenController::class, 
 $router->post('/api/mobile/calls/{call_id}/action', [CallController::class, 'action'], $bearer);
 $router->get('/api/mobile/turn-credentials', [TurnCredentialsController::class, 'show'], $bearer);
 
+$router->get('/api/mobile/lives', [LiveController::class, 'index'], $bearer);
+$router->post('/api/mobile/lives', [LiveController::class, 'store'], $bearer);
+$router->get('/api/mobile/lives/{id}', [LiveController::class, 'show'], $bearer);
+$router->post('/api/mobile/lives/{id}/start', [LiveController::class, 'start'], $bearer);
+$router->post('/api/mobile/lives/{id}/end', [LiveController::class, 'end'], $bearer);
+$router->post('/api/mobile/lives/{id}/join', [LiveController::class, 'join'], $bearer);
+$router->post('/api/mobile/lives/{id}/leave', [LiveController::class, 'leave'], $bearer);
+$router->get('/api/mobile/lives/{id}/comments', [LiveController::class, 'comments'], $bearer);
+$router->post('/api/mobile/lives/{id}/comments', [LiveController::class, 'storeComment'], $bearer);
+
 $router->get('/api/mobile/notifications/unread-count', [NotificationController::class, 'unreadCount'], $bearer);
 $router->get('/api/mobile/notifications/{id}', [NotificationController::class, 'show'], $bearer);
 $router->get('/api/mobile/notifications', [NotificationController::class, 'index'], $bearer);
@@ -147,6 +158,9 @@ $router->get('/internal/mobile/push-tokens', [InternalMobileController::class, '
 $router->post('/internal/mobile/push-tokens/deactivate', [InternalMobileController::class, 'deactivatePushToken']);
 $router->post('/internal/mobile/calls/authorize', [InternalMobileController::class, 'authorizeCall']);
 $router->post('/internal/mobile/conversations/typing', [InternalMobileController::class, 'authorizeTyping']);
+$router->post('/internal/mobile/lives/authorize', [InternalMobileController::class, 'authorizeLive']);
+$router->post('/internal/mobile/lives/comments', [InternalMobileController::class, 'storeLiveComment']);
+$router->post('/internal/mobile/lives/viewer-count', [InternalMobileController::class, 'syncLiveViewerCount']);
 $router->post('/internal/mobile/notifications/missed-video-call', [InternalMobileController::class, 'missedVideoCall']);
 $router->post('/internal/mobile/calls/log', [InternalMobileController::class, 'recordCallLog']);
 $router->post('/internal/mobile/notifications', [InternalMobileController::class, 'createNotification']);
