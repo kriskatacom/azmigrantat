@@ -11,7 +11,7 @@ import type {
 } from "@/services/video-call";
 import type { AuthUser } from "@/types/auth";
 import type { ChatMessage } from "@/types/chat";
-import type { LiveComment, LiveReactionType } from "@/types/live";
+import type { LiveComment, LiveReactionType, LiveStream } from "@/types/live";
 import type { AppNotification } from "@/types/notifications";
 
 const SOCKET_URL = process.env.EXPO_PUBLIC_SOCKET_URL;
@@ -117,6 +117,7 @@ interface ServerToClientEvents {
     type: LiveReactionType;
     user: { id: number; name: string };
   }) => void;
+  "live:started": (payload: { stream: LiveStream }) => void;
   "live:ended": (payload: { live_id: number }) => void;
   "live:error": (payload: { live_id: number | null; code: string; message: string }) => void;
 }

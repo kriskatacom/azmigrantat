@@ -1,17 +1,18 @@
 import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
+import LiveCommentComposer from "@/components/live/live-comment-composer";
 import LiveCommentList from "@/components/live/live-comment-list";
 import LiveReactions from "@/components/live/live-reactions";
 import LiveViewerCount from "@/components/live/live-viewer-count";
-import AppButton from "@/components/ui/AppButton";
+import { useChatKeyboard } from "@/hooks/chat/useChatKeyboard";
 import { useLiveMedia } from "@/hooks/live/useLiveMedia";
 import { useLiveRoom } from "@/hooks/live/useLiveRoom";
 import { useAuth } from "@/hooks/useAuth";
-import { getLive, joinLive, leaveLive, listLiveComments } from "@/services/live";
+import { joinLive, leaveLive, listLiveComments } from "@/services/live";
 import { isNetworkError } from "@/services/network-guard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Alert, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
 
 export default function LiveViewerScreen() {
   const { theme } = useAppTheme();
@@ -22,6 +23,7 @@ export default function LiveViewerScreen() {
   const validLiveId = Number.isInteger(liveId) && liveId > 0 ? liveId : null;
   const media = useLiveMedia();
   const room = useLiveRoom(validLiveId);
+  const { keyboardVisible } = useChatKeyboard();
   const [title, setTitle] = useState("");
   const [comment, setComment] = useState("");
 
@@ -84,10 +86,28 @@ export default function LiveViewerScreen() {
     }
   }, [room.ended, router]);
 
+  const sendComment = () => {
+    const body = comment.trim();
+    if (!body) {
+      return;
+    }
+    room.sendComment(body);
+    setComment("");
+  };
+
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
+    <KeyboardAvoidingView
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      behavior="padding"
+      keyboardVerticalOffset={Platform.OS === "ios" ? 8 : 0}
+    >
       <Header title={title || "Live"} hideSearchButton />
-      <View style={[styles.stage, { backgroundColor: "#0b1220" }]}>
+      <View
+        style={[
+          styles.stage,
+          { backgroundColor: "#0b1220", height: keyboardVisible ? 120 : 200 },
+        ]}
+      >
         <Text style={styles.stageLabel}>
           {media.connected ? "Гледаш live (mock media)" : "Присъединяване..."}
         </Text>
@@ -97,52 +117,34 @@ export default function LiveViewerScreen() {
         </View>
       </View>
       <LiveCommentList comments={room.comments} />
-      {room.reactions.length > 0 ? (
+      {room.reactions.length > 0 && !keyboardVisible ? (
         <Text style={[styles.reactionFlash, { color: theme.colors.textSecondary }]}>
           {room.reactions[room.reactions.length - 1]?.user.name}:{" "}
           {room.reactions[room.reactions.length - 1]?.type}
         </Text>
       ) : null}
-      <View style={styles.composer}>
-        <TextInput
-          value={comment}
-          onChangeText={setComment}
-          placeholder="Напиши коментар"
-          placeholderTextColor={theme.colors.placeholder}
-          style={[
-            styles.input,
-            {
-              color: theme.colors.text,
-              borderColor: theme.colors.inputBorder,
-              backgroundColor: theme.colors.input,
-            },
-          ]}
-          maxLength={280}
-        />
-        <AppButton
-          title="Изпрати"
-          onPress={() => {
-            const body = comment.trim();
-            if (!body) {
-              return;
-            }
-            room.sendComment(body);
-            setComment("");
-          }}
-        />
-      </View>
-      <View style={styles.footer}>
-        <LiveReactions onReact={room.sendReaction} />
-      </View>
-    </View>
+      <LiveCommentComposer
+        value={comment}
+        placeholder="Напиши коментар"
+        onChangeText={setComment}
+        onSend={sendComment}
+        keyboardVisible={keyboardVisible}
+        colors={theme.colors}
+      />
+      {!keyboardVisible ? (
+        <View style={styles.footer}>
+          <LiveReactions onReact={room.sendReaction} />
+        </View>
+      ) : null}
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
   stage: {
-    height: 220,
-    margin: 16,
+    marginHorizontal: 16,
+    marginTop: 12,
     borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
@@ -152,12 +154,5 @@ const styles = StyleSheet.create({
   stageHint: { color: "#94a3b8", marginTop: 8, textAlign: "center" },
   stageMeta: { position: "absolute", top: 12, right: 12 },
   reactionFlash: { paddingHorizontal: 16, marginBottom: 8 },
-  composer: { paddingHorizontal: 16, gap: 8, paddingBottom: 8 },
-  input: {
-    minHeight: 46,
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-  },
-  footer: { padding: 16, paddingBottom: 24 },
+  footer: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 16 },
 });

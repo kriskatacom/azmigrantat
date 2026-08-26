@@ -1,6 +1,7 @@
 import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
 import AppButton from "@/components/ui/AppButton";
+import { useLiveCatalog } from "@/hooks/live/useLiveCatalog";
 import { useAuth } from "@/hooks/useAuth";
 import { isNetworkError } from "@/services/network-guard";
 import { listActiveLives } from "@/services/live";
@@ -25,6 +26,8 @@ export default function LiveListScreen() {
   const [lives, setLives] = useState<LiveStream[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useLiveCatalog(setLives);
 
   const load = useCallback(
     async (mode: "initial" | "refresh" = "initial") => {
