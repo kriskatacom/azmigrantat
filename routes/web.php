@@ -97,6 +97,7 @@ $router->get('/api/mobile/users/{id}', [UserController::class, 'show'], $bearer)
 $router->post('/api/mobile/profile', [UserController::class, 'updateProfile'], $bearer);
 $router->post('/api/mobile/profile/privacy', [UserController::class, 'updatePrivacy'], $bearer);
 $router->post('/api/mobile/profile/image', [UserController::class, 'updateProfileImage'], $bearer);
+$router->post('/api/mobile/profile/cover', [UserController::class, 'updateCoverImage'], $bearer);
 $router->post('/api/mobile/profile/password', [UserController::class, 'updatePassword'], $bearer);
 $router->get('/api/mobile/blocks', [BlockController::class, 'index'], $bearer);
 $router->post('/api/mobile/blocks', [BlockController::class, 'store'], $bearer);

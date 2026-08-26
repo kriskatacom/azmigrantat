@@ -34,8 +34,11 @@ final class LiveStreamService
         $existing = $this->findOpenStreamForUser((int) $user->id);
 
         if ($existing) {
-            $existing->title = $this->normalizeTitle($title) ?? $existing->title;
-            $existing->save();
+            if ($existing->isIdle()) {
+                $existing->title = $this->normalizeTitle($title) ?? $existing->title;
+                $existing->save();
+            }
+
             $existing->loadMissing('owner');
 
             return $existing;
@@ -66,7 +69,17 @@ final class LiveStreamService
         }
 
         if (!$stream->isIdle()) {
-            throw new LiveStateException('Live предаването вече е приключено.');
+            throw new LiveStateException('Предаването вече е приключено.');
+        }
+
+        $hasOtherLive = LiveStream::query()
+            ->where('user_id', (int) $user->id)
+            ->where('status', LiveStream::STATUS_LIVE)
+            ->where('id', '!=', $stream->id)
+            ->exists();
+
+        if ($hasOtherLive) {
+            throw new LiveStateException('Вече имате активно предаване на живо.');
         }
 
         $stream->status = LiveStream::STATUS_LIVE;
@@ -138,14 +151,14 @@ final class LiveStreamService
         $stream = LiveStream::query()->with('owner')->find($liveId);
 
         if (!$stream) {
-            throw new LiveNotFoundException('Live предаването не е намерено.');
+            throw new LiveNotFoundException('Предаването не е намерено.');
         }
 
         if (
             !$stream->isOwnedBy((int) $user->id)
             && $this->blocks->areBlocked((int) $user->id, (int) $stream->user_id)
         ) {
-            throw new LiveNotFoundException('Live предаването не е намерено.');
+            throw new LiveNotFoundException('Предаването не е намерено.');
         }
 
         return $stream;
@@ -160,7 +173,7 @@ final class LiveStreamService
         }
 
         if (!$stream->isLive()) {
-            throw new LiveStateException('Live предаването не е активно.');
+            throw new LiveStateException('Предаването не е активно.');
         }
 
         $now = Carbon::now();
@@ -356,6 +369,7 @@ final class LiveStreamService
             'ended_at' => $stream->ended_at?->toISOString(),
             'created_at' => $stream->created_at?->toISOString(),
             'is_owner' => $currentUserId !== null && $stream->isOwnedBy($currentUserId),
+            'cover_image' => $owner?->cover_image_url,
             'owner' => $owner ? $owner->toChatUserArray() : null,
         ];
     }
@@ -383,11 +397,11 @@ final class LiveStreamService
         $stream = LiveStream::query()->find($liveId);
 
         if (!$stream) {
-            throw new LiveNotFoundException('Live предаването не е намерено.');
+            throw new LiveNotFoundException('Предаването не е намерено.');
         }
 
         if (!$stream->isOwnedBy($userId)) {
-            throw new LivePermissionException('Само собственикът може да управлява това live предаване.');
+            throw new LivePermissionException('Само собственикът може да управлява това предаване на живо.');
         }
 
         return $stream;
@@ -398,6 +412,7 @@ final class LiveStreamService
         return LiveStream::query()
             ->where('user_id', $userId)
             ->whereIn('status', [LiveStream::STATUS_IDLE, LiveStream::STATUS_LIVE])
+            ->orderByRaw("CASE WHEN status = 'live' THEN 0 ELSE 1 END")
             ->orderByDesc('id')
             ->first();
     }

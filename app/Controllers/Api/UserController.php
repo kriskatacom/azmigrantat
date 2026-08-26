@@ -349,6 +349,24 @@ class UserController extends BaseApiController
 
     public function updateProfileImage()
     {
+        return $this->updateProfileMedia(
+            'profile_image',
+            'profile',
+            'Профилната снимка',
+        );
+    }
+
+    public function updateCoverImage()
+    {
+        return $this->updateProfileMedia(
+            'cover_image',
+            'cover',
+            'Коричната снимка',
+        );
+    }
+
+    private function updateProfileMedia(string $optionKey, string $folder, string $label)
+    {
         $user = $this->authenticatedUser();
 
         if (!$user) {
@@ -415,7 +433,8 @@ class UserController extends BaseApiController
                 default => 'jpg',
             };
             $remotePath = sprintf(
-                'profile/%s/%s.%s',
+                '%s/%s/%s.%s',
+                $folder,
                 date('Y/m'),
                 bin2hex(random_bytes(16)),
                 $extension
@@ -424,18 +443,18 @@ class UserController extends BaseApiController
             $url = $storage->url($result['key']);
 
             $options = is_array($user->options) ? $user->options : [];
-            $options['profile_image'] = $url;
+            $options[$optionKey] = $url;
             $user->options = $options;
             $user->save();
 
             return $this->json([
                 'success' => true,
-                'message' => 'Профилната снимка беше обновена.',
+                'message' => $label . ' беше обновена.',
                 'user' => $this->serializeMobileUser($user),
             ]);
         } catch (\Throwable $exception) {
             error_log(
-                'Update profile image error: '
+                'Update ' . $optionKey . ' error: '
                 . $exception->getMessage()
                 . PHP_EOL
                 . $exception->getTraceAsString()
@@ -443,7 +462,7 @@ class UserController extends BaseApiController
 
             return $this->json([
                 'success' => false,
-                'message' => 'Профилната снимка не можа да бъде обновена.',
+                'message' => $label . ' не можа да бъде обновена.',
             ], 500);
         }
     }

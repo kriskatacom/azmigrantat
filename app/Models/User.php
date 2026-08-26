@@ -177,13 +177,32 @@ class User extends Model
 
     public function getProfileImageUrlAttribute(): ?string
     {
+        return $this->optionImageUrl('profile_image');
+    }
+
+    public function getCoverImageUrlAttribute(): ?string
+    {
+        return $this->optionImageUrl('cover_image');
+    }
+
+    private function optionImageUrl(string $key): ?string
+    {
         $options = $this->options;
+
+        if (is_string($options)) {
+            $decoded = json_decode($options, true);
+            $options = is_array($decoded) ? $decoded : [];
+        }
 
         if (!is_array($options)) {
             return null;
         }
 
-        $image = $options['profile_image'] ?? null;
+        $image = $options[$key] ?? null;
+
+        if (is_array($image)) {
+            $image = $image['url'] ?? $image['path'] ?? $image['src'] ?? null;
+        }
 
         if (!is_string($image) || trim($image) === '') {
             return null;
@@ -284,6 +303,7 @@ class User extends Model
             'username' => $this->username,
             'public_code' => $this->formattedPublicCode(),
             'profile_image' => $this->profile_image_url,
+            'cover_image' => $this->cover_image_url,
             'is_active' => (bool) $this->is_active,
         ];
     }
@@ -309,6 +329,7 @@ class User extends Model
             'address' => $this->address,
             'bio' => $this->bio,
             'profile_image' => $image,
+            'cover_image' => $this->cover_image_url,
             'avatar' => $image,
             'is_active' => (bool) $this->is_active,
             'auto_renewal' => $this->wantsAutoRenewal(),
@@ -370,6 +391,7 @@ class User extends Model
             'username' => $this->username,
             'public_code' => $this->formattedPublicCode(),
             'profile_image' => $this->profile_image_url,
+            'cover_image' => $this->cover_image_url,
             'gender' => $this->gender,
             'city' => $this->city,
             'country' => $this->country,
