@@ -370,6 +370,13 @@ final class RealtimeNotifier
         ]);
     }
 
+    public function notifyLiveStarted(array $stream): bool
+    {
+        return $this->send('/internal/events/live-started', [
+            'stream' => $stream,
+        ]);
+    }
+
     public function notifyLiveEnded(int $liveId): bool
     {
         return $this->send('/internal/events/live-ended', [

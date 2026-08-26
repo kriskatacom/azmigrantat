@@ -75,6 +75,7 @@ final class LiveStreamService
         $stream->media_room_id = $stream->media_room_id ?: ('live-' . $stream->id);
         $stream->save();
         $stream->loadMissing('owner');
+        $this->notifyStarted($stream);
 
         return $stream;
     }
@@ -440,6 +441,15 @@ final class LiveStreamService
             'media_room_id' => null,
             'media_provider' => null,
         ];
+    }
+
+    private function notifyStarted(LiveStream $stream): void
+    {
+        try {
+            $this->realtime()->notifyLiveStarted($this->serializeStream($stream));
+        } catch (Throwable $exception) {
+            error_log('[LiveStreamService] realtime start notify failed: ' . $exception->getMessage());
+        }
     }
 
     private function notifyEnded(LiveStream $stream): void
