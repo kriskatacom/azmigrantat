@@ -1,0 +1,39 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+  <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+  <uses-permission android:name="android.permission.WAKE_LOCK" />
+  <uses-permission android:name="android.permission.VIBRATE" />
+  <uses-permission android:name="android.permission.TURN_SCREEN_ON" />
+  <uses-permission android:name="android.permission.DISABLE_KEYGUARD" />
+  <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+  <application>
+    <receiver
+      android:name=".IncomingCallActionReceiver"
+      android:exported="false">
+      <intent-filter>
+        <action android:name="expo.modules.incomingcall.ACTION_ACCEPT" />
+        <action android:name="expo.modules.incomingcall.ACTION_DECLINE" />
+      </intent-filter>
+    </receiver>
+
+    <service
+      android:name=".OngoingCallService"
+      android:exported="false"
+      android:foregroundServiceType="camera|microphone|mediaPlayback" />
+
+    <service
+      android:name=".IncomingCallFirebaseMessagingService"
+      android:exported="false"
+      android:directBootAware="true">
+      <intent-filter android:priority="1000">
+        <action android:name="com.google.firebase.MESSAGING_EVENT" />
+      </intent-filter>
+    </service>
+  </application>
+</manifest>

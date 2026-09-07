@@ -1,0 +1,337 @@
+import { authorizedJson } from "@/services/session-http";
+import type { MessageReactionItem, MessageReactionType } from "@/constants/message-reactions";
+import type {
+  ChatAttachmentUpload,
+  ChatUser,
+  Conversation,
+  ConversationResponse,
+  ConversationsResponse,
+  LinkPreview,
+  LinkPreviewResponse,
+  MessageResponse,
+  MessagesResponse,
+  SendMessagePayload,
+  UserSearchResponse,
+  UnreadCountResponse,
+} from "@/types/chat";
+import * as Crypto from "expo-crypto";
+import { File } from "expo-file-system";
+import { fetch } from "expo/fetch";
+
+const API_URL = process.env.EXPO_PUBLIC_API_URL;
+
+interface ApiErrorResponse {
+  success?: false;
+  message?: string;
+  errors?: Record<string, string[]>;
+}
+
+if (!API_URL) {
+  throw new Error("Липсва EXPO_PUBLIC_API_URL.");
+}
+
+async function request<T>(
+  endpoint: string,
+  token: string,
+  options: RequestInit = {},
+): Promise<T> {
+  return authorizedJson<T>(`${API_URL}${endpoint}`, token, options);
+}
+
+export async function getConversations(
+  token: string,
+  signal?: AbortSignal,
+): Promise<Conversation[]> {
+  const response = await request<ConversationsResponse>(
+    "/api/mobile/conversations",
+    token,
+    { signal },
+  );
+
+  return response.data;
+}
+
+export async function getUnreadMessageCount(token: string): Promise<number> {
+  const response = await request<UnreadCountResponse>(
+    "/api/mobile/conversations/unread-count",
+    token,
+  );
+
+  return Math.max(0, Number(response.data.unread_count) || 0);
+}
+
+export async function createDirectConversation(
+  token: string,
+  recipientId: number,
+): Promise<Conversation> {
+  const response = await request<ConversationResponse>(
+    "/api/mobile/conversations/direct",
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        recipient_id: recipientId,
+      }),
+    },
+  );
+
+  return response.data;
+}
+
+export async function getConversation(
+  token: string,
+  conversationId: number,
+): Promise<Conversation> {
+  const response = await request<ConversationResponse>(
+    `/api/mobile/conversations/${conversationId}`,
+    token,
+  );
+
+  return response.data;
+}
+
+export async function searchUsers(
+  token: string,
+  query: string,
+  signal?: AbortSignal,
+): Promise<ChatUser[]> {
+  const params = new URLSearchParams({ search: query });
+  const response = await request<UserSearchResponse>(
+    `/api/mobile/users?${params.toString()}`,
+    token,
+    { signal },
+  );
+
+  return response.data;
+}
+
+export async function getMessages(
+  token: string,
+  conversationId: number,
+  options?: {
+    limit?: number;
+    beforeId?: number | null;
+  },
+): Promise<MessagesResponse> {
+  const params = new URLSearchParams();
+
+  if (options?.limit) {
+    params.set("limit", options.limit.toString());
+  }
+
+  if (options?.beforeId) {
+    params.set("before_id", options.beforeId.toString());
+  }
+
+  const queryString = params.toString();
+
+  return request<MessagesResponse>(
+    `/api/mobile/conversations/${conversationId}/messages${
+      queryString ? `?${queryString}` : ""
+    }`,
+    token,
+  );
+}
+
+export async function getConversationMessage(
+  token: string,
+  conversationId: number,
+  messageId: number,
+): Promise<MessageResponse["data"]> {
+  const response = await request<MessageResponse>(
+    `/api/mobile/conversations/${conversationId}/messages/${messageId}`,
+    token,
+  );
+
+  return response.data;
+}
+
+export async function sendMessage(
+  token: string,
+  conversationId: number,
+  payload: SendMessagePayload,
+): Promise<MessageResponse["data"]> {
+  const response = await request<MessageResponse>(
+    `/api/mobile/conversations/${conversationId}/messages`,
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
+
+  return response.data;
+}
+
+export async function markConversationAsRead(
+  token: string,
+  conversationId: number,
+  messageId?: number,
+): Promise<void> {
+  await request<{
+    success: true;
+    message: string;
+    last_read_message_id: number;
+  }>(`/api/mobile/conversations/${conversationId}/read`, token, {
+    method: "POST",
+    body: JSON.stringify(
+      messageId
+        ? {
+            message_id: messageId,
+          }
+        : {},
+    ),
+  });
+}
+
+export async function markConversationAsDelivered(
+  token: string,
+  conversationId: number,
+  messageId?: number,
+): Promise<void> {
+  await request<{
+    success: true;
+    message: string;
+    last_delivered_message_id: number;
+  }>(`/api/mobile/conversations/${conversationId}/delivered`, token, {
+    method: "POST",
+    body: JSON.stringify(
+      messageId
+        ? {
+            message_id: messageId,
+          }
+        : {},
+    ),
+  });
+}
+
+export async function toggleMessageReaction(
+  token: string,
+  conversationId: number,
+  messageId: number,
+  type: MessageReactionType,
+): Promise<{
+  message_id: number;
+  type: MessageReactionType | null;
+  reactions: {
+    mine: MessageReactionType | null;
+    items: MessageReactionItem[];
+  };
+}> {
+  const response = await request<{
+    success: true;
+    data: {
+      message_id: number;
+      type: MessageReactionType | null;
+      reactions: {
+        mine: MessageReactionType | null;
+        items: MessageReactionItem[];
+      };
+    };
+  }>(
+    `/api/mobile/conversations/${conversationId}/messages/${messageId}/reactions`,
+    token,
+    {
+      method: "POST",
+      body: JSON.stringify({ type }),
+    },
+  );
+
+  return response.data;
+}
+
+export async function sendAttachment(
+  token: string,
+  conversationId: number,
+  attachment: ChatAttachmentUpload,
+): Promise<MessageResponse["data"]> {
+  const file = new File(attachment.uri);
+
+  const formData = new FormData();
+
+  formData.append("client_message_id", Crypto.randomUUID());
+
+  formData.append(
+    "type",
+    attachment.mimeType.startsWith("image/")
+      ? "image"
+      : attachment.mimeType.startsWith("audio/")
+        ? "audio"
+        : "file",
+  );
+
+  formData.append("file", file);
+
+  const response = await fetch(
+    `${API_URL}/api/mobile/conversations/${conversationId}/attachments`,
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    },
+  );
+
+  const rawResponse = await response.text();
+
+  let data: MessageResponse | ApiErrorResponse;
+
+  try {
+    data = JSON.parse(rawResponse);
+  } catch {
+    throw new Error(
+      `Сървърът върна невалиден JSON. Status: ${response.status}. Body: ${rawResponse.slice(0, 2000)}`,
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      (data as ApiErrorResponse).message ?? "Файлът не можа да бъде изпратен.",
+    );
+  }
+
+  return (data as MessageResponse).data;
+}
+
+export type ClearChatScope = "me" | "both";
+export type ClearChatMessages = "mine" | "all";
+
+export interface ClearConversationResult {
+  scope: ClearChatScope;
+  messages: ClearChatMessages;
+  leave_conversation: boolean;
+}
+
+export async function clearConversation(
+  token: string,
+  conversationId: number,
+  scope: ClearChatScope,
+  messages: ClearChatMessages,
+): Promise<ClearConversationResult> {
+  const response = await request<{
+    success: true;
+    data: ClearConversationResult;
+  }>(`/api/mobile/conversations/${conversationId}/clear`, token, {
+    method: "POST",
+    body: JSON.stringify({ scope, messages }),
+  });
+
+  return response.data;
+}
+
+export async function getLinkPreview(
+  token: string,
+  url: string,
+  signal?: AbortSignal,
+): Promise<LinkPreview | null> {
+  const params = new URLSearchParams({ url });
+  const response = await request<LinkPreviewResponse>(
+    `/api/mobile/link-preview?${params.toString()}`,
+    token,
+    { signal },
+  );
+
+  return response.data;
+}
