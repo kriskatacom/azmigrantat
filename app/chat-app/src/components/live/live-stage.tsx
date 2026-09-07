@@ -170,7 +170,7 @@ const styles = StyleSheet.create({
     zIndex: 4,
   },
   connecting: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(3, 7, 18, 0.35)",
     alignItems: "center",
     justifyContent: "center",
@@ -181,10 +181,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   cover: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   coverDim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(3, 7, 18, 0.38)",
   },
 });

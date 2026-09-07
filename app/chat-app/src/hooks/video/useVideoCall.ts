@@ -556,7 +556,7 @@ export function useVideoCall({
         const handleEnded = () => {
           if (callIdRef.current === callId) setIsRemoteCameraEnabled(false);
         };
-        videoTrack.addEventListener("ended", handleEnded);
+        videoTrack.onended = handleEnded;
       };
       peer.onicecandidate = (event: IceEvent) => {
         if (!event.candidate || callIdRef.current !== callId) return;

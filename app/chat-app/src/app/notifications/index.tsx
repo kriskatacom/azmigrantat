@@ -10,6 +10,7 @@ import {
   deleteAllNotifications,
   deleteNotification,
   getNotifications,
+  markNotificationAsRead,
   markAllNotificationsAsRead,
 } from "@/services/notifications-api";
 import type { AppNotification } from "@/types/notifications";

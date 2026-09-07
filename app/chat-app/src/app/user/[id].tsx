@@ -641,7 +641,7 @@ const styles = StyleSheet.create({
   },
   coverImage: { resizeMode: "cover" },
   coverScrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   overlayBack: {
     position: "absolute",

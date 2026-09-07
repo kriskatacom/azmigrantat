@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     height: 148,
   },
   previewFallback: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     alignItems: "center",
     justifyContent: "center",
   },
