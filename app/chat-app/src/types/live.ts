@@ -65,10 +65,10 @@ export interface LiveCommentResponse {
   data: LiveComment;
 }
 
-export const LIVE_REACTION_TYPES: Array<{
+export const LIVE_REACTION_TYPES: {
   type: LiveReactionType;
   emoji: string;
-}> = [
+}[] = [
   { type: "heart", emoji: "❤️" },
   { type: "fire", emoji: "🔥" },
   { type: "clap", emoji: "👏" },

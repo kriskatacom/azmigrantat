@@ -541,7 +541,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
         beginIncomingCall(toIncomingCallPayload(pending.meta));
       }
     },
-    [applyCallState, closeIncomingScreen, rejectIncomingCall, socket],
+    [applyCallState, beginIncomingCall, closeIncomingScreen, rejectIncomingCall, socket],
   );
 
   useEffect(() => {
@@ -1208,7 +1208,9 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
     releaseActiveCall,
   });
 
-  mediaCallStateRef.current = mediaCall.callState;
+  useEffect(() => {
+    mediaCallStateRef.current = mediaCall.callState;
+  }, [mediaCall.callState]);
 
   const attachCallSession = useCallback((ui: ActiveCallUi) => {
     setCallUi(ui);

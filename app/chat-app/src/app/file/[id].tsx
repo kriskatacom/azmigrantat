@@ -101,15 +101,16 @@ export default function FileDetailsScreen() {
     mimeType: attachment?.mimeType ?? null,
   });
 
+  const createdAt = message?.created_at;
   const sentAt = useMemo(() => {
-    if (!message?.created_at) {
+    if (!createdAt) {
       return null;
     }
 
-    const dateLabel = formatChatDateLabel(message.created_at);
-    const timeLabel = formatMessageTime(message.created_at);
+    const dateLabel = formatChatDateLabel(createdAt);
+    const timeLabel = formatMessageTime(createdAt);
     return [dateLabel, timeLabel].filter(Boolean).join(", ");
-  }, [message?.created_at]);
+  }, [createdAt]);
 
   const previewWidth = Math.min(width - 40, 520);
   const sizeLabel = formatFileSize(attachment?.size ?? null);

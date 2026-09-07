@@ -2,7 +2,7 @@ import { useAppTheme } from "@/app/_layout";
 import RemoteImage from "@/components/ui/RemoteImage";
 import type { LiveComment } from "@/types/live";
 import { FontAwesome } from "@expo/vector-icons";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 
 function initials(name: string): string {
@@ -31,7 +31,7 @@ export default function LiveCommentList({
   const { theme } = useAppTheme();
   const listRef = useRef<FlatList<LiveComment>>(null);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = useCallback(() => {
     const list = listRef.current;
 
     if (!list || comments.length === 0) {
@@ -39,7 +39,7 @@ export default function LiveCommentList({
     }
 
     list.scrollToEnd({ animated: false });
-  };
+  }, [comments.length]);
 
   useEffect(() => {
     if (comments.length === 0) {
@@ -49,7 +49,7 @@ export default function LiveCommentList({
     const timer = setTimeout(scrollToBottom, 80);
 
     return () => clearTimeout(timer);
-  }, [comments.length, keyboardVisible]);
+  }, [comments.length, keyboardVisible, scrollToBottom]);
 
   return (
     <FlatList

@@ -639,9 +639,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       token,
       expiresAt,
       isLoading,
-      isAuthenticated: Boolean(
-        token && user && expiresAt && expiresAt > Date.now(),
-      ),
+      isAuthenticated: Boolean(token && user && expiresAt),
       lastLoginEmail,
       hasDeviceSecret,
       hasPin,

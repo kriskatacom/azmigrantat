@@ -87,6 +87,7 @@ export default function VideoCallScreen() {
     const parsedId = rawId ? Number(rawId) : NaN;
     return Number.isInteger(parsedId) && parsedId > 0 ? parsedId : null;
   }, [params.conversationId]);
+  const navigationKey = rootNavigationState?.key;
   const {
     acceptedIncomingCall,
     attachCallSession,
@@ -264,7 +265,7 @@ export default function VideoCallScreen() {
         minimizeActiveCall();
       }
 
-      if (hasLeftScreenRef.current || !rootNavigationState?.key) {
+      if (hasLeftScreenRef.current || !navigationKey) {
         return;
       }
 
@@ -287,7 +288,7 @@ export default function VideoCallScreen() {
     recipientId,
     recipientImage,
     recipientName,
-    rootNavigationState?.key,
+    navigationKey,
     routeConversationId,
     router,
     token,

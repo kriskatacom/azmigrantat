@@ -47,7 +47,7 @@ type DeliveredReceipt = {
 
 function applyReactionSummary(
   message: ChatMessage,
-  items: Array<{ type: string; count: number }>,
+  items: { type: string; count: number }[],
   mine: MessageReactionType | null,
 ): ChatMessage {
   return {

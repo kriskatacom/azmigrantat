@@ -1,4 +1,3 @@
-import { useAppTheme } from "@/app/_layout";
 import { useUnreadMessageCount } from "@/hooks/chat/useUnreadMessageCount";
 import { useUnreadNotificationCount } from "@/hooks/useUnreadNotificationCount";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,7 +14,6 @@ import {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { theme } = useAppTheme();
   const { isAuthenticated, user } = useAuth();
   const unreadMessageCount = useUnreadMessageCount();
   const unreadNotificationCount = useUnreadNotificationCount();

@@ -1,6 +1,6 @@
 import type { LiveReactionEvent } from "@/hooks/live/useLiveRoom";
 import { LIVE_REACTION_TYPES } from "@/types/live";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 
 const CHIP_VISIBLE_MS = 5_000;
@@ -17,12 +17,12 @@ function FloatingEmoji({
   reaction: LiveReactionEvent;
   onDone: (id: string) => void;
 }) {
-  const translateY = useRef(new Animated.Value(0)).current;
-  const translateX = useRef(new Animated.Value(0)).current;
-  const opacity = useRef(new Animated.Value(0)).current;
-  const scale = useRef(new Animated.Value(0.35)).current;
-  const drift = useMemo(() => (Math.random() - 0.5) * 36, []);
-  const lift = useMemo(() => 140 + Math.random() * 70, []);
+  const [translateY] = useState(() => new Animated.Value(0));
+  const [translateX] = useState(() => new Animated.Value(0));
+  const [opacity] = useState(() => new Animated.Value(0));
+  const [scale] = useState(() => new Animated.Value(0.35));
+  const [drift] = useState(() => (Math.random() - 0.5) * 36);
+  const [lift] = useState(() => 140 + Math.random() * 70);
 
   useEffect(() => {
     const animation = Animated.parallel([
@@ -93,9 +93,11 @@ function FloatingEmoji({
 }
 
 function ReactionChip({ reaction }: { reaction: LiveReactionEvent }) {
-  const opacity = useRef(new Animated.Value(0)).current;
-  const translateY = useRef(new Animated.Value(12)).current;
-  const remaining = Math.max(0, CHIP_VISIBLE_MS - (Date.now() - reaction.at));
+  const [opacity] = useState(() => new Animated.Value(0));
+  const [translateY] = useState(() => new Animated.Value(12));
+  const [remaining] = useState(() =>
+    Math.max(0, CHIP_VISIBLE_MS - (Date.now() - reaction.at)),
+  );
 
   useEffect(() => {
     const hold = Math.max(0, remaining - CHIP_FADE_MS);

@@ -81,7 +81,7 @@ export default function LoginScreen() {
   const [loginEmailCode, setLoginEmailCode] = useState("");
 
   const passwordRef = useRef<TextInput>(null);
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const [fadeAnim] = useState(() => new Animated.Value(1));
   const completingDeviceRef = useRef(false);
 
   const showMethodPicker =

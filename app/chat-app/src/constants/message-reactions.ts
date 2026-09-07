@@ -19,11 +19,11 @@ export type MessageReactionItem = {
   reacted: boolean;
 };
 
-export const MESSAGE_REACTIONS: Array<{
+export const MESSAGE_REACTIONS: {
   type: MessageReactionType;
   emoji: string;
   label: string;
-}> = [
+}[] = [
   { type: "like", emoji: "👍", label: "Харесване" },
   { type: "dislike", emoji: "👎", label: "Нехаресване" },
   { type: "heart", emoji: "❤️", label: "Сърце" },

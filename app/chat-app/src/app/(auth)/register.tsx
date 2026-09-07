@@ -37,7 +37,7 @@ export default function RegisterScreen() {
   const passwordRef = useRef<TextInput>(null);
   const passwordConfirmationRef = useRef<TextInput>(null);
 
-  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const [fadeAnim] = useState(() => new Animated.Value(1));
 
   const fadeOut = () => {
     return new Promise<void>((resolve) => {

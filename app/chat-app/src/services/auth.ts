@@ -457,23 +457,23 @@ export async function verifyDeviceEmailCodeRequest(
 export async function listDevicePendingRequest(
   token: string,
 ): Promise<
-  Array<{
+  {
     id: number;
     device_name: string | null;
     platform: string | null;
     created_at: string | null;
     expires_at: string | null;
-  }>
+  }[]
 > {
   const response = await request<{
     success: true;
-    pending: Array<{
+    pending: {
       id: number;
       device_name: string | null;
       platform: string | null;
       created_at: string | null;
       expires_at: string | null;
-    }>;
+    }[];
   }>("/api/mobile/device/pending", {
     method: "GET",
     headers: { Authorization: `Bearer ${token}` },
