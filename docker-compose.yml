@@ -43,6 +43,7 @@ services:
       PHP_API_URL: http://auth:8080
       INTERNAL_API_SECRET: ${REALTIME_INTERNAL_SECRET:-local-realtime-secret}
       FCM_ENABLED: "false"
+      REALTIME_CORS_ORIGINS: ${REALTIME_CORS_ORIGINS:-http://localhost:8080,http://localhost:3000}
     ports:
       - "${REALTIME_PORT:-3001}:3001"
 

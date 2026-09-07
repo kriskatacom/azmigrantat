@@ -22,4 +22,10 @@ export const config = {
     phpApiUrl: requireEnvironmentVariable('PHP_API_URL').replace(/\/+$/, ''),
     internalApiSecret: requireEnvironmentVariable('INTERNAL_API_SECRET'),
     fcmEnabled: process.env.FCM_ENABLED === 'true',
+    corsOrigins: (
+        process.env.REALTIME_CORS_ORIGINS ?? 'http://localhost:8080,http://localhost:3000'
+    )
+        .split(',')
+        .map((origin) => origin.trim())
+        .filter(Boolean),
 };

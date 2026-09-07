@@ -32,16 +32,28 @@ import type {
 const app = express();
 const httpServer = createServer(app);
 
-app.use(cors());
+const corsOptions = {
+    origin: (
+        origin: string | undefined,
+        callback: (error: Error | null, allow?: boolean) => void,
+    ) => {
+        if (!origin || config.corsOrigins.includes(origin)) {
+            callback(null, true);
+            return;
+        }
+
+        callback(null, false);
+    },
+    methods: ['GET', 'POST'],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(
     httpServer,
     {
-        cors: {
-            origin: '*',
-            methods: ['GET', 'POST'],
-        },
+        cors: corsOptions,
     },
 );
 

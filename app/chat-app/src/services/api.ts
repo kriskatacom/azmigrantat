@@ -1,6 +1,10 @@
 import { toNetworkError } from "@/services/network-guard";
 
-export const API_URL = "https://users.azmigrantat.com";
+const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+
+export const API_URL = (
+  configuredApiUrl || "https://users.azmigrantat.com"
+).replace(/\/+$/, "");
 
 export async function api<T>(
   endpoint: string,
