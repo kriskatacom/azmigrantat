@@ -1,0 +1,147 @@
+@import "tailwindcss";
+
+/* --- 1. Custom Variants & Utility Fixes --- */
+@custom-variant dark (&:where(.dark, .dark *));
+
+[x-cloak] {
+    display: none !important;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+/* --- 2. Theme Configuration --- */
+@theme {
+    /* Colors */
+    --color-primary: #0B2935;
+    --color-secondary: #E4DE94;
+    --color-darken-primary: #30444d;
+    --color-dark-primary: #0B2935;
+    --color-indigo-600: #4f46e5;
+
+    /* Breakpoints */
+    --breakpoint-xs: 480px;
+
+    /* Custom Animations */
+    --animate-fade-in: fade-in 0.2s ease-out;
+    --animate-gradient-x: gradient-x 3s ease infinite;
+    --animate-shimmer: shimmer 2s linear infinite;
+    --animate-blob: blob 7s infinite;
+}
+
+/* --- 3. Keyframes definitions --- */
+
+/* Плавна поява на елементи */
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Движещ се градиент за заглавия */
+@keyframes gradient-x {
+    0%,
+    100% {
+        background-size: 200% 200%;
+        background-position: left center;
+    }
+    50% {
+        background-size: 200% 200%;
+        background-position: right center;
+    }
+}
+
+/* Шимър ефект за бутони и лоудъри */
+@keyframes shimmer {
+    from {
+        background-position: 0 0;
+    }
+    to {
+        background-position: -200% 0;
+    }
+}
+
+/* Плуващи фонови обекти (Blobs) */
+@keyframes blob {
+    0% {
+        transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+        transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+        transform: translate(-20px, 20px) scale(0.9);
+    }
+    100% {
+        transform: translate(0px, 0px) scale(1);
+    }
+}
+
+/* --- 4. Helper Classes --- */
+.animation-delay-2000 {
+    animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+    animation-delay: 4s;
+}
+
+@keyframes marquee {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+.animate-marquee {
+    display: flex;
+    width: max-content;
+    animation: marquee 30s linear infinite;
+}
+
+.animate-marquee:hover {
+    animation-play-state: paused;
+}
+
+@layer utilities {
+    /* Основен клас за контейнери със скрол */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px; /* Тънък и елегантен */
+        height: 6px;
+    }
+
+    /* Пътят (background), по който се движи скролбарът */
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    /* Самият плъзгач */
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #e2e8f0; /* slate-200 */
+        border-radius: 100px;
+        transition: all 0.3s ease;
+    }
+
+    /* Плъзгачът при Dark Mode */
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #1e293b; /* slate-800 или white/10 */
+    }
+
+    /* Ефект при посочване */
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8; /* slate-400 */
+    }
+
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #334155; /* slate-700 */
+    }
+}
