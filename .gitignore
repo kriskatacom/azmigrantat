@@ -1,0 +1,54 @@
+# Dependencies
+**/node_modules/
+**/vendor/
+
+# Environment and secrets
+**/.env
+**/.env.*
+!**/.env.example
+**/secrets/
+*.json.key
+*.pem
+*.key
+*.p8
+*.p12
+*.jks
+
+/passwords.md
+
+# Expo / React Native generated files
+**/.expo/
+**/dist/
+**/web-build/
+**/.metro-health-check*
+**/.gradle/
+**/build/
+**/.kotlin/
+**/ios/Pods/
+**/ios/build/
+**/android/.gradle/
+**/android/app/build/
+**/android/build/
+
+# PHP generated/runtime files
+auth/public/uploads/
+auth/public/assets/css/min/
+auth/public/assets/js/min/
+auth/app/storage/logs/
+
+# Test/build output
+**/coverage/
+**/*.tsbuildinfo
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS/editor files
+.DS_Store
+.vscode/*.local.json
+
+# Local database exports and credentials
+*.sql.gz
+*-service-account*.json
+*firebase-adminsdk*.json

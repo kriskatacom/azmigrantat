@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8" />
+  <title>Бизнес модел — видеочат, live и рекламни видеа</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 16mm 16mm 18mm 16mm;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", "DejaVu Sans", Arial, sans-serif;
+      color: #0f172a;
+      font-size: 11.5px;
+      line-height: 1.45;
+      margin: 0;
+    }
+    h1 {
+      font-size: 22px;
+      margin: 0 0 6px;
+      letter-spacing: -0.02em;
+    }
+    h2 {
+      font-size: 14.5px;
+      margin: 22px 0 8px;
+      color: #1d4ed8;
+      border-bottom: 1.5px solid #dbeafe;
+      padding-bottom: 4px;
+    }
+    h3 {
+      font-size: 12px;
+      margin: 12px 0 6px;
+    }
+    p, li { margin: 0 0 6px; }
+    ul { padding-left: 18px; margin: 0 0 8px; }
+    .hero {
+      background: #0f172a;
+      color: #fff;
+      padding: 18px 20px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    .hero p { color: #cbd5e1; margin: 0; }
+    .muted { color: #64748b; font-size: 10.5px; }
+    .grid {
+      display: table;
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 8px 0;
+      margin: 8px 0 12px;
+    }
+    .col {
+      display: table-cell;
+      width: 33.33%;
+      vertical-align: top;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 10px 11px;
+    }
+    .col.featured {
+      background: #eff6ff;
+      border-color: #93c5fd;
+    }
+    .price {
+      font-size: 20px;
+      font-weight: 800;
+      color: #1e3a8a;
+      margin: 2px 0 6px;
+    }
+    .plan-name { font-weight: 800; font-size: 12.5px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 12px;
+      font-size: 11px;
+    }
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 7px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #f1f5f9; }
+    .box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin: 8px 0 12px;
+    }
+    .ok { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 10px 12px; margin: 8px 0 12px; }
+    .no { background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 10px 12px; margin: 8px 0 12px; }
+    .footer {
+      margin-top: 18px;
+      color: #64748b;
+      font-size: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <h1>Бизнес модел за видео в приложението</h1>
+    <p>Видеочат · Live streaming · Рекламни видеа за бизнес &nbsp;|&nbsp; Старт версия, максимално проста за тръгване</p>
+  </div>
+
+  <p><strong>Принцип:</strong> потребителите плащат за инструменти (обаждания и live). Бизнесите плащат за достигане (реклама). Хостингът и трафикът никога не се продават като „GB“, а влизат в лимити и пакети.</p>
+
+  <h2>1. Кой какво купува</h2>
+  <table>
+    <tr>
+      <th>Клиент</th>
+      <th>Продукт</th>
+      <th>Защо плаща</th>
+    </tr>
+    <tr>
+      <td>Обикновен потребител</td>
+      <td>Видеочат и (по-късно) live</td>
+      <td>Повече минути, група, качество, право да излъчва</td>
+    </tr>
+    <tr>
+      <td>Бизнес / рекламодател</td>
+      <td>Рекламни видеа във фийда</td>
+      <td>Да го видят хората в общността — не да качи файл</td>
+    </tr>
+  </table>
+  <p>Двата потока не се смесват в един абонамент. Рекламата е отделна каса с фактура към фирми.</p>
+
+  <h2>2. Видеочат — платени планове</h2>
+  <p>Безплатният видеочат остава. Платеното е за хора, които се обаждат често (семейство, работа, консултации).</p>
+  <div class="grid">
+    <div class="col">
+      <div class="plan-name">Безплатно</div>
+      <div class="price">0 €</div>
+      <ul>
+        <li>1:1 обаждания</li>
+        <li>До 60 мин. / месец</li>
+        <li>Стандартно качество</li>
+        <li>Без запис, без група</li>
+      </ul>
+    </div>
+    <div class="col featured">
+      <div class="plan-name">Чат Plus</div>
+      <div class="price">4,99 €<span class="muted"> / мес.</span></div>
+      <ul>
+        <li>До 400 мин. / месец</li>
+        <li>По-добро качество (HD при мрежа)</li>
+        <li>Група до 4 души</li>
+        <li>Екран / показване на документ</li>
+      </ul>
+    </div>
+    <div class="col">
+      <div class="plan-name">Чат Pro</div>
+      <div class="price">9,99 €<span class="muted"> / мес.</span></div>
+      <ul>
+        <li>До 1 200 мин. / месец</li>
+        <li>Група до 8 души</li>
+        <li>Запис на обаждане (по избор)</li>
+        <li>Приоритет при натоварена мрежа</li>
+      </ul>
+    </div>
+  </div>
+  <p><strong>Минути над лимита:</strong> обаждането не се къса веднага — показва се оферта за ъпгрейд. Алтернатива: +0,03 €/мин след лимита (по-сложно за старт — по-добре само ъпгрейд).</p>
+  <p><strong>Годишно:</strong> 2 месеца подарък (Plus 49,90 €, Pro 99,90 €).</p>
+
+  <h2>3. Live streaming — платени планове (когато е готово)</h2>
+  <p>Live е скъп ( grok: encode + CDN + модерация). Не е безплатен за всеки. Обикновеният потребител гледа безплатно. <strong>Излъчва</strong> този, който плаща.</p>
+  <div class="grid">
+    <div class="col">
+      <div class="plan-name">Гледане</div>
+      <div class="price">0 €</div>
+      <ul>
+        <li>Гледане на чужди live-ове</li>
+        <li>Чат в излъчването</li>
+        <li>Без право да стартира live</li>
+      </ul>
+    </div>
+    <div class="col featured">
+      <div class="plan-name">Live Start</div>
+      <div class="price">9,99 €<span class="muted"> / мес.</span></div>
+      <ul>
+        <li>До 8 часа live / месец</li>
+        <li>До ~200 зрители едновременно</li>
+        <li>Запис след края (7 дни)</li>
+        <li>Подходящо за общност / Q&amp;A</li>
+      </ul>
+    </div>
+    <div class="col">
+      <div class="plan-name">Live Business</div>
+      <div class="price">29,90 €<span class="muted"> / мес.</span></div>
+      <ul>
+        <li>До 30 часа live / месец</li>
+        <li>Повече зрители</li>
+        <li>Запис 30 дни + връзка за споделяне</li>
+        <li>За фирми, обучения, презентации</li>
+      </ul>
+    </div>
+  </div>
+  <div class="box">
+    <strong>Важно:</strong> Live Business не е рекламен пакет. Фирмата си говори на живо със свои хора. Ако иска същото излъчване да се върти като реклама във фийда — купува отделно рекламен пакет (точка 4).
+  </div>
+
+  <h2>4. Рекламни видеа — максимално просто за тръгване</h2>
+  <p>Без CPV панел, без таргети по интереси, без самообслужване със сложни бюджети. Три неща: <strong>качваш едно видео, избираш пакет, ние го въртим във фийда до лимита.</strong></p>
+
+  <table>
+    <tr>
+      <th></th>
+      <th>Старт</th>
+      <th>Видимост</th>
+      <th>Кампания</th>
+    </tr>
+    <tr>
+      <td><strong>Цена</strong></td>
+      <td>19 € / 7 дни</td>
+      <td>49 € / 30 дни</td>
+      <td>99 € / 30 дни</td>
+    </tr>
+    <tr>
+      <td>Видеа</td>
+      <td>1</td>
+      <td>1</td>
+      <td>до 3</td>
+    </tr>
+    <tr>
+      <td>Таван гледания</td>
+      <td>до 3 000</td>
+      <td>до 10 000</td>
+      <td>до 25 000</td>
+    </tr>
+    <tr>
+      <td>Къде се върти</td>
+      <td>във фийда, нормално</td>
+      <td>по-често във фийда</td>
+      <td>по-често + бутон (сайт / WhatsApp / обаждане)</td>
+    </tr>
+    <tr>
+      <td>Репорт</td>
+      <td>брой гледания в края</td>
+      <td>гледания + кликове, седмично</td>
+      <td>гледания + кликове + град (ако го имаме)</td>
+    </tr>
+  </table>
+
+  <div class="ok">
+    <strong>Правила за старт (задължителни):</strong>
+    <ul>
+      <li>Клип до ~60 секунди. Ние го качваме/одобряваме ръчно първите месеци.</li>
+      <li>Плащане преди въртане. Спира при край на срока <em>или</em> при тавана — което настъпи първо.</li>
+      <li>След края клипът може да стои качен, но <strong>не се върти без нов пакет</strong>.</li>
+      <li>Фактура към фирма. Един контакт (имейл/WhatsApp) за поръчка — без магазин в приложението в ден 1.</li>
+    </ul>
+  </div>
+
+  <p>Себестойност при ~30 сек в Cloudflare Stream: 10 000 гледания ≈ няколко долара. Пакет 49 € има здрав марж, стига да спазвате тавана.</p>
+
+  <h2>5. Какво не продаваме в началото</h2>
+  <div class="no">
+    <ul>
+      <li>Неограничени видеа за 5–20 €/мес — при успех вие плащате трафика.</li>
+      <li>Цена на GB / минута Stream към клиента.</li>
+      <li>Сложна програмна реклама (аукцион, lookalike, много таргети).</li>
+      <li>Live + реклама в един абонамент „всичко неограничено“.</li>
+    </ul>
+  </div>
+
+  <h2>6. Комбинации</h2>
+  <table>
+    <tr>
+      <th>Ситуация</th>
+      <th>Какво купува</th>
+    </tr>
+    <tr>
+      <td>Семейство се чува често</td>
+      <td>Чат Plus или Pro</td>
+    </tr>
+    <tr>
+      <td>Човек прави седмичен live за общността</td>
+      <td>Live Start</td>
+    </tr>
+    <tr>
+      <td>Фирма прави уебинар за клиенти</td>
+      <td>Live Business</td>
+    </tr>
+    <tr>
+      <td>Фирма иска клип във фийда пред всички</td>
+      <td>Рекламен пакет Старт / Видимост / Кампания</td>
+    </tr>
+    <tr>
+      <td>Фирма иска live + после клипът да се върти</td>
+      <td>Live Business <strong>и</strong> рекламен пакет — две отделни плащания</td>
+    </tr>
+  </table>
+
+  <h2>7. Ред на пускане</h2>
+  <ol>
+    <li><strong>Сега:</strong> видеочат безплатно с лимит 60 мин; Чат Plus когато сте готови да таксувате.</li>
+    <li><strong>Реклама:</strong> ръчни пакети 19 / 49 / 99 €, 3–5 пилотни клиента, PDF репорт.</li>
+    <li><strong>Live:</strong> едва след стабилен чат и ясен разход за стрийм; първо Live Start, после Business.</li>
+    <li><strong>По-късно:</strong> самообслужване, CPV, таргет по град, годишни фирмени договори.</li>
+  </ol>
+
+  <h2>8. Едно изречение за екипа</h2>
+  <p>Потребителят плаща за <strong>минути разговор и часове live</strong>. Фирмата плаща за <strong>ограничен брой гледания във фийда за фиксиран срок</strong>. Всичко друго е следваща версия.</p>
+
+  <p class="footer">Вътрешен документ за старт на модела. Цените са препоръчителни в евро, без ДДС. Да се прегледат преди публикуване според държава, платежен доставчик и реални разходи за обаждания/Stream.</p>
+</body>
+</html>

@@ -1,0 +1,9 @@
+/node_modules
+/vendor
+/public/uploads
+/public/assets/css/min
+/public/assets/js/min
+.env
+.env.development
+.env.local
+/app/storage/logs

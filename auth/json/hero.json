@@ -1,0 +1,52 @@
+[
+    {
+        "key_name": "hero_title",
+        "label": "Заглавие на началната секция",
+        "section_name": "Начална секция (Hero)",
+        "type": "text",
+        "value": "Добре дошли в нашия нов уебсайт",
+        "sort_order": 1,
+        "is_active": 1,
+        "help_text": "Основното заглавие, което се появява най-отгоре на страницата."
+    },
+    {
+        "key_name": "hero_description",
+        "label": "Описание под заглавието",
+        "section_name": "Начална секция (Hero)",
+        "type": "textarea",
+        "value": "Ние предлагаме иновативни решения за вашия бизнес, съчетавайки технология и креативност.",
+        "sort_order": 2,
+        "is_active": 1,
+        "help_text": "Кратък текст от 2-3 изречения."
+    },
+    {
+        "key_name": "about_content",
+        "label": "Текст за секция 'За нас'",
+        "section_name": "За нас",
+        "type": "editor",
+        "value": "<h3>Нашата история</h3><p>Започнахме през 2020 година с една единствена цел...</p>",
+        "sort_order": 10,
+        "is_active": 1,
+        "help_text": "Използвайте вградения редактор за форматиране на текста."
+    },
+    {
+        "key_name": "promo_banner",
+        "label": "Промоционален банер",
+        "section_name": "Рекламни блокове",
+        "type": "image",
+        "value": "/uploads/defaults/promo-banner.webp",
+        "sort_order": 20,
+        "is_active": 1,
+        "help_text": "Препоръчителен размер: 1200x400px."
+    },
+    {
+        "key_name": "footer_contact_info",
+        "label": "Контактна информация",
+        "section_name": "Общи настройки",
+        "type": "textarea",
+        "value": "гр. София, бул. Витоша 1\nтел: +359 888 123 456",
+        "sort_order": 99,
+        "is_active": 1,
+        "help_text": "Показва се в най-долната част на всяка страница."
+    }
+]
