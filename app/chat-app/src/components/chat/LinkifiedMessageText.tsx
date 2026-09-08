@@ -1,12 +1,12 @@
 import { parseMessageLinks } from "@/utils/chat/message-links";
 import * as WebBrowser from "expo-web-browser";
-import { Text, type TextStyle } from "react-native";
+import { Text, type StyleProp, type TextStyle } from "react-native";
 
 interface LinkifiedMessageTextProps {
   content: string;
   color: string;
   linkColor: string;
-  style?: TextStyle;
+  style?: StyleProp<TextStyle>;
 }
 
 export default function LinkifiedMessageText({ content, color, linkColor, style }: LinkifiedMessageTextProps) {

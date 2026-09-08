@@ -92,12 +92,12 @@ function candidateTypeFromSdp(candidate: string): string | null {
   return match ? match[1].toLowerCase() : null;
 }
 
-function statsRecords(report: unknown): Array<Record<string, unknown>> {
+function statsRecords(report: unknown): Record<string, unknown>[] {
   if (!report || typeof report !== "object") {
     return [];
   }
 
-  const records: Array<Record<string, unknown>> = [];
+  const records: Record<string, unknown>[] = [];
   const withForEach = report as { forEach?: (callback: (value: unknown) => void) => void };
 
   if (typeof withForEach.forEach === "function") {
@@ -114,7 +114,7 @@ function statsRecords(report: unknown): Array<Record<string, unknown>> {
   );
 }
 
-function selectedCandidateType(records: Array<Record<string, unknown>>): string | null {
+function selectedCandidateType(records: Record<string, unknown>[]): string | null {
   const pairs = records.filter((record) => record.type === "candidate-pair");
   const selected =
     pairs.find((record) => record.selected === true || record.nominated === true) ??
@@ -556,7 +556,7 @@ export function useVideoCall({
         const handleEnded = () => {
           if (callIdRef.current === callId) setIsRemoteCameraEnabled(false);
         };
-        videoTrack.addEventListener("ended", handleEnded);
+        videoTrack.onended = handleEnded;
       };
       peer.onicecandidate = (event: IceEvent) => {
         if (!event.candidate || callIdRef.current !== callId) return;

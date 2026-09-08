@@ -26,7 +26,7 @@ export default function AppSplash({ onReady }: AppSplashProps) {
 
 const styles = StyleSheet.create({
   screen: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 100,
     alignItems: "center",
     justifyContent: "center",

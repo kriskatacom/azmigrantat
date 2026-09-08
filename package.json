@@ -2,10 +2,5 @@
   "name": "azmigrantat",
   "private": true,
   "version": "1.0.0",
-  "description": "Azmigrantat monorepo",
-  "workspaces": [
-    "app/chat-app",
-    "app/azmigrantat-realtime",
-    "auth"
-  ]
+  "description": "Azmigrantat monorepo"
 }

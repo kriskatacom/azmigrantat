@@ -19,7 +19,8 @@ export type CallEndReason =
   | "unavailable"
   | "connection_timeout"
   | "answered_elsewhere"
-  | "rejected_elsewhere";
+  | "rejected_elsewhere"
+  | "blocked";
 
 export type CallState =
   | "idle"

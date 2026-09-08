@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   },
 
   pipHitArea: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
 
   pipVideo: {

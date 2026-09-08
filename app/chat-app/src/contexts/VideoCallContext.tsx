@@ -541,7 +541,13 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
         beginIncomingCall(toIncomingCallPayload(pending.meta));
       }
     },
-    [applyCallState, closeIncomingScreen, rejectIncomingCall, socket],
+    [
+      applyCallState,
+      beginIncomingCall,
+      closeIncomingScreen,
+      rejectIncomingCall,
+      socket,
+    ],
   );
 
   useEffect(() => {

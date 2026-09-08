@@ -67,7 +67,7 @@ export default function OfflineScreen() {
 
 const styles = StyleSheet.create({
   screen: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     zIndex: 90,
     alignItems: "center",
     justifyContent: "center",

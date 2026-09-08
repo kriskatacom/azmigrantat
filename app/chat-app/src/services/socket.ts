@@ -44,7 +44,7 @@ export interface MessageReactionPayload {
   message_id: number;
   user_id: number;
   type: string | null;
-  items: Array<{ type: string; count: number }>;
+  items: { type: string; count: number }[];
 }
 
 export interface TypingPayload {

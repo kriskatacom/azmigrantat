@@ -153,14 +153,14 @@ export default function ChatRoom() {
     socket,
     conversationId,
     currentUserId: user?.id,
-    otherUserId: isBlocked ? undefined : otherUser?.id ?? routeUserId,
+    otherUserId: isBlocked ? undefined : otherUser?.id ?? routeUserId ?? undefined,
     lastTypingUpdate,
   });
 
   const { isOtherUserOnline, lastSeenAt } = useChatPresence({
     socket,
     isConnected,
-    otherUserId: isBlocked ? undefined : otherUser?.id ?? routeUserId,
+    otherUserId: isBlocked ? undefined : otherUser?.id ?? routeUserId ?? undefined,
     lastPresenceUpdate,
     lastPresenceStatus,
   });

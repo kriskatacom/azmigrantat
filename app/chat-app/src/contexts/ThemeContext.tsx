@@ -10,6 +10,7 @@ import * as SystemUI from "expo-system-ui";
 import {
   createContext,
   PropsWithChildren,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
@@ -68,9 +69,9 @@ export function ThemeProvider({ children }: PropsWithChildren) {
     void SystemUI.setBackgroundColorAsync(theme.colors.background);
   }, [theme.colors.background]);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     void setAppearancePreference(colorScheme === "dark" ? "light" : "dark");
-  };
+  }, [colorScheme]);
 
   const contextValue = useMemo(
     () => ({
@@ -79,7 +80,7 @@ export function ThemeProvider({ children }: PropsWithChildren) {
       theme,
       toggleTheme,
     }),
-    [appearance, colorScheme, theme],
+    [appearance, colorScheme, theme, toggleTheme],
   );
 
   return (

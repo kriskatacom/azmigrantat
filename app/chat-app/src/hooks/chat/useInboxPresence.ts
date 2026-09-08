@@ -43,7 +43,7 @@ export function useInboxPresence({
         user_id: userId,
       });
     });
-  }, [socket, isConnected, userIdsKey]);
+  }, [socket, isConnected, normalizedUserIds, userIdsKey]);
 
   useEffect(() => {
     if (!lastPresenceStatus) {
@@ -67,7 +67,7 @@ export function useInboxPresence({
 
       return next;
     });
-  }, [lastPresenceStatus, userIdsKey]);
+  }, [lastPresenceStatus, normalizedUserIds, userIdsKey]);
 
   useEffect(() => {
     if (!lastPresenceUpdate) {
@@ -91,7 +91,7 @@ export function useInboxPresence({
 
       return next;
     });
-  }, [lastPresenceUpdate, userIdsKey]);
+  }, [lastPresenceUpdate, normalizedUserIds, userIdsKey]);
 
   useEffect(() => {
     setOnlineUserIds((current) => {
@@ -99,7 +99,7 @@ export function useInboxPresence({
 
       return new Set([...current].filter((id) => allowed.has(id)));
     });
-  }, [userIdsKey]);
+  }, [normalizedUserIds, userIdsKey]);
 
   const isUserOnline = (userId?: number | null) => {
     if (!userId) {
