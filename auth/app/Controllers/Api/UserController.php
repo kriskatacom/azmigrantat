@@ -16,6 +16,7 @@ use App\Models\UserSocialAccount;
 use App\Models\Video;
 use App\Services\BackblazeB2Service;
 use App\Services\BlockService;
+use App\Services\BunnyStreamService;
 use App\Services\PhoneVerificationService;
 use App\Services\RealtimeNotifier;
 use Illuminate\Support\Facades\Validator;
@@ -163,10 +164,21 @@ class UserController extends BaseApiController
             ], 404);
         }
 
+        $this->removeMissingBunnyVideos((int) $profile->id);
+
         $blockService = new BlockService();
         $videos = Video::query()
             ->where('user_id', (int) $profile->id)
-            ->where('status', Video::STATUS_READY)
+            ->where(function ($query) use ($profile, $viewer): void {
+                $query->where('status', Video::STATUS_READY);
+
+                if ((int) $viewer->id === (int) $profile->id) {
+                    $query->orWhereIn('status', [
+                        Video::STATUS_UPLOADING,
+                        Video::STATUS_PROCESSING,
+                    ]);
+                }
+            })
             ->latest('id')
             ->limit(100)
             ->get()
@@ -192,6 +204,30 @@ class UserController extends BaseApiController
                 'blocked_me' => $blockService->isBlockedBy((int) $profile->id, (int) $viewer->id),
             ]), ['videos' => $videos]),
         ]);
+    }
+
+    private function removeMissingBunnyVideos(int $userId): void
+    {
+        $bunny = new BunnyStreamService();
+        if (!$bunny->isConfigured()) {
+            return;
+        }
+
+        Video::query()
+            ->where('user_id', $userId)
+            ->where('status', '!=', Video::STATUS_DELETED)
+            ->get()
+            ->each(static function (Video $video) use ($bunny): void {
+                $exists = $bunny->remoteVideoExists($video);
+                if ($exists === false) {
+                    error_log(sprintf(
+                        '[BunnySync] removed missing local video id=%d guid=%s',
+                        (int) $video->id,
+                        (string) $video->bunny_video_guid,
+                    ));
+                    $video->delete();
+                }
+            });
     }
 
     public function updatePrivacy()

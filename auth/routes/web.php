@@ -152,6 +152,8 @@ $router->get('/api/mobile/videos', [VideoController::class, 'index'], $bearer);
 $router->post('/api/mobile/videos/uploads', [VideoController::class, 'beginUpload'], $bearer);
 $router->post('/api/mobile/videos/{id}/upload-complete', [VideoController::class, 'uploadComplete'], $bearer);
 $router->post('/api/mobile/videos/{id}/thumbnail', [VideoController::class, 'uploadThumbnail'], $bearer);
+$router->post('/api/mobile/videos/{id}', [VideoController::class, 'update'], $bearer);
+$router->delete('/api/mobile/videos/{id}', [VideoController::class, 'destroy'], $bearer);
 $router->get('/api/mobile/videos/{id}/playback', [VideoController::class, 'playback'], $bearer);
 $router->post('/webhooks/bunny/stream', [VideoController::class, 'webhook']);
 

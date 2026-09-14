@@ -24,8 +24,8 @@ final class VideoController extends BaseController
 
         $videos = Video::query()
             ->where('status', Video::STATUS_READY)
-            ->latest('id')
-            ->limit(min(50, max(1, (int) ($_GET['limit'] ?? 30))))
+            ->inRandomOrder()
+            ->limit(min(100, max(1, (int) ($_GET['limit'] ?? 50))))
             ->get();
 
         return $this->json(['success' => true, 'data' => $videos->map(fn (Video $video) => $this->serialize($video))->values()]);
@@ -144,17 +144,79 @@ final class VideoController extends BaseController
 
         try {
             $extension = strtolower(pathinfo((string) $file['name'], PATHINFO_EXTENSION)) ?: 'jpg';
+            $previousThumbnailUrl = $video->thumbnail_url;
             $storage = new BackblazeB2Service($keyId, $applicationKey, $bucket, $endpoint, $region, $cdn);
             $remotePath = sprintf('video-thumbnails/%d/%d-%s.%s', $user->id, $video->id, bin2hex(random_bytes(8)), $extension);
             $stored = $storage->upload((string) $file['tmp_name'], $remotePath, (string) ($file['type'] ?? 'image/jpeg'));
             $video->thumbnail_url = $storage->url($stored['key']);
             $video->save();
+            $this->deleteThumbnailUrl($previousThumbnailUrl);
         } catch (\Throwable $exception) {
             error_log('[Video thumbnail] upload failed: ' . $exception->getMessage());
             return $this->json(['success' => false, 'message' => 'Thumbnail-ът не можа да бъде качен.'], 502);
         }
 
         return $this->json(['success' => true, 'data' => $this->serialize($video)]);
+    }
+
+    public function update($id)
+    {
+        $user = $this->authenticatedUser();
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $video = Video::query()->where('id', (int) $id)->where('user_id', (int) $user->id)->first();
+        if (!$video) {
+            return $this->json(['success' => false, 'message' => 'Видеото не е намерено.'], 404);
+        }
+
+        $input = $this->jsonInput();
+        $title = trim((string) ($input['title'] ?? ''));
+        $description = trim((string) ($input['description'] ?? ''));
+        if ($title === '' || mb_strlen($title) > 120) {
+            return $this->json(['success' => false, 'message' => 'Заглавието трябва да е между 1 и 120 символа.'], 422);
+        }
+        if (mb_strlen($description) > 2000) {
+            return $this->json(['success' => false, 'message' => 'Описанието не може да е по-дълго от 2000 символа.'], 422);
+        }
+
+        try {
+            (new BunnyStreamService())->updateVideoTitle($video, $title);
+            $video->title = $title;
+            $video->description = $description !== '' ? $description : null;
+            $video->save();
+        } catch (RuntimeException $exception) {
+            error_log('[Bunny Stream] video update failed: ' . $exception->getMessage());
+            return $this->json(['success' => false, 'message' => 'Видеото не можа да бъде редактирано.'], 502);
+        }
+
+        return $this->json(['success' => true, 'data' => $this->serialize($video)]);
+    }
+
+    public function destroy($id)
+    {
+        $user = $this->authenticatedUser();
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $video = Video::query()->where('id', (int) $id)->where('user_id', (int) $user->id)->first();
+        if (!$video) {
+            return $this->json(['success' => false, 'message' => 'Видеото не е намерено.'], 404);
+        }
+
+        try {
+            (new BunnyStreamService())->deleteVideo($video);
+        } catch (RuntimeException $exception) {
+            error_log('[Bunny Stream] video deletion failed: ' . $exception->getMessage());
+            return $this->json(['success' => false, 'message' => 'Видеото не можа да бъде изтрито от Bunny Stream.'], 502);
+        }
+
+        $this->deleteThumbnailUrl($video->thumbnail_url);
+        $video->delete();
+
+        return $this->json(['success' => true]);
     }
 
     public function playback($id)
@@ -266,6 +328,31 @@ final class VideoController extends BaseController
             'file_size' => $video->file_size,
             'created_at' => $video->created_at?->toIso8601String(),
         ];
+    }
+
+    private function deleteThumbnailUrl(?string $thumbnailUrl): void
+    {
+        $key = BackblazeB2Service::extractObjectKey($thumbnailUrl);
+        if (!$key) {
+            return;
+        }
+
+        $config = [
+            (string) ($_ENV['B2_KEY_ID'] ?? ''),
+            (string) ($_ENV['B2_APPLICATION_KEY'] ?? ''),
+            (string) ($_ENV['B2_BUCKET'] ?? ''),
+            (string) ($_ENV['B2_ENDPOINT'] ?? ''),
+            (string) ($_ENV['B2_REGION'] ?? ''),
+        ];
+        if (in_array('', $config, true)) {
+            return;
+        }
+
+        try {
+            (new BackblazeB2Service($config[0], $config[1], $config[2], $config[3], $config[4], (string) ($_ENV['B2_CDN_BASE_URL'] ?? '')))->delete($key);
+        } catch (\Throwable $exception) {
+            error_log('[Video thumbnail] deletion failed: ' . $exception->getMessage());
+        }
     }
 
     private function jsonInput(): array

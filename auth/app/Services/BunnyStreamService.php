@@ -45,6 +45,82 @@ final class BunnyStreamService
         return $payload;
     }
 
+    public function updateVideoTitle(Video $video, string $title): void
+    {
+        $this->request('POST', self::API_BASE . '/library/' . $this->libraryId . '/videos/' . rawurlencode($video->bunny_video_guid), [
+            'Content-Type: application/json',
+            'Accept: application/json',
+            'AccessKey: ' . $this->apiKey,
+        ], json_encode(['title' => $title], JSON_THROW_ON_ERROR));
+    }
+
+    public function deleteVideo(Video $video): void
+    {
+        $handle = curl_init(self::API_BASE . '/library/' . $this->libraryId . '/videos/' . rawurlencode($video->bunny_video_guid));
+        if ($handle === false) {
+            throw new RuntimeException('Bunny заявката за изтриване не може да бъде стартирана.');
+        }
+
+        curl_setopt_array($handle, [
+            CURLOPT_CUSTOMREQUEST => 'DELETE',
+            CURLOPT_HTTPHEADER => ['Accept: application/json', 'AccessKey: ' . $this->apiKey],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 20,
+        ]);
+
+        $response = curl_exec($handle);
+        $error = curl_error($handle);
+        $status = (int) curl_getinfo($handle, CURLINFO_HTTP_CODE);
+        curl_close($handle);
+
+        if ($response === false || $error !== '' || $status < 200 || $status >= 300) {
+            throw new RuntimeException('Bunny не успя да изтрие видеото.');
+        }
+    }
+
+    /**
+     * Returns false only when Bunny confirms that the video does not exist.
+     * A null result means the check could not be completed safely.
+     */
+    public function remoteVideoExists(Video $video): ?bool
+    {
+        if (!$this->isConfigured()) {
+            return null;
+        }
+
+        if (trim((string) $video->bunny_video_guid) === '') {
+            return false;
+        }
+
+        $libraryId = (int) $video->bunny_library_id ?: $this->libraryId;
+        $handle = curl_init(self::API_BASE . '/library/' . $libraryId . '/videos/' . rawurlencode($video->bunny_video_guid));
+        if ($handle === false) {
+            return null;
+        }
+
+        curl_setopt_array($handle, [
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_HTTPHEADER => ['Accept: application/json', 'AccessKey: ' . $this->apiKey],
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 10,
+        ]);
+
+        $response = curl_exec($handle);
+        $error = curl_error($handle);
+        $status = (int) curl_getinfo($handle, CURLINFO_HTTP_CODE);
+        curl_close($handle);
+
+        if ($response === false || $error !== '') {
+            return null;
+        }
+
+        if ($status === 404) {
+            return false;
+        }
+
+        return $status >= 200 && $status < 300 ? true : null;
+    }
+
     public function uploadCredentials(string $videoGuid, int $ttlSeconds = 3600): array
     {
         if (!$this->isConfigured()) {

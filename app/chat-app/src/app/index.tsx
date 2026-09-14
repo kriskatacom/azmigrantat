@@ -1,6 +1,7 @@
 import { useUnreadMessageCount } from "@/hooks/chat/useUnreadMessageCount";
 import { useUnreadNotificationCount } from "@/hooks/useUnreadNotificationCount";
 import { useAuth } from "@/hooks/useAuth";
+import HomeVideoFeed from "@/components/video/home-video-feed";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import {
@@ -14,7 +15,9 @@ import {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, token, user } = useAuth();
+  const isHomeVideoFeedDisabled =
+    process.env.EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED === "true";
   const unreadMessageCount = useUnreadMessageCount();
   const unreadNotificationCount = useUnreadNotificationCount();
 
@@ -28,6 +31,9 @@ export default function HomeScreen() {
         resizeMode="cover"
       >
         <View style={styles.overlay} />
+        {!isHomeVideoFeedDisabled && isAuthenticated ? (
+          <HomeVideoFeed token={token} />
+        ) : null}
 
         <View style={styles.topBar}>
           <TouchableOpacity
@@ -117,7 +123,17 @@ export default function HomeScreen() {
             onPress={() => {}}
           />
 
-          <TouchableOpacity style={styles.uploadItem}>
+          <TouchableOpacity
+            style={styles.uploadItem}
+            onPress={() => {
+              if (isAuthenticated) {
+                router.push("/videos/upload");
+                return;
+              }
+
+              router.push({ pathname: "/(auth)/login", params: { returnTo: "/videos/upload" } });
+            }}
+          >
             <View style={styles.uploadCircle}>
               <Ionicons name="add" size={50} color="#103445" />
             </View>

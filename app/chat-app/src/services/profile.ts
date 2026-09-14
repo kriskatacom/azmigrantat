@@ -1,6 +1,7 @@
 import { authorizedJson } from "@/services/session-http";
 import type { AuthUser } from "@/types/auth";
 import type { BlockedUser, BlockedUsersResponse } from "@/types/blocks";
+import type { VideoItem } from "@/types/video";
 import { File } from "expo-file-system";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL!;
@@ -157,6 +158,7 @@ export type PublicUserProfile = {
   is_blocked_by_me: boolean;
   is_blocked_me: boolean;
   can_contact: boolean;
+  videos?: VideoItem[];
 };
 
 export async function getPublicProfile(
