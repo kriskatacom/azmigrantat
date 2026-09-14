@@ -17,6 +17,8 @@ import {
   MISSED_CALL_CALLBACK_ACTION,
   MISSED_CALL_CATEGORY,
   MISSED_CALL_OPEN_CHAT_ACTION,
+  VIDEO_READY_CATEGORY,
+  VIDEO_READY_OPEN_ACTION,
 } from "@/types/notifications";
 import * as Notifications from "expo-notifications";
 import { Stack, useRouter } from "expo-router";
@@ -104,12 +106,11 @@ function NotificationNavigationHandler() {
       console.log("Notification action:", actionIdentifier);
 
       if (data?.type === "video_ready") {
-        const videoId = Number(data?.video_id ?? data?.entity_id);
-        const ownerId = Number(user?.id);
-        if (Number.isInteger(videoId) && videoId > 0 && Number.isInteger(ownerId) && ownerId > 0) {
+        const notificationId = Number(data?.notification_id);
+        if (Number.isInteger(notificationId) && notificationId > 0) {
           router.push({
-            pathname: "/user/[id]",
-            params: { id: String(ownerId), videoId: String(videoId) },
+            pathname: "/notifications/[id]",
+            params: { id: String(notificationId) },
           });
           return;
         }
@@ -332,6 +333,16 @@ function NotificationNavigationHandler() {
       {
         identifier: MISSED_CALL_OPEN_CHAT_ACTION,
         buttonTitle: "Към чата",
+        options: {
+          opensAppToForeground: true,
+        },
+      },
+    ]);
+
+    void Notifications.setNotificationCategoryAsync(VIDEO_READY_CATEGORY, [
+      {
+        identifier: VIDEO_READY_OPEN_ACTION,
+        buttonTitle: "Показване на видеото",
         options: {
           opensAppToForeground: true,
         },

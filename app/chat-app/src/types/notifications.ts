@@ -57,6 +57,8 @@ export type NotificationSocketEvent =
 export const MISSED_CALL_CATEGORY = "missed_call";
 export const MISSED_CALL_CALLBACK_ACTION = "missed_call_callback";
 export const MISSED_CALL_OPEN_CHAT_ACTION = "missed_call_open_chat";
+export const VIDEO_READY_CATEGORY = "video_ready";
+export const VIDEO_READY_OPEN_ACTION = "video_ready_open";
 
 export function isNotificationUnread(notification: {
   is_read?: boolean | number | string | null;

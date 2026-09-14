@@ -11,6 +11,8 @@ import {
   MISSED_CALL_CALLBACK_ACTION,
   MISSED_CALL_CATEGORY,
   MISSED_CALL_OPEN_CHAT_ACTION,
+  VIDEO_READY_CATEGORY,
+  VIDEO_READY_OPEN_ACTION,
 } from "@/types/notifications";
 import { getDeviceIdentity } from "@/services/device-identity";
 
@@ -48,6 +50,16 @@ export async function registerForPushNotifications(
     {
       identifier: MISSED_CALL_OPEN_CHAT_ACTION,
       buttonTitle: "Към чата",
+      options: {
+        opensAppToForeground: true,
+      },
+    },
+  ]);
+
+  await Notifications.setNotificationCategoryAsync(VIDEO_READY_CATEGORY, [
+    {
+      identifier: VIDEO_READY_OPEN_ACTION,
+      buttonTitle: "Показване на видеото",
       options: {
         opensAppToForeground: true,
       },

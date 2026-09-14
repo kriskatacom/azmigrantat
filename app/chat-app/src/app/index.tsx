@@ -2,8 +2,10 @@ import { useUnreadMessageCount } from "@/hooks/chat/useUnreadMessageCount";
 import { useUnreadNotificationCount } from "@/hooks/useUnreadNotificationCount";
 import { useAuth } from "@/hooks/useAuth";
 import HomeVideoFeed from "@/components/video/home-video-feed";
+import { getBackgroundUploadStatus, subscribeToBackgroundUpload } from "@/services/background-upload-state";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   ImageBackground,
   StatusBar,
@@ -20,6 +22,9 @@ export default function HomeScreen() {
     process.env.EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED === "true";
   const unreadMessageCount = useUnreadMessageCount();
   const unreadNotificationCount = useUnreadNotificationCount();
+  const [hasBackgroundUpload, setHasBackgroundUpload] = useState(getBackgroundUploadStatus().active);
+
+  useEffect(() => subscribeToBackgroundUpload((status) => setHasBackgroundUpload(status.active)), []);
 
   return (
     <View style={styles.screen}>
@@ -88,6 +93,21 @@ export default function HomeScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {hasBackgroundUpload ? (
+          <TouchableOpacity
+            style={styles.backgroundUploadNotice}
+            onPress={() => router.push("/videos/upload")}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Покажи прогреса на качването"
+          >
+            <Ionicons name="cloud-upload-outline" size={20} color="#E8E296" />
+            <Text style={styles.backgroundUploadText}>
+              Видеото се качва. Натиснете, за да видите прогреса.
+            </Text>
+          </TouchableOpacity>
+        ) : null}
 
         <View style={styles.quickActions}>
           <TouchableOpacity
@@ -283,6 +303,28 @@ const styles = StyleSheet.create({
     marginLeft: "auto",
     flexDirection: "row",
     alignItems: "center",
+  },
+  backgroundUploadNotice: {
+    position: "absolute",
+    top: 126,
+    left: 16,
+    right: 16,
+    zIndex: 5,
+    minHeight: 48,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    backgroundColor: "rgba(3, 7, 24, 0.94)",
+    borderWidth: 1,
+    borderColor: "rgba(232, 226, 150, 0.55)",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  backgroundUploadText: {
+    flex: 1,
+    color: "#ffffff",
+    fontSize: 13,
+    fontWeight: "700",
   },
   topBadge: {
     position: "absolute",

@@ -43,7 +43,7 @@ function formatNotificationDate(value: string | null): string {
 
 export default function NotificationDetailScreen() {
   const { theme } = useAppTheme();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const notificationId = useMemo(() => {
@@ -104,6 +104,11 @@ export default function NotificationDetailScreen() {
   const updatedLabel = formatInboxMessageTime(
     notification?.updated_at ?? notification?.created_at ?? null,
   );
+  const videoId = notification?.type === "video_ready"
+    ? Number(notification.data?.video_id ?? notification.entity_id)
+    : NaN;
+  const canOpenVideo =
+    Number.isInteger(videoId) && videoId > 0 && Number.isInteger(Number(user?.id));
 
   const handleCallBack = async () => {
     if (!token || !notification || !actorId) return;
@@ -170,6 +175,15 @@ export default function NotificationDetailScreen() {
     } finally {
       setIsBusy(false);
     }
+  };
+
+  const handleOpenVideo = () => {
+    if (!canOpenVideo || !user?.id) return;
+
+    router.push({
+      pathname: "/user/[id]",
+      params: { id: String(user.id), videoId: String(videoId) },
+    });
   };
 
   const handleDelete = () => {
@@ -288,7 +302,21 @@ export default function NotificationDetailScreen() {
             </TouchableOpacity>
           ) : null}
 
-          {notification.actor_id || Number(notification.data?.conversation_id) > 0 ? (
+          {canOpenVideo ? (
+            <TouchableOpacity
+              disabled={isBusy}
+              onPress={handleOpenVideo}
+              style={[styles.primaryButton, { backgroundColor: theme.colors.primary }]}
+              accessibilityRole="button"
+              accessibilityLabel="Отвори видеото"
+            >
+              <FontAwesome name="play" size={18} color="#ffffff" />
+              <Text style={styles.primaryButtonText}>Към видеото</Text>
+            </TouchableOpacity>
+          ) : null}
+
+          {notification.type !== "video_ready" &&
+          (notification.actor_id || Number(notification.data?.conversation_id) > 0) ? (
             <TouchableOpacity
               disabled={isBusy}
               onPress={() => void handleOpenChat()}

@@ -602,6 +602,7 @@ export default function PublicUserProfileScreen() {
           </View> : <VideosSection
             videos={profile.videos ?? []}
             colors={theme.colors}
+            onUploadVideo={() => router.push("/videos/upload")}
             onOpenVideo={openVideo}
             isOpeningVideo={isOpeningVideo}
             canManage={profile.is_self}
@@ -624,7 +625,7 @@ export default function PublicUserProfileScreen() {
       <ConfirmModal
         visible={Boolean(deletingVideo)}
         title="Изтриване на видео"
-        message={`Видеото „${deletingVideo?.title ?? ""}“ ще бъде изтрито от Bunny Stream и профила. Това действие не може да бъде отменено.`}
+        message={`Видеото „${deletingVideo?.title ?? ""}“ ще бъде изтрито от профила. Това действие не може да бъде отменено.`}
         confirmText="Изтрий видеото"
         destructive
         onConfirm={() => void confirmDeleteVideo()}
@@ -657,6 +658,7 @@ export default function PublicUserProfileScreen() {
 function VideosSection({
   videos,
   colors,
+  onUploadVideo,
   onOpenVideo,
   isOpeningVideo,
   canManage,
@@ -665,7 +667,8 @@ function VideosSection({
   isManaging,
 }: {
   videos: VideoItem[];
-  colors: { card: string; border: string; text: string; textSecondary: string; surface: string; icon: string };
+  colors: { card: string; border: string; text: string; textSecondary: string; surface: string; icon: string; primary: string; buttonText: string };
+  onUploadVideo: () => void;
   onOpenVideo: (video: VideoItem) => void;
   isOpeningVideo: boolean;
   canManage: boolean;
@@ -675,7 +678,20 @@ function VideosSection({
 }) {
   return (
     <View style={[styles.videosCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-      <Text style={[styles.aboutTitle, { color: colors.text }]}>Видеоклипове</Text>
+      <View style={styles.videoHeader}>
+        <Text style={[styles.aboutTitle, { color: colors.text }]}>Видеоклипове</Text>
+        {canManage ? (
+          <TouchableOpacity
+            onPress={onUploadVideo}
+            style={[styles.uploadVideoButton, { backgroundColor: colors.primary }]}
+            accessibilityRole="button"
+            accessibilityLabel="Качи видео"
+          >
+            <FontAwesome name="plus" size={13} color={colors.buttonText} />
+            <Text style={[styles.uploadVideoButtonText, { color: colors.buttonText }]}>Качи видео</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
       {videos.length === 0 ? (
         <Text style={[styles.emptyVideos, { color: colors.textSecondary }]}>Този потребител все още няма видеоклипове.</Text>
       ) : (
@@ -1006,6 +1022,9 @@ const styles = StyleSheet.create({
   sectionTab: { flex: 1, alignItems: "center", paddingVertical: 11, borderRadius: 9 },
   sectionTabText: { fontSize: 14, fontWeight: "800" },
   videosCard: { marginTop: 14, marginHorizontal: 16, borderWidth: 1, borderRadius: 16, padding: 16, gap: 12 },
+  videoHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
+  uploadVideoButton: { minHeight: 38, borderRadius: 10, paddingHorizontal: 11, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
+  uploadVideoButtonText: { fontSize: 12, fontWeight: "800" },
   emptyVideos: { fontSize: 14, lineHeight: 20 },
   videoItem: { flexDirection: "row", gap: 12, paddingTop: 12, borderTopWidth: 1 },
   processingVideoItem: { opacity: 0.72 },

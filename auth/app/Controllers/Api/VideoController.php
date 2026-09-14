@@ -210,7 +210,7 @@ final class VideoController extends BaseController
             (new BunnyStreamService())->deleteVideo($video);
         } catch (RuntimeException $exception) {
             error_log('[Bunny Stream] video deletion failed: ' . $exception->getMessage());
-            return $this->json(['success' => false, 'message' => 'Видеото не можа да бъде изтрито от Bunny Stream.'], 502);
+            return $this->json(['success' => false, 'message' => 'Видеото не можа да бъде изтрито.'], 502);
         }
 
         $this->deleteThumbnailUrl($video->thumbnail_url);
@@ -395,7 +395,7 @@ final class VideoController extends BaseController
                         'video_id' => (string) $video->id,
                     ],
                     null,
-                    'chat_message',
+                    'video_ready',
                 );
             }
 
