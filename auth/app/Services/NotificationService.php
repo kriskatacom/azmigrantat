@@ -217,6 +217,53 @@ final class NotificationService
         return $notification;
     }
 
+    public function recordVideoReady(int $recipientId, int $videoId, string $videoTitle): array
+    {
+        $eventKey = 'video_ready:' . $videoId;
+
+        try {
+            return Capsule::connection()->transaction(function () use ($recipientId, $videoId, $videoTitle, $eventKey) {
+                $existingEvent = NotificationEvent::query()
+                    ->where('event_key', $eventKey)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($existingEvent) {
+                    return ['duplicate' => true, 'notification' => Notification::query()->with('actor')->find($existingEvent->notification_id)];
+                }
+
+                $notification = Notification::query()->create([
+                    'user_id' => $recipientId,
+                    'type' => Notification::TYPE_VIDEO_READY,
+                    'title' => 'Видеото е готово',
+                    'message' => '„' . $videoTitle . '“ вече е готово за гледане.',
+                    'count' => 1,
+                    'is_read' => false,
+                    'actor_id' => $recipientId,
+                    'entity_id' => (string) $videoId,
+                    'data' => ['video_id' => $videoId],
+                ]);
+
+                $this->storeEvent($notification->id, $eventKey);
+                $notification->load('actor');
+
+                return ['duplicate' => false, 'notification' => $notification];
+            });
+        } catch (QueryException $exception) {
+            if (!$this->isUniqueViolation($exception)) {
+                throw $exception;
+            }
+
+            $existingEvent = NotificationEvent::query()->where('event_key', $eventKey)->first();
+            return [
+                'duplicate' => true,
+                'notification' => $existingEvent
+                    ? Notification::query()->with('actor')->find($existingEvent->notification_id)
+                    : null,
+            ];
+        }
+    }
+
     public function listForUser(int $userId, int $limit, ?int $beforeId): array
     {
         $limit = max(1, min($limit, 50));

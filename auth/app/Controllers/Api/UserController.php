@@ -13,6 +13,7 @@ use App\Models\TotpAuthPending;
 use App\Models\User;
 use App\Models\UserBlock;
 use App\Models\UserSocialAccount;
+use App\Models\Video;
 use App\Services\BackblazeB2Service;
 use App\Services\BlockService;
 use App\Services\PhoneVerificationService;
@@ -163,14 +164,33 @@ class UserController extends BaseApiController
         }
 
         $blockService = new BlockService();
+        $videos = Video::query()
+            ->where('user_id', (int) $profile->id)
+            ->where('status', Video::STATUS_READY)
+            ->latest('id')
+            ->limit(100)
+            ->get()
+            ->map(static fn (Video $video): array => [
+                'id' => (int) $video->id,
+                'title' => $video->title,
+                'description' => $video->description,
+                'thumbnail_url' => $video->thumbnail_url,
+                'status' => $video->status,
+                'bunny_status' => $video->bunny_status,
+                'mime_type' => $video->mime_type,
+                'file_size' => $video->file_size,
+                'created_at' => $video->created_at?->toIso8601String(),
+            ])
+            ->values()
+            ->all();
 
         return $this->json([
             'success' => true,
-            'data' => $profile->toPublicProfileArray([
+            'data' => array_merge($profile->toPublicProfileArray([
                 'is_self' => (int) $viewer->id === (int) $profile->id,
                 'blocked_by_me' => $blockService->isBlockedBy((int) $viewer->id, (int) $profile->id),
                 'blocked_me' => $blockService->isBlockedBy((int) $profile->id, (int) $viewer->id),
-            ]),
+            ]), ['videos' => $videos]),
         ]);
     }
 

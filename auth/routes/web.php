@@ -8,6 +8,7 @@ use App\Controllers\Api\TotpController;
 use App\Controllers\Api\InternalMobileController;
 use App\Controllers\Api\LinkPreviewController;
 use App\Controllers\Api\LiveController;
+use App\Controllers\Api\VideoController;
 use App\Controllers\Api\MessageController;
 use App\Controllers\Api\EmailLoginController;
 use App\Controllers\Api\DeviceAuthController;
@@ -146,6 +147,13 @@ $router->post('/api/mobile/lives/{id}/join', [LiveController::class, 'join'], $b
 $router->post('/api/mobile/lives/{id}/leave', [LiveController::class, 'leave'], $bearer);
 $router->get('/api/mobile/lives/{id}/comments', [LiveController::class, 'comments'], $bearer);
 $router->post('/api/mobile/lives/{id}/comments', [LiveController::class, 'storeComment'], $bearer);
+
+$router->get('/api/mobile/videos', [VideoController::class, 'index'], $bearer);
+$router->post('/api/mobile/videos/uploads', [VideoController::class, 'beginUpload'], $bearer);
+$router->post('/api/mobile/videos/{id}/upload-complete', [VideoController::class, 'uploadComplete'], $bearer);
+$router->post('/api/mobile/videos/{id}/thumbnail', [VideoController::class, 'uploadThumbnail'], $bearer);
+$router->get('/api/mobile/videos/{id}/playback', [VideoController::class, 'playback'], $bearer);
+$router->post('/webhooks/bunny/stream', [VideoController::class, 'webhook']);
 
 $router->get('/api/mobile/notifications/unread-count', [NotificationController::class, 'unreadCount'], $bearer);
 $router->get('/api/mobile/notifications/{id}', [NotificationController::class, 'show'], $bearer);
