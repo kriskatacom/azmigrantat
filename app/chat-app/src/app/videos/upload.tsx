@@ -2,13 +2,15 @@ import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
 import AppButton from "@/components/ui/AppButton";
 import AppInput from "@/components/ui/AppInput";
+import VideoUploadProgressOverlay, { VideoUploadStage } from "@/components/video/video-upload-progress-overlay";
 import { useAuth } from "@/hooks/useAuth";
 import { beginVideoUpload, completeVideoUpload, getNativeFileSize, uploadVideoThumbnail, uploadVideoWithTus } from "@/services/videos";
+import { getPublicProfile } from "@/services/profile";
 import { File } from "expo-file-system";
 import * as DocumentPicker from "expo-document-picker";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 export default function VideoUploadScreen() {
@@ -21,7 +23,46 @@ export default function VideoUploadScreen() {
   const [thumbnail, setThumbnail] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [progress, setProgress] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [stage, setStage] = useState<VideoUploadStage>("preparing");
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const uploadStarted = useRef(false);
+  const startedAt = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!busy) return;
+    const timer = setInterval(() => {
+      if (startedAt.current !== null) {
+        setElapsedSeconds(Math.floor((Date.now() - startedAt.current) / 1000));
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [busy]);
+
+  const remainingSeconds = stage === "uploading" && progress > 0 && elapsedSeconds > 0
+    ? Math.max(0, Math.ceil((elapsedSeconds * (100 - progress)) / progress))
+    : null;
+
+  async function waitForVideoReady(videoId: number) {
+    if (!token || !user?.id) throw new Error("Липсва потребител за проверка на статуса на видеото.");
+
+    for (;;) {
+      try {
+        const profile = await getPublicProfile(token, user.id);
+        const video = profile.videos?.find((item) => item.id === videoId);
+
+        if (!video) throw new Error("Видеото вече не съществува в профила.");
+        if (video.status === "ready") return;
+        if (video.status === "failed") throw new Error("Bunny Stream не успя да обработи видеото.");
+      } catch (error) {
+        if (error instanceof Error && (error.message.includes("вече не съществува") || error.message.includes("не успя да обработи"))) {
+          throw error;
+        }
+        console.warn("[VideoUpload] Проверка на статуса не успя; ще се повтори.", error);
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 3000));
+    }
+  }
 
   async function chooseVideo() {
     const result = await DocumentPicker.getDocumentAsync({ type: "video/*", copyToCacheDirectory: true });
@@ -40,8 +81,11 @@ export default function VideoUploadScreen() {
     }
 
     uploadStarted.current = true;
+    startedAt.current = Date.now();
     setBusy(true);
     setProgress(0);
+    setElapsedSeconds(0);
+    setStage("preparing");
     try {
       const file = new File(selected.uri);
       const fileSize = getNativeFileSize(file);
@@ -55,8 +99,10 @@ export default function VideoUploadScreen() {
         mimeType: selected.mimeType ?? "video/mp4",
         fileSize,
       });
+      setStage("uploading");
       await uploadVideoWithTus(file, initialized.data.upload, setProgress);
       setProgress(100);
+      setStage("processing");
       await completeVideoUpload(token, initialized.data.video.id);
       if (thumbnail) {
         await uploadVideoThumbnail(token, initialized.data.video.id, {
@@ -65,9 +111,12 @@ export default function VideoUploadScreen() {
           mimeType: thumbnail.mimeType ?? "image/jpeg",
         });
       }
+      await waitForVideoReady(initialized.data.video.id);
+      setBusy(false);
+      await new Promise((resolve) => setTimeout(resolve, 100));
       Alert.alert(
-        "Видеото е качено",
-        "Видеото се обработва и ще бъде достъпно за гледане, когато обработката приключи. Ще получите известие, когато е готово.",
+        "Видеото е готово",
+        "Видеото е качено, обработено и вече е достъпно за гледане.",
         [
           {
             text: "Към публичния ми профил",
@@ -89,6 +138,7 @@ export default function VideoUploadScreen() {
       console.error("[VideoUpload] Качването на видеото не успя.", error);
     } finally {
       setBusy(false);
+      startedAt.current = null;
     }
   }
 
@@ -152,24 +202,16 @@ export default function VideoUploadScreen() {
             {thumbnail ? <Text style={[styles.fileButtonText, { color: theme.colors.text }]}>{thumbnail.fileName ?? "Избрано изображение"}</Text> : null}
           </Pressable>
         </View>
-        {busy ? (
-          <View
-            style={styles.progressGroup}
-            accessibilityRole="progressbar"
-            accessibilityValue={{ min: 0, max: 100, now: progress }}
-          >
-            <View style={styles.progressHeader}>
-              <Text style={[styles.progress, { color: theme.colors.text }]}>Качване</Text>
-              <Text style={[styles.progress, { color: theme.colors.primary }]}>{progress}%</Text>
-            </View>
-            <View style={[styles.progressTrack, { backgroundColor: theme.colors.inputBorder }]}>
-              <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: theme.colors.primary }]} />
-            </View>
-          </View>
-        ) : null}
         <AppButton title={busy ? "Качва се…" : "Качи видео"} loading={busy} disabled={!selected} onPress={() => void upload()} />
       </ScrollView>
       </KeyboardAvoidingView>
+      <VideoUploadProgressOverlay
+        visible={busy}
+        progress={progress}
+        stage={stage}
+        elapsedSeconds={elapsedSeconds}
+        remainingSeconds={remainingSeconds}
+      />
     </View>
   );
 }
@@ -187,9 +229,4 @@ const styles = StyleSheet.create({
   fileButtonHint: { fontSize: 12 },
   thumbnailButton: { minHeight: 120, borderWidth: 1, borderRadius: 14, padding: 10, justifyContent: "center", alignItems: "center", gap: 8 },
   thumbnailPreview: { width: "100%", aspectRatio: 9 / 16, borderRadius: 10 },
-  progressGroup: { gap: 8 },
-  progressHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  progress: { fontSize: 15, fontWeight: "700" },
-  progressTrack: { height: 10, borderRadius: 999, overflow: "hidden" },
-  progressFill: { height: "100%", borderRadius: 999 },
 });

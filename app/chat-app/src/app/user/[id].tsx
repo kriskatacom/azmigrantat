@@ -48,12 +48,17 @@ export default function PublicUserProfileScreen() {
   const callNavigationLockedRef = useRef(false);
   const callNavigationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { token, isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const params = useLocalSearchParams<{ id?: string | string[] }>();
+  const params = useLocalSearchParams<{ id?: string | string[]; videoId?: string | string[] }>();
   const userId = useMemo(() => {
     const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
     const parsed = rawId ? Number(rawId) : NaN;
     return Number.isInteger(parsed) && parsed > 0 ? parsed : NaN;
   }, [params.id]);
+  const videoId = useMemo(() => {
+    const rawVideoId = Array.isArray(params.videoId) ? params.videoId[0] : params.videoId;
+    const parsed = rawVideoId ? Number(rawVideoId) : NaN;
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : NaN;
+  }, [params.videoId]);
 
   const [profile, setProfile] = useState<PublicUserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -69,6 +74,7 @@ export default function PublicUserProfileScreen() {
   const [editThumbnail, setEditThumbnail] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [isSavingVideo, setIsSavingVideo] = useState(false);
   const [deletingVideo, setDeletingVideo] = useState<VideoItem | null>(null);
+  const autoOpenedVideoIdRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
@@ -104,6 +110,30 @@ export default function PublicUserProfileScreen() {
   useEffect(() => {
     void loadProfile();
   }, [loadProfile]);
+
+  const openVideo = useCallback(async (video: VideoItem) => {
+    if (!token || isOpeningVideo || video.status !== "ready") return;
+    setIsOpeningVideo(true);
+    try {
+      const playback = await getVideoPlayback(token, video.id);
+      setSelectedVideo(video);
+      setPlaybackUrl(playback.data.url);
+    } catch (error) {
+      console.error("[VideoPlayback] Видеото не можа да бъде отворено.", error);
+    } finally {
+      setIsOpeningVideo(false);
+    }
+  }, [isOpeningVideo, token]);
+
+  useEffect(() => {
+    if (!profile?.videos || !Number.isInteger(videoId) || autoOpenedVideoIdRef.current === videoId) return;
+
+    const requestedVideo = profile.videos.find((video) => video.id === videoId);
+    if (!requestedVideo || requestedVideo.status !== "ready") return;
+
+    autoOpenedVideoIdRef.current = videoId;
+    void openVideo(requestedVideo);
+  }, [openVideo, profile?.videos, videoId]);
 
   if (isAuthLoading) {
     return (
@@ -211,20 +241,6 @@ export default function PublicUserProfileScreen() {
     void copyText(value).then(() => {
       Alert.alert("Код на потребителя", value);
     });
-  };
-
-  const openVideo = async (video: VideoItem) => {
-    if (!token || isOpeningVideo || video.status !== "ready") return;
-    setIsOpeningVideo(true);
-    try {
-      const playback = await getVideoPlayback(token, video.id);
-      setSelectedVideo(video);
-      setPlaybackUrl(playback.data.url);
-    } catch (error) {
-      console.error("[VideoPlayback] Видеото не можа да бъде отворено.", error);
-    } finally {
-      setIsOpeningVideo(false);
-    }
   };
 
   const closeVideo = () => {

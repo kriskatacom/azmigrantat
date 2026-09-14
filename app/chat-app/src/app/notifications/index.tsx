@@ -31,7 +31,7 @@ type LoadMode = "initial" | "refresh";
 
 export default function NotificationsScreen() {
   const { theme } = useAppTheme();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { lastNotification, lastNotificationEvent, lastNotificationEventAt } = useSocket();
   const router = useRouter();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
@@ -140,6 +140,17 @@ export default function NotificationsScreen() {
   };
 
   const openNotification = (notification: AppNotification) => {
+    if (notification.type === "video_ready" && user?.id) {
+      const videoId = Number(notification.data?.video_id ?? notification.entity_id);
+      if (Number.isInteger(videoId) && videoId > 0) {
+        router.push({
+          pathname: "/user/[id]",
+          params: { id: String(user.id), videoId: String(videoId) },
+        });
+        return;
+      }
+    }
+
     router.push({
       pathname: "/notifications/[id]",
       params: { id: String(notification.id) },

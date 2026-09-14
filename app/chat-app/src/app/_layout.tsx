@@ -91,7 +91,7 @@ export { useAppTheme } from "@/contexts/ThemeContext";
 
 function NotificationNavigationHandler() {
   const router = useRouter();
-  const { token, isAuthenticated } = useAuth();
+  const { token, user, isAuthenticated } = useAuth();
 
   const lastHandledResponseRef = useRef<string | null>(null);
 
@@ -102,6 +102,21 @@ function NotificationNavigationHandler() {
       const actionIdentifier = response.actionIdentifier;
 
       console.log("Notification action:", actionIdentifier);
+
+      if (data?.type === "video_ready") {
+        const videoId = Number(data?.video_id ?? data?.entity_id);
+        const ownerId = Number(user?.id);
+        if (Number.isInteger(videoId) && videoId > 0 && Number.isInteger(ownerId) && ownerId > 0) {
+          router.push({
+            pathname: "/user/[id]",
+            params: { id: String(ownerId), videoId: String(videoId) },
+          });
+          return;
+        }
+
+        router.push("/notifications");
+        return;
+      }
 
       if (
         data?.type === "incoming_call" ||
@@ -281,7 +296,7 @@ function NotificationNavigationHandler() {
 
       console.log("Непознат notification action:", actionIdentifier);
     },
-    [router, token],
+    [router, token, user?.id],
   );
 
   useEffect(() => {

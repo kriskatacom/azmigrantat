@@ -8,7 +8,10 @@ import type {
 } from "@/types/video";
 import { File } from "expo-file-system";
 import { fetch } from "expo/fetch";
+import { Platform } from "react-native";
 import * as tus from "tus-js-client";
+import BunnyNativeUpload from "../../modules/my-module/src/BunnyNativeUploadModule";
+import type { BunnyUploadProgressEvent } from "../../modules/my-module/src/BunnyNativeUpload.types";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -58,6 +61,10 @@ export function uploadVideoWithTus(
   credentials: BunnyUploadCredentials,
   onProgress: (percentage: number) => void,
 ): Promise<void> {
+  if (Platform.OS === "android") {
+    return uploadVideoWithNative(file, credentials, onProgress);
+  }
+
   return new Promise((resolve, reject) => {
     let displayedProgress = 0;
     const nativeFileSize = getNativeFileSize(file);
@@ -68,10 +75,10 @@ export function uploadVideoWithTus(
     const upload = new tus.Upload(reader, {
       endpoint: credentials.endpoint,
       uploadSize: nativeFileSize,
-      // 4 MB is a compromise between mobile reliability and request overhead:
-      // fewer PATCH requests than 2 MB chunks, without the long lock window
-      // that the original 8 MB chunks could create on weak connections.
-      chunkSize: 4 * 1024 * 1024,
+      // Keep chunks very small so Expo's JavaScript readable stream yields back
+      // to the UI thread frequently. Larger chunks can freeze the modal,
+      // percentage and elapsed-time counter while Android reads the file.
+      chunkSize: 512 * 1024,
       headers: {
         AuthorizationSignature: credentials.authorization_signature,
         AuthorizationExpire: String(credentials.authorization_expire),
@@ -116,6 +123,42 @@ export function uploadVideoWithTus(
     });
 
     void upload.start();
+  });
+}
+
+function uploadVideoWithNative(
+  file: File,
+  credentials: BunnyUploadCredentials,
+  onProgress: (percentage: number) => void,
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    let uploadId: string | null = null;
+    const subscription = BunnyNativeUpload.addListener("onProgress", (event: BunnyUploadProgressEvent) => {
+      if (!uploadId || event.uploadId !== uploadId) return;
+      onProgress(Math.max(0, Math.min(100, event.percentage)));
+      if (event.status === "success") {
+        subscription.remove();
+        resolve();
+      } else if (event.status === "error") {
+        subscription.remove();
+        reject(new Error(event.message ?? "Native upload failed."));
+      }
+    });
+
+    try {
+      uploadId = BunnyNativeUpload.startUpload(
+        file.uri,
+        credentials.endpoint,
+        credentials.library_id,
+        credentials.video_id,
+        credentials.authorization_signature,
+        credentials.authorization_expire,
+        file.type || "video/mp4",
+      );
+    } catch (error) {
+      subscription.remove();
+      reject(error);
+    }
   });
 }
 
