@@ -19,6 +19,7 @@ use App\Services\BlockService;
 use App\Services\BunnyStreamService;
 use App\Services\PhoneVerificationService;
 use App\Services\RealtimeNotifier;
+use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Support\Facades\Validator;
 
 class UserController extends BaseApiController
@@ -184,6 +185,19 @@ class UserController extends BaseApiController
             ->latest('id');
 
         $videoTotal = (clone $videoQuery)->count();
+        $readyVideoQuery = Video::query()
+            ->where('user_id', (int) $profile->id)
+            ->where('status', Video::STATUS_READY);
+        $videoStats = [
+            'video_count' => (int) (clone $readyVideoQuery)->count(),
+            'total_views' => (int) (clone $readyVideoQuery)->sum('total_views'),
+            'unique_viewers' => (int) Capsule::table('video_views')
+                ->join('videos', 'videos.id', '=', 'video_views.video_id')
+                ->where('videos.user_id', (int) $profile->id)
+                ->where('videos.status', Video::STATUS_READY)
+                ->distinct()
+                ->count('video_views.user_id'),
+        ];
         $videos = $videoQuery
             ->forPage($videoPage, $videoLimit)
             ->get()
@@ -211,6 +225,7 @@ class UserController extends BaseApiController
                 'blocked_me' => $blockService->isBlockedBy((int) $profile->id, (int) $viewer->id),
             ]), [
                 'videos' => $videos,
+                'video_stats' => $videoStats,
                 'videos_pagination' => [
                     'page' => $videoPage,
                     'limit' => $videoLimit,

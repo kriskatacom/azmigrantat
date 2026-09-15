@@ -159,6 +159,11 @@ export type PublicUserProfile = {
   is_blocked_me: boolean;
   can_contact: boolean;
   videos?: VideoItem[];
+  video_stats?: {
+    video_count: number;
+    total_views: number;
+    unique_viewers: number;
+  };
   videos_pagination?: VideoPagination;
 };
 

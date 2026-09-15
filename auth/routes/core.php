@@ -3,6 +3,7 @@
 use App\Controllers\AdminController;
 use App\Controllers\AdminEnvVariablesController;
 use App\Controllers\AdminSettingsController;
+use App\Controllers\AdminStatisticsController;
 use App\Controllers\InstallController;
 use App\Controllers\StorageController;
 use App\Controllers\UserController;
@@ -33,6 +34,7 @@ $router->get('/users/logout', [UserController::class, 'logout'], [AuthMiddleware
 $router->post('/users/logout', [UserController::class, 'logout'], [AuthMiddleware::class]);
 
 $router->get('/admin/dashboard', [AdminController::class, 'dashboard'], $adminAuth);
+$router->get('/admin/statistics', [AdminStatisticsController::class, 'index'], $adminAuth);
 $router->post('/admin/sidebar-toggle', [AdminController::class, 'sidebarToggle'], $adminAuth);
 $router->get('/admin/settings', [AdminSettingsController::class, 'edit'], $adminAuth);
 $router->post('/admin/settings', [AdminSettingsController::class, 'update'], $adminAuth);

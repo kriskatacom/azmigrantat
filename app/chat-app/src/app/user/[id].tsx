@@ -638,6 +638,7 @@ export default function PublicUserProfileScreen() {
 
           <VideosSection
             videos={profile.videos ?? []}
+            videoStats={profile.video_stats}
             colors={theme.colors}
             onUploadVideo={() => router.push("/videos/upload")}
             onDeleteAllVideos={() => setConfirmDeleteAll(true)}
@@ -745,6 +746,7 @@ export default function PublicUserProfileScreen() {
 
 function VideosSection({
   videos,
+  videoStats,
   colors,
   onUploadVideo,
   onDeleteAllVideos,
@@ -756,6 +758,7 @@ function VideosSection({
   onViewAll,
 }: {
   videos: VideoItem[];
+  videoStats?: PublicUserProfile["video_stats"];
   colors: { card: string; border: string; text: string; textSecondary: string; surface: string; icon: string; primary: string; buttonText: string };
   onUploadVideo: () => void;
   onDeleteAllVideos: () => void;
@@ -796,7 +799,9 @@ function VideosSection({
       {videos.length === 0 ? (
         <Text style={[styles.emptyVideos, { color: colors.textSecondary }]}>Този потребител все още няма видеоклипове.</Text>
       ) : (
-        videos.map((video) => (
+        <>
+          {videoStats ? <VideoStatsCard stats={videoStats} colors={colors} /> : null}
+          {videos.map((video) => (
           <Pressable
             key={video.id}
             onPress={() => onOpenVideo(video)}
@@ -834,7 +839,8 @@ function VideosSection({
               </TouchableOpacity>
             ) : null}
           </Pressable>
-        ))
+          ))}
+        </>
       )}
       <View style={styles.viewAllVideosButton}>
         <CtaButton
@@ -845,6 +851,45 @@ function VideosSection({
           onPress={onViewAll}
         />
       </View>
+    </View>
+  );
+}
+
+function VideoStatsCard({
+  stats,
+  colors,
+}: {
+  stats: NonNullable<PublicUserProfile["video_stats"]>;
+  colors: { card: string; border: string; text: string; textSecondary: string; icon: string };
+}) {
+  return (
+    <View style={[styles.videoStatsCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <View style={styles.videoStatsHeading}>
+        <FontAwesome name="bar-chart" size={14} color={colors.icon} />
+        <Text style={[styles.videoStatsTitle, { color: colors.text }]}>Статистика</Text>
+      </View>
+      <View style={styles.videoStatsValues}>
+        <VideoStat value={stats.video_count} label="Видеа" colors={colors} />
+        <VideoStat value={stats.total_views} label="Гледания" colors={colors} />
+        <VideoStat value={stats.unique_viewers} label="Зрители" colors={colors} />
+      </View>
+    </View>
+  );
+}
+
+function VideoStat({
+  value,
+  label,
+  colors,
+}: {
+  value: number;
+  label: string;
+  colors: { text: string; textSecondary: string };
+}) {
+  return (
+    <View style={styles.videoStat}>
+      <Text style={[styles.videoStatValue, { color: colors.text }]}>{Math.max(0, value).toLocaleString("bg-BG")}</Text>
+      <Text style={[styles.videoStatLabel, { color: colors.textSecondary }]}>{label}</Text>
     </View>
   );
 }
@@ -1129,6 +1174,13 @@ const styles = StyleSheet.create({
   aboutText: { flex: 1, fontSize: 15, lineHeight: 21, fontWeight: "500" },
   hint: { fontSize: 12, lineHeight: 18, marginTop: 4 },
   videosCard: { marginTop: 14, marginHorizontal: 16, gap: 12 },
+  videoStatsCard: { borderWidth: 1, borderRadius: 14, padding: 12, gap: 10 },
+  videoStatsHeading: { flexDirection: "row", alignItems: "center", gap: 8 },
+  videoStatsTitle: { fontSize: 14, fontWeight: "800" },
+  videoStatsValues: { flexDirection: "row", justifyContent: "space-between", gap: 8 },
+  videoStat: { flex: 1, gap: 2 },
+  videoStatValue: { fontSize: 18, fontWeight: "800", fontVariant: ["tabular-nums"] },
+  videoStatLabel: { fontSize: 12, fontWeight: "600" },
   videoHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
   videoHeaderActions: { flexDirection: "row", alignItems: "center", gap: 8 },
   uploadVideoButton: { width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" },
