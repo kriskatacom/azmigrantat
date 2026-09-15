@@ -141,7 +141,15 @@ class CategoryController extends BaseController
 
     private function prepareData(array $data, array $files, ?int $ignoreId = null): array
     {
-        $data['slug'] = Str::slug($data['slug'] ?: $data['name']);
+        $providedSlug = trim((string)($data['slug'] ?? ''));
+        $scheme = strtolower((string)parse_url($providedSlug, PHP_URL_SCHEME));
+        $isExternalUrl = filter_var($providedSlug, FILTER_VALIDATE_URL) !== false
+            && in_array($scheme, ['http', 'https'], true);
+
+        // Keep valid external links as-is; legacy values remain normal slugs.
+        $data['slug'] = $isExternalUrl
+            ? $providedSlug
+            : Str::slug($providedSlug ?: $data['name']);
 
         $originalSlug = $data['slug'];
         $count = 1;

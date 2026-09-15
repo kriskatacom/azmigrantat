@@ -140,7 +140,7 @@ export default function HomeScreen() {
           <NavigationItem
             icon="grid-outline"
             label="Категории"
-            onPress={() => {}}
+            onPress={() => router.push("/categories")}
           />
 
           <TouchableOpacity

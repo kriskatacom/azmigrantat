@@ -33,7 +33,7 @@ $parentCategories = \App\Models\Category::where('id', '!=', $category->id ?? 0)
         <?php Form::section('Основни данни', function () use ($category, $parentCategories) { ?>
             <?php 
             Form::input('Име на категория', 'name', $category->name ?? '', 'text', ['required' => true, 'placeholder' => 'напр. Електроника']);
-            Form::input('Slug (URL)', 'slug', $category->slug ?? '', 'text', ['placeholder' => 'electronics']);
+            Form::input('Slug или външен URL', 'slug', $category->slug ?? '', 'text', ['placeholder' => 'https://example.com или electronics']);
             View::component('select2', 'admin/partials', [
                 'label'       => 'Родителска категория',
                 'name'        => 'parent_id',
