@@ -4,11 +4,13 @@ import AppButton from "@/components/ui/AppButton";
 import { useAuth } from "@/hooks/useAuth";
 import { getShortVideoPlans } from "@/services/payments";
 import type { ShortVideoPlan } from "@/types/payments";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { SHORT_VIDEO_PLAN_PRICES } from "@/constants/short-video-plans";
+
+const SUBSCRIPTIONS_URL = process.env.EXPO_PUBLIC_SUBSCRIPTIONS_URL ?? "https://users.azmigrantat.com/subscriptions";
 
 const planOrder = ["free", "creator", "creator_plus", "creator_pro"];
 const BRAND_BLUE = "#65C9E2";
@@ -67,7 +69,6 @@ const planDetails: Record<string, Pick<ShortVideoPlan, "description" | "features
 export default function SubscriptionsScreen() {
   const { theme } = useAppTheme();
   const { token } = useAuth();
-  const router = useRouter();
   const [plans, setPlans] = useState<Record<string, ShortVideoPlan>>({});
   const [isLoading, setIsLoading] = useState(true);
 
@@ -124,7 +125,7 @@ export default function SubscriptionsScreen() {
               <View style={styles.features}>
                 {features.map((feature) => <View key={feature} style={styles.featureRow}><Ionicons name="checkmark-circle" size={19} color={BRAND_BLUE} /><Text style={[styles.featureText, { color: theme.colors.text }]}>{feature}</Text></View>)}
               </View>
-              {!isFree ? <AppButton title="Избери план" onPress={() => router.push("/(profile)/payments")} /> : <Text style={[styles.freeNote, { color: theme.colors.textSecondary }]}>Подходящ за проба и лично използване.</Text>}
+              {!isFree ? <AppButton title="Плати през сайта" onPress={() => void Linking.openURL(`${SUBSCRIPTIONS_URL}?plan=${encodeURIComponent(key)}`)} /> : <Text style={[styles.freeNote, { color: theme.colors.textSecondary }]}>Подходящ за проба и лично използване.</Text>}
             </View>
           );
         })}

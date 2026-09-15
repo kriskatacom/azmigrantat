@@ -24,8 +24,8 @@ final class SubscriptionService
             throw new RuntimeException('Избраният план не е конфигуриран за плащане.');
         }
 
-        $success = $this->setting('STRIPE_SUCCESS_URL', 'https://azmigrantat.com/subscription/success');
-        $cancel = $this->setting('STRIPE_CANCEL_URL', 'https://azmigrantat.com/subscription/cancel');
+        $success = $this->setting('STRIPE_SUCCESS_URL', 'https://azmigrantat.com/subscriptions/success');
+        $cancel = $this->setting('STRIPE_CANCEL_URL', 'https://azmigrantat.com/subscriptions/cancel');
 
         $session = $this->stripe('checkout/sessions', [
             'mode' => 'subscription',

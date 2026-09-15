@@ -8,6 +8,7 @@ use App\Controllers\InstallController;
 use App\Controllers\StorageController;
 use App\Controllers\UserController;
 use App\Controllers\OauthAppController;
+use App\Controllers\SubscriptionWebController;
 use App\Middlewares\AdminMiddleware;
 use App\Middlewares\AuthMiddleware;
 use App\Middlewares\GuestMiddleware;
@@ -29,6 +30,11 @@ $router->post('/users/reset-password', [UserController::class, 'resetPassword'],
 
 $router->get('/users/profile', [UserController::class, 'profile'], [AuthMiddleware::class]);
 $router->post('/users/profile/update', [UserController::class, 'profileUpdate'], [AuthMiddleware::class]);
+
+$router->get('/subscriptions', [SubscriptionWebController::class, 'index']);
+$router->post('/subscriptions/checkout', [SubscriptionWebController::class, 'checkout']);
+$router->get('/subscriptions/success', [SubscriptionWebController::class, 'success']);
+$router->get('/subscriptions/cancel', [SubscriptionWebController::class, 'cancel']);
 
 $router->get('/users/logout', [UserController::class, 'logout'], [AuthMiddleware::class]);
 $router->post('/users/logout', [UserController::class, 'logout'], [AuthMiddleware::class]);
