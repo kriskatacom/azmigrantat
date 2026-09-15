@@ -30,6 +30,7 @@ export default function UserVideosScreen() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [selectedVideoIndex, setSelectedVideoIndex] = useState(-1);
   const [playbackUrls, setPlaybackUrls] = useState<Record<number, string>>({});
+  const [playbackExpiresAt, setPlaybackExpiresAt] = useState<Record<number, number>>({});
   const [isPagerVisible, setIsPagerVisible] = useState(false);
   const [isOpeningVideo, setIsOpeningVideo] = useState(false);
 
@@ -67,16 +68,20 @@ export default function UserVideosScreen() {
   const loadPlaybackAtIndex = useCallback(async (index: number) => {
     const video = videos[index];
     if (!video || !token || isOpeningVideo || video.status !== "ready") return;
+    const cachedUrl = playbackUrls[video.id];
+    const expiresAt = playbackExpiresAt[video.id] ?? 0;
+    if (cachedUrl && (!expiresAt || expiresAt > Math.floor(Date.now() / 1000) + 30)) return;
     setIsOpeningVideo(true);
     try {
       const response = await getVideoPlayback(token, video.id);
       setPlaybackUrls((current) => ({ ...current, [video.id]: response.data.url }));
+      setPlaybackExpiresAt((current) => ({ ...current, [video.id]: response.data.expires_at }));
     } catch (error) {
       console.error("[VideoPlayback] Видеото не можа да бъде отворено.", error);
     } finally {
       setIsOpeningVideo(false);
     }
-  }, [isOpeningVideo, token, videos]);
+  }, [isOpeningVideo, playbackExpiresAt, playbackUrls, token, videos]);
 
   const openVideo = useCallback(async (video: VideoItem) => {
     const index = videos.findIndex((item) => item.id === video.id);

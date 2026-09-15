@@ -3,7 +3,7 @@ import Header from "@/components/Header";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import ChatMoreOptionsModal from "@/components/chat/chat-more-options-modal";
 import RemoteImage from "@/components/ui/RemoteImage";
-import ProfileVideoPlayer from "@/components/video/profile-video-player";
+import ProfileVideoPager from "@/components/video/profile-video-pager";
 import VideoEditModal from "@/components/video/video-edit-modal";
 import { toPublicFileUrl } from "@/utils/public-file-url";
 import { phoneDisplayParts } from "@/constants/european-dial-codes";
@@ -71,8 +71,10 @@ export default function PublicUserProfileScreen() {
   const [isAboutExpanded, setIsAboutExpanded] = useState(true);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const [videoMenuTarget, setVideoMenuTarget] = useState<VideoItem | null>(null);
-  const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
-  const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
+  const [selectedVideoIndex, setSelectedVideoIndex] = useState(-1);
+  const [playbackUrls, setPlaybackUrls] = useState<Record<number, string>>({});
+  const [playbackExpiresAt, setPlaybackExpiresAt] = useState<Record<number, number>>({});
+  const [isVideoPagerVisible, setIsVideoPagerVisible] = useState(false);
   const [isOpeningVideo, setIsOpeningVideo] = useState(false);
   const [editingVideo, setEditingVideo] = useState<VideoItem | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -121,19 +123,32 @@ export default function PublicUserProfileScreen() {
     void loadProfile();
   }, [loadProfile]);
 
-  const openVideo = useCallback(async (video: VideoItem) => {
-    if (!token || isOpeningVideo || video.status !== "ready") return;
+  const loadVideoPlayback = useCallback(async (index: number) => {
+    const video = profile?.videos?.[index];
+    if (!token || !video || isOpeningVideo || video.status !== "ready") return;
+    const cachedUrl = playbackUrls[video.id];
+    const expiresAt = playbackExpiresAt[video.id] ?? 0;
+    if (cachedUrl && (!expiresAt || expiresAt > Math.floor(Date.now() / 1000) + 30)) return;
     setIsOpeningVideo(true);
     try {
       const playback = await getVideoPlayback(token, video.id);
-      setSelectedVideo(video);
-      setPlaybackUrl(playback.data.url);
+      setPlaybackUrls((current) => ({ ...current, [video.id]: playback.data.url }));
+      setPlaybackExpiresAt((current) => ({ ...current, [video.id]: playback.data.expires_at }));
     } catch (error) {
       console.error("[VideoPlayback] Видеото не можа да бъде отворено.", error);
     } finally {
       setIsOpeningVideo(false);
     }
-  }, [isOpeningVideo, token]);
+  }, [isOpeningVideo, playbackExpiresAt, playbackUrls, profile?.videos, token]);
+
+  const openVideo = useCallback(async (video: VideoItem) => {
+    if (!token || isOpeningVideo || video.status !== "ready") return;
+    const index = profile?.videos?.findIndex((item) => item.id === video.id) ?? -1;
+    if (index < 0) return;
+    setSelectedVideoIndex(index);
+    setIsVideoPagerVisible(true);
+    await loadVideoPlayback(index);
+  }, [isOpeningVideo, loadVideoPlayback, profile?.videos, token]);
 
   useEffect(() => {
     if (!profile?.videos || !Number.isInteger(videoId) || autoOpenedVideoIdRef.current === videoId) return;
@@ -144,6 +159,11 @@ export default function PublicUserProfileScreen() {
     autoOpenedVideoIdRef.current = videoId;
     void openVideo(requestedVideo);
   }, [openVideo, profile?.videos, videoId]);
+
+  const closeVideo = useCallback(() => {
+    setIsVideoPagerVisible(false);
+    setSelectedVideoIndex(-1);
+  }, []);
 
   if (isAuthLoading) {
     return (
@@ -251,11 +271,6 @@ export default function PublicUserProfileScreen() {
     void copyText(value).then(() => {
       Alert.alert("Код на потребителя", value);
     });
-  };
-
-  const closeVideo = () => {
-    setPlaybackUrl(null);
-    setSelectedVideo(null);
   };
 
   const startEditingVideo = (video: VideoItem) => {
@@ -694,11 +709,15 @@ export default function PublicUserProfileScreen() {
         onSave={() => void saveVideo()}
         onCancel={() => setEditingVideo(null)}
       />
-      <ProfileVideoPlayer
-        visible={Boolean(selectedVideo && playbackUrl)}
-        title={selectedVideo?.title ?? "Видео"}
-        description={selectedVideo?.description ?? null}
-        url={playbackUrl}
+      <ProfileVideoPager
+        visible={isVideoPagerVisible}
+        videos={profile?.videos ?? []}
+        initialIndex={selectedVideoIndex}
+        playbackUrls={playbackUrls}
+        onRequestPlayback={(index) => {
+          setSelectedVideoIndex(index);
+          void loadVideoPlayback(index);
+        }}
         onClose={closeVideo}
         colors={theme.colors}
       />

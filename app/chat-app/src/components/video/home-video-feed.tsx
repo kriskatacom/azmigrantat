@@ -1,18 +1,25 @@
 import { listVideos, getVideoPlayback } from "@/services/videos";
 import VideoCaption from "@/components/video/video-caption";
 import type { VideoItem } from "@/types/video";
+import { useEventListener } from "expo";
+import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type FeedVideo = VideoItem & { playbackUrl: string };
 
 export default function HomeVideoFeed({ token }: { token: string | null }) {
   const { height, width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [videos, setVideos] = useState<FeedVideo[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isCaptionVisible, setIsCaptionVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenIndex, setFullscreenIndex] = useState(0);
   const requestId = useRef(0);
   const captionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -106,7 +113,7 @@ export default function HomeVideoFeed({ token }: { token: string | null }) {
         renderItem={({ item, index }) => (
           <HomeVideoCard
             video={item}
-            active={index === activeIndex}
+            active={index === activeIndex && !isFullscreen}
             width={width}
             height={height}
             captionVisible={isCaptionVisible}
@@ -122,6 +129,60 @@ export default function HomeVideoFeed({ token }: { token: string | null }) {
         windowSize={3}
         onMomentumScrollEnd={(event) => onMomentumScrollEnd(event.nativeEvent.contentOffset.y)}
       />
+      <Pressable
+        style={[styles.fullscreenButton, { top: 128 }]}
+        onPress={() => {
+          setFullscreenIndex(activeIndex);
+          setIsFullscreen(true);
+        }}
+        accessibilityRole="button"
+        accessibilityLabel="Отвори видеото на цял екран"
+      >
+        <Ionicons name="expand-outline" size={24} color="#ffffff" />
+      </Pressable>
+      <Modal
+        visible={isFullscreen}
+        animationType="fade"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setIsFullscreen(false)}
+      >
+        <View style={styles.fullscreenScreen}>
+          <FlatList
+            data={videos}
+            keyExtractor={(item) => `fullscreen-${item.id}`}
+            renderItem={({ item, index }) => (
+              <HomeVideoCard
+                video={item}
+                active={index === fullscreenIndex}
+                width={width}
+                height={height}
+                captionVisible={false}
+                onToggleCaption={() => undefined}
+                showCaption={false}
+              />
+            )}
+            getItemLayout={(_, index) => ({ length: height, offset: height * index, index })}
+            initialScrollIndex={fullscreenIndex}
+            pagingEnabled
+            showsVerticalScrollIndicator={false}
+            decelerationRate="fast"
+            initialNumToRender={1}
+            maxToRenderPerBatch={2}
+            windowSize={3}
+            onMomentumScrollEnd={(event) => {
+              setFullscreenIndex(Math.max(0, Math.round(event.nativeEvent.contentOffset.y / height)));
+            }}
+          />
+          <Pressable
+            style={[styles.exitFullscreenButton, { top: Math.max(insets.top + 12, 20) }]}
+            onPress={() => setIsFullscreen(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Върни нормалния режим"
+          >
+            <Ionicons name="contract-outline" size={24} color="#ffffff" />
+          </Pressable>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -133,6 +194,7 @@ function HomeVideoCard({
   height,
   captionVisible,
   onToggleCaption,
+  showCaption = true,
 }: {
   video: FeedVideo;
   active: boolean;
@@ -140,10 +202,16 @@ function HomeVideoCard({
   height: number;
   captionVisible: boolean;
   onToggleCaption: () => void;
+  showCaption?: boolean;
 }) {
   const player = useVideoPlayer(video.playbackUrl, (instance) => {
     instance.loop = true;
     instance.muted = false;
+  });
+  const [isReady, setIsReady] = useState(player.status === "readyToPlay");
+
+  useEventListener(player, "statusChange", ({ status }) => {
+    setIsReady(status === "readyToPlay");
   });
 
   useEffect(() => {
@@ -157,18 +225,36 @@ function HomeVideoCard({
   return (
     <View style={{ width, height }}>
       <VideoView player={player} style={styles.video} contentFit="cover" nativeControls={false} />
-      <Pressable
-        style={styles.touchLayer}
-        onPress={onToggleCaption}
-        accessibilityRole="button"
-        accessibilityLabel="Покажи заглавието и описанието"
-      />
-      <VideoCaption
-        title={video.title}
-        description={video.description ?? null}
-        visible={captionVisible}
-        height="35%"
-      />
+      {video.thumbnail_url && !isReady ? (
+        <Image
+          source={{ uri: video.thumbnail_url }}
+          style={styles.thumbnail}
+          contentFit="cover"
+          cachePolicy="memory-disk"
+          pointerEvents="none"
+        />
+      ) : null}
+      {showCaption ? (
+        <>
+          <Pressable
+            style={styles.touchLayer}
+            onPress={onToggleCaption}
+            accessibilityRole="button"
+            accessibilityLabel="Покажи заглавието и описанието"
+          />
+          <VideoCaption
+            title={video.title}
+            description={video.description ?? null}
+            visible={captionVisible}
+            height="35%"
+            maxHeight={height * 0.35}
+            allowExpand
+            fitContent
+            bottomOffset={160}
+            topOffset={120}
+          />
+        </>
+      ) : null}
     </View>
   );
 }
@@ -177,6 +263,30 @@ const styles = StyleSheet.create({
   container: { ...StyleSheet.absoluteFill, backgroundColor: "#000" },
   loader: { ...StyleSheet.absoluteFill, zIndex: 1 },
   video: { ...StyleSheet.absoluteFill, backgroundColor: "#000" },
+  thumbnail: { ...StyleSheet.absoluteFill, backgroundColor: "#000" },
+  fullscreenScreen: { flex: 1, backgroundColor: "#000" },
+  fullscreenButton: {
+    position: "absolute",
+    right: 18,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.62)",
+    zIndex: 10,
+    elevation: 10,
+  },
+  exitFullscreenButton: {
+    position: "absolute",
+    right: 18,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.62)",
+  },
   touchLayer: {
     position: "absolute",
     top: 0,

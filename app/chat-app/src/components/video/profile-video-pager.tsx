@@ -1,5 +1,7 @@
 import type { VideoItem } from "@/types/video";
 import VideoCaption from "@/components/video/video-caption";
+import { useEventListener } from "expo";
+import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -40,6 +42,7 @@ export default function ProfileVideoPager({
 }: Props) {
   const { height, width } = useWindowDimensions();
   const listRef = useRef<FlatList<VideoItem>>(null);
+  const activeIndexRef = useRef(Math.max(0, initialIndex));
   const captionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isCaptionVisible, setIsCaptionVisible] = useState(false);
 
@@ -48,6 +51,12 @@ export default function ProfileVideoPager({
       if (captionTimer.current) clearTimeout(captionTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!visible || initialIndex < 0 || initialIndex === activeIndexRef.current) return;
+    activeIndexRef.current = initialIndex;
+    listRef.current?.scrollToIndex({ index: initialIndex, animated: false });
+  }, [initialIndex, visible]);
 
   const toggleCaption = () => {
     const nextVisible = !isCaptionVisible;
@@ -96,6 +105,8 @@ export default function ProfileVideoPager({
                 Math.round(event.nativeEvent.contentOffset.y / height),
               ),
             );
+            if (index === activeIndexRef.current) return;
+            activeIndexRef.current = index;
             setIsCaptionVisible(false);
             onRequestPlayback(index);
           }}
@@ -133,7 +144,7 @@ function ProfileVideoSlide({
   return (
     <View style={[styles.slide, { width, height }]}>
       {url ? (
-        <PlayableVideo url={url} />
+        <PlayableVideo url={url} thumbnailUrl={video.thumbnail_url} />
       ) : (
         <TouchableOpacity
           style={styles.loading}
@@ -156,6 +167,7 @@ function ProfileVideoSlide({
         description={video.description ?? null}
         visible={captionVisible}
         height="22%"
+        maxHeight={height * 0.22}
         allowExpand
         fitContent
       />
@@ -163,20 +175,36 @@ function ProfileVideoSlide({
   );
 }
 
-function PlayableVideo({ url }: { url: string }) {
+function PlayableVideo({ url, thumbnailUrl }: { url: string; thumbnailUrl: string | null }) {
   const player = useVideoPlayer(url, (instance) => {
     instance.loop = false;
     instance.muted = false;
     instance.play();
   });
+  const [isReady, setIsReady] = useState(player.status === "readyToPlay");
+
+  useEventListener(player, "statusChange", ({ status }) => {
+    setIsReady(status === "readyToPlay");
+  });
 
   return (
-    <VideoView
-      player={player}
-      style={styles.video}
-      contentFit="contain"
-      nativeControls={false}
-    />
+    <>
+      <VideoView
+        player={player}
+        style={styles.video}
+        contentFit="contain"
+        nativeControls={false}
+      />
+      {thumbnailUrl && !isReady ? (
+        <Image
+          source={{ uri: thumbnailUrl }}
+          style={styles.thumbnail}
+          contentFit="contain"
+          cachePolicy="memory-disk"
+          pointerEvents="none"
+        />
+      ) : null}
+    </>
   );
 }
 
@@ -192,6 +220,14 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   video: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: "#000",
+  },
+  thumbnail: {
     position: "absolute",
     top: 0,
     right: 0,

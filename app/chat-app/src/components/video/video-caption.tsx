@@ -15,6 +15,9 @@ export default function VideoCaption({
   height = "20%",
   allowExpand = false,
   fitContent = false,
+  bottomOffset = 0,
+  topOffset = 0,
+  maxHeight,
 }: {
   title: string;
   description: string | null;
@@ -22,14 +25,17 @@ export default function VideoCaption({
   height?: number | `${number}%`;
   allowExpand?: boolean;
   fitContent?: boolean;
+  bottomOffset?: number;
+  topOffset?: number;
+  maxHeight?: number;
 }) {
   const opacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
   const [expanded, setExpanded] = useState(false);
-  const [maxCollapsedHeight, setMaxCollapsedHeight] = useState<number | null>(null);
   const [titleLineCount, setTitleLineCount] = useState(1);
   const [descriptionLineCount, setDescriptionLineCount] = useState(description ? 1 : 0);
+  const [measuredMaxHeight, setMeasuredMaxHeight] = useState<number | null>(null);
   const insets = useSafeAreaInsets();
-  const bottomInset = Math.max(insets.bottom + 8, 24);
+  const bottomInset = Math.max(insets.bottom + 8, 24, bottomOffset);
 
   const hasMoreContent = useMemo(() => {
     const titleWords = title.trim().split(/\s+/).filter(Boolean).length;
@@ -47,9 +53,9 @@ export default function VideoCaption({
 
   useEffect(() => {
     setExpanded(false);
-    setMaxCollapsedHeight(null);
     setTitleLineCount(1);
     setDescriptionLineCount(description ? 1 : 0);
+    setMeasuredMaxHeight(null);
   }, [description, title]);
 
   const collapsedContentHeight =
@@ -58,8 +64,9 @@ export default function VideoCaption({
     (descriptionLineCount > 0 ? 4 + descriptionLineCount * 20 : 0) +
     (allowExpand && hasMoreContent ? 4 + 28 : 0) +
     12;
-  const collapsedHeight = fitContent && maxCollapsedHeight
-    ? Math.min(maxCollapsedHeight, collapsedContentHeight)
+  const effectiveMaxHeight = maxHeight ?? measuredMaxHeight;
+  const collapsedHeight = fitContent && effectiveMaxHeight
+    ? Math.min(effectiveMaxHeight, collapsedContentHeight)
     : height;
 
   return (
@@ -67,14 +74,24 @@ export default function VideoCaption({
       style={[
         styles.caption,
         expanded
-          ? { top: 0, bottom: bottomInset, height: undefined, opacity }
-          : { height: collapsedHeight, bottom: bottomInset, opacity },
+          ? {
+              top: topOffset,
+              bottom: bottomInset,
+              height: undefined,
+              opacity,
+            }
+          : {
+              top: undefined,
+              bottom: bottomInset,
+              height: collapsedHeight,
+              opacity,
+            },
         expanded && styles.expandedCaption,
       ]}
       pointerEvents={visible ? "box-none" : "none"}
       onLayout={(event) => {
-        if (fitContent && !maxCollapsedHeight) {
-          setMaxCollapsedHeight(event.nativeEvent.layout.height);
+        if (fitContent && !maxHeight && !measuredMaxHeight) {
+          setMeasuredMaxHeight(event.nativeEvent.layout.height);
         }
       }}
     >
