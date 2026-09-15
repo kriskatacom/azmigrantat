@@ -1,0 +1,94 @@
+{
+    "elements": [
+        {
+            "group": "About Секция",
+            "type": "image",
+            "label": "Профилна снимка",
+            "slug": "about_image",
+            "description": "Основната снимка на Кристиян (препоръчително .webp)",
+            "value": "/assets/images/Kristian.webp",
+            "order": 1
+        },
+        {
+            "group": "About Секция",
+            "type": "text",
+            "label": "Години опит",
+            "slug": "about_experience_years",
+            "description": "Числото за опит (напр. 5+)",
+            "value": "5+",
+            "order": 2
+        },
+        {
+            "group": "About Секция",
+            "type": "text",
+            "label": "Брой проекти",
+            "slug": "about_projects_count",
+            "description": "Числото за проекти (напр. 50+)",
+            "value": "50+",
+            "order": 3
+        },
+        {
+            "group": "About Секция",
+            "type": "text",
+            "label": "Надзаглавие",
+            "slug": "about_overline",
+            "description": "Малкият текст над основното заглавие",
+            "value": "Кой стои зад кода?",
+            "order": 4
+        },
+        {
+            "group": "About Секция",
+            "type": "textarea",
+            "label": "Основно заглавие",
+            "slug": "about_title",
+            "description": "Може да съдържа <br> за нови редове",
+            "value": "Здравей, аз съм Кристиян – <br> архитект на твоя дигитален проект.",
+            "order": 5
+        },
+        {
+            "group": "About Секция",
+            "type": "text-editor",
+            "label": "Първи параграф",
+            "slug": "about_desc_1",
+            "description": "Основно описание (мисия)",
+            "value": "Моята мисия е проста: да помагам на бизнесите да изпъкнат в онлайн пространството чрез <strong>бързи, сигурни и визуално зашеметяващи</strong> уебсайтове.",
+            "order": 6
+        },
+        {
+            "group": "About Секция",
+            "type": "text-editor",
+            "label": "Втори параграф",
+            "slug": "about_desc_2",
+            "description": "Допълнително описание (технологии)",
+            "value": "Не просто пиша код – аз създавам инструменти, които работят за теб 24/7. Специализиран съм в модерните PHP/MVC архитектури и Tailwind CSS.",
+            "order": 7
+        },
+        {
+            "group": "About Секция",
+            "type": "textarea",
+            "label": "Списък с предимства (Features)",
+            "slug": "about_features",
+            "description": "Въведете всяка услуга на нов ред",
+            "value": "Custom CMS Системи\nUI/UX Дизайн\nSEO Оптимизация\nПоддръжка 24/7",
+            "order": 8
+        },
+        {
+            "group": "About Секция",
+            "type": "text",
+            "label": "Текст на бутона",
+            "slug": "about_btn_text",
+            "description": "",
+            "value": "Повече за мен",
+            "order": 9
+        },
+        {
+            "group": "About Секция",
+            "type": "text",
+            "label": "Линк на бутона",
+            "slug": "about_btn_link",
+            "description": "",
+            "value": "/about",
+            "order": 10
+        }
+    ]
+}

@@ -1,0 +1,237 @@
+@import "tailwindcss";
+
+/* --- 1. Custom Variants & Utility Fixes --- */
+@custom-variant dark (&:where(.dark, .dark *));
+
+[x-cloak] {
+    display: none !important;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+@theme {
+    --color-primary: #0b2935;
+    --color-indigo-600: #4f46e5;
+    --color-primary-dark: #0b2935;
+    --color-primary-darken: #0e3545;
+    --color-primary-light: #e3e295;
+    --color-primary-blue: #8fd5e7;
+
+    --breakpoint-xs: 480px;
+}
+
+@keyframes fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Движещ се градиент за заглавия */
+@keyframes gradient-x {
+    0%,
+    100% {
+        background-size: 200% 200%;
+        background-position: left center;
+    }
+    50% {
+        background-size: 200% 200%;
+        background-position: right center;
+    }
+}
+
+/* Шимър ефект за бутони и лоудъри */
+@keyframes shimmer {
+    from {
+        background-position: 0 0;
+    }
+    to {
+        background-position: -200% 0;
+    }
+}
+
+/* Плуващи фонови обекти (Blobs) */
+@keyframes blob {
+    0% {
+        transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+        transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+        transform: translate(-20px, 20px) scale(0.9);
+    }
+    100% {
+        transform: translate(0px, 0px) scale(1);
+    }
+}
+
+/* --- 4. Helper Classes --- */
+.animation-delay-2000 {
+    animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+    animation-delay: 4s;
+}
+
+@keyframes marquee {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-50%);
+    }
+}
+
+.animate-marquee {
+    display: flex;
+    width: max-content;
+    animation: marquee 30s linear infinite;
+}
+
+.animate-marquee:hover {
+    animation-play-state: paused;
+}
+
+@layer utilities {
+    /* Основен клас за контейнери със скрол */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 6px; /* Тънък и елегантен */
+        height: 6px;
+    }
+
+    /* Пътят (background), по който се движи скролбарът */
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    /* Самият плъзгач */
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #e2e8f0; /* slate-200 */
+        border-radius: 100px;
+        transition: all 0.3s ease;
+    }
+
+    /* Плъзгачът при Dark Mode */
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #1e293b; /* slate-800 или white/10 */
+    }
+
+    /* Ефект при посочване */
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8; /* slate-400 */
+    }
+
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #334155; /* slate-700 */
+    }
+}
+
+/* Wysiwyg */
+
+.wysiwyg-text {
+    line-height: 1.6 !important;
+    color: #374151 !important;
+    font-size: 1rem !important;
+}
+
+.wysiwyg-text h1,
+.wysiwyg-text h2,
+.wysiwyg-text h3 {
+    font-weight: 700 !important;
+    color: #111827 !important;
+    margin-top: 1.5rem !important;
+    margin-bottom: 1rem !important;
+    line-height: 1.2 !important;
+    display: block !important;
+}
+
+.wysiwyg-text h1 {
+    font-size: 1.875rem !important;
+}
+.wysiwyg-text h2 {
+    font-size: 1.5rem !important;
+}
+.wysiwyg-text h3 {
+    font-size: 1.25rem !important;
+}
+
+.wysiwyg-text p {
+    margin-bottom: 1.25rem !important;
+    display: block !important;
+}
+
+.wysiwyg-text ul,
+.wysiwyg-text ol {
+    margin-bottom: 1.25rem !important;
+    padding-left: 1.5rem !important;
+    display: block !important;
+}
+
+.wysiwyg-text ul {
+    list-style-type: disc !important;
+}
+
+.wysiwyg-text ol {
+    list-style-type: decimal !important;
+}
+
+.wysiwyg-text li {
+    margin-bottom: 0.5rem !important;
+    display: list-item !important;
+}
+
+.wysiwyg-text a {
+    text-decoration: underline !important;
+    font-weight: 500 !important;
+    transition: color 0.2s !important;
+    color: #2563eb !important;
+}
+
+.wysiwyg-text a:hover {
+    color: #1d4ed8 !important;
+}
+
+.wysiwyg-text blockquote {
+    border-left: 4px solid #e5e7eb !important;
+    padding-left: 1rem !important;
+    font-style: italic !important;
+    color: #6b7280 !important;
+    margin: 1.5rem 0 !important;
+    display: block !important;
+}
+
+.wysiwyg-text img {
+    max-width: 100% !important;
+    height: auto !important;
+    border-radius: 0.5rem !important;
+    margin: 1.5rem 0 !important;
+    display: inline-block !important;
+}
+
+.wysiwyg-text table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-bottom: 1.5rem !important;
+    display: table !important;
+}
+
+.wysiwyg-text th,
+.wysiwyg-text td {
+    border: 1px solid #e5e7eb !important;
+    padding: 0.75rem !important;
+    text-align: left !important;
+}
+
+.wysiwyg-text th {
+    background-color: #f9fafb !important;
+    font-weight: bold !important;
+}
