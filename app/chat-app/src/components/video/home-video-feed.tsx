@@ -1,4 +1,4 @@
-import { listVideos, getVideoPlayback } from "@/services/videos";
+import { listVideos, getVideoPlayback, recordVideoView } from "@/services/videos";
 import VideoCaption from "@/components/video/video-caption";
 import type { VideoItem } from "@/types/video";
 import { useEventListener } from "expo";
@@ -40,6 +40,21 @@ export default function HomeVideoFeed({ token }: { token: string | null }) {
         }, 3_000)
       : null;
   }, [isCaptionVisible]);
+
+  const handleViewVideo = useCallback((videoId: number) => {
+    if (!token) return;
+    void recordVideoView(token, videoId)
+      .then(({ data }) => {
+        setVideos((current) => current.map((video) => (
+          video.id === videoId
+            ? { ...video, total_views: data.total_views, unique_viewers: data.unique_viewers }
+            : video
+        )));
+      })
+      .catch((error) => {
+        console.warn("[HomeVideoFeed] Гледането не можа да бъде отчетено.", { videoId, error });
+      });
+  }, [token]);
 
   useEffect(() => {
     if (!token) {
@@ -118,6 +133,7 @@ export default function HomeVideoFeed({ token }: { token: string | null }) {
             height={height}
             captionVisible={isCaptionVisible}
             onToggleCaption={toggleCaption}
+            onViewVideo={handleViewVideo}
           />
         )}
         getItemLayout={(_, index) => ({ length: height, offset: height * index, index })}
@@ -159,6 +175,7 @@ export default function HomeVideoFeed({ token }: { token: string | null }) {
                 captionVisible={false}
                 onToggleCaption={() => undefined}
                 showCaption={false}
+                onViewVideo={handleViewVideo}
               />
             )}
             getItemLayout={(_, index) => ({ length: height, offset: height * index, index })}
@@ -195,6 +212,7 @@ function HomeVideoCard({
   captionVisible,
   onToggleCaption,
   showCaption = true,
+  onViewVideo,
 }: {
   video: FeedVideo;
   active: boolean;
@@ -203,12 +221,14 @@ function HomeVideoCard({
   captionVisible: boolean;
   onToggleCaption: () => void;
   showCaption?: boolean;
+  onViewVideo?: (videoId: number) => void;
 }) {
   const player = useVideoPlayer(video.playbackUrl, (instance) => {
     instance.loop = true;
     instance.muted = false;
   });
   const [isReady, setIsReady] = useState(player.status === "readyToPlay");
+  const viewCountedRef = useRef(false);
 
   useEventListener(player, "statusChange", ({ status }) => {
     setIsReady(status === "readyToPlay");
@@ -217,10 +237,15 @@ function HomeVideoCard({
   useEffect(() => {
     if (active) {
       player.play();
+      if (isReady && !viewCountedRef.current) {
+        viewCountedRef.current = true;
+        onViewVideo?.(video.id);
+      }
     } else {
       player.pause();
+      viewCountedRef.current = false;
     }
-  }, [active, player]);
+  }, [active, isReady, onViewVideo, player, video.id]);
 
   return (
     <View style={{ width, height }}>

@@ -15,6 +15,8 @@ export interface VideoItem {
   bunny_status: number | null;
   mime_type: string | null;
   file_size: number | null;
+  total_views: number;
+  unique_viewers: number;
   created_at: string | null;
 }
 

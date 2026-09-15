@@ -27,6 +27,7 @@ type Props = {
   initialIndex: number;
   playbackUrls: Record<number, string>;
   onRequestPlayback: (index: number) => void;
+  onViewVideo?: (videoId: number) => void;
   onClose: () => void;
   colors: PagerColors;
 };
@@ -37,12 +38,14 @@ export default function ProfileVideoPager({
   initialIndex,
   playbackUrls,
   onRequestPlayback,
+  onViewVideo,
   onClose,
   colors,
 }: Props) {
   const { height, width } = useWindowDimensions();
   const listRef = useRef<FlatList<VideoItem>>(null);
   const activeIndexRef = useRef(Math.max(0, initialIndex));
+  const [activeIndex, setActiveIndex] = useState(Math.max(0, initialIndex));
   const captionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isCaptionVisible, setIsCaptionVisible] = useState(false);
 
@@ -55,6 +58,7 @@ export default function ProfileVideoPager({
   useEffect(() => {
     if (!visible || initialIndex < 0 || initialIndex === activeIndexRef.current) return;
     activeIndexRef.current = initialIndex;
+    setActiveIndex(initialIndex);
     listRef.current?.scrollToIndex({ index: initialIndex, animated: false });
   }, [initialIndex, visible]);
 
@@ -86,6 +90,8 @@ export default function ProfileVideoPager({
               captionVisible={isCaptionVisible}
               onToggleCaption={toggleCaption}
               onRequestPlayback={() => onRequestPlayback(index)}
+              active={index === activeIndex}
+              onViewVideo={onViewVideo}
             />
           )}
           getItemLayout={(_, index) => ({
@@ -107,6 +113,7 @@ export default function ProfileVideoPager({
             );
             if (index === activeIndexRef.current) return;
             activeIndexRef.current = index;
+            setActiveIndex(index);
             setIsCaptionVisible(false);
             onRequestPlayback(index);
           }}
@@ -132,6 +139,8 @@ function ProfileVideoSlide({
   captionVisible,
   onToggleCaption,
   onRequestPlayback,
+  active,
+  onViewVideo,
 }: {
   video: VideoItem;
   url: string | null;
@@ -140,11 +149,13 @@ function ProfileVideoSlide({
   captionVisible: boolean;
   onToggleCaption: () => void;
   onRequestPlayback: () => void;
+  active: boolean;
+  onViewVideo?: (videoId: number) => void;
 }) {
   return (
     <View style={[styles.slide, { width, height }]}>
       {url ? (
-        <PlayableVideo url={url} thumbnailUrl={video.thumbnail_url} />
+        <PlayableVideo url={url} thumbnailUrl={video.thumbnail_url} active={active} onViewVideo={onViewVideo} videoId={video.id} />
       ) : (
         <TouchableOpacity
           style={styles.loading}
@@ -175,17 +186,42 @@ function ProfileVideoSlide({
   );
 }
 
-function PlayableVideo({ url, thumbnailUrl }: { url: string; thumbnailUrl: string | null }) {
+function PlayableVideo({
+  url,
+  thumbnailUrl,
+  active,
+  onViewVideo,
+  videoId,
+}: {
+  url: string;
+  thumbnailUrl: string | null;
+  active: boolean;
+  onViewVideo?: (videoId: number) => void;
+  videoId: number;
+}) {
   const player = useVideoPlayer(url, (instance) => {
     instance.loop = false;
     instance.muted = false;
-    instance.play();
   });
   const [isReady, setIsReady] = useState(player.status === "readyToPlay");
+  const viewCountedRef = useRef(false);
 
   useEventListener(player, "statusChange", ({ status }) => {
     setIsReady(status === "readyToPlay");
   });
+
+  useEffect(() => {
+    if (!active) {
+      player.pause();
+      viewCountedRef.current = false;
+      return;
+    }
+    player.play();
+    if (isReady && !viewCountedRef.current) {
+      viewCountedRef.current = true;
+      onViewVideo?.(videoId);
+    }
+  }, [active, isReady, onViewVideo, player, videoId]);
 
   return (
     <>

@@ -202,6 +202,17 @@ export function getVideoPlayback(token: string, videoId: number): Promise<VideoP
   );
 }
 
+export function recordVideoView(token: string, videoId: number): Promise<{
+  success: true;
+  data: { video_id: number; total_views: number; unique_viewers: number };
+}> {
+  return authorizedJson(
+    `${API_URL}/api/mobile/videos/${videoId}/view`,
+    token,
+    { method: "POST" },
+  );
+}
+
 export function updateVideo(
   token: string,
   videoId: number,

@@ -4,12 +4,13 @@ import ConfirmModal from "@/components/ui/ConfirmModal";
 import ChatMoreOptionsModal from "@/components/chat/chat-more-options-modal";
 import RemoteImage from "@/components/ui/RemoteImage";
 import ProfileVideoPager from "@/components/video/profile-video-pager";
+import VideoViewsBadge from "@/components/video/video-views-badge";
 import VideoEditModal from "@/components/video/video-edit-modal";
 import { toPublicFileUrl } from "@/utils/public-file-url";
 import { phoneDisplayParts } from "@/constants/european-dial-codes";
 import { useAuth } from "@/hooks/useAuth";
 import { createDirectConversation } from "@/services/chat";
-import { deleteAllVideos, deleteVideo, getVideoPlayback, updateVideo, uploadVideoThumbnail } from "@/services/videos";
+import { deleteAllVideos, deleteVideo, getVideoPlayback, recordVideoView, updateVideo, uploadVideoThumbnail } from "@/services/videos";
 import {
   blockUserByCode,
   getPublicProfile,
@@ -719,6 +720,23 @@ export default function PublicUserProfileScreen() {
           void loadVideoPlayback(index);
         }}
         onClose={closeVideo}
+        onViewVideo={(videoId) => {
+          if (!token) return;
+          void recordVideoView(token, videoId)
+            .then(({ data }) => {
+              setProfile((current) => current ? {
+                ...current,
+                videos: (current.videos ?? []).map((video) => (
+                  video.id === videoId
+                    ? { ...video, total_views: data.total_views, unique_viewers: data.unique_viewers }
+                    : video
+                )),
+              } : current);
+            })
+            .catch((error) => {
+              console.warn("[Profile] Гледането не можа да бъде отчетено.", { videoId, error });
+            });
+        }}
         colors={theme.colors}
       />
     </View>
@@ -795,6 +813,7 @@ function VideosSection({
                   <FontAwesome name="video-camera" size={26} color={colors.textSecondary} />
                 </View>
               )}
+              <VideoViewsBadge count={video.total_views} />
             </View>
             <View style={styles.videoDetails}>
               <View style={styles.videoTitleRow}>

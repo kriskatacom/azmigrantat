@@ -79,9 +79,9 @@ abstract class BaseController
 
     protected function json($data, int $status = 200)
     {
-        header('Content-Type: application/json');
+        header('Content-Type: application/json; charset=utf-8');
         http_response_code($status);
-        echo json_encode($data);
+        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         exit();
     }
 

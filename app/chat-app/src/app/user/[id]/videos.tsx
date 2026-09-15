@@ -2,9 +2,10 @@ import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
 import RemoteImage from "@/components/ui/RemoteImage";
 import ProfileVideoPager from "@/components/video/profile-video-pager";
+import VideoViewsBadge from "@/components/video/video-views-badge";
 import { useAuth } from "@/hooks/useAuth";
 import { getPublicProfile, type PublicUserProfile } from "@/services/profile";
-import { getVideoPlayback } from "@/services/videos";
+import { getVideoPlayback, recordVideoView } from "@/services/videos";
 import type { VideoItem } from "@/types/video";
 import { FontAwesome } from "@expo/vector-icons";
 import { Redirect, useLocalSearchParams } from "expo-router";
@@ -131,7 +132,10 @@ export default function UserVideosScreen() {
               accessibilityRole="button"
               accessibilityLabel={item.status !== "ready" ? `${item.title} — обработва се` : `Пусни ${item.title}`}
             >
-              {item.thumbnail_url ? <RemoteImage uri={item.thumbnail_url} style={styles.thumbnail} /> : <View style={[styles.thumbnail, styles.placeholder, { backgroundColor: theme.colors.surface }]}><FontAwesome name="video-camera" size={26} color={theme.colors.textSecondary} /></View>}
+              <View style={styles.thumbnailWrap}>
+                {item.thumbnail_url ? <RemoteImage uri={item.thumbnail_url} style={styles.thumbnail} /> : <View style={[styles.thumbnail, styles.placeholder, { backgroundColor: theme.colors.surface }]}><FontAwesome name="video-camera" size={26} color={theme.colors.textSecondary} /></View>}
+                <VideoViewsBadge count={item.total_views} />
+              </View>
               <View style={styles.details}>
                 <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={2}>{item.title}</Text>
                 {item.description ? <Text style={[styles.description, { color: theme.colors.textSecondary }]} numberOfLines={2}>{item.description}</Text> : null}
@@ -151,6 +155,20 @@ export default function UserVideosScreen() {
           void loadPlaybackAtIndex(index);
         }}
         onClose={closeVideo}
+        onViewVideo={(videoId) => {
+          if (!token) return;
+          void recordVideoView(token, videoId)
+            .then(({ data }) => {
+              setVideos((current) => current.map((video) => (
+                video.id === videoId
+                  ? { ...video, total_views: data.total_views, unique_viewers: data.unique_viewers }
+                  : video
+              )));
+            })
+            .catch((error) => {
+              console.warn("[ProfileVideos] Гледането не можа да бъде отчетено.", { videoId, error });
+            });
+        }}
         colors={theme.colors}
       />
     </View>
@@ -166,6 +184,7 @@ const styles = StyleSheet.create({
   videoItem: { flexDirection: "row", gap: 12, paddingVertical: 12, borderBottomWidth: 1 },
   processing: { opacity: 0.72 },
   thumbnail: { width: 120, height: 78, borderRadius: 10 },
+  thumbnailWrap: { position: "relative", width: 120, height: 78 },
   placeholder: { alignItems: "center", justifyContent: "center" },
   details: { flex: 1, justifyContent: "center", gap: 5 },
   title: { fontSize: 16, lineHeight: 21, fontWeight: "800" },

@@ -196,6 +196,8 @@ class UserController extends BaseApiController
                 'bunny_status' => $video->bunny_status,
                 'mime_type' => $video->mime_type,
                 'file_size' => $video->file_size,
+                'total_views' => (int) $video->total_views,
+                'unique_viewers' => (int) $video->unique_viewers,
                 'created_at' => $video->created_at?->toIso8601String(),
             ])
             ->values()

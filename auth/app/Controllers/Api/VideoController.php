@@ -4,6 +4,7 @@ namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
 use App\Models\Video;
+use App\Services\VideoViewService;
 use App\Models\Notification;
 use App\Services\BackblazeB2Service;
 use App\Services\BunnyStreamService;
@@ -284,6 +285,38 @@ final class VideoController extends BaseController
         return $this->json(['success' => true, 'data' => ['url' => $url, 'expires_at' => time() + 900]]);
     }
 
+    public function recordView($id)
+    {
+        $user = $this->authenticatedUser();
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $video = Video::query()
+            ->where('id', (int) $id)
+            ->where('status', Video::STATUS_READY)
+            ->first();
+        if (!$video) {
+            return $this->json(['success' => false, 'message' => 'Видеото не е намерено.'], 404);
+        }
+
+        try {
+            $video = (new VideoViewService())->record($video, (int) $user->id);
+        } catch (\Throwable $exception) {
+            error_log(sprintf('[VideoView] failed video_id=%d user_id=%d: %s', (int) $video->id, (int) $user->id, $exception->getMessage()));
+            return $this->json(['success' => false, 'message' => 'Гледането не можа да бъде отчетено.'], 503);
+        }
+
+        return $this->json([
+            'success' => true,
+            'data' => [
+                'video_id' => (int) $video->id,
+                'total_views' => (int) $video->total_views,
+                'unique_viewers' => (int) $video->unique_viewers,
+            ],
+        ]);
+    }
+
     public function webhook()
     {
         $rawBody = file_get_contents('php://input') ?: '';
@@ -368,6 +401,8 @@ final class VideoController extends BaseController
             'bunny_status' => $video->bunny_status,
             'mime_type' => $video->mime_type,
             'file_size' => $video->file_size,
+            'total_views' => (int) $video->total_views,
+            'unique_viewers' => (int) $video->unique_viewers,
             'created_at' => $video->created_at?->toIso8601String(),
         ];
     }

@@ -4,11 +4,11 @@
     "slug": "chat-app",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo-v2.png",
+    "icon": "./assets/images/eto-me.png",
     "scheme": "chatapp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/images/logo-v2.png",
+      "icon": "./assets/images/eto-me.png",
       "infoPlist": {
         "UIBackgroundModes": ["audio", "remote-notification", "voip"]
       },
@@ -18,9 +18,9 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#0E3545",
-        "foregroundImage": "./assets/images/logo-v2.png",
+        "foregroundImage": "./assets/images/eto-me.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/logo-v2.png"
+        "monochromeImage": "./assets/images/eto-me.png"
       },
       "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false,
@@ -50,7 +50,7 @@
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/logo-v2.png"
+      "favicon": "./assets/images/eto-me.png"
     },
     "plugins": [
       "expo-router",
@@ -70,7 +70,7 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#0E3545",
-          "image": "./assets/images/logo-v2.png",
+          "image": "./assets/images/eto-me.png",
           "imageWidth": 112
         }
       ],
