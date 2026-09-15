@@ -1,7 +1,7 @@
 import { authorizedJson } from "@/services/session-http";
 import type { AuthUser } from "@/types/auth";
 import type { BlockedUser, BlockedUsersResponse } from "@/types/blocks";
-import type { VideoItem } from "@/types/video";
+import type { VideoItem, VideoPagination } from "@/types/video";
 import { File } from "expo-file-system";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL!;
@@ -159,14 +159,20 @@ export type PublicUserProfile = {
   is_blocked_me: boolean;
   can_contact: boolean;
   videos?: VideoItem[];
+  videos_pagination?: VideoPagination;
 };
 
 export async function getPublicProfile(
   token: string,
   userId: number,
+  options?: { videosPage?: number; videosLimit?: number },
 ): Promise<PublicUserProfile> {
+  const params = new URLSearchParams();
+  if (options?.videosPage) params.set("videos_page", String(options.videosPage));
+  if (options?.videosLimit) params.set("videos_limit", String(options.videosLimit));
+  const query = params.toString();
   const response = await request<{ success: true; data: PublicUserProfile }>(
-    `/api/mobile/users/${userId}`,
+    `/api/mobile/users/${userId}${query ? `?${query}` : ""}`,
     token,
   );
 

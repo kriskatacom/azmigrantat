@@ -1,5 +1,7 @@
 import { useAppTheme } from "@/app/_layout";
+import Header from "@/components/Header";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import ChatMoreOptionsModal from "@/components/chat/chat-more-options-modal";
 import RemoteImage from "@/components/ui/RemoteImage";
 import ProfileVideoPlayer from "@/components/video/profile-video-player";
 import VideoEditModal from "@/components/video/video-edit-modal";
@@ -7,7 +9,7 @@ import { toPublicFileUrl } from "@/utils/public-file-url";
 import { phoneDisplayParts } from "@/constants/european-dial-codes";
 import { useAuth } from "@/hooks/useAuth";
 import { createDirectConversation } from "@/services/chat";
-import { deleteVideo, getVideoPlayback, updateVideo, uploadVideoThumbnail } from "@/services/videos";
+import { deleteAllVideos, deleteVideo, getVideoPlayback, updateVideo, uploadVideoThumbnail } from "@/services/videos";
 import {
   blockUserByCode,
   getPublicProfile,
@@ -32,6 +34,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const PROFILE_VIDEO_PREVIEW_LIMIT = 3;
 
 function genderLabel(gender: PublicUserProfile["gender"]): string | null {
   if (gender === "male") return "Мъж";
@@ -64,7 +68,9 @@ export default function PublicUserProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
   const [confirmBlock, setConfirmBlock] = useState(false);
-  const [activeSection, setActiveSection] = useState<"about" | "videos">("about");
+  const [isAboutExpanded, setIsAboutExpanded] = useState(true);
+  const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
+  const [videoMenuTarget, setVideoMenuTarget] = useState<VideoItem | null>(null);
   const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
   const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
   const [isOpeningVideo, setIsOpeningVideo] = useState(false);
@@ -93,7 +99,11 @@ export default function PublicUserProfileScreen() {
 
     setIsLoading(true);
     try {
-      setProfile(await getPublicProfile(token, userId));
+      const nextProfile = await getPublicProfile(token, userId, {
+        videosPage: 1,
+        videosLimit: PROFILE_VIDEO_PREVIEW_LIMIT,
+      });
+      setProfile(nextProfile);
     } catch (error) {
       setProfile(null);
       Alert.alert(
@@ -312,8 +322,29 @@ export default function PublicUserProfileScreen() {
     }
   };
 
+  const openVideoActions = (video: VideoItem) => {
+    if (!profile?.is_self || isSavingVideo) return;
+    setVideoMenuTarget(video);
+  };
+
+  const confirmDeleteAllVideos = async () => {
+    if (!token || !profile?.is_self || isSavingVideo) return;
+    setIsSavingVideo(true);
+    try {
+      const response = await deleteAllVideos(token);
+      setConfirmDeleteAll(false);
+      await loadProfile();
+      Alert.alert("Готово", `Изтрити видеоклипове: ${response.data.deleted}.`);
+    } catch (error) {
+      Alert.alert("Грешка", error instanceof Error ? error.message : "Видеоклиповете не можаха да бъдат изтрити.");
+    } finally {
+      setIsSavingVideo(false);
+    }
+  };
+
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
+      <Header title={profile ? displayName : "Профил"} hideSearchButton hideAuthButton />
       {isLoading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -354,14 +385,6 @@ export default function PublicUserProfileScreen() {
                 },
               ]}
             />
-            <Pressable
-              onPress={() => router.back()}
-              style={[styles.overlayBack, { top: insets.top + 8 }]}
-              accessibilityRole="button"
-              accessibilityLabel="Назад"
-            >
-              <FontAwesome name="chevron-left" size={18} color="#ffffff" />
-            </Pressable>
             {!profile.is_self && profile.public_code && !profile.is_blocked_by_me ? (
               <Pressable
                 onPress={() => setConfirmBlock(true)}
@@ -502,26 +525,7 @@ export default function PublicUserProfileScreen() {
             </Text>
           ) : null}
 
-          <View style={[styles.sectionTabs, { backgroundColor: theme.colors.surface }]}>
-            <Pressable
-              onPress={() => setActiveSection("about")}
-              style={[styles.sectionTab, activeSection === "about" && { backgroundColor: theme.colors.card }]}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: activeSection === "about" }}
-            >
-              <Text style={[styles.sectionTabText, { color: activeSection === "about" ? theme.colors.text : theme.colors.textSecondary }]}>За мен</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => setActiveSection("videos")}
-              style={[styles.sectionTab, activeSection === "videos" && { backgroundColor: theme.colors.card }]}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: activeSection === "videos" }}
-            >
-              <Text style={[styles.sectionTabText, { color: activeSection === "videos" ? theme.colors.text : theme.colors.textSecondary }]}>Видеоклипове</Text>
-            </Pressable>
-          </View>
-
-          {activeSection === "about" ? <View
+          <View
             style={[
               styles.aboutCard,
               {
@@ -530,7 +534,21 @@ export default function PublicUserProfileScreen() {
               },
             ]}
           >
-            <Text style={[styles.aboutTitle, { color: theme.colors.text }]}>За мен</Text>
+            <TouchableOpacity
+              onPress={() => setIsAboutExpanded((expanded) => !expanded)}
+              style={styles.aboutSectionHeader}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: isAboutExpanded }}
+              accessibilityLabel={isAboutExpanded ? "Свий секцията За мен" : "Разгъни секцията За мен"}
+            >
+              <Text style={[styles.aboutTitle, { color: theme.colors.text }]}>За мен</Text>
+              <FontAwesome
+                name={isAboutExpanded ? "chevron-up" : "chevron-down"}
+                size={14}
+                color={theme.colors.textSecondary}
+              />
+            </TouchableOpacity>
+            {isAboutExpanded ? <>
             {profile.username ? (
               <AboutRow
                 icon="at"
@@ -599,17 +617,21 @@ export default function PublicUserProfileScreen() {
                 само ако е потвърден и сте го разрешили.
               </Text>
             ) : null}
-          </View> : <VideosSection
+            </> : null}
+          </View>
+
+          <VideosSection
             videos={profile.videos ?? []}
             colors={theme.colors}
             onUploadVideo={() => router.push("/videos/upload")}
+            onDeleteAllVideos={() => setConfirmDeleteAll(true)}
             onOpenVideo={openVideo}
             isOpeningVideo={isOpeningVideo}
             canManage={profile.is_self}
-            onEditVideo={startEditingVideo}
-            onDeleteVideo={setDeletingVideo}
+            onMoreVideo={openVideoActions}
             isManaging={isSavingVideo}
-          />}
+            onViewAll={() => router.push({ pathname: "/user/[id]/videos", params: { id: String(userId) } })}
+          />
         </ScrollView>
       )}
 
@@ -630,6 +652,35 @@ export default function PublicUserProfileScreen() {
         destructive
         onConfirm={() => void confirmDeleteVideo()}
         onCancel={() => setDeletingVideo(null)}
+      />
+      <ChatMoreOptionsModal
+        visible={Boolean(videoMenuTarget)}
+        onClose={() => setVideoMenuTarget(null)}
+        title="Опции за видеото"
+        subtitle={videoMenuTarget?.title ?? "Изберете действие."}
+        options={videoMenuTarget ? [
+          {
+            icon: "pencil",
+            label: "Редактирай",
+            onPress: () => startEditingVideo(videoMenuTarget),
+          },
+          {
+            icon: "trash",
+            label: "Изтрий",
+            destructive: true,
+            onPress: () => setDeletingVideo(videoMenuTarget),
+          },
+        ] : []}
+        colors={theme.colors}
+      />
+      <ConfirmModal
+        visible={confirmDeleteAll}
+        title="Изтриване на всички видеоклипове"
+        message="Всички ваши видеоклипове ще бъдат изтрити от профила и Bunny Stream. Това действие не може да бъде отменено."
+        confirmText="Изтрий всички"
+        destructive
+        onConfirm={() => void confirmDeleteAllVideos()}
+        onCancel={() => setConfirmDeleteAll(false)}
       />
       <VideoEditModal
         visible={Boolean(editingVideo)}
@@ -659,37 +710,50 @@ function VideosSection({
   videos,
   colors,
   onUploadVideo,
+  onDeleteAllVideos,
   onOpenVideo,
   isOpeningVideo,
   canManage,
-  onEditVideo,
-  onDeleteVideo,
+  onMoreVideo,
   isManaging,
+  onViewAll,
 }: {
   videos: VideoItem[];
   colors: { card: string; border: string; text: string; textSecondary: string; surface: string; icon: string; primary: string; buttonText: string };
   onUploadVideo: () => void;
+  onDeleteAllVideos: () => void;
   onOpenVideo: (video: VideoItem) => void;
   isOpeningVideo: boolean;
   canManage: boolean;
-  onEditVideo: (video: VideoItem) => void;
-  onDeleteVideo: (video: VideoItem) => void;
+  onMoreVideo: (video: VideoItem) => void;
   isManaging: boolean;
+  onViewAll: () => void;
 }) {
   return (
-    <View style={[styles.videosCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
+    <View style={styles.videosCard}>
       <View style={styles.videoHeader}>
         <Text style={[styles.aboutTitle, { color: colors.text }]}>Видеоклипове</Text>
         {canManage ? (
-          <TouchableOpacity
-            onPress={onUploadVideo}
-            style={[styles.uploadVideoButton, { backgroundColor: colors.primary }]}
-            accessibilityRole="button"
-            accessibilityLabel="Качи видео"
-          >
-            <FontAwesome name="plus" size={13} color={colors.buttonText} />
-            <Text style={[styles.uploadVideoButtonText, { color: colors.buttonText }]}>Качи видео</Text>
-          </TouchableOpacity>
+          <View style={styles.videoHeaderActions}>
+            <TouchableOpacity
+              onPress={onUploadVideo}
+              style={[styles.uploadVideoButton, { backgroundColor: colors.primary }]}
+              accessibilityRole="button"
+              accessibilityLabel="Качи видео"
+            >
+              <FontAwesome name="plus" size={13} color={colors.buttonText} />
+            </TouchableOpacity>
+            {videos.length > 0 ? (
+              <TouchableOpacity
+                onPress={onDeleteAllVideos}
+                style={[styles.deleteAllVideosButton, { borderColor: colors.border }]}
+                accessibilityRole="button"
+                accessibilityLabel="Изтрий всички видеоклипове"
+              >
+                <FontAwesome name="trash" size={13} color={colors.textSecondary} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
         ) : null}
       </View>
       {videos.length === 0 ? (
@@ -704,31 +768,45 @@ function VideosSection({
             accessibilityRole="button"
             accessibilityLabel={video.status !== "ready" ? `${video.title} — обработва се` : "Пусни " + video.title}
           >
-            {video.thumbnail_url ? (
-              <RemoteImage uri={video.thumbnail_url} style={styles.videoThumbnail} />
-            ) : (
-              <View style={[styles.videoThumbnail, styles.videoPlaceholder, { backgroundColor: colors.surface }]}>
-                <FontAwesome name="video-camera" size={26} color={colors.textSecondary} />
-              </View>
-            )}
+            <View style={styles.videoThumbnailWrap}>
+              {video.thumbnail_url ? (
+                <RemoteImage uri={video.thumbnail_url} style={styles.videoThumbnail} />
+              ) : (
+                <View style={[styles.videoThumbnail, styles.videoPlaceholder, { backgroundColor: colors.surface }]}>
+                  <FontAwesome name="video-camera" size={26} color={colors.textSecondary} />
+                </View>
+              )}
+            </View>
             <View style={styles.videoDetails}>
-              <Text style={[styles.videoTitle, { color: colors.text }]} numberOfLines={2}>{video.title}</Text>
+              <View style={styles.videoTitleRow}>
+                <Text style={[styles.videoTitle, { color: colors.text }]} numberOfLines={2}>{video.title}</Text>
+              </View>
               {video.description ? <Text style={[styles.videoDescription, { color: colors.textSecondary }]} numberOfLines={2}>{video.description}</Text> : null}
               {video.status !== "ready" ? <Text style={[styles.videoStatus, { color: colors.textSecondary }]}>Видеото се обработва — ще бъде достъпно за гледане скоро.</Text> : null}
-              {canManage ? (
-                <View style={styles.videoActions}>
-                  <TouchableOpacity onPress={() => onEditVideo(video)} disabled={isManaging} accessibilityRole="button">
-                    <Text style={[styles.videoActionText, { color: colors.icon }]}>Редактирай</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => onDeleteVideo(video)} disabled={isManaging} accessibilityRole="button">
-                    <Text style={[styles.videoActionText, { color: colors.textSecondary }]}>Изтрий</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : null}
             </View>
+            {canManage ? (
+              <TouchableOpacity
+                onPress={() => onMoreVideo(video)}
+                disabled={isManaging}
+                style={styles.videoMoreButton}
+                accessibilityRole="button"
+                accessibilityLabel={`Още действия за ${video.title}`}
+              >
+                <FontAwesome name="ellipsis-h" size={15} color={colors.textSecondary} />
+              </TouchableOpacity>
+            ) : null}
           </Pressable>
         ))
       )}
+      <View style={styles.viewAllVideosButton}>
+        <CtaButton
+          title="Преглед на всички видеоклипове"
+          icon="video-camera"
+          primary
+          colors={colors}
+          onPress={onViewAll}
+        />
+      </View>
     </View>
   );
 }
@@ -1007,33 +1085,28 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   aboutTitle: { fontSize: 18, fontWeight: "800", marginBottom: 2 },
+  aboutSectionHeader: { minHeight: 32, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   aboutRow: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   aboutIcon: { width: 18, marginTop: 2, textAlign: "center" },
   aboutText: { flex: 1, fontSize: 15, lineHeight: 21, fontWeight: "500" },
   hint: { fontSize: 12, lineHeight: 18, marginTop: 4 },
-  sectionTabs: {
-    flexDirection: "row",
-    marginTop: 22,
-    marginHorizontal: 16,
-    padding: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  sectionTab: { flex: 1, alignItems: "center", paddingVertical: 11, borderRadius: 9 },
-  sectionTabText: { fontSize: 14, fontWeight: "800" },
-  videosCard: { marginTop: 14, marginHorizontal: 16, borderWidth: 1, borderRadius: 16, padding: 16, gap: 12 },
+  videosCard: { marginTop: 14, marginHorizontal: 16, gap: 12 },
   videoHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 },
-  uploadVideoButton: { minHeight: 38, borderRadius: 10, paddingHorizontal: 11, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 },
-  uploadVideoButtonText: { fontSize: 12, fontWeight: "800" },
+  videoHeaderActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  uploadVideoButton: { width: 38, height: 38, borderRadius: 10, alignItems: "center", justifyContent: "center" },
+  deleteAllVideosButton: { width: 38, height: 38, borderWidth: 1, borderRadius: 10, alignItems: "center", justifyContent: "center" },
   emptyVideos: { fontSize: 14, lineHeight: 20 },
-  videoItem: { flexDirection: "row", gap: 12, paddingTop: 12, borderTopWidth: 1 },
+  videoItem: { position: "relative", flexDirection: "row", gap: 12, paddingTop: 12, borderTopWidth: 1 },
   processingVideoItem: { opacity: 0.72 },
-  videoThumbnail: { width: 112, height: 72, borderRadius: 10 },
+  videoThumbnailWrap: { position: "relative", width: 112, height: 72 },
+  videoThumbnail: { width: "100%", height: "100%", borderRadius: 10 },
   videoPlaceholder: { alignItems: "center", justifyContent: "center" },
-  videoDetails: { flex: 1, gap: 5, justifyContent: "center" },
+  videoDetails: { flex: 1, gap: 5, justifyContent: "center", paddingRight: 28 },
+  videoTitleRow: { flexDirection: "row", alignItems: "center" },
+  videoMoreButton: { position: "absolute", top: 10, right: 0, width: 32, height: 32, borderRadius: 16, borderWidth: 1, borderColor: "rgba(148, 163, 184, 0.55)", backgroundColor: "rgba(148, 163, 184, 0.12)", alignItems: "center", justifyContent: "center" },
   videoTitle: { fontSize: 15, fontWeight: "800", lineHeight: 20 },
   videoDescription: { fontSize: 13, lineHeight: 18 },
   videoStatus: { fontSize: 12, lineHeight: 17, fontWeight: "600" },
-  videoActions: { flexDirection: "row", gap: 14, marginTop: 3 },
   videoActionText: { fontSize: 12, fontWeight: "800" },
+  viewAllVideosButton: { marginTop: 4, marginBottom: 24, minHeight: 44 },
 });

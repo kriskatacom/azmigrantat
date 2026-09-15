@@ -8,6 +8,7 @@ interface HeaderProps {
   hideSearchButton?: boolean;
   hideAuthButton?: boolean;
   title?: string;
+  brandTitle?: string;
   showBackButton?: boolean;
   showNotificationsButton?: boolean;
   notificationCount?: number;
@@ -18,6 +19,7 @@ export default function Header({
   hideSearchButton = false,
   hideAuthButton = false,
   title,
+  brandTitle,
   showBackButton = true,
   showNotificationsButton = false,
   notificationCount = 0,
@@ -38,11 +40,18 @@ export default function Header({
           },
         ]}
       >
-        <Image
-          source={require("../../assets/images/eto-me.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        <View style={styles.brandBlock}>
+          <Image
+            source={require("../../assets/images/eto-me.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          {brandTitle ? (
+            <Text style={[styles.brandTitle, { color: theme.colors.text }]} numberOfLines={2}>
+              {brandTitle}
+            </Text>
+          ) : null}
+        </View>
 
         <View style={styles.headerActions}>
           {!hideSearchButton && (
@@ -175,6 +184,12 @@ const styles = StyleSheet.create({
     gap: 8,
     overflow: "visible",
   },
+  brandBlock: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flexShrink: 1,
+  },
   backButton: {
     width: 40,
     height: 40,
@@ -199,6 +214,12 @@ const styles = StyleSheet.create({
   logo: {
     width: 50,
     height: 50,
+  },
+  brandTitle: {
+    maxWidth: 220,
+    fontSize: 17,
+    fontWeight: "800",
+    flexShrink: 1,
   },
   headerIconButton: {
     width: 52,

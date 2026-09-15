@@ -219,6 +219,48 @@ final class VideoController extends BaseController
         return $this->json(['success' => true]);
     }
 
+    public function destroyAll()
+    {
+        $user = $this->authenticatedUser();
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $videos = Video::query()->where('user_id', (int) $user->id)->get();
+        $deleted = 0;
+        $failed = 0;
+        $bunny = new BunnyStreamService();
+
+        foreach ($videos as $video) {
+            try {
+                $bunny->deleteVideo($video);
+                $this->deleteThumbnailUrl($video->thumbnail_url);
+                $video->delete();
+                $deleted++;
+            } catch (RuntimeException $exception) {
+                $failed++;
+                error_log(sprintf(
+                    '[Bunny Stream] bulk video deletion failed id=%d: %s',
+                    (int) $video->id,
+                    $exception->getMessage(),
+                ));
+            }
+        }
+
+        if ($failed > 0) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Част от видеоклиповете не можаха да бъдат изтрити.',
+                'data' => ['deleted' => $deleted, 'failed' => $failed],
+            ], 502);
+        }
+
+        return $this->json([
+            'success' => true,
+            'data' => ['deleted' => $deleted, 'failed' => 0],
+        ]);
+    }
+
     public function playback($id)
     {
         $user = $this->authenticatedUser();

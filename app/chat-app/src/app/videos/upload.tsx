@@ -4,7 +4,7 @@ import AppButton from "@/components/ui/AppButton";
 import AppInput from "@/components/ui/AppInput";
 import VideoUploadProgressOverlay, { VideoUploadStage } from "@/components/video/video-upload-progress-overlay";
 import { useAuth } from "@/hooks/useAuth";
-import { beginVideoUpload, completeVideoUpload, getNativeFileSize, uploadVideoThumbnail, uploadVideoWithTus } from "@/services/videos";
+import { beginVideoUpload, cancelActiveVideoUpload, completeVideoUpload, deleteVideo, getNativeFileSize, uploadVideoThumbnail, uploadVideoWithTus } from "@/services/videos";
 import { getPublicProfile } from "@/services/profile";
 import {
   getBackgroundUploadStatus,
@@ -36,6 +36,7 @@ export default function VideoUploadScreen() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const uploadStarted = useRef(false);
   const startedAt = useRef<number | null>(null);
+  const activeVideoId = useRef<number | null>(null);
 
   useEffect(() => subscribeToBackgroundUpload(setBackgroundStatus), []);
 
@@ -145,11 +146,15 @@ export default function VideoUploadScreen() {
         mimeType: selected.mimeType ?? "video/mp4",
         fileSize,
       });
+      activeVideoId.current = initialized.data.video.id;
       setStage("uploading");
       updateBackgroundUpload({ stage: "uploading" });
       await uploadVideoWithTus(file, initialized.data.upload, (percentage) => {
         setProgress(percentage);
         updateBackgroundUpload({ progress: percentage });
+      }, {
+        cancelUrl: `${process.env.EXPO_PUBLIC_API_URL}/api/mobile/videos/${initialized.data.video.id}`,
+        authToken: token,
       });
       setProgress(100);
       setStage("processing");
@@ -167,25 +172,14 @@ export default function VideoUploadScreen() {
       setOverlayVisible(false);
       setBackgroundUploadActive(false);
       await new Promise((resolve) => setTimeout(resolve, 100));
-      Alert.alert(
-        "Видеото е готово",
-        "Видеото е качено, обработено и вече е достъпно за гледане.",
-        [
-          {
-            text: "Към публичния ми профил",
-            onPress: () => {
-              if (user?.id) {
-                router.replace({
-                  pathname: "/user/[id]",
-                  params: { id: String(user.id) },
-                });
-              } else {
-                router.replace("/");
-              }
-            },
-          },
-        ],
-      );
+      if (user?.id) {
+        router.replace({
+          pathname: "/user/[id]/videos",
+          params: { id: String(user.id) },
+        });
+      } else {
+        router.replace("/");
+      }
     } catch (error) {
       uploadStarted.current = false;
       console.error("[VideoUpload] Качването на видеото не успя.", error);
@@ -206,6 +200,35 @@ export default function VideoUploadScreen() {
     }
     const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ["images"], allowsEditing: true, aspect: [9, 16], quality: 0.9 });
     if (!result.canceled) setThumbnail(result.assets[0]);
+  }
+
+  function cancelUpload() {
+    if (!token || !activeVideoId.current) return;
+
+    Alert.alert(
+      "Прекратяване на качването",
+      "Видеото ще бъде изтрито окончателно. Искате ли да продължите?",
+      [
+        { text: "Отказ", style: "cancel" },
+        {
+          text: "Прекрати и изтрий",
+          style: "destructive",
+          onPress: () => {
+            const videoId = activeVideoId.current;
+            if (!videoId) return;
+            cancelActiveVideoUpload();
+            void deleteVideo(token, videoId).catch((error) => {
+              console.error("[VideoUpload] Видеото не можа да бъде изтрито след прекратяване.", error);
+            });
+            setBackgroundUploadActive(false);
+            setOverlayVisible(false);
+            setBusy(false);
+            activeVideoId.current = null;
+            router.replace("/");
+          },
+        },
+      ],
+    );
   }
 
   async function takeThumbnailPhoto() {
@@ -296,6 +319,7 @@ export default function VideoUploadScreen() {
           setBackgroundUploadActive(true);
           router.replace({ pathname: "/", params: { backgroundUpload: "1" } });
         }}
+        onCancel={cancelUpload}
       />
     </View>
   );

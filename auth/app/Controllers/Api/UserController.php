@@ -166,8 +166,10 @@ class UserController extends BaseApiController
 
         $this->removeMissingBunnyVideos((int) $profile->id);
 
+        $videoPage = max(1, (int) ($_GET['videos_page'] ?? 1));
+        $videoLimit = min(20, max(1, (int) ($_GET['videos_limit'] ?? 10)));
         $blockService = new BlockService();
-        $videos = Video::query()
+        $videoQuery = Video::query()
             ->where('user_id', (int) $profile->id)
             ->where(function ($query) use ($profile, $viewer): void {
                 $query->where('status', Video::STATUS_READY);
@@ -179,8 +181,11 @@ class UserController extends BaseApiController
                     ]);
                 }
             })
-            ->latest('id')
-            ->limit(100)
+            ->latest('id');
+
+        $videoTotal = (clone $videoQuery)->count();
+        $videos = $videoQuery
+            ->forPage($videoPage, $videoLimit)
             ->get()
             ->map(static fn (Video $video): array => [
                 'id' => (int) $video->id,
@@ -202,7 +207,15 @@ class UserController extends BaseApiController
                 'is_self' => (int) $viewer->id === (int) $profile->id,
                 'blocked_by_me' => $blockService->isBlockedBy((int) $viewer->id, (int) $profile->id),
                 'blocked_me' => $blockService->isBlockedBy((int) $profile->id, (int) $viewer->id),
-            ]), ['videos' => $videos]),
+            ]), [
+                'videos' => $videos,
+                'videos_pagination' => [
+                    'page' => $videoPage,
+                    'limit' => $videoLimit,
+                    'total' => $videoTotal,
+                    'has_more' => $videoPage * $videoLimit < $videoTotal,
+                ],
+            ]),
         ]);
     }
 

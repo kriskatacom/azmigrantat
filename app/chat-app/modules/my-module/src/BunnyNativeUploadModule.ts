@@ -16,7 +16,15 @@ type NativeUploadModule = NativeModule<{
     signature: string,
     expires: number,
     contentType: string,
+    backgroundConfig: string,
   ) => string;
+  cancelUpload: (uploadId: string) => void;
 };
 
-export default requireNativeModule<NativeUploadModule>("BunnyNativeUpload");
+const BunnyNativeUpload = requireNativeModule<NativeUploadModule>("BunnyNativeUpload");
+
+export default BunnyNativeUpload;
+
+export function cancelNativeUpload(uploadId: string): void {
+  BunnyNativeUpload.cancelUpload(uploadId);
+}

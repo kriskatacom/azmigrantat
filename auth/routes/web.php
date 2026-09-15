@@ -150,6 +150,7 @@ $router->post('/api/mobile/lives/{id}/comments', [LiveController::class, 'storeC
 
 $router->get('/api/mobile/videos', [VideoController::class, 'index'], $bearer);
 $router->post('/api/mobile/videos/uploads', [VideoController::class, 'beginUpload'], $bearer);
+$router->delete('/api/mobile/videos', [VideoController::class, 'destroyAll'], $bearer);
 $router->post('/api/mobile/videos/{id}/upload-complete', [VideoController::class, 'uploadComplete'], $bearer);
 $router->post('/api/mobile/videos/{id}/thumbnail', [VideoController::class, 'uploadThumbnail'], $bearer);
 $router->post('/api/mobile/videos/{id}', [VideoController::class, 'update'], $bearer);

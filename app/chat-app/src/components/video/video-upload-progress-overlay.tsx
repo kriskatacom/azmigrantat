@@ -11,6 +11,7 @@ type Props = {
   elapsedSeconds: number;
   remainingSeconds: number | null;
   onContinueInBackground?: () => void;
+  onCancel?: () => void;
 };
 
 function formatDuration(seconds: number): string {
@@ -94,6 +95,7 @@ export default function VideoUploadProgressOverlay({
   elapsedSeconds,
   remainingSeconds,
   onContinueInBackground,
+  onCancel,
 }: Props) {
   const { theme } = useAppTheme();
   const content = stageContent[stage];
@@ -153,6 +155,16 @@ export default function VideoUploadProgressOverlay({
             <Text style={[styles.backgroundButtonText, { color: theme.colors.text }]}>Продължи в приложението</Text>
           </TouchableOpacity>
         ) : null}
+        {onCancel ? (
+          <TouchableOpacity
+            onPress={onCancel}
+            style={styles.cancelButton}
+            accessibilityRole="button"
+            accessibilityLabel="Прекрати качването"
+          >
+            <Text style={styles.cancelButtonText}>Прекрати качването</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     </Modal>
   );
@@ -177,4 +189,6 @@ const styles = StyleSheet.create({
   stageText: { fontSize: 15, fontWeight: "600" },
   backgroundButton: { minHeight: 48, borderWidth: 1, borderRadius: 14, paddingHorizontal: 18, alignItems: "center", justifyContent: "center", marginTop: 28 },
   backgroundButtonText: { fontSize: 14, fontWeight: "700" },
+  cancelButton: { minHeight: 44, paddingHorizontal: 18, alignItems: "center", justifyContent: "center", marginTop: 10 },
+  cancelButtonText: { color: "#ef4444", fontSize: 14, fontWeight: "700" },
 });

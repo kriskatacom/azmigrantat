@@ -7,12 +7,23 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import type { ComponentProps } from "react";
+
+export type ChatMoreOption = {
+  icon: ComponentProps<typeof FontAwesome>["name"];
+  label: string;
+  onPress: () => void;
+  destructive?: boolean;
+};
 
 type ChatMoreOptionsModalProps = {
   visible: boolean;
   onClose: () => void;
-  onAudioPress: () => void;
-  onAttachmentPress: () => void;
+  onAudioPress?: () => void;
+  onAttachmentPress?: () => void;
+  options?: ChatMoreOption[];
+  title?: string;
+  subtitle?: string;
   colors: {
     card: string;
     border: string;
@@ -27,16 +38,20 @@ export default function ChatMoreOptionsModal({
   onClose,
   onAudioPress,
   onAttachmentPress,
+  options,
+  title = "Още опции",
+  subtitle = "Какво искате да изпратите?",
   colors,
 }: ChatMoreOptionsModalProps) {
-  const selectAudio = () => {
-    onClose();
-    onAudioPress();
-  };
+  const defaultOptions: ChatMoreOption[] = [
+    { icon: "microphone", label: "Аудио съобщение", onPress: onAudioPress ?? (() => undefined) },
+    { icon: "paperclip", label: "Снимка или файл", onPress: onAttachmentPress ?? (() => undefined) },
+  ];
+  const menuOptions = options ?? defaultOptions;
 
-  const selectAttachment = () => {
+  const select = (option: ChatMoreOption) => {
     onClose();
-    onAttachmentPress();
+    option.onPress();
   };
 
   return (
@@ -58,36 +73,26 @@ export default function ChatMoreOptionsModal({
             { backgroundColor: colors.card, borderColor: colors.border },
           ]}
         >
-          <Text style={[styles.title, { color: colors.text }]}>Още опции</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
           <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-            Какво искате да изпратите?
+            {subtitle}
           </Text>
 
-          <TouchableOpacity
-            accessibilityRole="button"
-            onPress={selectAudio}
-            style={styles.option}
-          >
-            <View style={[styles.icon, { backgroundColor: `${colors.button}18` }]}>
-              <FontAwesome name="microphone" size={20} color={colors.button} />
-            </View>
-            <Text style={[styles.optionText, { color: colors.text }]}>
-              Аудио съобщение
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            accessibilityRole="button"
-            onPress={selectAttachment}
-            style={styles.option}
-          >
-            <View style={[styles.icon, { backgroundColor: `${colors.button}18` }]}>
-              <FontAwesome name="paperclip" size={20} color={colors.button} />
-            </View>
-            <Text style={[styles.optionText, { color: colors.text }]}>
-              Снимка или файл
-            </Text>
-          </TouchableOpacity>
+          {menuOptions.map((option) => (
+            <TouchableOpacity
+              key={option.label}
+              accessibilityRole="button"
+              onPress={() => select(option)}
+              style={styles.option}
+            >
+              <View style={[styles.icon, { backgroundColor: `${colors.button}18` }]}>
+                <FontAwesome name={option.icon} size={20} color={colors.button} />
+              </View>
+              <Text style={[styles.optionText, { color: option.destructive ? "#dc2626" : colors.text }]}>
+                {option.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
 
           <TouchableOpacity
             accessibilityRole="button"

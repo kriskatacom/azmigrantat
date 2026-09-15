@@ -2,16 +2,20 @@ package expo.modules.bunnynativeupload
 
 import android.net.Uri
 import android.os.Bundle
+import org.json.JSONObject
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import java.io.BufferedInputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicBoolean
 
 class BunnyNativeUploadModule : Module() {
   private val executor = Executors.newCachedThreadPool()
+  private val cancelledUploads = ConcurrentHashMap<String, AtomicBoolean>()
 
   override fun definition() = ModuleDefinition {
     Name("BunnyNativeUpload")
@@ -25,8 +29,19 @@ class BunnyNativeUploadModule : Module() {
         signature: String,
         expires: Long,
         contentType: String,
+        backgroundConfig: String,
       ->
       val uploadId = UUID.randomUUID().toString()
+      cancelledUploads[uploadId] = AtomicBoolean(false)
+      activeUploadId = uploadId
+      activeCancellation = cancelledUploads[uploadId]
+      val context = appContext.reactContext ?: error("React context is unavailable")
+      val config = runCatching { JSONObject(backgroundConfig) }.getOrDefault(JSONObject())
+      BunnyUploadForegroundService.start(
+        context,
+        config.optString("cancelUrl"),
+        config.optString("authToken"),
+      )
       executor.execute {
         try {
           upload(
@@ -41,9 +56,20 @@ class BunnyNativeUploadModule : Module() {
           )
         } catch (error: Throwable) {
           emit(uploadId, 0, "error", error.message ?: "Native upload failed")
+        } finally {
+          cancelledUploads.remove(uploadId)
+          if (activeUploadId == uploadId) {
+            activeUploadId = null
+            activeCancellation = null
+            appContext.reactContext?.let { BunnyUploadForegroundService.stop(it) }
+          }
         }
       }
       uploadId
+    }
+
+    Function("cancelUpload") { uploadId: String ->
+      cancelledUploads[uploadId]?.set(true)
     }
   }
 
@@ -68,6 +94,7 @@ class BunnyNativeUploadModule : Module() {
     val chunk = ByteArray(512 * 1024)
     BufferedInputStream(source).use { input ->
       while (offset < fileSize) {
+        if (cancelledUploads[uploadId]?.get() == true) error("Upload cancelled")
         val wanted = minOf(chunk.size.toLong(), fileSize - offset).toInt()
         var read = 0
         while (read < wanted) {
@@ -78,6 +105,7 @@ class BunnyNativeUploadModule : Module() {
 
         var attempt = 0
         while (true) {
+          if (cancelledUploads[uploadId]?.get() == true) error("Upload cancelled")
           try {
             val response = patchChunk(
               uploadUrl,
@@ -181,6 +209,9 @@ class BunnyNativeUploadModule : Module() {
   }
 
   private fun emit(uploadId: String, percentage: Int, status: String, message: String?) {
+    appContext.reactContext?.let { context ->
+      if (status == "uploading") BunnyUploadForegroundService.update(context, percentage)
+    }
     val payload = Bundle().apply {
       putString("uploadId", uploadId)
       putInt("percentage", percentage)
@@ -188,5 +219,18 @@ class BunnyNativeUploadModule : Module() {
       if (message != null) putString("message", message)
     }
     sendEvent("onProgress", payload)
+  }
+
+  companion object {
+    @Volatile
+    var activeUploadId: String? = null
+
+    @Volatile
+    var activeCancellation: AtomicBoolean? = null
+
+    @JvmStatic
+    fun cancelActiveUpload() {
+      activeCancellation?.set(true)
+    }
   }
 }

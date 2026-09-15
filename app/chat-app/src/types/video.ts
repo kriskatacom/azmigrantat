@@ -44,6 +44,13 @@ export interface VideosResponse {
   data: VideoItem[];
 }
 
+export interface VideoPagination {
+  page: number;
+  limit: number;
+  total: number;
+  has_more: boolean;
+}
+
 export interface VideoPlaybackResponse {
   success: true;
   data: { url: string; expires_at: number };

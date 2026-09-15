@@ -10,10 +10,11 @@ import { File } from "expo-file-system";
 import { fetch } from "expo/fetch";
 import { Platform } from "react-native";
 import * as tus from "tus-js-client";
-import BunnyNativeUpload from "../../modules/my-module/src/BunnyNativeUploadModule";
+import BunnyNativeUpload, { cancelNativeUpload } from "../../modules/my-module/src/BunnyNativeUploadModule";
 import type { BunnyUploadProgressEvent } from "../../modules/my-module/src/BunnyNativeUpload.types";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
+let activeNativeUploadId: string | null = null;
 
 if (!API_URL) {
   throw new Error("Липсва EXPO_PUBLIC_API_URL.");
@@ -60,9 +61,10 @@ export function uploadVideoWithTus(
   file: File,
   credentials: BunnyUploadCredentials,
   onProgress: (percentage: number) => void,
+  options?: { cancelUrl?: string; authToken?: string },
 ): Promise<void> {
   if (Platform.OS === "android") {
-    return uploadVideoWithNative(file, credentials, onProgress);
+    return uploadVideoWithNative(file, credentials, onProgress, options);
   }
 
   return new Promise((resolve, reject) => {
@@ -130,6 +132,7 @@ function uploadVideoWithNative(
   file: File,
   credentials: BunnyUploadCredentials,
   onProgress: (percentage: number) => void,
+  options?: { cancelUrl?: string; authToken?: string },
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     let uploadId: string | null = null;
@@ -137,9 +140,11 @@ function uploadVideoWithNative(
       if (!uploadId || event.uploadId !== uploadId) return;
       onProgress(Math.max(0, Math.min(100, event.percentage)));
       if (event.status === "success") {
+        activeNativeUploadId = null;
         subscription.remove();
         resolve();
       } else if (event.status === "error") {
+        activeNativeUploadId = null;
         subscription.remove();
         reject(new Error(event.message ?? "Native upload failed."));
       }
@@ -154,12 +159,24 @@ function uploadVideoWithNative(
         credentials.authorization_signature,
         credentials.authorization_expire,
         file.type || "video/mp4",
+        JSON.stringify({
+          cancelUrl: options?.cancelUrl ?? "",
+          authToken: options?.authToken ?? "",
+        }),
       );
+      activeNativeUploadId = uploadId;
     } catch (error) {
+      activeNativeUploadId = null;
       subscription.remove();
       reject(error);
     }
   });
+}
+
+export function cancelActiveVideoUpload(): void {
+  if (Platform.OS === "android" && activeNativeUploadId) {
+    cancelNativeUpload(activeNativeUploadId);
+  }
 }
 
 export function getNativeFileSize(file: File): number {
@@ -203,6 +220,14 @@ export function updateVideo(
 export function deleteVideo(token: string, videoId: number): Promise<{ success: true }> {
   return authorizedJson<{ success: true }>(
     `${API_URL}/api/mobile/videos/${videoId}`,
+    token,
+    { method: "DELETE" },
+  );
+}
+
+export function deleteAllVideos(token: string): Promise<{ success: true; data: { deleted: number; failed: number } }> {
+  return authorizedJson<{ success: true; data: { deleted: number; failed: number } }>(
+    `${API_URL}/api/mobile/videos`,
     token,
     { method: "DELETE" },
   );
