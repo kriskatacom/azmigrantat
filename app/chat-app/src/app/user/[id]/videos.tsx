@@ -1,7 +1,7 @@
 import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
 import RemoteImage from "@/components/ui/RemoteImage";
-import ProfileVideoPlayer from "@/components/video/profile-video-player";
+import ProfileVideoPager from "@/components/video/profile-video-pager";
 import { useAuth } from "@/hooks/useAuth";
 import { getPublicProfile, type PublicUserProfile } from "@/services/profile";
 import { getVideoPlayback } from "@/services/videos";
@@ -28,8 +28,9 @@ export default function UserVideosScreen() {
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [selectedVideo, setSelectedVideo] = useState<VideoItem | null>(null);
-  const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
+  const [selectedVideoIndex, setSelectedVideoIndex] = useState(-1);
+  const [playbackUrls, setPlaybackUrls] = useState<Record<number, string>>({});
+  const [isPagerVisible, setIsPagerVisible] = useState(false);
   const [isOpeningVideo, setIsOpeningVideo] = useState(false);
 
   const loadVideos = useCallback(async (nextPage: number) => {
@@ -63,19 +64,32 @@ export default function UserVideosScreen() {
     void loadVideos(1);
   }, [loadVideos]);
 
-  const openVideo = useCallback(async (video: VideoItem) => {
-    if (!token || isOpeningVideo || video.status !== "ready") return;
+  const loadPlaybackAtIndex = useCallback(async (index: number) => {
+    const video = videos[index];
+    if (!video || !token || isOpeningVideo || video.status !== "ready") return;
     setIsOpeningVideo(true);
     try {
       const response = await getVideoPlayback(token, video.id);
-      setSelectedVideo(video);
-      setPlaybackUrl(response.data.url);
+      setPlaybackUrls((current) => ({ ...current, [video.id]: response.data.url }));
     } catch (error) {
       console.error("[VideoPlayback] Видеото не можа да бъде отворено.", error);
     } finally {
       setIsOpeningVideo(false);
     }
-  }, [isOpeningVideo, token]);
+  }, [isOpeningVideo, token, videos]);
+
+  const openVideo = useCallback(async (video: VideoItem) => {
+    const index = videos.findIndex((item) => item.id === video.id);
+    if (index < 0) return;
+    setSelectedVideoIndex(index);
+    setIsPagerVisible(true);
+    await loadPlaybackAtIndex(index);
+  }, [loadPlaybackAtIndex, videos]);
+
+  const closeVideo = useCallback(() => {
+    setSelectedVideoIndex(-1);
+    setIsPagerVisible(false);
+  }, []);
 
   if (isAuthLoading) {
     return <View style={[styles.centered, { backgroundColor: theme.colors.background }]}><ActivityIndicator size="large" color={theme.colors.primary} /></View>;
@@ -115,19 +129,23 @@ export default function UserVideosScreen() {
               {item.thumbnail_url ? <RemoteImage uri={item.thumbnail_url} style={styles.thumbnail} /> : <View style={[styles.thumbnail, styles.placeholder, { backgroundColor: theme.colors.surface }]}><FontAwesome name="video-camera" size={26} color={theme.colors.textSecondary} /></View>}
               <View style={styles.details}>
                 <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={2}>{item.title}</Text>
-                {item.description ? <Text style={[styles.description, { color: theme.colors.textSecondary }]} numberOfLines={3}>{item.description}</Text> : null}
+                {item.description ? <Text style={[styles.description, { color: theme.colors.textSecondary }]} numberOfLines={2}>{item.description}</Text> : null}
                 {item.status !== "ready" ? <Text style={[styles.status, { color: theme.colors.textSecondary }]}>Видеото се обработва — ще бъде достъпно за гледане скоро.</Text> : null}
               </View>
             </Pressable>
           )}
         />
       )}
-      <ProfileVideoPlayer
-        visible={Boolean(selectedVideo && playbackUrl)}
-        title={selectedVideo?.title ?? "Видео"}
-        description={selectedVideo?.description ?? null}
-        url={playbackUrl}
-        onClose={() => { setSelectedVideo(null); setPlaybackUrl(null); }}
+      <ProfileVideoPager
+        visible={isPagerVisible}
+        videos={videos}
+        initialIndex={selectedVideoIndex}
+        playbackUrls={playbackUrls}
+        onRequestPlayback={(index) => {
+          setSelectedVideoIndex(index);
+          void loadPlaybackAtIndex(index);
+        }}
+        onClose={closeVideo}
         colors={theme.colors}
       />
     </View>

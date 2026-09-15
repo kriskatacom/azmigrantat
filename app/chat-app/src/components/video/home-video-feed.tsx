@@ -1,8 +1,9 @@
 import { listVideos, getVideoPlayback } from "@/services/videos";
+import VideoCaption from "@/components/video/video-caption";
 import type { VideoItem } from "@/types/video";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 
 type FeedVideo = VideoItem & { playbackUrl: string };
 
@@ -10,8 +11,28 @@ export default function HomeVideoFeed({ token }: { token: string | null }) {
   const { height, width } = useWindowDimensions();
   const [videos, setVideos] = useState<FeedVideo[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isCaptionVisible, setIsCaptionVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const requestId = useRef(0);
+  const captionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (captionTimer.current) clearTimeout(captionTimer.current);
+    };
+  }, []);
+
+  const toggleCaption = useCallback(() => {
+    const nextVisible = !isCaptionVisible;
+    setIsCaptionVisible(nextVisible);
+    if (captionTimer.current) clearTimeout(captionTimer.current);
+    captionTimer.current = nextVisible
+      ? setTimeout(() => {
+          setIsCaptionVisible(false);
+          captionTimer.current = null;
+        }, 3_000)
+      : null;
+  }, [isCaptionVisible]);
 
   useEffect(() => {
     if (!token) {
@@ -67,6 +88,11 @@ export default function HomeVideoFeed({ token }: { token: string | null }) {
 
   const onMomentumScrollEnd = useCallback((offsetY: number) => {
     setActiveIndex(Math.max(0, Math.round(offsetY / height)));
+    setIsCaptionVisible(false);
+    if (captionTimer.current) {
+      clearTimeout(captionTimer.current);
+      captionTimer.current = null;
+    }
   }, [height]);
 
   if (!token || (!isLoading && videos.length === 0)) return null;
@@ -77,7 +103,16 @@ export default function HomeVideoFeed({ token }: { token: string | null }) {
       <FlatList
         data={videos}
         keyExtractor={(item) => String(item.id)}
-        renderItem={({ item, index }) => <HomeVideoCard video={item} active={index === activeIndex} width={width} height={height} />}
+        renderItem={({ item, index }) => (
+          <HomeVideoCard
+            video={item}
+            active={index === activeIndex}
+            width={width}
+            height={height}
+            captionVisible={isCaptionVisible}
+            onToggleCaption={toggleCaption}
+          />
+        )}
         getItemLayout={(_, index) => ({ length: height, offset: height * index, index })}
         pagingEnabled
         showsVerticalScrollIndicator={false}
@@ -91,7 +126,21 @@ export default function HomeVideoFeed({ token }: { token: string | null }) {
   );
 }
 
-function HomeVideoCard({ video, active, width, height }: { video: FeedVideo; active: boolean; width: number; height: number }) {
+function HomeVideoCard({
+  video,
+  active,
+  width,
+  height,
+  captionVisible,
+  onToggleCaption,
+}: {
+  video: FeedVideo;
+  active: boolean;
+  width: number;
+  height: number;
+  captionVisible: boolean;
+  onToggleCaption: () => void;
+}) {
   const player = useVideoPlayer(video.playbackUrl, (instance) => {
     instance.loop = true;
     instance.muted = false;
@@ -108,10 +157,18 @@ function HomeVideoCard({ video, active, width, height }: { video: FeedVideo; act
   return (
     <View style={{ width, height }}>
       <VideoView player={player} style={styles.video} contentFit="cover" nativeControls={false} />
-      <View style={styles.caption} pointerEvents="none">
-        <Text style={styles.title} numberOfLines={2}>{video.title}</Text>
-        {video.description ? <Text style={styles.description} numberOfLines={3}>{video.description}</Text> : null}
-      </View>
+      <Pressable
+        style={styles.touchLayer}
+        onPress={onToggleCaption}
+        accessibilityRole="button"
+        accessibilityLabel="Покажи заглавието и описанието"
+      />
+      <VideoCaption
+        title={video.title}
+        description={video.description ?? null}
+        visible={captionVisible}
+        height="35%"
+      />
     </View>
   );
 }
@@ -120,7 +177,12 @@ const styles = StyleSheet.create({
   container: { ...StyleSheet.absoluteFill, backgroundColor: "#000" },
   loader: { ...StyleSheet.absoluteFill, zIndex: 1 },
   video: { ...StyleSheet.absoluteFill, backgroundColor: "#000" },
-  caption: { position: "absolute", left: 16, right: 16, bottom: 180, padding: 14, backgroundColor: "rgba(0,0,0,0.42)" },
-  title: { color: "#fff", fontSize: 18, lineHeight: 23, fontWeight: "800" },
-  description: { color: "rgba(255,255,255,0.92)", fontSize: 14, lineHeight: 20, marginTop: 6 },
+  touchLayer: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    backgroundColor: "transparent",
+  },
 });

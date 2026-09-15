@@ -1,6 +1,18 @@
 import { useAppTheme } from "@/app/_layout";
-import { ActivityIndicator, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Animated,
+  Easing,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Svg, { Circle } from "react-native-svg";
+import { useEffect, useRef } from "react";
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 export type VideoUploadStage = "preparing" | "uploading" | "processing";
 
@@ -35,14 +47,49 @@ function ProgressRing({
   secondaryTextColor: string;
 }) {
   const value = Math.max(0, Math.min(100, progress));
+  const animatedProgress = useRef(new Animated.Value(value)).current;
+  const pulse = useRef(new Animated.Value(1)).current;
   const size = 230;
   const strokeWidth = 16;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - value / 100);
+  const offset = animatedProgress.interpolate({
+    inputRange: [0, 100],
+    outputRange: [circumference, 0],
+  });
+
+  useEffect(() => {
+    Animated.timing(animatedProgress, {
+      toValue: value,
+      duration: 500,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }).start();
+  }, [animatedProgress, value]);
+
+  useEffect(() => {
+    const pulseAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, {
+          toValue: 1.025,
+          duration: 1200,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.timing(pulse, {
+          toValue: 1,
+          duration: 1200,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    pulseAnimation.start();
+    return () => pulseAnimation.stop();
+  }, [pulse]);
 
   return (
-    <View style={styles.ring}>
+    <Animated.View style={[styles.ring, { transform: [{ scale: pulse }] }]}>
       <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <Circle
           cx={size / 2}
@@ -52,7 +99,7 @@ function ProgressRing({
           strokeWidth={strokeWidth}
           fill="transparent"
         />
-        <Circle
+        <AnimatedCircle
           cx={size / 2}
           cy={size / 2}
           r={radius}
@@ -69,7 +116,7 @@ function ProgressRing({
         <Text style={[styles.percent, { color: textColor }]}>{Math.round(value)}%</Text>
         <Text style={[styles.percentCaption, { color: secondaryTextColor }]}>готово</Text>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -100,10 +147,39 @@ export default function VideoUploadProgressOverlay({
   const { theme } = useAppTheme();
   const content = stageContent[stage];
   const displayProgress = Math.max(0, Math.min(100, Math.round(progress)));
+  const entrance = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!visible) return;
+
+    entrance.setValue(0);
+    Animated.timing(entrance, {
+      toValue: 1,
+      duration: 350,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [entrance, visible]);
 
   return (
     <Modal visible={visible} animationType="fade" presentationStyle="fullScreen" statusBarTranslucent>
-      <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
+      <Animated.View
+        style={[
+          styles.screen,
+          {
+            backgroundColor: theme.colors.background,
+            opacity: entrance,
+            transform: [
+              {
+                translateY: entrance.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [18, 0],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
         <ProgressRing
           progress={displayProgress}
           color={theme.colors.primary}
@@ -165,7 +241,7 @@ export default function VideoUploadProgressOverlay({
             <Text style={styles.cancelButtonText}>Прекрати качването</Text>
           </TouchableOpacity>
         ) : null}
-      </View>
+      </Animated.View>
     </Modal>
   );
 }
