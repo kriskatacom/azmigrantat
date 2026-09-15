@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type FeedVideo = VideoItem & { playbackUrl: string };
 
-export default function HomeVideoFeed({ token }: { token: string | null }) {
+export default function HomeVideoFeed({ token, focused = true }: { token: string | null; focused?: boolean }) {
   const { height, width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [videos, setVideos] = useState<FeedVideo[]>([]);
@@ -28,6 +28,17 @@ export default function HomeVideoFeed({ token }: { token: string | null }) {
       if (captionTimer.current) clearTimeout(captionTimer.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (!focused) {
+      setIsFullscreen(false);
+      setIsCaptionVisible(false);
+      if (captionTimer.current) {
+        clearTimeout(captionTimer.current);
+        captionTimer.current = null;
+      }
+    }
+  }, [focused]);
 
   const toggleCaption = useCallback(() => {
     const nextVisible = !isCaptionVisible;
@@ -128,7 +139,7 @@ export default function HomeVideoFeed({ token }: { token: string | null }) {
         renderItem={({ item, index }) => (
           <HomeVideoCard
             video={item}
-            active={index === activeIndex && !isFullscreen}
+            active={focused && index === activeIndex && !isFullscreen}
             width={width}
             height={height}
             captionVisible={isCaptionVisible}
@@ -169,7 +180,7 @@ export default function HomeVideoFeed({ token }: { token: string | null }) {
             renderItem={({ item, index }) => (
               <HomeVideoCard
                 video={item}
-                active={index === fullscreenIndex}
+                active={focused && index === fullscreenIndex}
                 width={width}
                 height={height}
                 captionVisible={false}

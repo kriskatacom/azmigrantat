@@ -14,18 +14,23 @@ import {
 } from "@/services/card-format";
 import {
   deletePaymentMethod,
+  createSubscriptionCheckout,
   getPaymentMethods,
+  getShortVideoPlans,
+  getSubscription,
   savePaymentMethod,
   setAutoRenewal,
   setDefaultPaymentMethod,
 } from "@/services/payments";
-import type { SavedPaymentMethod } from "@/types/payments";
+import type { SavedPaymentMethod, ShortVideoPlan, SubscriptionStatus } from "@/types/payments";
+import { SHORT_VIDEO_PLAN_PRICES } from "@/constants/short-video-plans";
 import { FontAwesome } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Linking,
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
@@ -50,6 +55,9 @@ export default function PaymentsScreen() {
   const [pendingDelete, setPendingDelete] = useState<SavedPaymentMethod | null>(
     null,
   );
+  const [shortVideoPlans, setShortVideoPlans] = useState<Record<string, ShortVideoPlan>>({});
+  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
+  const [isStartingCheckout, setIsStartingCheckout] = useState<string | null>(null);
 
   const [number, setNumber] = useState("");
   const [expiry, setExpiry] = useState("");
@@ -72,6 +80,12 @@ export default function PaymentsScreen() {
         const response = await getPaymentMethods(token);
         setCards(response.cards);
         setAutoRenewalEnabled(response.autoRenewal);
+        const [plans, currentSubscription] = await Promise.all([
+          getShortVideoPlans(token),
+          getSubscription(token),
+        ]);
+        setShortVideoPlans(plans);
+        setSubscription(currentSubscription);
       } catch (error) {
         Alert.alert(
           "Грешка",
@@ -202,6 +216,22 @@ export default function PaymentsScreen() {
     }
   };
 
+  const handleSubscribe = async (plan: string) => {
+    if (!token || plan === "free" || isStartingCheckout) return;
+    setIsStartingCheckout(plan);
+    try {
+      const url = await createSubscriptionCheckout(token, plan);
+      await Linking.openURL(url);
+    } catch (error) {
+      Alert.alert(
+        "Грешка",
+        error instanceof Error ? error.message : "Плащането не може да бъде започнато.",
+      );
+    } finally {
+      setIsStartingCheckout(null);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
@@ -220,6 +250,25 @@ export default function PaymentsScreen() {
           />
         }
       >
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>План за short-video</Text>
+        <Text style={[styles.description, { color: theme.colors.textSecondary }]}>Изберете план. Плащането се извършва сигурно през сайта, а абонаментът се подновява месечно.</Text>
+        {Object.entries(shortVideoPlans).filter(([key]) => key !== "free").map(([key, plan]) => (
+          <View key={key} style={[styles.planCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]}>
+            <View style={styles.cardText}>
+              <Text style={[styles.cardTitle, { color: theme.colors.text }]}>{plan.name}</Text>
+              <Text style={[styles.cardMeta, { color: theme.colors.textSecondary }]}>{(SHORT_VIDEO_PLAN_PRICES[key] / 100).toFixed(2)} € / месец</Text>
+              {(Array.isArray(plan.features) ? plan.features : []).map((feature) => (
+                <Text key={feature} style={[styles.planFeature, { color: theme.colors.textSecondary }]}>• {feature}</Text>
+              ))}
+            </View>
+            <AppButton
+              title={subscription?.plan === key && subscription.status === "active" ? "Активен" : "Избери"}
+              loading={isStartingCheckout === key}
+              disabled={subscription?.plan === key && subscription.status === "active"}
+              onPress={() => void handleSubscribe(key)}
+            />
+          </View>
+        ))}
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
           Подновяване
         </Text>
@@ -463,6 +512,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
   },
+  planCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    gap: 10,
+  },
+  planFeature: { fontSize: 13, lineHeight: 19 },
   cardIcon: {
     width: 42,
     height: 42,

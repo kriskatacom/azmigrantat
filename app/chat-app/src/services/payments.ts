@@ -4,6 +4,8 @@ import type {
   SavePaymentMethodPayload,
   SavedPaymentMethod,
   SavedPaymentMethodsResponse,
+  ShortVideoPlan,
+  SubscriptionStatus,
 } from "@/types/payments";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL!;
@@ -82,4 +84,29 @@ export async function deletePaymentMethod(
   await request(`/api/mobile/payment-methods/${id}/delete`, token, {
     method: "POST",
   });
+}
+
+export async function getShortVideoPlans(token: string): Promise<Record<string, ShortVideoPlan>> {
+  const response = await request<{ success: true; data: Record<string, ShortVideoPlan> }>(
+    "/api/mobile/subscriptions/plans",
+    token,
+  );
+  return response.data;
+}
+
+export async function getSubscription(token: string): Promise<SubscriptionStatus | null> {
+  const response = await request<{ success: true; data: SubscriptionStatus | null }>(
+    "/api/mobile/subscription",
+    token,
+  );
+  return response.data;
+}
+
+export async function createSubscriptionCheckout(token: string, plan: string): Promise<string> {
+  const response = await request<{ success: true; url: string }>(
+    "/api/mobile/subscription/checkout",
+    token,
+    { method: "POST", body: JSON.stringify({ plan }) },
+  );
+  return response.url;
 }

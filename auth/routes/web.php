@@ -15,6 +15,7 @@ use App\Controllers\Api\DeviceAuthController;
 use App\Controllers\Api\MobileAuthController;
 use App\Controllers\Api\NotificationController;
 use App\Controllers\Api\PaymentMethodController;
+use App\Controllers\Api\SubscriptionController;
 use App\Controllers\Api\PhoneVerificationController;
 use App\Controllers\Api\PushTokenController;
 use App\Controllers\Api\TwoFAuthController;
@@ -108,6 +109,10 @@ $router->post('/api/mobile/payment-methods', [PaymentMethodController::class, 's
 $router->post('/api/mobile/payment-methods/settings', [PaymentMethodController::class, 'updateSettings'], $bearer);
 $router->post('/api/mobile/payment-methods/{id}/default', [PaymentMethodController::class, 'setDefault'], $bearer);
 $router->post('/api/mobile/payment-methods/{id}/delete', [PaymentMethodController::class, 'destroy'], $bearer);
+$router->get('/api/mobile/subscriptions/plans', [SubscriptionController::class, 'plans'], $bearer);
+$router->get('/api/mobile/subscription', [SubscriptionController::class, 'current'], $bearer);
+$router->post('/api/mobile/subscription/checkout', [SubscriptionController::class, 'checkout'], $bearer);
+$router->post('/webhooks/stripe', [SubscriptionController::class, 'webhook']);
 $router->get('/api/mobile/totp', [TotpController::class, 'status'], $bearer);
 $router->post('/api/mobile/totp/start', [TotpController::class, 'start'], $bearer);
 $router->post('/api/mobile/totp/confirm', [TotpController::class, 'confirm'], $bearer);

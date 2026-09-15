@@ -28,3 +28,18 @@ export type SavePaymentMethodPayload = {
   cvc: string;
   holder_name?: string;
 };
+
+export type ShortVideoPlan = {
+  name: string;
+  price_cents: number;
+  currency: string;
+  description?: string;
+  features?: string[];
+};
+
+export type SubscriptionStatus = {
+  plan: string;
+  status: string;
+  cancel_at_period_end: boolean;
+  current_period_end: string | null;
+};

@@ -2,9 +2,10 @@ import { useUnreadMessageCount } from "@/hooks/chat/useUnreadMessageCount";
 import { useUnreadNotificationCount } from "@/hooks/useUnreadNotificationCount";
 import { useAuth } from "@/hooks/useAuth";
 import HomeVideoFeed from "@/components/video/home-video-feed";
+import { getSubscription } from "@/services/payments";
 import { getBackgroundUploadStatus, subscribeToBackgroundUpload } from "@/services/background-upload-state";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useIsFocused, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ImageBackground,
@@ -17,14 +18,30 @@ import {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const isFocused = useIsFocused();
   const { isAuthenticated, token, user } = useAuth();
   const isHomeVideoFeedDisabled =
     process.env.EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED === "true";
   const unreadMessageCount = useUnreadMessageCount();
   const unreadNotificationCount = useUnreadNotificationCount();
   const [hasBackgroundUpload, setHasBackgroundUpload] = useState(getBackgroundUploadStatus().active);
+  const [hasPaidSubscription, setHasPaidSubscription] = useState<boolean | null>(null);
 
   useEffect(() => subscribeToBackgroundUpload((status) => setHasBackgroundUpload(status.active)), []);
+
+  useEffect(() => {
+    if (!isAuthenticated || !token) {
+      setHasPaidSubscription(null);
+      return;
+    }
+    let cancelled = false;
+    void getSubscription(token).then((subscription) => {
+      if (!cancelled) setHasPaidSubscription(subscription?.status === "active" && subscription.plan !== "free");
+    }).catch(() => {
+      if (!cancelled) setHasPaidSubscription(null);
+    });
+    return () => { cancelled = true; };
+  }, [isAuthenticated, token]);
 
   return (
     <View style={styles.screen}>
@@ -37,7 +54,7 @@ export default function HomeScreen() {
       >
         <View style={styles.overlay} />
         {!isHomeVideoFeedDisabled && isAuthenticated ? (
-          <HomeVideoFeed token={token} />
+          <HomeVideoFeed token={token} focused={isFocused} />
         ) : null}
 
         <View style={styles.topBar}>
@@ -59,10 +76,17 @@ export default function HomeScreen() {
             <Text style={styles.liveText}>На живо</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.topPill}>
-            <Ionicons name="eye-outline" size={22} color="#ffffff" />
-            <Text style={styles.topPillText}>Виж повече</Text>
-          </TouchableOpacity>
+          {isAuthenticated && hasPaidSubscription === false ? (
+            <TouchableOpacity
+              style={styles.subscriptionButton}
+              onPress={() => router.push("/(profile)/subscriptions")}
+              accessibilityRole="button"
+              accessibilityLabel="Избери абонамент"
+            >
+              <Ionicons name="sparkles" size={19} color="#101827" />
+              <Text style={styles.subscriptionButtonText}>Планове</Text>
+            </TouchableOpacity>
+          ) : null}
 
           <View style={styles.topRightActions}>
             <TouchableOpacity
@@ -286,11 +310,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
   },
-  topPillText: {
-    color: "#e4e4e7",
-    fontSize: 12,
-    fontWeight: "600",
-  },
   searchButton: {
     width: 46,
     height: 46,
@@ -304,6 +323,17 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
+  subscriptionButton: {
+    height: 40,
+    paddingHorizontal: 11,
+    borderRadius: 20,
+    backgroundColor: "#E8E296",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    marginRight: 4,
+  },
+  subscriptionButtonText: { color: "#101827", fontSize: 11, fontWeight: "900" },
   backgroundUploadNotice: {
     position: "absolute",
     top: 126,
