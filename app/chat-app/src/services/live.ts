@@ -14,6 +14,7 @@ if (!API_URL) {
   throw new Error("Липсва EXPO_PUBLIC_API_URL.");
 }
 
+
 function request<T>(endpoint: string, token: string, options: RequestInit = {}): Promise<T> {
   return authorizedJson<T>(`${API_URL}${endpoint}`, token, options);
 }

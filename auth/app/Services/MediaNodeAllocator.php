@@ -90,7 +90,14 @@ final class MediaNodeAllocator
         );
 
         if (($response['status'] ?? 0) < 200 || ($response['status'] ?? 0) >= 300) {
-            throw new RuntimeException('Realtime media allocation request failed.');
+            $message = is_array($response['body'] ?? null)
+                ? (string) ($response['body']['message'] ?? '')
+                : '';
+            throw new RuntimeException(sprintf(
+                'Realtime media allocation request failed (HTTP %d)%s.',
+                (int) ($response['status'] ?? 0),
+                $message !== '' ? ': ' . $message : ''
+            ));
         }
 
         return is_array($response['body'] ?? null) ? $response['body'] : [];

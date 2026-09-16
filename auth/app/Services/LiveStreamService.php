@@ -50,7 +50,7 @@ final class LiveStreamService
             'user_id' => (int) $user->id,
             'title' => $this->normalizeTitle($title),
             'status' => LiveStream::STATUS_IDLE,
-            'media_provider' => LiveStream::MEDIA_PROVIDER_MOCK,
+            'media_provider' => LiveStream::MEDIA_PROVIDER_MEDIASOUP,
             'viewer_count' => 0,
             'peak_viewer_count' => 0,
         ]);
@@ -103,6 +103,7 @@ final class LiveStreamService
         try {
             $assignment = $this->mediaNodes->allocate((int) $stream->id, $roomId);
         } catch (Throwable $exception) {
+            error_log('[LiveStreamService] media node allocation failed: ' . $exception->getMessage());
             throw new LiveStateException('Няма наличен media node за стартиране на live предаването.');
         }
 
@@ -432,6 +433,7 @@ final class LiveStreamService
                 $role = $stream->isOwnedBy((int) $currentUserId) ? 'streamer' : 'viewer';
                 $payload['media_session'] = $this->mediaNodes->session((int) $stream->id, $role);
             } catch (Throwable $exception) {
+                error_log('[LiveStreamService] media session serialization failed: ' . $exception->getMessage());
                 $payload['media_session'] = null;
             }
         }
