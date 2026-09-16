@@ -1,12 +1,14 @@
 import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
 import ProfileIdentityCard from "@/components/profile/profile-identity-card";
+import ProfileCompanyCard from "@/components/profile/profile-company-card";
 import ProfileNavRow from "@/components/profile/profile-nav-row";
 import { PRIVACY_URL, TERMS_URL } from "@/constants/legal";
 import { phoneDisplayParts } from "@/constants/european-dial-codes";
 import { useAuth } from "@/hooks/useAuth";
 import { getCurrentUserRequest } from "@/services/auth";
 import { updateCoverImageRequest, updateProfileImageRequest } from "@/services/profile";
+import { getCompanyByUser } from "@/services/company";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -25,6 +27,7 @@ export default function ProfileHomeScreen() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [companyName, setCompanyName] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token || user?.public_code) {
@@ -35,6 +38,24 @@ export default function ProfileHomeScreen() {
       .then((freshUser) => updateUser(freshUser))
       .catch(() => undefined);
   }, [token, user?.public_code, updateUser]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setCompanyName(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    void getCompanyByUser(user.id, controller.signal)
+      .then((summary) => setCompanyName(summary?.company.name?.trim() || null))
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name !== "AbortError") {
+          console.warn("[Profile] Компанията не можа да бъде заредена.", error);
+        }
+      });
+
+    return () => controller.abort();
+  }, [user?.id]);
 
   if (!user || !token) return null;
 
@@ -104,6 +125,7 @@ export default function ProfileHomeScreen() {
           onPickImage={handleChangePhoto}
           onPickCover={handleChangeCover}
         />
+        {companyName ? <ProfileCompanyCard companyName={companyName} /> : null}
         <ProfileNavRow
           href={{
             pathname: "/user/[id]",

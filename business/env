@@ -1,0 +1,15 @@
+DB_DRIVER="mysql"
+DB_HOST="localhost"
+DB_NAME="azmigran_business"
+DB_USER="azmigran_business"
+DB_PASS="azmigran_business"
+DB_CHARSET="utf8"
+DB_COLLATION="utf8_unicode_ci"
+
+# OAuth
+OAUTH_SERVER_URL="http://localhost:8081"
+OAUTH_CLIENT_ID="app_hxhue8xk22sv"
+OAUTH_CLIENT_SECRET="kUEH*&^7i^ZJYBy!Y70opV80d3@Xt&fk"
+OAUTH_REDIRECT_URI="https://business.azmigrantat.com/auth/callback"
+AUTH_SERVER_URL=http://localhost:8081
+ETOME_APP_SERVER_URL=https://etome.eu

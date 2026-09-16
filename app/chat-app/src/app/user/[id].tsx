@@ -4,6 +4,7 @@ import ConfirmModal from "@/components/ui/ConfirmModal";
 import ChatMoreOptionsModal from "@/components/chat/chat-more-options-modal";
 import RemoteImage from "@/components/ui/RemoteImage";
 import ProfileVideoPager from "@/components/video/profile-video-pager";
+import ProfileBusinessCard from "@/components/profile/profile-business-card";
 import VideoViewsBadge from "@/components/video/video-views-badge";
 import VideoEditModal from "@/components/video/video-edit-modal";
 import { toPublicFileUrl } from "@/utils/public-file-url";
@@ -17,6 +18,8 @@ import {
   type PublicUserProfile,
 } from "@/services/profile";
 import { copyText } from "@/utils/copy-text";
+import { getCompanyByUser } from "@/services/company";
+import type { CompanySummary } from "@/types/company";
 import type { VideoItem } from "@/types/video";
 import { FontAwesome } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
@@ -66,6 +69,7 @@ export default function PublicUserProfileScreen() {
   }, [params.videoId]);
 
   const [profile, setProfile] = useState<PublicUserProfile | null>(null);
+  const [company, setCompany] = useState<CompanySummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
   const [confirmBlock, setConfirmBlock] = useState(false);
@@ -92,6 +96,24 @@ export default function PublicUserProfileScreen() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!Number.isInteger(userId)) {
+      setCompany(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    void getCompanyByUser(userId, controller.signal)
+      .then(setCompany)
+      .catch((error: unknown) => {
+        if (error instanceof Error && error.name !== "AbortError") {
+          console.warn("[PublicProfile] Фирмата не можа да бъде заредена.", error);
+        }
+      });
+
+    return () => controller.abort();
+  }, [userId]);
 
   const loadProfile = useCallback(async () => {
     if (!token || !Number.isInteger(userId)) {
@@ -635,6 +657,8 @@ export default function PublicUserProfileScreen() {
             ) : null}
             </> : null}
           </View>
+
+          {company ? <ProfileBusinessCard company={company} /> : null}
 
           <VideosSection
             videos={profile.videos ?? []}

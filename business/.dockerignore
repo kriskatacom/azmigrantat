@@ -1,0 +1,7 @@
+.env
+.git
+node_modules
+vendor
+storage/logs/*
+public/uploads/*
+public/assets/css/min/tailwind.css

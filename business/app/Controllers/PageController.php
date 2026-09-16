@@ -17,7 +17,10 @@ class PageController extends BaseController
 
     public function show(string|null $slug = '/')
     {
-        $normalizedSlug = ($slug === null || $slug === 'home') ? '/home' : '/' . ltrim($slug, '/');
+        // The imported production database stores the homepage with the canonical
+        // root slug `/`. Keep `/home` as a compatibility alias without requiring
+        // a duplicate page record.
+        $normalizedSlug = ($slug === null || $slug === 'home') ? '/' : '/' . ltrim($slug, '/');
 
         $page = Page::where(function ($query) use ($normalizedSlug) {
             $query->where('slug', $normalizedSlug)

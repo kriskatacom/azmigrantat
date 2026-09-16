@@ -101,7 +101,7 @@ class InstallController
 
         $page = Page::create([
             'title'     => 'Начало',
-            'slug'      => '/home',
+            'slug'      => '/',
             'content'   => '<h1>Добре дошли!</h1><p>Системата е инсталирана успешно.</p>',
             'template'  => 'none',
             'view_name' => 'home',
