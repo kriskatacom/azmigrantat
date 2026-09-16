@@ -9,9 +9,12 @@ export class MockLiveMediaProvider implements LiveMediaProvider {
 
   private state: LiveMediaState = {
     connected: false,
+    error: null,
     muted: false,
     cameraEnabled: true,
     session: null,
+    localStream: null,
+    remoteStream: null,
   };
 
   getState(): LiveMediaState {
@@ -21,9 +24,12 @@ export class MockLiveMediaProvider implements LiveMediaProvider {
   async startStream(session: LiveMediaSession): Promise<void> {
     this.state = {
       connected: true,
+      error: null,
       muted: false,
       cameraEnabled: true,
       session,
+      localStream: null,
+      remoteStream: null,
     };
     console.log("[LiveMedia:mock] startStream", session);
   }
@@ -31,9 +37,12 @@ export class MockLiveMediaProvider implements LiveMediaProvider {
   async joinStream(session: LiveMediaSession): Promise<void> {
     this.state = {
       connected: true,
+      error: null,
       muted: false,
       cameraEnabled: true,
       session,
+      localStream: null,
+      remoteStream: null,
     };
     console.log("[LiveMedia:mock] joinStream", session);
   }
@@ -63,9 +72,12 @@ export class MockLiveMediaProvider implements LiveMediaProvider {
   private reset(): void {
     this.state = {
       connected: false,
+      error: null,
       muted: false,
       cameraEnabled: true,
       session: null,
+      localStream: null,
+      remoteStream: null,
     };
   }
 }

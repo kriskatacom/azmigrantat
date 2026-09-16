@@ -58,9 +58,10 @@ export default function StartLiveScreen() {
       const created = await createLive(token, title.trim() || undefined);
 
       if (created.status === "live") {
+        const started = await startLive(token, created.id);
         router.replace({
           pathname: "/live/[id]/stream",
-          params: { id: String(created.id) },
+          params: { id: String(started.id) },
         });
         return;
       }

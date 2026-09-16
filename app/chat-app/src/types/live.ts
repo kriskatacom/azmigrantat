@@ -1,6 +1,19 @@
 export type LiveStatus = "idle" | "live" | "ended";
 
-export type LiveMediaProviderName = "mock" | "livekit";
+export type LiveMediaProviderName = "mock" | "livekit" | "mediasoup";
+
+export interface LiveMediaSessionData {
+  session_id: string;
+  live_id: number;
+  media_room_id: string;
+  media_provider: "mediasoup";
+  media_node_id: string;
+  signaling_endpoint: string;
+  signaling_url: string;
+  rtc_host: string;
+  router_id: string | null;
+  router_rtp_capabilities: unknown;
+}
 
 export type LiveReactionType = "like" | "heart" | "fire" | "clap" | "wow";
 
@@ -20,6 +33,7 @@ export interface LiveStream {
   status: LiveStatus;
   media_provider: LiveMediaProviderName | string;
   media_room_id: string | null;
+  media_session?: LiveMediaSessionData | null;
   viewer_count: number;
   peak_viewer_count: number;
   started_at: string | null;

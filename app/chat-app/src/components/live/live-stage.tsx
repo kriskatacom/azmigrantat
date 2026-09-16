@@ -7,9 +7,12 @@ import type { LiveReactionType } from "@/types/live";
 import { Ionicons } from "@expo/vector-icons";
 import type { ReactNode } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import type { MediaStream } from "react-native-webrtc";
+import VideoCallView from "@/components/video/video-call-view";
 
 type LiveStageProps = {
   connected: boolean;
+  error?: string | null;
   viewerCount: number;
   reactions: LiveReactionEvent[];
   fullscreen: boolean;
@@ -23,10 +26,14 @@ type LiveStageProps = {
   onReact: (type: LiveReactionType) => void;
   topLeft?: ReactNode;
   children?: ReactNode;
+  localStream?: MediaStream | null;
+  remoteStream?: MediaStream | null;
+  showLocalVideo?: boolean;
 };
 
 export default function LiveStage({
   connected,
+  error = null,
   viewerCount,
   reactions,
   fullscreen,
@@ -40,6 +47,9 @@ export default function LiveStage({
   onReact,
   topLeft,
   children,
+  localStream = null,
+  remoteStream = null,
+  showLocalVideo = true,
 }: LiveStageProps) {
   return (
     <View
@@ -56,9 +66,25 @@ export default function LiveStage({
         </>
       ) : null}
 
-      {!connected ? (
+      {localStream || remoteStream ? (
+        <VideoCallView
+          localStream={localStream}
+          remoteStream={remoteStream}
+          isCameraEnabled={showLocalVideo}
+          displayName={label}
+        />
+      ) : null}
+
+      {!connected && !error ? (
         <View pointerEvents="none" style={styles.connecting}>
           <Text style={styles.connectingText}>Свързване...</Text>
+        </View>
+      ) : null}
+
+      {!connected && error ? (
+        <View style={styles.errorState}>
+          <Text style={styles.errorTitle}>Live връзката не успя</Text>
+          <Text style={styles.errorText}>{error}</Text>
         </View>
       ) : null}
 
@@ -179,6 +205,24 @@ const styles = StyleSheet.create({
   connectingText: {
     color: "#e2e8f0",
     fontWeight: "700",
+  },
+  errorState: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 28,
+    backgroundColor: "rgba(3, 7, 18, 0.9)",
+    zIndex: 5,
+  },
+  errorTitle: {
+    color: "#fecaca",
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  errorText: {
+    color: "#e2e8f0",
+    marginTop: 8,
+    textAlign: "center",
   },
   cover: {
     ...StyleSheet.absoluteFill,

@@ -4,9 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 const initialState: LiveMediaState = {
   connected: false,
+  error: null,
   muted: false,
   cameraEnabled: true,
   session: null,
+  localStream: null,
+  remoteStream: null,
 };
 
 export function useLiveMedia() {
@@ -32,15 +35,25 @@ export function useLiveMedia() {
   }, []);
 
   const startStream = useCallback(async (session: LiveMediaSession) => {
-    await providerRef.current.startStream(session);
-    sessionRef.current = session;
-    updateState({ connected: true, muted: false, cameraEnabled: true, session });
+    try {
+      await providerRef.current.startStream(session);
+      sessionRef.current = session;
+      updateState(providerRef.current.getState?.() ?? { ...initialState, connected: true, session });
+    } catch (error) {
+      updateState({ ...initialState, error: error instanceof Error ? error.message : "Live връзката не успя." });
+      throw error;
+    }
   }, [updateState]);
 
   const joinStream = useCallback(async (session: LiveMediaSession) => {
-    await providerRef.current.joinStream(session);
-    sessionRef.current = session;
-    updateState({ connected: true, muted: false, cameraEnabled: true, session });
+    try {
+      await providerRef.current.joinStream(session);
+      sessionRef.current = session;
+      updateState(providerRef.current.getState?.() ?? { ...initialState, connected: true, session });
+    } catch (error) {
+      updateState({ ...initialState, error: error instanceof Error ? error.message : "Live връзката не успя." });
+      throw error;
+    }
   }, [updateState]);
 
   const leaveStream = useCallback(async () => {
@@ -61,12 +74,12 @@ export function useLiveMedia() {
 
   const muteAudio = useCallback(async (muted: boolean) => {
     await providerRef.current.muteAudio(muted);
-    updateState((current) => ({ ...current, muted }));
+    updateState(providerRef.current.getState?.() ?? ((current) => ({ ...current, muted })));
   }, [updateState]);
 
   const toggleCamera = useCallback(async () => {
     const cameraEnabled = await providerRef.current.toggleCamera();
-    updateState((current) => ({ ...current, cameraEnabled }));
+    updateState(providerRef.current.getState?.() ?? ((current) => ({ ...current, cameraEnabled })));
     return cameraEnabled;
   }, [updateState]);
 

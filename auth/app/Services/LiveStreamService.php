@@ -22,11 +22,13 @@ final class LiveStreamService
     public const REACTION_TYPES = ['like', 'heart', 'fire', 'clap', 'wow'];
 
     private BlockService $blocks;
+    private MediaNodeAllocator $mediaNodes;
     private ?RealtimeNotifier $realtimeNotifier = null;
 
     public function __construct(?BlockService $blocks = null)
     {
         $this->blocks = $blocks ?? new BlockService();
+        $this->mediaNodes = new MediaNodeAllocator();
     }
 
     public function create(User $user, ?string $title): LiveStream
@@ -63,6 +65,20 @@ final class LiveStreamService
         $stream = $this->findOwnedStream($liveId, (int) $user->id);
 
         if ($stream->isLive()) {
+            if ($stream->media_provider !== LiveStream::MEDIA_PROVIDER_MEDIASOUP || !$stream->media_room_id) {
+                $roomId = $stream->media_room_id ?: ('live-' . $stream->id);
+
+                try {
+                    $assignment = $this->mediaNodes->allocate((int) $stream->id, $roomId);
+                } catch (Throwable $exception) {
+                    throw new LiveStateException('Няма наличен media node за активното live предаване.');
+                }
+
+                $stream->media_provider = LiveStream::MEDIA_PROVIDER_MEDIASOUP;
+                $stream->media_room_id = (string) ($assignment['media_room_id'] ?? $roomId);
+                $stream->save();
+            }
+
             $stream->loadMissing('owner');
 
             return $stream;
@@ -82,10 +98,18 @@ final class LiveStreamService
             throw new LiveStateException('Вече имате активно предаване на живо.');
         }
 
+        $roomId = $stream->media_room_id ?: ('live-' . $stream->id);
+
+        try {
+            $assignment = $this->mediaNodes->allocate((int) $stream->id, $roomId);
+        } catch (Throwable $exception) {
+            throw new LiveStateException('Няма наличен media node за стартиране на live предаването.');
+        }
+
         $stream->status = LiveStream::STATUS_LIVE;
         $stream->started_at = Carbon::now();
-        $stream->media_provider = LiveStream::MEDIA_PROVIDER_MOCK;
-        $stream->media_room_id = $stream->media_room_id ?: ('live-' . $stream->id);
+        $stream->media_provider = LiveStream::MEDIA_PROVIDER_MEDIASOUP;
+        $stream->media_room_id = (string) ($assignment['media_room_id'] ?? $roomId);
         $stream->save();
         $stream->loadMissing('owner');
         $this->notifyStarted($stream);
@@ -119,6 +143,12 @@ final class LiveStreamService
 
         $stream->loadMissing('owner');
         $this->notifyEnded($stream);
+
+        try {
+            $this->mediaNodes->release((int) $stream->id);
+        } catch (Throwable $exception) {
+            error_log('[LiveStreamService] media assignment release failed: ' . $exception->getMessage());
+        }
 
         return $stream;
     }
@@ -161,7 +191,27 @@ final class LiveStreamService
             throw new LiveNotFoundException('Предаването не е намерено.');
         }
 
+        if ($stream->isLive() && $stream->media_provider !== LiveStream::MEDIA_PROVIDER_MEDIASOUP) {
+            $this->upgradeLegacyLiveMedia($stream);
+        }
+
         return $stream;
+    }
+
+    private function upgradeLegacyLiveMedia(LiveStream $stream): void
+    {
+        $roomId = $stream->media_room_id ?: ('live-' . $stream->id);
+
+        try {
+            $assignment = $this->mediaNodes->allocate((int) $stream->id, $roomId);
+        } catch (Throwable $exception) {
+            error_log('[LiveStreamService] legacy live media upgrade failed: ' . $exception->getMessage());
+            return;
+        }
+
+        $stream->media_provider = LiveStream::MEDIA_PROVIDER_MEDIASOUP;
+        $stream->media_room_id = (string) ($assignment['media_room_id'] ?? $roomId);
+        $stream->save();
     }
 
     public function join(User $user, int $liveId): LiveStream
@@ -353,11 +403,15 @@ final class LiveStreamService
         $stream->save();
     }
 
-    public function serializeStream(LiveStream $stream, ?int $currentUserId = null): array
+    public function serializeStream(
+        LiveStream $stream,
+        ?int $currentUserId = null,
+        bool $includeMediaSession = false
+    ): array
     {
         $owner = $stream->owner;
 
-        return [
+        $payload = [
             'id' => (int) $stream->id,
             'title' => $stream->title,
             'status' => $stream->status,
@@ -372,6 +426,17 @@ final class LiveStreamService
             'cover_image' => $owner?->cover_image_url,
             'owner' => $owner ? $owner->toChatUserArray() : null,
         ];
+
+        if ($includeMediaSession && $stream->isLive() && $stream->media_provider === LiveStream::MEDIA_PROVIDER_MEDIASOUP) {
+            try {
+                $role = $stream->isOwnedBy((int) $currentUserId) ? 'streamer' : 'viewer';
+                $payload['media_session'] = $this->mediaNodes->session((int) $stream->id, $role);
+            } catch (Throwable $exception) {
+                $payload['media_session'] = null;
+            }
+        }
+
+        return $payload;
     }
 
     public function serializeComment(LiveComment $comment): array

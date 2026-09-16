@@ -99,13 +99,13 @@ final class LiveController extends BaseController
 
         return $this->json([
             'success' => true,
-            'data' => $this->lives->serializeStream($stream, (int) $user->id),
+            'data' => $this->lives->serializeStream($stream, (int) $user->id, true),
         ]);
     }
 
     public function start($id)
     {
-        return $this->mutateOwned($id, fn ($user, $liveId) => $this->lives->start($user, $liveId));
+        return $this->mutateOwned($id, fn ($user, $liveId) => $this->lives->start($user, $liveId), true);
     }
 
     public function end($id)
@@ -115,7 +115,7 @@ final class LiveController extends BaseController
 
     public function join($id)
     {
-        return $this->mutatePresence($id, fn ($user, $liveId) => $this->lives->join($user, $liveId));
+        return $this->mutatePresence($id, fn ($user, $liveId) => $this->lives->join($user, $liveId), true);
     }
 
     public function leave($id)
@@ -195,7 +195,7 @@ final class LiveController extends BaseController
         ], 201);
     }
 
-    private function mutateOwned($id, callable $action)
+    private function mutateOwned($id, callable $action, bool $includeMediaSession = false)
     {
         $user = $this->authenticatedUser();
 
@@ -215,11 +215,11 @@ final class LiveController extends BaseController
 
         return $this->json([
             'success' => true,
-            'data' => $this->lives->serializeStream($stream, (int) $user->id),
+            'data' => $this->lives->serializeStream($stream, (int) $user->id, $includeMediaSession),
         ]);
     }
 
-    private function mutatePresence($id, callable $action)
+    private function mutatePresence($id, callable $action, bool $includeMediaSession = false)
     {
         $user = $this->authenticatedUser();
 
@@ -237,7 +237,7 @@ final class LiveController extends BaseController
 
         return $this->json([
             'success' => true,
-            'data' => $this->lives->serializeStream($stream, (int) $user->id),
+            'data' => $this->lives->serializeStream($stream, (int) $user->id, $includeMediaSession),
         ]);
     }
 

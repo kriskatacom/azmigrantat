@@ -1,0 +1,27 @@
+{
+  "name": "media-node",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "build": "tsc",
+    "start:production": "node dist/server.js",
+    "test:sfu": "tsx scripts/sfu-smoke.ts"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mediasoup": "^3.27.0",
+    "redis": "^6.2.1",
+    "socket.io": "^4.8.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.1.2",
+    "socket.io-client": "^4.8.3",
+    "tsx": "^4.23.8",
+    "typescript": "^7.0.2"
+  }
+}

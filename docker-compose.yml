@@ -78,10 +78,52 @@ services:
       PORT: 3001
       PHP_API_URL: http://auth:8080
       INTERNAL_API_SECRET: ${REALTIME_INTERNAL_SECRET:-local-realtime-secret}
+      REDIS_URL: redis://redis:6379
+      MEDIA_NODE_INTERNAL_SECRET: ${MEDIA_NODE_INTERNAL_SECRET:-local-media-node-secret}
       FCM_ENABLED: "false"
       REALTIME_CORS_ORIGINS: ${REALTIME_CORS_ORIGINS:-http://localhost:8080,http://localhost:3000}
     ports:
       - "${REALTIME_PORT:-3001}:3001"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  media-node-1:
+    build:
+      context: ./app/azmigrantat-media-node
+      dockerfile: Dockerfile
+    container_name: azmigrantat-media-node-1
+    restart: unless-stopped
+    environment:
+      MEDIA_NODE_ID: media-node-1
+      MEDIA_NODE_HOST: 0.0.0.0
+      MEDIA_NODE_PORT: 3002
+      MEDIA_NODE_ADVERTISED_HOST: ${MEDIA_NODE_ADVERTISED_HOST:-localhost}
+      MEDIA_NODE_CONTROL_HOST: media-node-1
+      MEDIA_NODE_INTERNAL_SECRET: ${MEDIA_NODE_INTERNAL_SECRET:-local-media-node-secret}
+      MEDIASOUP_MIN_PORT: 40000
+      MEDIASOUP_MAX_PORT: 40099
+      REDIS_URL: redis://redis:6379
+      MEDIA_NODE_HEARTBEAT_INTERVAL_MS: 5000
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "${MEDIA_NODE_PORT:-3002}:3002"
+      - "${MEDIA_NODE_RTC_MIN_PORT:-40000}-${MEDIA_NODE_RTC_MAX_PORT:-40099}:40000-40099/udp"
+
+  redis:
+    image: redis:8-alpine
+    container_name: azmigrantat-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - azmigrantat_redis_data:/data
 
   tunnel:
     image: cloudflare/cloudflared:latest
@@ -153,3 +195,4 @@ services:
 volumes:
   azmigrantat_auth_mysql_data:
   azmigrantat_business_mysql_data:
+  azmigrantat_redis_data:

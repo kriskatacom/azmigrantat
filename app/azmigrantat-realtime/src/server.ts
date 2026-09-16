@@ -8,6 +8,7 @@ import { registerCallRoutes } from './routes/call.routes';
 import { registerHealthRoutes } from './routes/health.routes';
 import { registerInternalRoutes } from './routes/internal.routes';
 import { registerLiveInternalRoutes } from './routes/live.internal.routes';
+import { registerMediaInternalRoutes } from './routes/media.internal.routes';
 import { CallService } from './services/calls/call-service';
 import { InMemoryCallStore } from './services/calls/call-store';
 import { PhpCallAuthorizationProvider } from './services/calls/call-authorization.provider';
@@ -20,6 +21,7 @@ import { PhpNotificationClient } from './services/notifications/php-notification
 import { CallNotifications } from './services/fcm/call-notifications';
 import { FirebaseFcmSender } from './services/fcm/fcm-client';
 import { PhpPushTokenProvider } from './services/fcm/php-push-token.provider';
+import { MediaNodeManager } from './services/media/media-node-manager';
 import { registerSocketAuthMiddleware } from './socket/auth.middleware';
 import { registerSocketConnections } from './socket/connection';
 import type {
@@ -47,6 +49,8 @@ const io = new Server<ClientToServerEvents, ServerToClientEvents, InterServerEve
 
 registerHealthRoutes(app);
 registerInternalRoutes(app, io);
+const mediaNodeManager = new MediaNodeManager();
+registerMediaInternalRoutes(app, mediaNodeManager);
 
 registerSocketAuthMiddleware(io);
 
@@ -83,4 +87,8 @@ callExpirySweep.unref();
 
 httpServer.listen(config.port, '0.0.0.0', () => {
     console.log(`Realtime сървърът работи на http://localhost:${config.port}`);
+});
+
+void mediaNodeManager.start().catch((error: unknown) => {
+    console.error('[media-manager] Redis startup failed', error);
 });

@@ -86,6 +86,13 @@ export default function LiveViewerScreen() {
           role: "viewer",
           provider: stream.media_provider,
           mediaRoomId: stream.media_room_id,
+          mediaNodeId: stream.media_session?.media_node_id,
+          sessionId: stream.media_session?.session_id,
+          signalingEndpoint: stream.media_session?.signaling_endpoint,
+          signalingUrl: stream.media_session?.signaling_url,
+          rtcHost: stream.media_session?.rtc_host,
+          routerId: stream.media_session?.router_id,
+          routerRtpCapabilities: stream.media_session?.router_rtp_capabilities,
         });
         const comments = await listLiveComments(token, stream.id, { limit: 30 });
         if (!cancelled) {
@@ -143,6 +150,7 @@ export default function LiveViewerScreen() {
       {fullscreen ? null : <Header title={title || "Предаване на живо"} hideSearchButton />}
       <LiveStage
         connected={media.connected}
+        error={media.error}
         viewerCount={room.viewerCount}
         reactions={room.reactions}
         fullscreen={fullscreen}
@@ -154,6 +162,7 @@ export default function LiveViewerScreen() {
         onReact={room.sendReaction}
         topInset={0}
         bottomInset={fullscreen ? overlayBottom : 16}
+        remoteStream={media.remoteStream}
       >
         {fullscreen ? (
           <View style={[styles.fullscreenComments, { bottom: overlayBottom }]}>

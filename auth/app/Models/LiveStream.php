@@ -12,6 +12,7 @@ class LiveStream extends Model
 
     public const MEDIA_PROVIDER_MOCK = 'mock';
     public const MEDIA_PROVIDER_LIVEKIT = 'livekit';
+    public const MEDIA_PROVIDER_MEDIASOUP = 'mediasoup';
 
     protected $table = 'live_streams';
 
