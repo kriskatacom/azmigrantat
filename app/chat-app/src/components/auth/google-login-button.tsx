@@ -8,7 +8,11 @@ import {
 import { useState } from "react";
 import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
 
-const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+// This is the Web OAuth client ID (client_type: 3) from google-services.json.
+// The Android client ID (client_type: 1) is selected by the native Google
+// Sign-In configuration and must not be passed as webClientId.
+const GOOGLE_WEB_CLIENT_ID =
+  "149310026747-0276747vvqrhrgapqcqlg9o1uekn2snr.apps.googleusercontent.com";
 
 GoogleSignin.configure({
   webClientId: GOOGLE_WEB_CLIENT_ID,

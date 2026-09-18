@@ -236,6 +236,59 @@ class UserController extends BaseApiController
         ]);
     }
 
+    /**
+     * Public profile data used by the Etome web profile page.
+     * This intentionally exposes only the public profile representation.
+     */
+    public function publicShow($id)
+    {
+        $userId = (int) $id;
+
+        if ($userId <= 0) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Потребителят не е намерен.',
+            ], 404);
+        }
+
+        $profile = User::query()
+            ->where('is_active', true)
+            ->find($userId);
+
+        if (!$profile) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Потребителят не е намерен.',
+            ], 404);
+        }
+
+        $videos = Video::query()
+            ->where('user_id', (int) $profile->id)
+            ->where('status', Video::STATUS_READY)
+            ->latest('id')
+            ->limit(100)
+            ->get()
+            ->map(static fn (Video $video): array => [
+                'id' => (int) $video->id,
+                'title' => $video->title,
+                'description' => $video->description,
+                'thumbnail_url' => $video->thumbnail_url,
+                'status' => $video->status,
+                'total_views' => (int) $video->total_views,
+                'created_at' => $video->created_at?->toIso8601String(),
+            ])
+            ->values()
+            ->all();
+
+        return $this->json([
+            'success' => true,
+            'data' => array_merge(
+                $profile->toPublicProfileArray(['is_self' => false]),
+                ['videos' => $videos]
+            ),
+        ]);
+    }
+
     private function removeMissingBunnyVideos(int $userId): void
     {
         $bunny = new BunnyStreamService();

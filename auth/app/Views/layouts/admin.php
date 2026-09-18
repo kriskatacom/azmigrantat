@@ -68,7 +68,14 @@ $is_open = $_SESSION['sidebar_open'];
 <body class="antialiased text-gray-900 bg-slate-100 min-h-screen">
     <div id="admin-layout">
 
-        <?php View::loadPartial('admin/partials/sidebar'); ?>
+        <?php
+        // Keep the layout self-contained for shared-hosting deployments where
+        // public/index.php may still use an older bootstrap sequence.
+        if (!defined('SIDEBAR_LINKS')) {
+            require_once BASE_PATH . '/app/Config/sidebar.php';
+        }
+        View::loadPartial('admin/partials/sidebar');
+        ?>
 
         <div id="main-content-wrapper"
             class="flex-1 flex flex-col min-w-0 h-screen sidebar-transition <?= $is_open ? 'lg:ml-80' : 'lg:ml-0' ?>">

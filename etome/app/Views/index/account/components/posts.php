@@ -78,7 +78,7 @@ function infinitePostsComponent() {
             this.loading = true;
 
             try {
-                const response = await fetch(`<?= AUTH_SERVER_URL ?>/api/posts/user/${this.userId}?page=${this.page}`);
+                const response = await fetch(`<?= AUTH_PUBLIC_SERVER_URL ?>/api/posts/user/${this.userId}?page=${this.page}`);
                 if (!response.ok) throw new Error('API Error');
                 
                 const data = await response.json();

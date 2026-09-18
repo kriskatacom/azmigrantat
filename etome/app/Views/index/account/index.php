@@ -15,11 +15,11 @@ use App\Core\View;
         ]); ?>
 
         <?php View::component('company-data', 'index/account/components', [
-            'user_id' => $account['id'],
+            'user_id' => $account['id'] ?? 0,
         ]); ?>
 
-        <?php View::component('posts', 'index/account/components', [
-            'posts' => $posts ?? []
+        <?php View::component('videos', 'index/account/components', [
+            'videos' => $videos ?? [],
         ]); ?>
 
     </div>

@@ -56,31 +56,36 @@ class HomeController
 
     public function account($id)
     {
-        $accountData = null;
+        $account = null;
 
         try {
-            $endpoint = '/api/users/account';
-            if ($id !== null && $id !== '') {
-                $endpoint .= '?id=' . urlencode($id);
-            }
-
-            $accountData = $this->api->get($endpoint);
+            $response = $this->api->get('/api/public/users/' . urlencode($id));
+            $account = $response['data'] ?? null;
         } catch (Exception $e) {
-            error_log($e->getMessage());
+            error_log('Грешка при зареждане на профил: ' . $e->getMessage());
         }
 
-        $title = $accountData['user']['name'] . ' - Etome.bg';
+        if (!is_array($account)) {
+            http_response_code(404);
+            return View::render('errors/404', [
+                'title' => 'Профилът не е намерен - Etome.bg',
+            ]);
+        }
+
+        $name = trim((string) ($account['name'] ?? 'Профил'));
+        $title = $name . ' - Etome.bg';
         
         $ogService = new OpenGraphService([
             'title' => $title,
-            'description' => get_first_sentence($accountData['user']['options']['bio'] ?? ''),
-            'image_desktop' => $accountData['user']['options']['profile_image'] ?? ''
+            'description' => get_first_sentence($account['bio'] ?? ''),
+            'image_desktop' => $account['profile_image'] ?? '',
         ]);
 
         return View::render('index/account/index', [
-            'title' => $accountData['user']['name'],
-            'account' => $accountData['user'] ?? null,
-            'posts' => $accountData['posts'] ?? null,
+            'title' => $title,
+            'account' => $account,
+            'videos' => $account['videos'] ?? [],
+            'posts' => [],
             'og_tags' => $ogService->renderTags(),
         ]);
     }

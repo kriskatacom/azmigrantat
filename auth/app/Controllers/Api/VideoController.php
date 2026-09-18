@@ -32,6 +32,52 @@ final class VideoController extends BaseController
         return $this->json(['success' => true, 'data' => $videos->map(fn (Video $video) => $this->serialize($video))->values()]);
     }
 
+    public function publicIndex()
+    {
+        $limit = min(30, max(1, (int) ($_GET['limit'] ?? 12)));
+        $page = max(1, (int) ($_GET['page'] ?? 1));
+        $seed = max(1, (int) ($_GET['seed'] ?? random_int(1, PHP_INT_MAX)));
+        $videos = Video::query()
+            ->with('owner')
+            ->where('status', Video::STATUS_READY)
+            ->orderByRaw('RAND(?)', [$seed])
+            ->skip(($page - 1) * $limit)
+            ->limit($limit + 1)
+            ->get()
+            ->map(function (Video $video): array {
+                $item = $this->serialize($video);
+                $item['playback_url'] = null;
+
+                try {
+                    $item['playback_url'] = (new BunnyStreamService())->playbackUrl($video);
+                } catch (RuntimeException $exception) {
+                    error_log('[PublicVideoFeed] playback URL unavailable: ' . $exception->getMessage());
+                }
+
+                $item['user'] = $video->owner ? [
+                    'id' => (int) $video->owner->id,
+                    'name' => $video->owner->name,
+                    'profile_image' => $video->owner->profile_image_url,
+                ] : null;
+
+                return $item;
+            })
+            ->values();
+
+        $hasMore = $videos->count() > $limit;
+
+        return $this->json([
+            'success' => true,
+            'data' => $videos->take($limit)->values(),
+            'pagination' => [
+                'page' => $page,
+                'limit' => $limit,
+                'seed' => $seed,
+                'has_more' => $hasMore,
+            ],
+        ]);
+    }
+
     public function beginUpload()
     {
         $user = $this->authenticatedUser();
@@ -401,6 +447,8 @@ final class VideoController extends BaseController
             'bunny_status' => $video->bunny_status,
             'mime_type' => $video->mime_type,
             'file_size' => $video->file_size,
+            'width' => $video->width,
+            'height' => $video->height,
             'total_views' => (int) $video->total_views,
             'unique_viewers' => (int) $video->unique_viewers,
             'created_at' => $video->created_at?->toIso8601String(),

@@ -39,6 +39,8 @@ services:
     build:
       context: ./auth
       dockerfile: Dockerfile
+    env_file:
+      - ./auth/.env
     container_name: azmigrantat-auth
     restart: unless-stopped
     environment:
@@ -66,6 +68,48 @@ services:
       mysql:
         condition: service_healthy
       realtime:
+        condition: service_started
+
+  etome:
+    build:
+      context: ./etome
+      dockerfile: Dockerfile
+    container_name: azmigrantat-etome
+    restart: unless-stopped
+    environment:
+      APP_ENV: development
+      DATABASE_ADMIN_EMAIL: ${ETOME_DATABASE_ADMIN_EMAIL:-admin@localhost}
+      DATABASE_ADMIN_PASSWORD: ${ETOME_DATABASE_ADMIN_PASSWORD:-admin}
+      DB_DRIVER: mysql
+      DB_HOST: etome-mysql
+      DB_PORT: 3306
+      DB_NAME: ${ETOME_MYSQL_DATABASE:-etome}
+      DB_USER: ${ETOME_MYSQL_USER:-etome}
+      DB_PASS: ${ETOME_MYSQL_PASSWORD:-etome}
+      DB_CHARSET: utf8mb4
+      DB_COLLATION: utf8mb4_unicode_ci
+      AUTH_SERVER_URL: ${ETOME_AUTH_SERVER_URL:-http://auth:8080}
+      AUTH_PUBLIC_SERVER_URL: ${ETOME_AUTH_PUBLIC_SERVER_URL:-http://localhost:8081}
+      BUSINESS_WEBSITE_SERVER_URL: ${ETOME_BUSINESS_SERVER_URL:-http://business:8080}
+      BUSINESS_PUBLIC_WEBSITE_SERVER_URL: ${ETOME_BUSINESS_PUBLIC_SERVER_URL:-http://localhost:8090}
+      OAUTH_SERVER_URL: ${ETOME_OAUTH_SERVER_URL:-http://auth:8080}
+      OAUTH_INTERNAL_SERVER_URL: ${ETOME_OAUTH_INTERNAL_SERVER_URL:-http://auth:8080}
+      OAUTH_PUBLIC_SERVER_URL: ${ETOME_OAUTH_PUBLIC_SERVER_URL:-http://localhost:8081}
+      OAUTH_CLIENT_ID: ${ETOME_OAUTH_CLIENT_ID:-}
+      OAUTH_CLIENT_SECRET: ${ETOME_OAUTH_CLIENT_SECRET:-}
+      OAUTH_REDIRECT_URI: ${ETOME_OAUTH_REDIRECT_URI:-http://localhost:8091/auth/callback}
+      SESSION_NAME: ${ETOME_SESSION_NAME:-ETOME_SESS}
+    ports:
+      - "${ETOME_PORT:-8091}:8080"
+    volumes:
+      - ./etome/storage:/var/www/etome/storage
+      - ./etome/public/uploads:/var/www/etome/public/uploads
+    depends_on:
+      etome-mysql:
+        condition: service_healthy
+      auth:
+        condition: service_started
+      business:
         condition: service_started
 
   realtime:
@@ -178,6 +222,28 @@ services:
       timeout: 5s
       retries: 20
 
+  etome-mysql:
+    image: mysql:8.4
+    container_name: azmigrantat-etome-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${ETOME_MYSQL_ROOT_PASSWORD:-etome-root}
+      MYSQL_DATABASE: ${ETOME_MYSQL_DATABASE:-etome}
+      MYSQL_USER: ${ETOME_MYSQL_USER:-etome}
+      MYSQL_PASSWORD: ${ETOME_MYSQL_PASSWORD:-etome}
+    ports:
+      - "${ETOME_MYSQL_PORT:-3309}:3306"
+    volumes:
+      - azmigrantat_etome_mysql_data:/var/lib/mysql
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'mysqladmin ping -h 127.0.0.1 -uroot -p"$${MYSQL_ROOT_PASSWORD}" --silent'
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
   business-phpmyadmin:
     image: phpmyadmin:5.2
     container_name: azmigrantat-business-phpmyadmin
@@ -195,4 +261,5 @@ services:
 volumes:
   azmigrantat_auth_mysql_data:
   azmigrantat_business_mysql_data:
+  azmigrantat_etome_mysql_data:
   azmigrantat_redis_data:

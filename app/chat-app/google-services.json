@@ -12,7 +12,36 @@
           "package_name": "com.anonymous.chatapp"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "149310026747-2ohl1oepcascue5aj5st7m3bvc0ulkqi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.anonymous.chatapp",
+            "certificate_hash": "ab5552059a8dfccd0eb7c17daa0fa803271665fd"
+          }
+        },
+        {
+          "client_id": "149310026747-9lsugrqtk71li7og1hob9b5n39s60muq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.anonymous.chatapp",
+            "certificate_hash": "db119331a20aaf5d4413710a5fb20e08c950eed2"
+          }
+        },
+        {
+          "client_id": "149310026747-bfgjoaumoqqk6tbnkirro2acf8u0ji1l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.anonymous.chatapp",
+            "certificate_hash": "219f2aa5cfa107939c3f1ccc961fddafbbbdfbd2"
+          }
+        },
+        {
+          "client_id": "149310026747-0276747vvqrhrgapqcqlg9o1uekn2snr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDJqLmOlqCP_LVGmwV6oQ8mK4dxl6dEHn0"
@@ -20,7 +49,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "149310026747-0276747vvqrhrgapqcqlg9o1uekn2snr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

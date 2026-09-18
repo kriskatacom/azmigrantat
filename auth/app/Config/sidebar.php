@@ -7,6 +7,7 @@ $sidebarLinks = [];
 
 if (AuthHelper::check()) {
     $sidebarLinks[] = ['url' => '/users/profile', 'icon' => 'fa-user', 'label' => 'Моят профил'];
+    $sidebarLinks[] = ['url' => '/admin/videos', 'icon' => 'fa-video', 'label' => 'Видео'];
 }
 
 if (AuthHelper::isAdmin()) {

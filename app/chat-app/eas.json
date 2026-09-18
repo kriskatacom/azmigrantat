@@ -13,10 +13,10 @@
         "EXPO_PUBLIC_SUBSCRIPTIONS_URL": "https://users.azmigrantat.com/subscriptions",
         "EXPO_PUBLIC_SOCKET_URL": "https://realtime.azmigrantat.com",
         "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "868706856080-so84saoje92mhc69sulunf93brt1ckbg.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "149310026747-0276747vvqrhrgapqcqlg9o1uekn2snr.apps.googleusercontent.com",
         "EXPO_PUBLIC_FORCE_TURN": "false",
         "EXPO_PUBLIC_LIVE_MEDIA_PROVIDER": "mock",
-        "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED": "true"
+        "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED": "false"
       }
     },
     "preview": {
@@ -30,10 +30,10 @@
         "EXPO_PUBLIC_SUBSCRIPTIONS_URL": "https://users.azmigrantat.com/subscriptions",
         "EXPO_PUBLIC_SOCKET_URL": "https://realtime.azmigrantat.com",
         "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "868706856080-so84saoje92mhc69sulunf93brt1ckbg.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "149310026747-0276747vvqrhrgapqcqlg9o1uekn2snr.apps.googleusercontent.com",
         "EXPO_PUBLIC_FORCE_TURN": "false",
         "EXPO_PUBLIC_LIVE_MEDIA_PROVIDER": "mock",
-        "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED": "true"
+        "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED": "false"
       }
     },
     "production": {
@@ -44,7 +44,7 @@
         "EXPO_PUBLIC_SUBSCRIPTIONS_URL": "https://users.azmigrantat.com/subscriptions",
         "EXPO_PUBLIC_SOCKET_URL": "https://realtime.azmigrantat.com",
         "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63",
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "868706856080-so84saoje92mhc69sulunf93brt1ckbg.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "149310026747-0276747vvqrhrgapqcqlg9o1uekn2snr.apps.googleusercontent.com",
         "EXPO_PUBLIC_FORCE_TURN": "false",
         "EXPO_PUBLIC_LIVE_MEDIA_PROVIDER": "mock",
         "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED": "false"

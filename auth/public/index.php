@@ -20,6 +20,7 @@ App::bootstrap();
 $app = new App();
 
 $app->initSession();
+$app->initSidebar();
 $routePath = $app->initLanguage();
 date_default_timezone_set('UTC');
 $app->dispatch($routePath);

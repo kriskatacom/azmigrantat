@@ -27,6 +27,8 @@ use App\Core\Router;
 use App\Controllers\Api\UserController;
 use App\Controllers\IndexController;
 use App\Controllers\OauthController;
+use App\Controllers\VideoWebController;
+use App\Controllers\UiController;
 
 use App\Middlewares\AuthMiddleware;
 use App\Middlewares\BearerAuthMiddleware;
@@ -54,6 +56,13 @@ $router->post('/admin/posts/update/{id}', [PostController::class, 'update'], [Au
 $router->post('/admin/posts/delete/{id}', [PostController::class, 'delete'], [AuthMiddleware::class]);
 $router->post('/admin/posts/restore/{id}', [PostController::class, 'restore'], [AuthMiddleware::class]);
 $router->post('/admin/posts/force-delete/{id}', [PostController::class, 'forceDelete'], [AuthMiddleware::class]);
+
+$router->get('/admin/videos', [VideoWebController::class, 'index'], [AuthMiddleware::class]);
+$router->get('/admin/videos/create', [VideoWebController::class, 'create'], [AuthMiddleware::class]);
+$router->get('/admin/videos/edit/{id}', [VideoWebController::class, 'edit'], [AuthMiddleware::class]);
+$router->get('/admin/videos/data', [VideoWebController::class, 'data'], [AuthMiddleware::class]);
+$router->get('/admin/videos/session-token', [VideoWebController::class, 'sessionToken'], [AuthMiddleware::class]);
+$router->post('/admin/ui/save-state', [UiController::class, 'saveState'], [AuthMiddleware::class]);
 
 $router->get('/oauth/authorize', [OauthController::class, 'authorize']);
 $router->get('/api/user/me', [OauthController::class, 'me'], [BearerAuthMiddleware::class]);
@@ -185,7 +194,9 @@ $router->post('/internal/mobile/notifications', [InternalMobileController::class
 
 $router->get('/api/users', [UserController::class, 'getUsers']);
 $router->get('/api/users/account', [UserController::class, 'getAccount']);
+$router->get('/api/public/users/{id}', [UserController::class, 'publicShow']);
 $router->get('/api/posts', [PostController::class, 'getPosts']);
+$router->get('/api/videos', [VideoController::class, 'publicIndex']);
 $router->get('/api/posts/user/{id}', [PostController::class, 'getUserPosts']);
 $router->get('/api/posts/{id}', [PostController::class, 'getPost']);
 $router->get('/api/categories', [CategoryController::class, 'getCategories']);

@@ -3,9 +3,9 @@
 use App\Core\Auth;
 ?>
 
-<div class="bg-white dark:bg-slate-950 border-b border-gray-200 dark:border-slate-800">
+<div class="w-full bg-white dark:bg-slate-950 border-b border-gray-200 dark:border-slate-800">
     <nav x-data="navbarComponent()" x-init="init()"
-        class="container mx-auto px-2 py-3 flex justify-between items-center sticky z-50 <?= Auth::isAdmin() ? 'top-10' : 'top-0' ?>">
+        class="mx-auto flex w-full items-center justify-between px-2 py-3 sticky z-50 <?= Auth::isAdmin() ? 'top-10' : 'top-0' ?>" style="max-width: 768px;">
         <div class="text-2xl font-bold">
             <a href="/">
                 <span class="dark:text-white text-primary">Etome</span><span class="text-blue-600">.bg</span>

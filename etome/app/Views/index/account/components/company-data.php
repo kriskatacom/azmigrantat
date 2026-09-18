@@ -6,7 +6,7 @@
 
             <div class="w-full md:w-2/5 min-h-50 md:min-h-full relative shrink-0 bg-gray-100 dark:bg-gray-800">
                 <template x-if="company && company.options && company.options.image_url">
-                    <img :src="'<?= BUSINESS_WEBSITE_SERVER_URL ?>' + company.options.image_url"
+                        <img :src="'<?= BUSINESS_PUBLIC_WEBSITE_SERVER_URL ?>' + company.options.image_url"
                         class="absolute inset-0 w-full h-full object-cover select-none" :alt="company.name">
                 </template>
 
@@ -32,7 +32,7 @@
 
                 <div class="pt-2 md:pt-0">
                     <a :href="company && country && city && category 
-                        ? '<?= BUSINESS_WEBSITE_SERVER_URL ?>/' + country.slug + city.slug + '/' + category.slug + '/' + company.slug 
+                        ? '<?= BUSINESS_PUBLIC_WEBSITE_SERVER_URL ?>/' + country.slug + city.slug + '/' + category.slug + '/' + company.slug 
                         : '#'" 
                         target="_blank"
                         class="inline-flex items-center justify-center px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white text-sm font-semibold rounded-xl transition-all duration-200 shadow-xs hover:shadow-md cursor-pointer">
@@ -65,7 +65,7 @@
 
             async fetchCompany() {
                 try {
-                    const response = await fetch(`<?= BUSINESS_WEBSITE_SERVER_URL ?>/admin/companies/user/${this.userId}`);
+                    const response = await fetch(`<?= BUSINESS_PUBLIC_WEBSITE_SERVER_URL ?>/admin/companies/user/${this.userId}`);
 
                     if (!response.ok) throw new Error('Грешка при комуникация със сървъра');
 

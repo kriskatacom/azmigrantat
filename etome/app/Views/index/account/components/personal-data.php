@@ -1,4 +1,4 @@
-<?php if (!empty($account['email']) || !empty($account['phone']) || !empty($account['options']['location'])): ?>
+<?php if (!empty($account['email']) || !empty($account['phone']) || !empty($account['location'])): ?>
 <div
     class="max-w-4xl mx-auto border-t border-gray-200 dark:border-gray-700/60 text-gray-700 dark:text-slate-200 p-2 md:p-5 mt-2 md:mt-5">
     <ul class="space-y-3">
@@ -29,11 +29,11 @@
             </li>
         <?php endif; ?>
 
-        <?php if (!empty($account['options']['location'])): ?>
+        <?php if (!empty($account['location'])): ?>
             <li class="flex items-start gap-3">
                 <i class="fa-solid fa-location-dot text-gray-400 dark:text-gray-500 fa-fw text-base mt-0.5"></i>
                 <span><strong class="font-medium text-gray-900 dark:text-white">Адрес:</strong>
-                    <?= htmlspecialchars($account['options']['location']) ?></span>
+                    <?= htmlspecialchars($account['location']) ?></span>
             </li>
         <?php endif; ?>
 

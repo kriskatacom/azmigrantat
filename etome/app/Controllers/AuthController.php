@@ -18,7 +18,7 @@ class AuthController extends BaseController
             'response_type' => 'code'
         ]);
 
-        return header("Location: " . $_ENV['OAUTH_SERVER_URL'] . '/oauth/authorize?' . $params);
+        return header("Location: " . ($_ENV['OAUTH_PUBLIC_SERVER_URL'] ?? $_ENV['OAUTH_SERVER_URL']) . '/oauth/authorize?' . $params);
     }
 
     public function callback()
@@ -37,7 +37,8 @@ class AuthController extends BaseController
             'grant_type' => 'authorization_code'
         ];
 
-        $ch = curl_init($_ENV['OAUTH_SERVER_URL'] . '/oauth/token');
+        $oauthServerUrl = $_ENV['OAUTH_INTERNAL_SERVER_URL'] ?? $_ENV['OAUTH_SERVER_URL'];
+        $ch = curl_init($oauthServerUrl . '/oauth/token');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($postData));
@@ -60,7 +61,8 @@ class AuthController extends BaseController
 
     private function fetchUserProfile($token)
     {
-        $ch = curl_init($_ENV['OAUTH_SERVER_URL'] . '/api/user/me');
+        $oauthServerUrl = $_ENV['OAUTH_INTERNAL_SERVER_URL'] ?? $_ENV['OAUTH_SERVER_URL'];
+        $ch = curl_init($oauthServerUrl . '/api/user/me');
         curl_setopt($ch, CURLOPT_HTTPHEADER, [
             'Authorization: Bearer ' . $token,
             'Accept: application/json'
@@ -80,7 +82,7 @@ class AuthController extends BaseController
 
         $_SESSION['user'] = $userData;
 
-        $baseUrl = rtrim($_ENV['OAUTH_SERVER_URL'], '/');
+        $baseUrl = rtrim($_ENV['OAUTH_PUBLIC_SERVER_URL'] ?? $_ENV['OAUTH_SERVER_URL'], '/');
         return $this->redirect($baseUrl . '/users/profile');
     }
 

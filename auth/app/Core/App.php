@@ -38,9 +38,17 @@ class App
         EnvConfig::apply();
 
         require_once BASE_PATH . '/app/Config/company.php';
-        require_once BASE_PATH . '/app/Config/sidebar.php';
+        $configuredOrigin = rtrim((string) ($_ENV['ETOME_BASE_URL'] ?? '*'), '/');
+        $requestOrigin = rtrim((string) ($_SERVER['HTTP_ORIGIN'] ?? ''), '/');
+        $allowedOrigins = [$configuredOrigin];
 
-        header("Access-Control-Allow-Origin: " . ($_ENV['ETOME_BASE_URL'] ?? '*'));
+        if (($_ENV['APP_ENV'] ?? '') !== 'production') {
+            $allowedOrigins[] = 'http://localhost:8091';
+            $allowedOrigins[] = 'http://127.0.0.1:8091';
+        }
+
+        header('Access-Control-Allow-Origin: ' . ($requestOrigin !== '' && in_array($requestOrigin, $allowedOrigins, true) ? $requestOrigin : $configuredOrigin));
+        header('Vary: Origin');
         header("Access-Control-Allow-Headers: Content-Type, Accept, Authorization");
         header("Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS");
     }
@@ -52,6 +60,11 @@ class App
         }
 
         session_start();
+    }
+
+    public function initSidebar(): void
+    {
+        require_once BASE_PATH . '/app/Config/sidebar.php';
     }
 
     public function initLanguage(): string

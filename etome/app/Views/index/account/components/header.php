@@ -1,12 +1,12 @@
 <?php
 
-    $isWithGender = !empty($account['options']['gender']);
-    $isWithCity = !empty($account['options']['city']);
+    $isWithGender = !empty($account['gender']);
+    $isWithCity = !empty($account['city']);
 
 ?>
 <div class="w-full h-48 md:h-64 bg-gray-100 dark:bg-gray-800 relative overflow-hidden">
-    <?php if (!empty($account['options']['cover_image'])): ?>
-        <img src="<?= htmlspecialchars($account['options']['cover_image']) ?>" class="w-full h-full object-cover" alt="">
+    <?php if (!empty($account['cover_image'])): ?>
+        <img src="<?= htmlspecialchars($account['cover_image']) ?>" class="w-full h-full object-cover" alt="">
     <?php endif; ?>
 </div>
 
@@ -14,8 +14,8 @@
     <div
         class="w-32 h-32 md:w-40 md:h-40 bg-white dark:bg-gray-800 rounded-full p-1 shrink-0 mx-auto md:mx-0 shadow-sm">
         <div class="w-full h-full bg-gray-100 dark:bg-gray-900 rounded-full overflow-hidden relative">
-            <?php if (!empty($account['options']['profile_image'])): ?>
-                <img src="<?= htmlspecialchars($account['options']['profile_image']) ?>"
+            <?php if (!empty($account['profile_image'])): ?>
+                <img src="<?= htmlspecialchars($account['profile_image']) ?>"
                     class="w-full h-full object-cover" alt="<?= htmlspecialchars($account['name'] ?? '') ?>">
             <?php endif; ?>
         </div>
@@ -27,17 +27,17 @@
         </h1>
         
         <?php if ($isWithGender): ?>
-            <span class="text-gray-500 dark:text-gray-400 truncate"><?= $account['options']['gender'] === 'male' ? 'Мъж' : 'Жена' ?></span> |
+            <span class="text-gray-500 dark:text-gray-400 truncate"><?= $account['gender'] === 'male' ? 'Мъж' : 'Жена' ?></span> |
         <?php endif; ?>
 
         <?php if ($isWithCity): ?>
-            <span class="text-gray-500 dark:text-gray-400 truncate"><?= $account['options']['city'] ?></span>
+            <span class="text-gray-500 dark:text-gray-400 truncate"><?= htmlspecialchars($account['city']) ?></span>
         <?php endif; ?>
     </div>
 </div>
 
-<?php if (!empty($account['options']['bio'])): ?>
+<?php if (!empty($account['bio'])): ?>
     <p class="max-sm:text-sm text-gray-600 dark:text-gray-300 max-md:text-center px-2 md:px-5 mt-2 md:mt-5">
-        <?= nl2br(htmlspecialchars($account['options']['bio'])) ?>
+        <?= nl2br(htmlspecialchars($account['bio'])) ?>
     </p>
 <?php endif; ?>
