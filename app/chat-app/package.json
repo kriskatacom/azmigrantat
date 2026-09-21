@@ -63,6 +63,7 @@
     "typescript": "~6.0.3"
   },
   "scripts": {
+    "postinstall": "node ./scripts/patch-expo-router-linking-race.js",
     "start": "expo start",
     "start:clear": "expo start --clear",
     "start:dev": "expo start --dev-client",

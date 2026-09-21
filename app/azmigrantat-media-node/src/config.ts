@@ -32,11 +32,31 @@ function durationMs(name: string, fallback: string): number {
   return value;
 }
 
+function requiredUrl(name: string, fallback: string): string {
+  const value = required(name, fallback).replace(/\/+$/, '');
+
+  try {
+    const url = new URL(value);
+
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      throw new Error();
+    }
+
+    return url.toString().replace(/\/+$/, '');
+  } catch {
+    throw new Error(`Невалидна URL стойност за ${name}: ${value}`);
+  }
+}
+
 export const config = {
   nodeId: required('MEDIA_NODE_ID', 'media-node-1'),
   host: required('MEDIA_NODE_HOST', '0.0.0.0'),
   port: positiveInteger('MEDIA_NODE_PORT', '3002'),
   advertisedHost: required('MEDIA_NODE_ADVERTISED_HOST', 'localhost'),
+  signalingUrl: requiredUrl(
+    'MEDIA_NODE_SIGNALING_URL',
+    `http://${process.env.MEDIA_NODE_ADVERTISED_HOST?.trim() || 'localhost'}:${process.env.MEDIA_NODE_PORT || '3002'}`,
+  ),
   controlHost: required('MEDIA_NODE_CONTROL_HOST', process.env.MEDIA_NODE_ADVERTISED_HOST?.trim() || 'localhost'),
   internalSecret: required('MEDIA_NODE_INTERNAL_SECRET', 'local-media-node-secret'),
   rtcMinPort: positiveInteger('MEDIASOUP_MIN_PORT', '40000'),

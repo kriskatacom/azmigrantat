@@ -5,6 +5,7 @@ import { config } from '../../config';
 export type MediaNodeDescriptor = {
     node_id: string;
     advertised_host: string;
+    signaling_url: string;
     control_host: string;
     control_port: number;
     rtc_min_port: number;
@@ -28,6 +29,28 @@ export type MediaAssignment = {
 const NODE_KEY_PREFIX = 'media:nodes:';
 const ROOM_KEY_PREFIX = 'media:rooms:';
 const ASSIGNMENT_TTL_SECONDS = 86_400;
+
+export function isValidMediaNodeDescriptor(value: unknown): value is MediaNodeDescriptor {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+
+    const node = value as Partial<MediaNodeDescriptor>;
+
+    return (
+        typeof node.node_id === 'string' &&
+        typeof node.advertised_host === 'string' &&
+        isValidSignalingUrl(node.signaling_url) &&
+        typeof node.control_host === 'string' &&
+        typeof node.control_port === 'number' &&
+        typeof node.rtc_min_port === 'number' &&
+        typeof node.rtc_max_port === 'number' &&
+        typeof node.state === 'string' &&
+        (typeof node.worker_pid === 'number' || node.worker_pid === null) &&
+        (typeof node.router_id === 'string' || node.router_id === null) &&
+        typeof node.updated_at === 'string'
+    );
+}
 
 export class MediaNodeManager {
     private readonly client: RedisClientType;
@@ -64,16 +87,10 @@ export class MediaNodeManager {
                 }
 
                 try {
-                    const node = JSON.parse(raw) as Partial<MediaNodeDescriptor>;
+                    const node = JSON.parse(raw) as unknown;
 
-                    if (
-                        typeof node.node_id === 'string' &&
-                    typeof node.advertised_host === 'string' &&
-                    typeof node.control_host === 'string' &&
-                        typeof node.control_port === 'number' &&
-                        typeof node.state === 'string'
-                    ) {
-                        nodes.push(node as MediaNodeDescriptor);
+                    if (isValidMediaNodeDescriptor(node)) {
+                        nodes.push(node);
                     }
                 } catch {
                     console.warn(`[media-manager] ignored malformed node descriptor: ${key}`);
@@ -162,7 +179,7 @@ export class MediaNodeManager {
                 media_room_id: mediaRoomId,
                 media_provider: 'mediasoup',
                 media_node_id: node.node_id,
-                signaling_endpoint: `http://${node.advertised_host}:${node.control_port}`,
+                signaling_endpoint: node.signaling_url,
                 rtc_host: node.advertised_host,
                 router_id: node.router_id,
             };
@@ -225,5 +242,18 @@ export class MediaNodeManager {
 
     private roomKey(liveId: number): string {
         return `${ROOM_KEY_PREFIX}${liveId}`;
+    }
+}
+
+function isValidSignalingUrl(value: unknown): value is string {
+    if (typeof value !== 'string' || value.trim() === '') {
+        return false;
+    }
+
+    try {
+        const url = new URL(value);
+        return (url.protocol === 'http:' || url.protocol === 'https:') && url.hostname !== '';
+    } catch {
+        return false;
     }
 }

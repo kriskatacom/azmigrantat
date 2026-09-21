@@ -5,6 +5,28 @@ import type { MediaNode } from '../media/media-node';
 
 type RegistryState = 'disconnected' | 'connecting' | 'ready' | 'failed' | 'closed';
 
+type MediaNodeHealth = {
+  state: string;
+  worker_pid: number | null;
+  router_id: string | null;
+};
+
+export function createHeartbeatPayload(health: MediaNodeHealth) {
+  return {
+    node_id: config.nodeId,
+    advertised_host: config.advertisedHost,
+    signaling_url: config.signalingUrl,
+    control_host: config.controlHost,
+    control_port: config.port,
+    rtc_min_port: config.rtcMinPort,
+    rtc_max_port: config.rtcMaxPort,
+    state: health.state,
+    worker_pid: health.worker_pid,
+    router_id: health.router_id,
+    updated_at: new Date().toISOString(),
+  };
+}
+
 export class MediaNodeRegistry {
   private readonly client: RedisClientType;
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -52,19 +74,7 @@ export class MediaNodeRegistry {
   }
 
   private async heartbeat(): Promise<void> {
-    const health = this.mediaNode.getHealth();
-    const payload = {
-      node_id: config.nodeId,
-      advertised_host: config.advertisedHost,
-      control_host: config.controlHost,
-      control_port: config.port,
-      rtc_min_port: config.rtcMinPort,
-      rtc_max_port: config.rtcMaxPort,
-      state: health.state,
-      worker_pid: health.worker_pid,
-      router_id: health.router_id,
-      updated_at: new Date().toISOString(),
-    };
+    const payload = createHeartbeatPayload(this.mediaNode.getHealth());
 
     await this.client.set(this.key(), JSON.stringify(payload), { EX: 15 });
   }
