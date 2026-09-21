@@ -114,17 +114,25 @@ class UserController extends BaseApiController
         ]));
 
         $normalizedCode = User::normalizePublicCode($search);
+        $normalizedPhone = preg_replace('/\\D+/', '', $search) ?? '';
 
         $users = User::query()
             ->where('is_active', true)
             ->whereNotIn('id', $excludedIds)
-            ->where(function ($query) use ($search, $normalizedCode) {
+            ->where(function ($query) use ($search, $normalizedCode, $normalizedPhone) {
                 $query
                     ->where('name', 'LIKE', '%' . $search . '%')
                     ->orWhere('username', 'LIKE', '%' . $search . '%');
 
                 if (strlen($normalizedCode) === 8) {
                     $query->orWhere('public_code', $normalizedCode);
+                }
+
+                if (strlen($normalizedPhone) >= 3) {
+                    $query->orWhereRaw(
+                        "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '-', ''), '(', ''), ')', ''), '+', '') LIKE ?",
+                        ['%' . $normalizedPhone . '%']
+                    );
                 }
             })
             ->orderBy('name')

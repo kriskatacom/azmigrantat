@@ -209,7 +209,8 @@ export default function PublicUserProfileScreen() {
   const handle = profile?.username
     ? `@${profile.username}`
     : profile?.public_code ?? null;
-  const phoneParts = profile?.phone ? phoneDisplayParts(profile.phone) : null;
+  const phone = profile?.phone?.trim() ?? "";
+  const phoneParts = phone ? phoneDisplayParts(phone) : null;
   const shownGender = genderLabel(profile?.gender ?? null);
   const coverUri = profile?.cover_image ?? null;
 
@@ -619,20 +620,7 @@ export default function PublicUserProfileScreen() {
                 colors={theme.colors}
                 onPress={phoneParts.e164 ? callPhone : undefined}
               />
-            ) : (
-              <AboutRow
-                icon="phone"
-                text={
-                  profile.is_self
-                    ? profile.phone_verified
-                      ? "Телефонът е скрит за другите"
-                      : "Няма потвърден телефон"
-                    : "Телефонът е скрит"
-                }
-                colors={theme.colors}
-                muted
-              />
-            )}
+            ) : null}
             {profile.is_self && profile.email ? (
               <AboutRow
                 icon="envelope"

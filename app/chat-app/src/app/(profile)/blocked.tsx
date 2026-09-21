@@ -157,7 +157,11 @@ export default function BlockedUsersScreen() {
         onEndReached={() => void loadMore()}
         onEndReachedThreshold={0.4}
         ListHeaderComponent={
-          <BlockUserSection isBlocking={isBlocking} onBlock={handleBlockUser} />
+          <BlockUserSection
+            token={token}
+            isBlocking={isBlocking}
+            onBlock={handleBlockUser}
+          />
         }
         ListEmptyComponent={
           isLoading ? (
