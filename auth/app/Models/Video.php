@@ -16,7 +16,7 @@ class Video extends Model
     protected $table = 'videos';
 
     protected $fillable = [
-        'user_id', 'bunny_library_id', 'bunny_video_guid', 'title', 'description', 'thumbnail_url', 'status',
+        'user_id', 'category_id', 'bunny_library_id', 'bunny_video_guid', 'title', 'description', 'thumbnail_url', 'status',
         'bunny_status', 'mime_type', 'file_size', 'duration_seconds', 'width',
         'height', 'upload_expires_at', 'uploaded_at', 'processed_at', 'failed_at',
         'failure_reason', 'total_views', 'unique_viewers',
@@ -24,6 +24,7 @@ class Video extends Model
 
     protected $casts = [
         'user_id' => 'integer',
+        'category_id' => 'integer',
         'bunny_library_id' => 'integer',
         'bunny_status' => 'integer',
         'file_size' => 'integer',
@@ -43,5 +44,10 @@ class Video extends Model
     public function owner()
     {
         return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'category_id');
     }
 }

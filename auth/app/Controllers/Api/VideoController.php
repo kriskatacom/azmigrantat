@@ -4,6 +4,7 @@ namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
 use App\Models\Video;
+use App\Models\Category;
 use App\Services\VideoViewService;
 use App\Models\Notification;
 use App\Services\BackblazeB2Service;
@@ -34,12 +35,25 @@ final class VideoController extends BaseController
 
     public function publicIndex()
     {
+        $search = trim((string) ($_GET['search'] ?? ''));
         $limit = min(30, max(1, (int) ($_GET['limit'] ?? 12)));
         $page = max(1, (int) ($_GET['page'] ?? 1));
         $seed = max(1, (int) ($_GET['seed'] ?? random_int(1, PHP_INT_MAX)));
         $videos = Video::query()
             ->with('owner')
             ->where('status', Video::STATUS_READY)
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($searchQuery) use ($search) {
+                    $searchQuery
+                        ->where('title', 'LIKE', '%' . $search . '%')
+                        ->orWhere('description', 'LIKE', '%' . $search . '%')
+                        ->orWhereHas('owner', function ($ownerQuery) use ($search) {
+                            $ownerQuery
+                                ->where('name', 'LIKE', '%' . $search . '%')
+                                ->orWhere('username', 'LIKE', '%' . $search . '%');
+                        });
+                });
+            })
             ->orderByRaw('RAND(?)', [$seed])
             ->skip(($page - 1) * $limit)
             ->limit($limit + 1)
@@ -88,6 +102,7 @@ final class VideoController extends BaseController
         $input = $this->jsonInput();
         $title = trim((string) ($input['title'] ?? $input['filename'] ?? 'Видео'));
         $description = trim((string) ($input['description'] ?? ''));
+        $categoryId = isset($input['category_id']) && $input['category_id'] !== '' ? (int) $input['category_id'] : null;
         $mimeType = strtolower(trim((string) ($input['mime_type'] ?? '')));
         $fileSize = (int) ($input['file_size'] ?? 0);
 
@@ -97,6 +112,10 @@ final class VideoController extends BaseController
 
         if (mb_strlen($description) > 2000) {
             return $this->json(['success' => false, 'message' => 'Описанието не може да е по-дълго от 2000 символа.'], 422);
+        }
+
+        if ($categoryId !== null && !Category::query()->active()->whereKey($categoryId)->exists()) {
+            return $this->json(['success' => false, 'message' => 'Избраната категория не е активна.'], 422);
         }
 
         if (!in_array($mimeType, ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-m4v'], true)) {
@@ -116,6 +135,7 @@ final class VideoController extends BaseController
             $remote = $bunny->createVideo($title);
             $video = Video::query()->create([
                 'user_id' => (int) $user->id,
+                'category_id' => $categoryId,
                 'bunny_library_id' => $bunny->configuredLibraryId(),
                 'bunny_video_guid' => $remote['guid'],
                 'title' => $title,
@@ -440,6 +460,7 @@ final class VideoController extends BaseController
     {
         return [
             'id' => (int) $video->id,
+            'category_id' => $video->category_id ? (int) $video->category_id : null,
             'title' => $video->title,
             'description' => $video->description,
             'thumbnail_url' => $video->thumbnail_url,

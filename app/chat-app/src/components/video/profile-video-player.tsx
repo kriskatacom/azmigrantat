@@ -1,5 +1,4 @@
-import { useVideoPlayer, VideoView } from "expo-video";
-import { useEventListener } from "expo";
+import ControlledVideoPlayer from "@/components/video/controlled-video-player";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { Animated, Modal, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -70,12 +69,6 @@ function PlayerSurface({
   const overlayVisible = useRef(false);
   const overlayOpacity = useRef(new Animated.Value(0)).current;
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const player = useVideoPlayer(url, (instance) => {
-    instance.loop = false;
-    instance.muted = false;
-    instance.play();
-  });
-
   const toggleOverlay = useCallback(() => {
     overlayVisible.current = !overlayVisible.current;
     setIsOverlayVisible(overlayVisible.current);
@@ -144,24 +137,14 @@ function PlayerSurface({
     };
   }, []);
 
-  useEventListener(player, "statusChange", ({ status, error }) => {
-    if (status === "error") {
-      console.error("[VideoPlayback] Bunny HLS потокът не може да бъде възпроизведен.", {
-        error,
-        url,
-      });
-    }
-  });
-
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
-      <VideoView
-        player={player}
-        style={styles.player}
-        nativeControls
+      <ControlledVideoPlayer
+        url={url}
+        active
         contentFit="contain"
-        onTouchEnd={toggleOverlay}
-        accessibilityLabel="Покажи информацията за видеото"
+        onVideoPress={toggleOverlay}
+        style={styles.player}
       />
       <GestureDetector gesture={playerGesture}>
         <View

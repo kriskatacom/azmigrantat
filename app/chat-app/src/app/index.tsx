@@ -1,7 +1,8 @@
 import { useUnreadMessageCount } from "@/hooks/chat/useUnreadMessageCount";
-import { useUnreadNotificationCount } from "@/hooks/useUnreadNotificationCount";
 import { useAuth } from "@/hooks/useAuth";
 import HomeVideoFeed from "@/components/video/home-video-feed";
+import RemoteImage from "@/components/ui/RemoteImage";
+import type { PublicVideoItem } from "@/types/video";
 import { getSubscription } from "@/services/payments";
 import { getBackgroundUploadStatus, subscribeToBackgroundUpload } from "@/services/background-upload-state";
 import { Ionicons } from "@expo/vector-icons";
@@ -23,9 +24,9 @@ export default function HomeScreen() {
   const isHomeVideoFeedDisabled =
     process.env.EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED === "true";
   const unreadMessageCount = useUnreadMessageCount();
-  const unreadNotificationCount = useUnreadNotificationCount();
   const [hasBackgroundUpload, setHasBackgroundUpload] = useState(getBackgroundUploadStatus().active);
   const [hasPaidSubscription, setHasPaidSubscription] = useState<boolean | null>(null);
+  const [activeVideoUser, setActiveVideoUser] = useState<PublicVideoItem["user"]>(null);
 
   useEffect(() => subscribeToBackgroundUpload((status) => setHasBackgroundUpload(status.active)), []);
 
@@ -45,7 +46,7 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.screen}>
-      <StatusBar barStyle="light-content" backgroundColor="#030714" />
+      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       <ImageBackground
         source={require("../../assets/images/background.jpg")}
@@ -53,8 +54,12 @@ export default function HomeScreen() {
         resizeMode="cover"
       >
         <View style={styles.overlay} />
-        {!isHomeVideoFeedDisabled && isAuthenticated ? (
-          <HomeVideoFeed token={token} focused={isFocused} />
+        {!isHomeVideoFeedDisabled ? (
+          <HomeVideoFeed
+            token={token}
+            focused={isFocused}
+            onActiveVideoUserChange={setActiveVideoUser}
+          />
         ) : null}
 
         <View style={styles.topBar}>
@@ -89,26 +94,6 @@ export default function HomeScreen() {
           ) : null}
 
           <View style={styles.topRightActions}>
-            <TouchableOpacity
-              style={styles.searchButton}
-              onPress={() => router.push("/notifications")}
-              accessibilityRole="button"
-              accessibilityLabel={
-                unreadNotificationCount > 0
-                  ? `Известия, ${unreadNotificationCount} непрочетени`
-                  : "Известия"
-              }
-            >
-              <Ionicons name="notifications-outline" size={28} color="#ffffff" />
-              {isAuthenticated && unreadNotificationCount > 0 ? (
-                <View style={styles.topBadge}>
-                  <Text style={styles.topBadgeText}>
-                    {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
-                  </Text>
-                </View>
-              ) : null}
-            </TouchableOpacity>
-
             <TouchableOpacity
               style={styles.searchButton}
               onPress={() => router.push("/search")}
@@ -146,9 +131,28 @@ export default function HomeScreen() {
             <Text style={styles.actionLabel}>Чат</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton}>
-            <Ionicons name="mic-outline" size={30} color="#ffffff" />
-            <Text style={styles.actionLabel}>Аудио</Text>
+          <TouchableOpacity
+            style={styles.actionButton}
+            disabled={!activeVideoUser}
+            onPress={() => {
+              if (!activeVideoUser) return;
+              router.push({
+                pathname: "/user/[id]",
+                params: { id: String(activeVideoUser.id) },
+              });
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={
+              activeVideoUser
+                ? `Покажи профила на ${activeVideoUser.name}`
+                : "Профил на автора на видеото"
+            }
+          >
+            {activeVideoUser?.profile_image ? (
+              <RemoteImage uri={activeVideoUser.profile_image} style={styles.videoAuthorAvatar} />
+            ) : (
+              <Ionicons name="person-outline" size={28} color="#ffffff" />
+            )}
           </TouchableOpacity>
 
         </View>
@@ -179,7 +183,7 @@ export default function HomeScreen() {
             }}
           >
             <View style={styles.uploadCircle}>
-              <Ionicons name="add" size={50} color="#103445" />
+              <Ionicons name="add" size={50} color="#ffffff" />
             </View>
             <Text style={styles.uploadLabel}>Качи</Text>
           </TouchableOpacity>
@@ -240,7 +244,7 @@ function NavigationItem({
         <Ionicons
           name={icon}
           size={29}
-          color={active ? "#E8E296" : "#a1a1aa"}
+          color="#ffffff"
         />
         {badgeCount > 0 ? (
           <View style={styles.unreadBadge}>
@@ -282,7 +286,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 9,
-    backgroundColor: "rgba(2, 6, 23, 0.94)",
+    backgroundColor: "transparent",
   },
   topPill: {
     height: 35,
@@ -407,6 +411,13 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 2,
   },
+  videoAuthorAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.9)",
+  },
   bottomNavigation: {
     position: "absolute",
     left: 0,
@@ -415,11 +426,10 @@ const styles = StyleSheet.create({
     height: 160,
     paddingHorizontal: 10,
     paddingBottom: 60,
-    backgroundColor: "rgba(3, 7, 24, 0.97)",
+    backgroundColor: "transparent",
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
-    elevation: 14,
   },
   navigationItem: {
     width: "18%",
@@ -428,13 +438,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   navigationLabel: {
-    color: "#a1a1aa",
+    color: "#ffffff",
     fontSize: 13,
     fontWeight: "700",
     marginTop: 7,
   },
   navigationLabelActive: {
-    color: "#E8E296",
+    color: "#ffffff",
   },
   navigationIcon: {
     position: "relative",
@@ -479,7 +489,7 @@ const styles = StyleSheet.create({
     elevation: 15,
   },
   uploadLabel: {
-    color: "#a1a1aa",
+    color: "#ffffff",
     fontSize: 13,
     fontWeight: "700",
   },

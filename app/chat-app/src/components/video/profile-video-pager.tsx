@@ -1,8 +1,6 @@
 import type { VideoItem } from "@/types/video";
 import VideoCaption from "@/components/video/video-caption";
-import { useEventListener } from "expo";
-import { Image } from "expo-image";
-import { useVideoPlayer, VideoView } from "expo-video";
+import ControlledVideoPlayer from "@/components/video/controlled-video-player";
 import { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -14,6 +12,7 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type PagerColors = {
   background: string;
@@ -103,6 +102,20 @@ export default function ProfileVideoPager({
           pagingEnabled
           showsVerticalScrollIndicator={false}
           decelerationRate="fast"
+          onScrollEndDrag={(event) => {
+            const velocityY = event.nativeEvent.velocity?.y ?? 0;
+            if (Math.abs(velocityY) < 0.12 || videos.length < 2) return;
+            const nextIndex = Math.max(
+              0,
+              Math.min(
+                videos.length - 1,
+                activeIndexRef.current + (velocityY > 0 ? -1 : 1),
+              ),
+            );
+            if (nextIndex === activeIndexRef.current) return;
+            activeIndexRef.current = nextIndex;
+            listRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+          }}
           onMomentumScrollEnd={(event) => {
             const index = Math.max(
               0,
@@ -152,10 +165,19 @@ function ProfileVideoSlide({
   active: boolean;
   onViewVideo?: (videoId: number) => void;
 }) {
+  const insets = useSafeAreaInsets();
+
   return (
     <View style={[styles.slide, { width, height }]}>
       {url ? (
-        <PlayableVideo url={url} thumbnailUrl={video.thumbnail_url} active={active} onViewVideo={onViewVideo} videoId={video.id} />
+        <PlayableVideo
+          url={url}
+          thumbnailUrl={video.thumbnail_url}
+          active={active}
+          onToggleCaption={onToggleCaption}
+          onViewVideo={onViewVideo}
+          videoId={video.id}
+        />
       ) : (
         <TouchableOpacity
           style={styles.loading}
@@ -166,19 +188,13 @@ function ProfileVideoSlide({
           <ActivityIndicator size="large" color="#ffffff" />
         </TouchableOpacity>
       )}
-      <TouchableOpacity
-        style={styles.touchLayer}
-        activeOpacity={1}
-        onPress={onToggleCaption}
-        accessibilityRole="button"
-        accessibilityLabel="Покажи заглавието и описанието"
-      />
       <VideoCaption
         title={video.title}
         description={video.description ?? null}
         visible={captionVisible}
         height="22%"
         maxHeight={height * 0.22}
+        bottomOffset={100 + insets.bottom}
         allowExpand
         fitContent
       />
@@ -190,87 +206,32 @@ function PlayableVideo({
   url,
   thumbnailUrl,
   active,
+  onToggleCaption,
   onViewVideo,
   videoId,
 }: {
   url: string;
   thumbnailUrl: string | null;
   active: boolean;
+  onToggleCaption: () => void;
   onViewVideo?: (videoId: number) => void;
   videoId: number;
 }) {
-  const player = useVideoPlayer(url, (instance) => {
-    instance.loop = false;
-    instance.muted = false;
-  });
-  const [isReady, setIsReady] = useState(player.status === "readyToPlay");
-  const viewCountedRef = useRef(false);
-
-  useEventListener(player, "statusChange", ({ status }) => {
-    setIsReady(status === "readyToPlay");
-  });
-
-  useEffect(() => {
-    if (!active) {
-      player.pause();
-      viewCountedRef.current = false;
-      return;
-    }
-    player.play();
-    if (isReady && !viewCountedRef.current) {
-      viewCountedRef.current = true;
-      onViewVideo?.(videoId);
-    }
-  }, [active, isReady, onViewVideo, player, videoId]);
-
   return (
-    <>
-      <VideoView
-        player={player}
-        style={styles.video}
-        contentFit="contain"
-        nativeControls={false}
-      />
-      {thumbnailUrl && !isReady ? (
-        <Image
-          source={{ uri: thumbnailUrl }}
-          style={styles.thumbnail}
-          contentFit="contain"
-          cachePolicy="memory-disk"
-          pointerEvents="none"
-        />
-      ) : null}
-    </>
+    <ControlledVideoPlayer
+      url={url}
+      thumbnailUrl={thumbnailUrl}
+      active={active}
+      onVideoPress={onToggleCaption}
+      onViewVideo={() => onViewVideo?.(videoId)}
+      videoId={videoId}
+    />
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
   slide: { backgroundColor: "#000", justifyContent: "center" },
-  touchLayer: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: "transparent",
-  },
-  video: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: "#000",
-  },
-  thumbnail: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: "#000",
-  },
   loading: {
     position: "absolute",
     top: 0,

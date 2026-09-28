@@ -5,6 +5,8 @@ import type {
   VideoResponse,
   VideosResponse,
   VideoPlaybackResponse,
+  PublicVideosResponse,
+  PublicUserSearchResponse,
 } from "@/types/video";
 import { File } from "expo-file-system";
 import { fetch } from "expo/fetch";
@@ -22,7 +24,7 @@ if (!API_URL) {
 
 export function beginVideoUpload(
   token: string,
-  input: { title: string; description: string; filename: string; mimeType: string; fileSize: number },
+  input: { title: string; description: string; filename: string; mimeType: string; fileSize: number; categoryId?: number | null },
 ): Promise<BeginVideoUploadResponse> {
   return authorizedJson<BeginVideoUploadResponse>(
     `${API_URL}/api/mobile/videos/uploads`,
@@ -35,6 +37,7 @@ export function beginVideoUpload(
         filename: input.filename,
         mime_type: input.mimeType,
         file_size: input.fileSize,
+        category_id: input.categoryId ?? null,
       }),
     },
   );
@@ -193,6 +196,35 @@ export function completeVideoUpload(token: string, videoId: number): Promise<Vid
 
 export function listVideos(token: string): Promise<VideosResponse> {
   return authorizedJson<VideosResponse>(`${API_URL}/api/mobile/videos`, token);
+}
+
+export async function listPublicVideos(search = "", signal?: AbortSignal): Promise<PublicVideosResponse> {
+  const params = new URLSearchParams();
+  if (search.trim()) params.set("search", search.trim());
+  const response = await fetch(`${API_URL}/api/videos${params.toString() ? `?${params}` : ""}`, { signal });
+  const data = (await response.json()) as PublicVideosResponse | { message?: string };
+
+  if (!response.ok) {
+    throw new Error("message" in data && data.message ? data.message : "Видеата не можаха да бъдат заредени.");
+  }
+
+  return data as PublicVideosResponse;
+}
+
+export async function searchPublicUsers(search: string, signal?: AbortSignal): Promise<PublicUserSearchResponse> {
+  const params = new URLSearchParams({ search: search.trim() });
+  const response = await fetch(`${API_URL}/api/public/users/search?${params}`, { signal });
+  const data = (await response.json()) as PublicUserSearchResponse | { message?: string };
+
+  if (response.status === 404) {
+    return { success: true, data: [] };
+  }
+
+  if (!response.ok) {
+    throw new Error("message" in data && data.message ? data.message : "Потребителите не можаха да бъдат намерени.");
+  }
+
+  return data as PublicUserSearchResponse;
 }
 
 export function getVideoPlayback(token: string, videoId: number): Promise<VideoPlaybackResponse> {

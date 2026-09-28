@@ -178,7 +178,11 @@ class CategoryController extends BaseController
     {
         $parentId = $_GET['parent_id'] ?? null;
 
-        $query = Category::query();
+        $query = Category::query()->withCount([
+            'children' => function ($childrenQuery) {
+                $childrenQuery->where('is_active', true);
+            },
+        ]);
 
         if ($parentId !== null && $parentId !== '') {
             $query->where('parent_id', $parentId);

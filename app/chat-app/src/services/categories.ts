@@ -8,6 +8,7 @@ export interface Category {
   image_url: string | null;
   parent_id: number | null;
   is_active: boolean;
+  children_count?: number;
 }
 
 export interface CategoriesResponse {
@@ -21,5 +22,10 @@ export interface CategoriesResponse {
  * request separate makes it easy to add child-category navigation later.
  */
 export function getRootCategories(signal?: AbortSignal) {
-  return api<CategoriesResponse>("/api/categories", { signal });
+  return getCategories(null, signal);
+}
+
+export function getCategories(parentId?: number | null, signal?: AbortSignal) {
+  const query = parentId ? `?parent_id=${encodeURIComponent(String(parentId))}` : "";
+  return api<CategoriesResponse>(`/api/categories${query}`, { signal });
 }

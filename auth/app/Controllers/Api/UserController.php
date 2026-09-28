@@ -297,6 +297,35 @@ class UserController extends BaseApiController
         ]);
     }
 
+    public function publicSearch()
+    {
+        $search = trim((string) ($_GET['search'] ?? ''));
+
+        if ($search === '') {
+            return $this->json(['success' => true, 'data' => []]);
+        }
+
+        $users = User::query()
+            ->where('is_active', true)
+            ->where(function ($query) use ($search) {
+                $query
+                    ->where('name', 'LIKE', '%' . $search . '%')
+                    ->orWhere('username', 'LIKE', '%' . $search . '%')
+                    ->orWhere('public_code', 'LIKE', '%' . $search . '%');
+            })
+            ->orderBy('name')
+            ->limit(20)
+            ->get()
+            ->map(static fn (User $user): array => [
+                'id' => (int) $user->id,
+                'name' => $user->name,
+                'profile_image' => $user->profile_image_url,
+            ])
+            ->values();
+
+        return $this->json(['success' => true, 'data' => $users]);
+    }
+
     private function removeMissingBunnyVideos(int $userId): void
     {
         $bunny = new BunnyStreamService();

@@ -6,6 +6,7 @@ import VideoUploadProgressOverlay, { VideoUploadStage } from "@/components/video
 import { useAuth } from "@/hooks/useAuth";
 import { beginVideoUpload, cancelActiveVideoUpload, completeVideoUpload, deleteVideo, getNativeFileSize, uploadVideoThumbnail, uploadVideoWithTus } from "@/services/videos";
 import { getPublicProfile } from "@/services/profile";
+import { getCategories, getRootCategories, type Category } from "@/services/categories";
 import {
   getBackgroundUploadStatus,
   setBackgroundUploadActive,
@@ -18,14 +19,24 @@ import * as ImagePicker from "expo-image-picker";
 import * as VideoThumbnails from "expo-video-thumbnails";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableHighlight, TouchableOpacity, View, ActivityIndicator } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function VideoUploadScreen() {
   const { theme } = useAppTheme();
   const { token, user } = useAuth();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [rootCategories, setRootCategories] = useState<Category[]>([]);
+  const [categoryHasChildren, setCategoryHasChildren] = useState<Record<number, boolean>>({});
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [categoryPath, setCategoryPath] = useState<Category[]>([]);
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
+  const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
   const [selected, setSelected] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [thumbnail, setThumbnail] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [progress, setProgress] = useState(0);
@@ -39,6 +50,50 @@ export default function VideoUploadScreen() {
   const activeVideoId = useRef<number | null>(null);
 
   useEffect(() => subscribeToBackgroundUpload(setBackgroundStatus), []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setIsCategoriesLoading(true);
+    void getRootCategories(controller.signal)
+      .then((response) => {
+        setRootCategories(response.items);
+        setCategories(response.items);
+      })
+      .catch((error) => {
+        if (error instanceof Error && error.name === "AbortError") return;
+        console.warn("[VideoUpload] Категориите не можаха да се заредят.", error);
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setIsCategoriesLoading(false);
+      });
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    if (categories.length === 0) {
+      setCategoryHasChildren({});
+      return;
+    }
+
+    const controller = new AbortController();
+    void Promise.all(
+      categories.map(async (category) => {
+        try {
+          const response = await getCategories(category.id, controller.signal);
+          return [category.id, response.items.length > 0] as const;
+        } catch (error) {
+          if (!(error instanceof Error && error.name === "AbortError")) {
+            console.warn("[VideoUpload] Подкатегориите не можаха да се проверят.", error);
+          }
+          return [category.id, Boolean(category.children_count && category.children_count > 0)] as const;
+        }
+      }),
+    ).then((entries) => {
+      if (!controller.signal.aborted) setCategoryHasChildren(Object.fromEntries(entries));
+    });
+
+    return () => controller.abort();
+  }, [categories]);
 
   useEffect(() => {
     if (!busy && !backgroundStatus.active) return;
@@ -142,6 +197,7 @@ export default function VideoUploadScreen() {
       const initialized = await beginVideoUpload(token, {
         title: title.trim() || selected.name,
         description: description.trim(),
+        categoryId: selectedCategory?.id ?? null,
         filename: selected.name,
         mimeType: selected.mimeType ?? "video/mp4",
         fileSize,
@@ -255,6 +311,53 @@ export default function VideoUploadScreen() {
     ]);
   }
 
+  function openCategoryModal() {
+    setCategoryPath([]);
+    setCategories(rootCategories);
+    setIsCategoryModalVisible(true);
+  }
+
+  async function chooseCategory(category: Category) {
+    setIsCategoriesLoading(true);
+    try {
+      const response = await getCategories(category.id);
+      if (response.items.length > 0) {
+        setCategoryPath((currentPath) => [...currentPath, category]);
+        setCategories(response.items);
+        return;
+      }
+
+      setSelectedCategory(category);
+      setIsCategoryModalVisible(false);
+    } catch (error) {
+      Alert.alert(
+        "Категориите не могат да се заредят",
+        error instanceof Error ? error.message : "Опитайте отново.",
+      );
+    } finally {
+      setIsCategoriesLoading(false);
+    }
+  }
+
+  async function goBackCategoryLevel() {
+    if (categoryPath.length === 0 || isCategoriesLoading) return;
+    setIsCategoriesLoading(true);
+    try {
+      const parentPath = categoryPath.slice(0, -1);
+      const parentId = parentPath.length > 0 ? parentPath[parentPath.length - 1].id : null;
+      const response = await getCategories(parentId);
+      setCategoryPath(parentPath);
+      setCategories(response.items);
+    } catch (error) {
+      Alert.alert(
+        "Категориите не могат да се заредят",
+        error instanceof Error ? error.message : "Опитайте отново.",
+      );
+    } finally {
+      setIsCategoriesLoading(false);
+    }
+  }
+
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
       <Header title="Качи видео" hideSearchButton />
@@ -279,6 +382,21 @@ export default function VideoUploadScreen() {
           maxLength={120}
           editable={!busy}
         />
+        <View style={styles.fieldGroup}>
+          <Text style={[styles.fieldLabel, { color: theme.colors.text }]}>Категория (по желание)</Text>
+          <Pressable
+            onPress={openCategoryModal}
+            disabled={busy}
+            style={[styles.fileButton, { backgroundColor: theme.colors.input, borderColor: theme.colors.inputBorder }]}
+            accessibilityRole="button"
+            accessibilityLabel="Избери категория за видеото"
+          >
+            <Text style={[styles.fileButtonText, { color: theme.colors.text }]}>
+              {selectedCategory?.name ?? "Избери категория"}
+            </Text>
+            <Text style={[styles.fileButtonHint, { color: theme.colors.textSecondary }]}>Може да бъде променена преди качване</Text>
+          </Pressable>
+        </View>
         <AppInput
           label="Описание (по желание)"
           value={description}
@@ -308,6 +426,94 @@ export default function VideoUploadScreen() {
         <AppButton title={busy ? "Качва се…" : "Качи видео"} loading={busy} disabled={!selected} onPress={() => void upload()} />
       </ScrollView>
       </KeyboardAvoidingView>
+      <Modal
+        visible={isCategoryModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsCategoryModalVisible(false)}
+      >
+        <View style={styles.categoryBackdrop}>
+          <Pressable
+            style={styles.categoryDismissArea}
+            onPress={() => setIsCategoryModalVisible(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Затвори избора на категория"
+          />
+          <View
+            style={[
+              styles.categorySheet,
+              {
+                backgroundColor: theme.colors.card,
+                paddingTop: insets.top + 20,
+                paddingBottom: Math.max(insets.bottom, 24),
+              },
+            ]}
+          >
+            <View style={styles.categoryHeader}>
+              {categoryPath.length > 0 ? (
+                <Pressable
+                  onPress={() => void goBackCategoryLevel()}
+                  disabled={isCategoriesLoading}
+                  style={styles.categoryBackButton}
+                  accessibilityRole="button"
+                  accessibilityLabel="Назад към предишните категории"
+                >
+                  <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
+                </Pressable>
+              ) : null}
+              <View style={styles.categoryHeaderText}>
+                <Text style={[styles.categoryTitle, { color: theme.colors.text }]}>Избери категория</Text>
+                {categoryPath.length > 0 ? (
+                  <Text style={[styles.categoryBreadcrumb, { color: theme.colors.textSecondary }]} numberOfLines={1}>
+                    {categoryPath.map((category) => category.name).join(" / ")}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+            <ScrollView
+              style={styles.categoryOptionsScroll}
+              contentContainerStyle={styles.categoryOptionsContent}
+              keyboardShouldPersistTaps="handled"
+              nestedScrollEnabled
+              showsVerticalScrollIndicator
+            >
+              {categoryPath.length === 0 ? (
+                <TouchableHighlight
+                  style={[styles.categoryOption, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
+                  onPress={() => {
+                    setSelectedCategory(null);
+                    setIsCategoryModalVisible(false);
+                  }}
+                  disabled={isCategoriesLoading}
+                  underlayColor={theme.colors.background}
+                >
+                  <View style={styles.categoryOptionRow} pointerEvents="none">
+                    <Text style={[styles.categoryOptionText, { color: theme.colors.text }]}>Без категория</Text>
+                  </View>
+                </TouchableHighlight>
+              ) : null}
+              {categories.map((category) => (
+                <TouchableHighlight
+                  key={category.id}
+                  style={[styles.categoryOption, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
+                  onPress={() => void chooseCategory(category)}
+                  disabled={isCategoriesLoading}
+                  underlayColor={theme.colors.background}
+                >
+                  <View style={styles.categoryOptionRow} pointerEvents="none">
+                    <Text style={[styles.categoryOptionText, { color: theme.colors.text }]}>{category.name}</Text>
+                    {categoryHasChildren[category.id] || (category.children_count ?? 0) > 0 ? (
+                      <Ionicons name="chevron-forward" size={18} color={theme.colors.textSecondary} />
+                    ) : null}
+                  </View>
+                </TouchableHighlight>
+              ))}
+              {isCategoriesLoading ? <ActivityIndicator style={styles.categoryLoader} color={theme.colors.primary} /> : null}
+              {!isCategoriesLoading && categories.length === 0 ? <Text style={[styles.categoryEmpty, { color: theme.colors.textSecondary }]}>Няма налични категории.</Text> : null}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
       <VideoUploadProgressOverlay
         visible={(busy && overlayVisible) || backgroundStatus.active}
         progress={backgroundStatus.active ? backgroundStatus.progress : progress}
@@ -338,4 +544,20 @@ const styles = StyleSheet.create({
   fileButtonHint: { fontSize: 12 },
   thumbnailButton: { minHeight: 120, borderWidth: 1, borderRadius: 14, padding: 10, justifyContent: "center", alignItems: "center", gap: 8 },
   thumbnailPreview: { width: "100%", aspectRatio: 9 / 16, borderRadius: 10 },
+  categoryBackdrop: { flex: 1, justifyContent: "flex-end", backgroundColor: "rgba(0,0,0,0.48)" },
+  categoryDismissArea: { ...StyleSheet.absoluteFill },
+  categorySheet: { flex: 1 },
+  categoryOptionsScroll: { flex: 1 },
+  categoryOptionsContent: { paddingVertical: 16 },
+  categoryHeader: { minHeight: 62, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", gap: 8 },
+  categoryBackButton: { width: 42, height: 42, alignItems: "center", justifyContent: "center" },
+  categoryHeaderText: { flex: 1 },
+  categoryTitle: { fontSize: 20, fontWeight: "800", marginBottom: 8 },
+  categoryBreadcrumb: { fontSize: 13, marginBottom: 8 },
+  categoryOption: { minHeight: 72, paddingVertical: 16, paddingHorizontal: 38, flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 0, borderBottomWidth: StyleSheet.hairlineWidth, borderRadius: 0 },
+  categoryOptionRow: { width: "100%", flexDirection: "row", alignItems: "center", gap: 12 },
+  categoryOptionText: { flex: 1, fontSize: 16, fontWeight: "700" },
+  categoryCheck: { fontSize: 22, fontWeight: "800" },
+  categoryEmpty: { paddingVertical: 20, fontSize: 15 },
+  categoryLoader: { paddingVertical: 24 },
 });

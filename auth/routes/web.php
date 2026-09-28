@@ -194,6 +194,7 @@ $router->post('/internal/mobile/notifications', [InternalMobileController::class
 
 $router->get('/api/users', [UserController::class, 'getUsers']);
 $router->get('/api/users/account', [UserController::class, 'getAccount']);
+$router->get('/api/public/users/search', [UserController::class, 'publicSearch']);
 $router->get('/api/public/users/{id}', [UserController::class, 'publicShow']);
 $router->get('/api/posts', [PostController::class, 'getPosts']);
 $router->get('/api/videos', [VideoController::class, 'publicIndex']);

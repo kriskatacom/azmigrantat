@@ -8,6 +8,7 @@ export type VideoStatus =
 
 export interface VideoItem {
   id: number;
+  category_id: number | null;
   title: string;
   description: string | null;
   thumbnail_url: string | null;
@@ -44,6 +45,37 @@ export interface VideoResponse {
 export interface VideosResponse {
   success: true;
   data: VideoItem[];
+}
+
+export interface PublicVideoItem extends VideoItem {
+  playback_url: string | null;
+  user: {
+    id: number;
+    name: string;
+    profile_image: string | null;
+  } | null;
+}
+
+export interface PublicUserSearchItem {
+  id: number;
+  name: string;
+  profile_image: string | null;
+}
+
+export interface PublicUserSearchResponse {
+  success: true;
+  data: PublicUserSearchItem[];
+}
+
+export interface PublicVideosResponse {
+  success: true;
+  data: PublicVideoItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    seed: number;
+    has_more: boolean;
+  };
 }
 
 export interface VideoPagination {

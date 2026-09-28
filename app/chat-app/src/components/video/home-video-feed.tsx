@@ -1,17 +1,24 @@
-import { listVideos, getVideoPlayback, recordVideoView } from "@/services/videos";
+import { listPublicVideos, recordVideoView } from "@/services/videos";
 import VideoCaption from "@/components/video/video-caption";
-import type { VideoItem } from "@/types/video";
-import { useEventListener } from "expo";
-import { Image } from "expo-image";
-import { useVideoPlayer, VideoView } from "expo-video";
+import ControlledVideoPlayer from "@/components/video/controlled-video-player";
+import type { PublicVideoItem } from "@/types/video";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-type FeedVideo = VideoItem & { playbackUrl: string };
+type FeedVideo = PublicVideoItem & { playbackUrl: string };
+type ActiveVideoUser = PublicVideoItem["user"];
 
-export default function HomeVideoFeed({ token, focused = true }: { token: string | null; focused?: boolean }) {
+export default function HomeVideoFeed({
+  token,
+  focused = true,
+  onActiveVideoUserChange,
+}: {
+  token: string | null;
+  focused?: boolean;
+  onActiveVideoUserChange?: (user: ActiveVideoUser) => void;
+}) {
   const { height, width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [videos, setVideos] = useState<FeedVideo[]>([]);
@@ -20,6 +27,8 @@ export default function HomeVideoFeed({ token, focused = true }: { token: string
   const [isLoading, setIsLoading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenIndex, setFullscreenIndex] = useState(0);
+  const listRef = useRef<FlatList<FeedVideo>>(null);
+  const activeIndexRef = useRef(0);
   const requestId = useRef(0);
   const captionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -39,6 +48,10 @@ export default function HomeVideoFeed({ token, focused = true }: { token: string
       }
     }
   }, [focused]);
+
+  useEffect(() => {
+    onActiveVideoUserChange?.(videos[activeIndex]?.user ?? null);
+  }, [activeIndex, onActiveVideoUserChange, videos]);
 
   const toggleCaption = useCallback(() => {
     const nextVisible = !isCaptionVisible;
@@ -68,44 +81,19 @@ export default function HomeVideoFeed({ token, focused = true }: { token: string
   }, [token]);
 
   useEffect(() => {
-    if (!token) {
-      setVideos([]);
-      return;
-    }
-
     const currentRequestId = ++requestId.current;
     setIsLoading(true);
     void (async () => {
       try {
-        const response = await listVideos(token);
-        const shuffled = [...response.data].sort(() => Math.random() - 0.5);
-        const resolvePlayable = async (video: VideoItem): Promise<FeedVideo | null> => {
-          try {
-            const playback = await getVideoPlayback(token, video.id);
-            return { ...video, playbackUrl: playback.data.url };
-          } catch (error) {
-            console.error("[HomeVideoFeed] Видеото не може да бъде подготвено за възпроизвеждане.", { videoId: video.id, error });
-            return null;
-          }
-        };
+        const response = await listPublicVideos();
+        const playable = response.data.flatMap((video): FeedVideo[] => (
+          video.playback_url ? [{ ...video, playbackUrl: video.playback_url }] : []
+        ));
 
-        let firstPlayable: FeedVideo | null = null;
-        let firstIndex = 0;
-        for (; firstIndex < shuffled.length; firstIndex += 1) {
-          firstPlayable = await resolvePlayable(shuffled[firstIndex]);
-          if (firstPlayable) break;
-        }
-
-        if (currentRequestId === requestId.current && firstPlayable) {
-          setVideos([firstPlayable]);
-          setActiveIndex(0);
-          setIsLoading(false);
-        }
-
-        const remaining = shuffled.slice(firstPlayable ? firstIndex + 1 : 0);
-        const playable = await Promise.all(remaining.map(resolvePlayable));
         if (currentRequestId === requestId.current) {
-          setVideos((current) => [...current, ...playable.filter((video): video is FeedVideo => video !== null)]);
+          setVideos(playable);
+          activeIndexRef.current = 0;
+          setActiveIndex(0);
         }
       } catch (error) {
         console.error("[HomeVideoFeed] Feed-ът с видеа не може да бъде зареден.", error);
@@ -117,29 +105,45 @@ export default function HomeVideoFeed({ token, focused = true }: { token: string
     return () => {
       requestId.current += 1;
     };
-  }, [token]);
+  }, []);
 
   const onMomentumScrollEnd = useCallback((offsetY: number) => {
-    setActiveIndex(Math.max(0, Math.round(offsetY / height)));
+    const index = Math.max(0, Math.min(videos.length - 1, Math.round(offsetY / height)));
+    activeIndexRef.current = index;
+    setActiveIndex(index);
     setIsCaptionVisible(false);
     if (captionTimer.current) {
       clearTimeout(captionTimer.current);
       captionTimer.current = null;
     }
-  }, [height]);
+  }, [height, videos.length]);
 
-  if (!token || (!isLoading && videos.length === 0)) return null;
+  const onScrollEndDrag = useCallback((velocityY: number) => {
+    if (Math.abs(velocityY) < 0.12 || videos.length < 2) return;
+    const nextIndex = Math.max(
+      0,
+      Math.min(videos.length - 1, activeIndexRef.current + (velocityY > 0 ? -1 : 1)),
+    );
+    if (nextIndex === activeIndexRef.current) return;
+    activeIndexRef.current = nextIndex;
+    listRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+  }, [videos.length]);
+
+  if (!isLoading && videos.length === 0) return null;
 
   return (
     <View style={styles.container} pointerEvents="box-none">
       {isLoading && videos.length === 0 ? <ActivityIndicator style={styles.loader} size="large" color="#ffffff" /> : null}
       <FlatList
+        ref={listRef}
         data={videos}
         keyExtractor={(item) => String(item.id)}
         renderItem={({ item, index }) => (
           <HomeVideoCard
+            key={`${item.id}-${token ? "audio" : "autoplay"}`}
             video={item}
             active={focused && index === activeIndex && !isFullscreen}
+            muted={!token}
             width={width}
             height={height}
             captionVisible={isCaptionVisible}
@@ -154,6 +158,7 @@ export default function HomeVideoFeed({ token, focused = true }: { token: string
         initialNumToRender={1}
         maxToRenderPerBatch={2}
         windowSize={3}
+        onScrollEndDrag={(event) => onScrollEndDrag(event.nativeEvent.velocity?.y ?? 0)}
         onMomentumScrollEnd={(event) => onMomentumScrollEnd(event.nativeEvent.contentOffset.y)}
       />
       <Pressable
@@ -179,8 +184,10 @@ export default function HomeVideoFeed({ token, focused = true }: { token: string
             keyExtractor={(item) => `fullscreen-${item.id}`}
             renderItem={({ item, index }) => (
               <HomeVideoCard
+                key={`${item.id}-${token ? "audio" : "autoplay"}`}
                 video={item}
                 active={focused && index === fullscreenIndex}
+                muted={!token}
                 width={width}
                 height={height}
                 captionVisible={false}
@@ -218,6 +225,7 @@ export default function HomeVideoFeed({ token, focused = true }: { token: string
 function HomeVideoCard({
   video,
   active,
+  muted,
   width,
   height,
   captionVisible,
@@ -227,6 +235,7 @@ function HomeVideoCard({
 }: {
   video: FeedVideo;
   active: boolean;
+  muted: boolean;
   width: number;
   height: number;
   captionVisible: boolean;
@@ -234,50 +243,23 @@ function HomeVideoCard({
   showCaption?: boolean;
   onViewVideo?: (videoId: number) => void;
 }) {
-  const player = useVideoPlayer(video.playbackUrl, (instance) => {
-    instance.loop = true;
-    instance.muted = false;
-  });
-  const [isReady, setIsReady] = useState(player.status === "readyToPlay");
-  const viewCountedRef = useRef(false);
-
-  useEventListener(player, "statusChange", ({ status }) => {
-    setIsReady(status === "readyToPlay");
-  });
-
-  useEffect(() => {
-    if (active) {
-      player.play();
-      if (isReady && !viewCountedRef.current) {
-        viewCountedRef.current = true;
-        onViewVideo?.(video.id);
-      }
-    } else {
-      player.pause();
-      viewCountedRef.current = false;
-    }
-  }, [active, isReady, onViewVideo, player, video.id]);
-
   return (
     <View style={{ width, height }}>
-      <VideoView player={player} style={styles.video} contentFit="cover" nativeControls={false} />
-      {video.thumbnail_url && !isReady ? (
-        <Image
-          source={{ uri: video.thumbnail_url }}
-          style={styles.thumbnail}
-          contentFit="cover"
-          cachePolicy="memory-disk"
-          pointerEvents="none"
-        />
-      ) : null}
+      <ControlledVideoPlayer
+        url={video.playbackUrl}
+        thumbnailUrl={video.thumbnail_url}
+        active={active}
+        muted={muted}
+        loop
+        contentFit="cover"
+        controlsBottomOffset={showCaption ? 160 : 0}
+        showControls={!showCaption}
+        onVideoPress={onToggleCaption}
+        onViewVideo={() => onViewVideo?.(video.id)}
+        videoId={video.id}
+      />
       {showCaption ? (
         <>
-          <Pressable
-            style={styles.touchLayer}
-            onPress={onToggleCaption}
-            accessibilityRole="button"
-            accessibilityLabel="Покажи заглавието и описанието"
-          />
           <VideoCaption
             title={video.title}
             description={video.description ?? null}
@@ -298,8 +280,6 @@ function HomeVideoCard({
 const styles = StyleSheet.create({
   container: { ...StyleSheet.absoluteFill, backgroundColor: "#000" },
   loader: { ...StyleSheet.absoluteFill, zIndex: 1 },
-  video: { ...StyleSheet.absoluteFill, backgroundColor: "#000" },
-  thumbnail: { ...StyleSheet.absoluteFill, backgroundColor: "#000" },
   fullscreenScreen: { flex: 1, backgroundColor: "#000" },
   fullscreenButton: {
     position: "absolute",
@@ -322,13 +302,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "rgba(0,0,0,0.62)",
-  },
-  touchLayer: {
-    position: "absolute",
-    top: 0,
-    right: 0,
-    bottom: 0,
-    left: 0,
-    backgroundColor: "transparent",
   },
 });
