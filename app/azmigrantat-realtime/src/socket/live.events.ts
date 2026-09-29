@@ -65,4 +65,28 @@ export function registerLiveEvents(socket: RealtimeSocket, lives: LiveService): 
 
         void lives.reaction(socket, liveId, payload.type);
     });
+
+    socket.on('live:talk-request', (payload) => {
+        const liveId = parseLiveId(payload);
+        if (liveId === null) return;
+        void lives.requestToSpeak(socket, liveId);
+    });
+
+    socket.on('live:talk-request:accept', (payload) => {
+        const liveId = parseLiveId(payload);
+        if (liveId === null || typeof payload?.request_id !== 'string') return;
+        void lives.acceptTalkRequest(socket, liveId, payload.request_id);
+    });
+
+    socket.on('live:talk-request:reject', (payload) => {
+        const liveId = parseLiveId(payload);
+        if (liveId === null || typeof payload?.request_id !== 'string') return;
+        void lives.rejectTalkRequest(socket, liveId, payload.request_id);
+    });
+
+    socket.on('live:talk-request:cancel', (payload) => {
+        const liveId = parseLiveId(payload);
+        if (liveId === null) return;
+        void lives.cancelTalkRequest(socket, liveId, payload.request_id);
+    });
 }

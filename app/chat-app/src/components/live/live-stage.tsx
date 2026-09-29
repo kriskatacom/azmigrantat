@@ -29,6 +29,8 @@ type LiveStageProps = {
   localStream?: MediaStream | null;
   remoteStream?: MediaStream | null;
   showLocalVideo?: boolean;
+  microphoneEnabled?: boolean;
+  cameraEnabled?: boolean;
 };
 
 export default function LiveStage({
@@ -50,7 +52,11 @@ export default function LiveStage({
   localStream = null,
   remoteStream = null,
   showLocalVideo = true,
+  microphoneEnabled = true,
+  cameraEnabled = showLocalVideo,
 }: LiveStageProps) {
+  const hasMediaStream = Boolean(localStream || remoteStream);
+
   return (
     <View
       style={[
@@ -59,20 +65,47 @@ export default function LiveStage({
         !fullscreen && keyboardVisible ? styles.stageCompact : null,
       ]}
     >
-      {coverUri ? (
+      {coverUri && !hasMediaStream ? (
         <>
           <RemoteImage uri={coverUri} style={styles.cover} />
           <View pointerEvents="none" style={styles.coverDim} />
         </>
       ) : null}
 
-      {localStream || remoteStream ? (
-        <VideoCallView
-          localStream={localStream}
-          remoteStream={remoteStream}
-          isCameraEnabled={showLocalVideo}
-          displayName={label}
-        />
+      {hasMediaStream ? (
+        <View style={styles.mediaSurface}>
+          <VideoCallView
+            localStream={localStream}
+            remoteStream={remoteStream}
+            isCameraEnabled={showLocalVideo}
+            displayName={label}
+          />
+        </View>
+      ) : null}
+
+      {connected && localStream ? (
+        <View style={styles.captureStatus} pointerEvents="none">
+          <View style={[styles.captureStatusItem, !cameraEnabled && styles.captureStatusItemOff]}>
+            <Ionicons
+              name={cameraEnabled ? "videocam" : "videocam-off"}
+              size={14}
+              color={cameraEnabled ? "#bbf7d0" : "#fecaca"}
+            />
+            <Text style={styles.captureStatusText}>
+              Камера {cameraEnabled ? "включена" : "изключена"}
+            </Text>
+          </View>
+          <View style={[styles.captureStatusItem, !microphoneEnabled && styles.captureStatusItemOff]}>
+            <Ionicons
+              name={microphoneEnabled ? "mic" : "mic-off"}
+              size={14}
+              color={microphoneEnabled ? "#bbf7d0" : "#fecaca"}
+            />
+            <Text style={styles.captureStatusText}>
+              Микрофон {microphoneEnabled ? "включен" : "изключен"}
+            </Text>
+          </View>
+        </View>
       ) : null}
 
       {!connected && !error ? (
@@ -88,8 +121,8 @@ export default function LiveStage({
         </View>
       ) : null}
 
-      <Text style={styles.label}>{label}</Text>
-      {!fullscreen && !keyboardVisible ? <Text style={styles.hint}>{hint}</Text> : null}
+      {!hasMediaStream ? <Text style={styles.label}>{label}</Text> : null}
+      {!hasMediaStream && !fullscreen && !keyboardVisible ? <Text style={styles.hint}>{hint}</Text> : null}
 
       <View style={[styles.topBar, { top: fullscreen ? 8 : 12 + topInset }]}>
         <View style={styles.topLeft}>
@@ -195,6 +228,32 @@ const styles = StyleSheet.create({
     width: 48,
     zIndex: 4,
   },
+  captureStatus: {
+    position: "absolute",
+    left: 12,
+    bottom: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: "rgba(8, 12, 24, 0.72)",
+    zIndex: 4,
+  },
+  captureStatusItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  captureStatusItemOff: {
+    opacity: 0.96,
+  },
+  captureStatusText: {
+    color: "#f8fafc",
+    fontSize: 12,
+    fontWeight: "700",
+  },
   connecting: {
     ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(3, 7, 18, 0.35)",
@@ -230,5 +289,8 @@ const styles = StyleSheet.create({
   coverDim: {
     ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(3, 7, 18, 0.38)",
+  },
+  mediaSurface: {
+    ...StyleSheet.absoluteFill,
   },
 });

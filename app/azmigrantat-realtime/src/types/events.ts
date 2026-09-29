@@ -12,6 +12,9 @@ import type {
     LiveReactionClientPayload,
     LiveReactionPayload,
     LiveViewerCountPayload,
+    LiveTalkRequestClientPayload,
+    LiveTalkRequestPayload,
+    LiveTalkRequestAcceptedPayload,
 } from './live';
 
 export interface RealtimeMessage {
@@ -79,6 +82,10 @@ export interface ServerToClientEvents {
     'live:started': (payload: LiveStartedPayload) => void;
     'live:ended': (payload: LiveEndedPayload) => void;
     'live:error': (payload: LiveErrorPayload) => void;
+    'live:talk-request:received': (payload: LiveTalkRequestPayload) => void;
+    'live:talk-request:updated': (
+        payload: LiveTalkRequestPayload | LiveTalkRequestAcceptedPayload,
+    ) => void;
 }
 
 export interface ClientToServerEvents {
@@ -102,6 +109,10 @@ export interface ClientToServerEvents {
     'live:leave': (payload: LiveLeaveClientPayload) => void;
     'live:comment': (payload: LiveCommentClientPayload) => void;
     'live:reaction': (payload: LiveReactionClientPayload) => void;
+    'live:talk-request': (payload: LiveTalkRequestClientPayload) => void;
+    'live:talk-request:accept': (payload: LiveTalkRequestClientPayload) => void;
+    'live:talk-request:reject': (payload: LiveTalkRequestClientPayload) => void;
+    'live:talk-request:cancel': (payload: LiveTalkRequestClientPayload) => void;
 }
 
 export interface InterServerEvents {}

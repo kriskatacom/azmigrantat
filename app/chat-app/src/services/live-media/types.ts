@@ -1,6 +1,6 @@
 import type { MediaStream } from "react-native-webrtc";
 
-export type LiveMediaRole = "streamer" | "viewer";
+export type LiveMediaRole = "streamer" | "viewer" | "speaker";
 
 export type LiveMediaSession = {
   liveId: number;
@@ -22,6 +22,8 @@ export interface LiveMediaProvider {
   joinStream(session: LiveMediaSession): Promise<void>;
   leaveStream(session: LiveMediaSession): Promise<void>;
   stopStream(session: LiveMediaSession): Promise<void>;
+  startTalking(session: LiveMediaSession): Promise<void>;
+  stopTalking(): Promise<void>;
   muteAudio(muted: boolean): Promise<void>;
   toggleCamera(): Promise<boolean>;
   getState?(): LiveMediaState;
@@ -35,4 +37,5 @@ export type LiveMediaState = {
   session: LiveMediaSession | null;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;
+  talking: boolean;
 };

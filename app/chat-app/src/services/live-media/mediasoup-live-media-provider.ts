@@ -28,12 +28,18 @@ export class MediasoupLiveMediaProvider implements LiveMediaProvider {
     session: null,
     localStream: null,
     remoteStream: null,
+    talking: false,
   };
 
   private socket: Socket | null = null;
   private device: Device | null = null;
   private sendTransport: ReturnType<Device["createSendTransport"]> | null = null;
   private recvTransport: ReturnType<Device["createRecvTransport"]> | null = null;
+  private talkSocket: Socket | null = null;
+  private talkDevice: Device | null = null;
+  private talkSendTransport: ReturnType<Device["createSendTransport"]> | null = null;
+  private talkStream: MediaStream | null = null;
+  private talkProducer: { close: () => void } | null = null;
   private readonly producers = new Map<string, { close: () => void }>();
   private readonly consumers = new Map<string, { close: () => void }>();
   private readonly consumedProducerIds = new Set<string>();
@@ -70,6 +76,58 @@ export class MediasoupLiveMediaProvider implements LiveMediaProvider {
     this.closeResources();
   }
 
+  async startTalking(session: LiveMediaSession): Promise<void> {
+    if (session.provider !== "mediasoup" || session.role !== "speaker") {
+      throw new Error("Невалидна speaker media session.");
+    }
+    const signalingUrl = resolveSignalingUrl(session);
+    const missing = [
+      !session.sessionId ? "session_id" : null,
+      !signalingUrl ? "signaling_url" : null,
+      !session.routerRtpCapabilities ? "router_rtp_capabilities" : null,
+    ].filter((field): field is string => field !== null);
+    if (missing.length > 0) {
+      throw new Error(`Липсва speaker media session configuration: ${missing.join(", ")}.`);
+    }
+    if (!signalingUrl) {
+      throw new Error("Липсва signaling_url.");
+    }
+
+    this.closeTalkResources();
+    registerGlobals();
+    const socket = io(signalingUrl, {
+      auth: { session_id: session.sessionId },
+      transports: ["websocket"],
+      autoConnect: true,
+    });
+    this.talkSocket = socket;
+
+    try {
+      await this.waitForReady(socket);
+      const device = await Device.factory();
+      await device.load({ routerRtpCapabilities: session.routerRtpCapabilities as never });
+      this.talkDevice = device;
+      this.talkSendTransport = await this.createTransport("send", socket, device) as ReturnType<Device["createSendTransport"]>;
+      this.talkStream = await mediaDevices.getUserMedia({ audio: true, video: false });
+      const track = this.talkStream.getAudioTracks()[0];
+      if (!track || !this.talkSendTransport) {
+        throw new Error("Микрофонът не е наличен.");
+      }
+      this.talkProducer = await this.talkSendTransport.produce({
+        track: track as unknown as globalThis.MediaStreamTrack,
+      });
+      this.state = { ...this.state, talking: true, error: null };
+    } catch (error) {
+      this.closeTalkResources();
+      throw error;
+    }
+  }
+
+  async stopTalking(): Promise<void> {
+    this.closeTalkResources();
+    this.state = { ...this.state, talking: false };
+  }
+
   async muteAudio(muted: boolean): Promise<void> {
     for (const track of this.state.localStream?.getAudioTracks() ?? []) {
       track.enabled = !muted;
@@ -103,18 +161,12 @@ export class MediasoupLiveMediaProvider implements LiveMediaProvider {
     });
     this.socket = socket;
     socket.on("sfu:producer-available", (payload: { producer_id?: string }) => {
-      if (session.role === "viewer" && payload?.producer_id) {
+      if ((session.role === "viewer" || session.role === "streamer") && payload?.producer_id) {
         void this.consumeProducer(payload.producer_id);
       }
     });
 
-    const ready = await new Promise<{ producer_ids?: string[] }>((resolve, reject) => {
-      const onReady = (payload: { producer_ids?: string[] }) => resolve(payload ?? {});
-      const onError = (error: Error) => reject(error);
-      socket.once("sfu:ready", onReady);
-      socket.once("sfu:error", onError);
-      socket.once("connect_error", onError);
-    });
+    const ready = await this.waitForReady(socket);
 
     this.device = await Device.factory();
     await this.device.load({ routerRtpCapabilities: session.routerRtpCapabilities as never });
@@ -122,6 +174,10 @@ export class MediasoupLiveMediaProvider implements LiveMediaProvider {
 
     if (session.role === "streamer") {
       this.sendTransport = transport;
+      this.recvTransport = await this.createTransport("recv");
+      for (const producerId of ready.producer_ids ?? []) {
+        await this.consumeProducer(producerId);
+      }
     } else {
       this.recvTransport = transport;
       for (const producerId of ready.producer_ids ?? []) {
@@ -136,12 +192,17 @@ export class MediasoupLiveMediaProvider implements LiveMediaProvider {
       session,
       localStream: this.state.localStream,
       remoteStream: this.state.remoteStream,
+      talking: false,
     };
   }
 
-  private async createTransport(direction: "send" | "recv") {
-    if (!this.device) throw new Error("Mediasoup device is not initialized.");
-    const payload = await this.emitAck<{ transport: TransportInfo }>("transport:create", { direction });
+  private async createTransport(
+    direction: "send" | "recv",
+    socket = this.socket,
+    device = this.device,
+  ) {
+    if (!device || !socket) throw new Error("Mediasoup device is not initialized.");
+    const payload = await this.emitAckOn<{ transport: TransportInfo }>(socket, "transport:create", { direction });
     const info = payload.transport;
     const options = {
       id: info.id,
@@ -151,11 +212,11 @@ export class MediasoupLiveMediaProvider implements LiveMediaProvider {
       sctpParameters: info.sctp_parameters,
     } as never;
     const transport = direction === "send"
-      ? this.device.createSendTransport(options)
-      : this.device.createRecvTransport(options);
+      ? device.createSendTransport(options)
+      : device.createRecvTransport(options);
 
     transport.on("connect", ({ dtlsParameters }, callback, errback) => {
-      void this.emitAck("transport:connect", {
+      void this.emitAckOn(socket, "transport:connect", {
         transport_id: transport.id,
         dtls_parameters: dtlsParameters,
       }).then(() => callback()).catch(errback);
@@ -163,7 +224,7 @@ export class MediasoupLiveMediaProvider implements LiveMediaProvider {
 
     if (direction === "send") {
       transport.on("produce", ({ kind, rtpParameters }, callback, errback) => {
-        void this.emitAck<{ producer_id: string }>("producer:create", {
+        void this.emitAckOn<{ producer_id: string }>(socket, "producer:create", {
           transport_id: transport.id,
           kind,
           rtp_parameters: rtpParameters,
@@ -206,13 +267,26 @@ export class MediasoupLiveMediaProvider implements LiveMediaProvider {
     }
   }
 
-  private emitAck<T extends { [key: string]: unknown } = { [key: string]: unknown }>(event: string, payload: unknown): Promise<T> {
+  private waitForReady(socket: Socket): Promise<{ producer_ids?: string[] }> {
     return new Promise((resolve, reject) => {
-      if (!this.socket) {
-        reject(new Error("Mediasoup signaling socket is not connected."));
-        return;
-      }
-      this.socket.emit(event, payload, (response: AckResponse) => {
+      const onReady = (payload: { producer_ids?: string[] }) => resolve(payload ?? {});
+      const onError = (error: Error) => reject(error);
+      socket.once("sfu:ready", onReady);
+      socket.once("sfu:error", onError);
+      socket.once("connect_error", onError);
+    });
+  }
+
+  private emitAck<T extends { [key: string]: unknown } = { [key: string]: unknown }>(event: string, payload: unknown): Promise<T> {
+    if (!this.socket) {
+      return Promise.reject(new Error("Mediasoup signaling socket is not connected."));
+    }
+    return this.emitAckOn(this.socket, event, payload);
+  }
+
+  private emitAckOn<T extends { [key: string]: unknown } = { [key: string]: unknown }>(socket: Socket, event: string, payload: unknown): Promise<T> {
+    return new Promise((resolve, reject) => {
+      socket.emit(event, payload, (response: AckResponse) => {
         if (!response?.ok) {
           reject(new Error(String(response?.message ?? `SFU event failed: ${event}`)));
           return;
@@ -223,6 +297,7 @@ export class MediasoupLiveMediaProvider implements LiveMediaProvider {
   }
 
   private closeResources(): void {
+    this.closeTalkResources();
     for (const producer of this.producers.values()) producer.close();
     for (const consumer of this.consumers.values()) consumer.close();
     this.producers.clear();
@@ -244,7 +319,38 @@ export class MediasoupLiveMediaProvider implements LiveMediaProvider {
       session: null,
       localStream: null,
       remoteStream: null,
+      talking: false,
     };
+  }
+
+  private closeTalkResources(): void {
+    this.talkProducer?.close();
+    this.talkSendTransport?.close();
+    this.talkSocket?.disconnect();
+    for (const track of this.talkStream?.getTracks() ?? []) track.stop();
+    this.talkProducer = null;
+    this.talkSendTransport = null;
+    this.talkDevice = null;
+    this.talkSocket = null;
+    this.talkStream = null;
+  }
+}
+
+function resolveSignalingUrl(session: LiveMediaSession): string | null {
+  const directUrl = session.signalingUrl?.trim();
+  if (directUrl) {
+    return directUrl;
+  }
+
+  const endpoint = session.signalingEndpoint?.trim();
+  if (!endpoint) {
+    return null;
+  }
+
+  try {
+    return new URL(endpoint).origin;
+  } catch {
+    return null;
   }
 }
 

@@ -68,4 +68,14 @@ export class InMemoryLiveStore {
     has(liveId: number, socketId: string): boolean {
         return this.rooms.get(liveId)?.has(socketId) ?? false;
     }
+
+    socketIdForRole(liveId: number, role: LiveRole): string | null {
+        for (const [socketId, occupant] of this.rooms.get(liveId) ?? []) {
+            if (occupant.role === role) {
+                return socketId;
+            }
+        }
+
+        return null;
+    }
 }

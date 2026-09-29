@@ -196,6 +196,8 @@ export default function LiveStreamerScreen() {
         localStream={media.localStream}
         remoteStream={media.remoteStream}
         showLocalVideo={media.cameraEnabled}
+        cameraEnabled={media.cameraEnabled}
+        microphoneEnabled={!media.muted}
         topLeft={
           fullscreen ? (
             <TouchableOpacity
@@ -218,6 +220,27 @@ export default function LiveStreamerScreen() {
           </View>
         ) : null}
       </LiveStage>
+      {room.incomingTalkRequests.map((request) => (
+        <View key={request.request_id} style={styles.talkRequestCard}>
+          <Text style={[styles.talkRequestText, { color: theme.colors.text }]}>
+            {request.viewer.name} иска да говори с теб.
+          </Text>
+          <View style={styles.talkRequestActions}>
+            <TouchableOpacity
+              style={styles.talkAcceptButton}
+              onPress={() => room.acceptTalkRequest(request.request_id)}
+            >
+              <Text style={styles.talkActionText}>Приеми</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.talkRejectButton}
+              onPress={() => room.rejectTalkRequest(request.request_id)}
+            >
+              <Text style={styles.talkActionText}>Откажи</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ))}
       {fullscreen || keyboardVisible ? null : (
         <View style={styles.controls}>
           <TouchableOpacity
@@ -306,4 +329,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   endChipText: { color: "#ffffff", fontWeight: "800", fontSize: 12 },
+  talkRequestCard: { marginHorizontal: 16, marginTop: 10, padding: 12, borderRadius: 12, backgroundColor: "rgba(37, 99, 235, 0.12)", gap: 10 },
+  talkRequestText: { fontWeight: "700" },
+  talkRequestActions: { flexDirection: "row", gap: 10 },
+  talkAcceptButton: { flex: 1, padding: 10, borderRadius: 10, alignItems: "center", backgroundColor: "#16a34a" },
+  talkRejectButton: { flex: 1, padding: 10, borderRadius: 10, alignItems: "center", backgroundColor: "#dc2626" },
+  talkActionText: { color: "#fff", fontWeight: "800" },
 });

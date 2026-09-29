@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import { config } from '../config';
 import type { MediaNode } from './media-node';
 
-export type MediaSessionRole = 'streamer' | 'viewer';
+export type MediaSessionRole = 'streamer' | 'viewer' | 'speaker';
 
 export type MediaSession = {
   session_id: string;
@@ -13,6 +13,7 @@ export type MediaSession = {
   signaling_url: string;
   signaling_endpoint: string;
   router_rtp_capabilities: unknown;
+  participant_id?: number | null;
 };
 
 export class MediaSessionManager {
@@ -20,7 +21,7 @@ export class MediaSessionManager {
 
   constructor(private readonly mediaNode: MediaNode) {}
 
-  create(roomId: string, role: MediaSessionRole): MediaSession {
+  create(roomId: string, role: MediaSessionRole, participantId?: number | null): MediaSession {
     const normalizedRoomId = roomId.trim();
 
     if (normalizedRoomId === '') {
@@ -35,6 +36,7 @@ export class MediaSessionManager {
       signaling_url: config.signalingUrl,
       signaling_endpoint: `${config.signalingUrl}/v1/rooms/${encodeURIComponent(normalizedRoomId)}`,
       router_rtp_capabilities: this.mediaNode.getRouterRtpCapabilities(),
+      participant_id: participantId ?? null,
     };
 
     this.sessions.set(session.session_id, session);

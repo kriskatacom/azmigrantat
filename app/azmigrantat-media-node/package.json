@@ -7,6 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "start": "tsx src/server.ts",
     "build": "tsc",
+    "test": "tsx --test tests/registry.test.ts tests/media-room-manager.test.ts",
     "start:production": "node dist/server.js",
     "test:sfu": "tsx scripts/sfu-smoke.ts",
     "test:registry": "tsx --test tests/registry.test.ts"

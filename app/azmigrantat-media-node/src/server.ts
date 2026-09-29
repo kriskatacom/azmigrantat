@@ -4,10 +4,12 @@ import { Server } from 'socket.io';
 
 import { config } from './config';
 import { MediaNode } from './media/media-node';
+import { MediaRoomManager } from './media/media-room-manager';
 import { MediaSessionManager } from './media/media-session-manager';
 import { SfuSignaling } from './media/sfu-signaling';
 import { MediaNodeRegistry } from './registry/media-node-registry';
 import { registerHealthRoutes } from './routes/health.routes';
+import { registerMediaRoutes } from './routes/media.routes';
 import { registerSessionRoutes } from './routes/session.routes';
 
 async function main(): Promise<void> {
@@ -15,6 +17,7 @@ async function main(): Promise<void> {
   await mediaNode.start();
   const registry = new MediaNodeRegistry(mediaNode);
   const sessions = new MediaSessionManager(mediaNode);
+  const rooms = new MediaRoomManager(mediaNode);
 
   try {
     await registry.start();
@@ -26,12 +29,13 @@ async function main(): Promise<void> {
   const app = express();
   const httpServer = createServer(app);
   const io = new Server(httpServer, { cors: { origin: '*', methods: ['GET', 'POST'] } });
-  new SfuSignaling(io, mediaNode, sessions).register();
+  new SfuSignaling(io, sessions, rooms).register();
 
   app.disable('x-powered-by');
   app.use(express.json());
   registerHealthRoutes(app, mediaNode, registry);
   registerSessionRoutes(app, sessions);
+  registerMediaRoutes(app, sessions, rooms);
 
   const server = httpServer.listen(config.port, config.host, () => {
     console.log(
@@ -42,6 +46,7 @@ async function main(): Promise<void> {
   const shutdown = async (signal: string): Promise<void> => {
     console.log(`[media-node] received ${signal}, shutting down`);
     server.close();
+    rooms.closeAll();
     await registry.close();
     await mediaNode.close();
   };

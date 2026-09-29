@@ -10,6 +10,7 @@ const initialState: LiveMediaState = {
   session: null,
   localStream: null,
   remoteStream: null,
+  talking: false,
 };
 
 export function useLiveMedia() {
@@ -72,6 +73,21 @@ export function useLiveMedia() {
     updateState(initialState);
   }, [updateState]);
 
+  const startTalking = useCallback(async (session: LiveMediaSession) => {
+    try {
+      await providerRef.current.startTalking(session);
+      updateState(providerRef.current.getState?.() ?? ((current) => ({ ...current, talking: true })));
+    } catch (error) {
+      updateState((current) => ({ ...current, error: error instanceof Error ? error.message : "Микрофонът не можа да се включи." }));
+      throw error;
+    }
+  }, [updateState]);
+
+  const stopTalking = useCallback(async () => {
+    await providerRef.current.stopTalking();
+    updateState(providerRef.current.getState?.() ?? ((current) => ({ ...current, talking: false })));
+  }, [updateState]);
+
   const muteAudio = useCallback(async (muted: boolean) => {
     await providerRef.current.muteAudio(muted);
     updateState(providerRef.current.getState?.() ?? ((current) => ({ ...current, muted })));
@@ -91,6 +107,8 @@ export function useLiveMedia() {
     joinStream,
     leaveStream,
     stopStream,
+    startTalking,
+    stopTalking,
     muteAudio,
     toggleCamera,
   };

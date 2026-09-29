@@ -180,6 +180,7 @@ export default function VideoCallView({
 const styles = StyleSheet.create({
   videoContainer: {
     flex: 1,
+    width: "100%",
     position: "relative",
     backgroundColor: "#000",
     overflow: "hidden",

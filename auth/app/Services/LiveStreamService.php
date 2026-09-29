@@ -17,7 +17,7 @@ use Throwable;
 
 final class LiveStreamService
 {
-    public const ACTIONS = ['join', 'leave', 'comment', 'reaction', 'start', 'end'];
+    public const ACTIONS = ['join', 'leave', 'comment', 'reaction', 'talk_request', 'talk_accept', 'start', 'end'];
 
     public const REACTION_TYPES = ['like', 'heart', 'fire', 'clap', 'wow'];
 
@@ -360,7 +360,7 @@ final class LiveStreamService
 
         $allowed = match ($action) {
             'start', 'end' => $role === 'streamer',
-            'join', 'comment', 'reaction' => $stream->isLive(),
+            'join', 'comment', 'reaction', 'talk_request', 'talk_accept' => $stream->isLive(),
             'leave' => true,
             default => false,
         };

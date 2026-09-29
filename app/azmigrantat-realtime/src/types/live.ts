@@ -1,4 +1,5 @@
 export type LiveRole = 'streamer' | 'viewer';
+export type LiveTalkRequestStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled' | 'expired';
 
 export type LiveReactionType = 'like' | 'heart' | 'fire' | 'clap' | 'wow';
 
@@ -16,6 +17,22 @@ export interface LiveCommentClientPayload extends LiveClientPayload {
 
 export interface LiveReactionClientPayload extends LiveClientPayload {
     type: string;
+}
+
+export interface LiveTalkRequestClientPayload extends LiveClientPayload {
+    request_id?: string;
+}
+
+export interface LiveTalkRequestPayload {
+    request_id: string;
+    live_id: number;
+    status: LiveTalkRequestStatus;
+    viewer: LiveUserPreview;
+}
+
+export interface LiveTalkRequestAcceptedPayload extends LiveTalkRequestPayload {
+    status: 'accepted';
+    media_session: Record<string, unknown>;
 }
 
 export interface LiveUserPreview {

@@ -120,6 +120,8 @@ interface ServerToClientEvents {
   "live:started": (payload: { stream: LiveStream }) => void;
   "live:ended": (payload: { live_id: number }) => void;
   "live:error": (payload: { live_id: number | null; code: string; message: string }) => void;
+  "live:talk-request:received": (payload: LiveTalkRequestReceivedPayload) => void;
+  "live:talk-request:updated": (payload: LiveTalkRequestUpdatedPayload) => void;
 }
 
 interface ClientToServerEvents {
@@ -143,6 +145,27 @@ interface ClientToServerEvents {
   "live:leave": (payload: { live_id: number }) => void;
   "live:comment": (payload: { live_id: number; body: string }) => void;
   "live:reaction": (payload: { live_id: number; type: LiveReactionType }) => void;
+  "live:talk-request": (payload: { live_id: number }) => void;
+  "live:talk-request:accept": (payload: { live_id: number; request_id: string }) => void;
+  "live:talk-request:reject": (payload: { live_id: number; request_id: string }) => void;
+  "live:talk-request:cancel": (payload: { live_id: number; request_id?: string }) => void;
+}
+
+export type LiveTalkRequestStatus = "pending" | "accepted" | "rejected" | "cancelled" | "expired";
+
+export interface LiveTalkRequestReceivedPayload {
+  request_id: string;
+  live_id: number;
+  status: "pending";
+  viewer: { id: number; name: string; profile_image?: string | null };
+}
+
+export interface LiveTalkRequestUpdatedPayload {
+  request_id: string;
+  live_id: number;
+  status: LiveTalkRequestStatus;
+  viewer: { id: number; name: string; profile_image?: string | null };
+  media_session?: Record<string, unknown>;
 }
 
 export type AppSocket = Socket<ServerToClientEvents, ClientToServerEvents>;

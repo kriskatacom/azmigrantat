@@ -1,28 +1,16 @@
 import type { types } from 'mediasoup';
 import type { Server, Socket } from 'socket.io';
 
-import type { MediaNode } from './media-node';
+import { MediaRoomManager } from './media-room-manager';
 import type { MediaSessionManager } from './media-session-manager';
 
-type SessionState = {
-  sessionId: string;
-  roomId: string;
-  role: 'streamer' | 'viewer';
-  transports: Map<string, types.WebRtcTransport>;
-  producers: Map<string, types.Producer>;
-  consumers: Map<string, types.Consumer>;
-};
-
-type RoomState = { producers: Map<string, types.Producer> };
+type SessionState = { sessionId: string };
 
 export class SfuSignaling {
-  private readonly sessions = new Map<string, SessionState>();
-  private readonly rooms = new Map<string, RoomState>();
-
   constructor(
     private readonly io: Server,
-    private readonly mediaNode: MediaNode,
     private readonly sessionManager: MediaSessionManager,
+    private readonly rooms: MediaRoomManager,
   ) {}
 
   register(): void {
@@ -39,54 +27,47 @@ export class SfuSignaling {
       return;
     }
 
-    const state: SessionState = {
-      sessionId: session.session_id,
-      roomId: session.room_id,
-      role: session.role,
-      transports: new Map(),
-      producers: new Map(),
-      consumers: new Map(),
-    };
-
-    this.sessions.set(state.sessionId, state);
-    await socket.join(this.roomName(state.roomId));
+    const state: SessionState = { sessionId: session.session_id };
+    await socket.join(this.roomName(session.room_id));
     socket.emit('sfu:ready', {
       session_id: session.session_id,
       room_id: session.room_id,
       role: session.role,
       router_rtp_capabilities: session.router_rtp_capabilities,
-      producer_ids: [...(this.rooms.get(state.roomId)?.producers.keys() ?? [])],
+      producer_ids: this.rooms.listProducers(session).map((producer) => producer.id),
     });
 
     socket.on('transport:create', (payload, callback) => {
-      void this.createTransport(state, payload, callback);
+      void this.createTransport(session.session_id, payload, callback);
     });
     socket.on('transport:connect', (payload, callback) => {
-      void this.connectTransport(state, payload, callback);
+      void this.connectTransport(session.session_id, payload, callback);
     });
     socket.on('producer:create', (payload, callback) => {
-      void this.createProducer(state, socket, payload, callback);
+      void this.createProducer(session.session_id, socket, payload, callback);
     });
     socket.on('consumer:create', (payload, callback) => {
-      void this.createConsumer(state, payload, callback);
+      void this.createConsumer(session.session_id, payload, callback);
     });
     socket.on('consumer:resume', (payload, callback) => {
-      void this.resumeConsumer(state, payload, callback);
+      void this.resumeConsumer(session.session_id, payload, callback);
     });
-    socket.on('disconnect', () => this.cleanup(state));
+    socket.on('disconnect', () => {
+      this.rooms.cleanupSession(state.sessionId);
+      this.sessionManager.remove(state.sessionId);
+    });
   }
 
-  private async createTransport(state: SessionState, payload: unknown, callback: (value: unknown) => void): Promise<void> {
+  private async createTransport(sessionId: string, payload: unknown, callback: (value: unknown) => void): Promise<void> {
+    const session = this.sessionManager.get(sessionId);
     const direction = this.field(payload, 'direction');
-
-    if (direction !== 'send' && direction !== 'recv') {
+    if (!session || (direction !== 'send' && direction !== 'recv')) {
       callback({ ok: false, code: 'DIRECTION_INVALID', message: 'Невалидна transport посока.' });
       return;
     }
 
     try {
-      const transport = await this.mediaNode.createWebRtcTransport();
-      state.transports.set(transport.id, transport);
+      const transport = await this.rooms.createTransport(session, direction);
       callback({
         ok: true,
         transport: {
@@ -99,126 +80,90 @@ export class SfuSignaling {
         },
       });
     } catch (error) {
-      callback({ ok: false, code: 'TRANSPORT_CREATE_FAILED', message: this.message(error) });
+      callback({ ok: false, code: this.code(error), message: this.message(error) });
     }
   }
 
-  private async connectTransport(state: SessionState, payload: unknown, callback: (value: unknown) => void): Promise<void> {
+  private async connectTransport(sessionId: string, payload: unknown, callback: (value: unknown) => void): Promise<void> {
+    const session = this.sessionManager.get(sessionId);
     const transportId = this.field(payload, 'transport_id');
     const dtlsParameters = this.objectField(payload, 'dtls_parameters');
-    const transport = typeof transportId === 'string' ? state.transports.get(transportId) : undefined;
-
-    if (!transport || !dtlsParameters) {
+    if (!session || typeof transportId !== 'string' || !dtlsParameters) {
       callback({ ok: false, code: 'TRANSPORT_INVALID', message: 'Невалиден transport или DTLS payload.' });
       return;
     }
 
     try {
-      await transport.connect({ dtlsParameters: dtlsParameters as types.DtlsParameters });
+      await this.rooms.connectTransport(session, transportId, dtlsParameters as types.DtlsParameters);
       callback({ ok: true });
     } catch (error) {
-      callback({ ok: false, code: 'TRANSPORT_CONNECT_FAILED', message: this.message(error) });
+      callback({ ok: false, code: this.code(error), message: this.message(error) });
     }
   }
 
-  private async createProducer(state: SessionState, socket: Socket, payload: unknown, callback: (value: unknown) => void): Promise<void> {
+  private async createProducer(sessionId: string, socket: Socket, payload: unknown, callback: (value: unknown) => void): Promise<void> {
+    const session = this.sessionManager.get(sessionId);
     const transportId = this.field(payload, 'transport_id');
     const kind = this.field(payload, 'kind');
     const rtpParameters = this.objectField(payload, 'rtp_parameters');
-    const transport = typeof transportId === 'string' ? state.transports.get(transportId) : undefined;
-
-    if (state.role !== 'streamer' || (kind !== 'audio' && kind !== 'video')) {
-      callback({ ok: false, code: 'PRODUCER_DENIED', message: 'Само streamer може да създава producer.' });
-      return;
-    }
-
-    if (!transport || !rtpParameters) {
+    if (!session || typeof transportId !== 'string' || (kind !== 'audio' && kind !== 'video') || !rtpParameters) {
       callback({ ok: false, code: 'PRODUCER_INVALID', message: 'Невалиден producer payload.' });
       return;
     }
 
     try {
-      const producer = await transport.produce({ kind, rtpParameters: rtpParameters as types.RtpParameters });
-      state.producers.set(producer.id, producer);
-      const room = this.rooms.get(state.roomId) ?? { producers: new Map() };
-      room.producers.set(producer.id, producer);
-      this.rooms.set(state.roomId, room);
-      producer.on('transportclose', () => this.removeProducer(state, producer.id));
-      socket.to(this.roomName(state.roomId)).emit('sfu:producer-available', {
+      const producer = await this.rooms.createProducer(session, transportId, kind, rtpParameters as types.RtpParameters);
+      socket.to(this.roomName(session.room_id)).emit('sfu:producer-available', {
         producer_id: producer.id,
         kind: producer.kind,
       });
       callback({ ok: true, producer_id: producer.id });
     } catch (error) {
-      callback({ ok: false, code: 'PRODUCER_CREATE_FAILED', message: this.message(error) });
+      callback({ ok: false, code: this.code(error), message: this.message(error) });
     }
   }
 
-  private async createConsumer(state: SessionState, payload: unknown, callback: (value: unknown) => void): Promise<void> {
+  private async createConsumer(sessionId: string, payload: unknown, callback: (value: unknown) => void): Promise<void> {
+    const session = this.sessionManager.get(sessionId);
     const transportId = this.field(payload, 'transport_id');
     const producerId = this.field(payload, 'producer_id');
     const rtpCapabilities = this.objectField(payload, 'rtp_capabilities');
-    const transport = typeof transportId === 'string' ? state.transports.get(transportId) : undefined;
-    const producer = typeof producerId === 'string' ? this.rooms.get(state.roomId)?.producers.get(producerId) : undefined;
-
-    if (!transport || !producer || !rtpCapabilities) {
+    if (!session || typeof transportId !== 'string' || typeof producerId !== 'string' || !rtpCapabilities) {
       callback({ ok: false, code: 'CONSUMER_INVALID', message: 'Невалиден consumer payload.' });
       return;
     }
 
-    if (!this.mediaNode.canConsume(producer.id, rtpCapabilities as types.RtpCapabilities)) {
-      callback({ ok: false, code: 'CANNOT_CONSUME', message: 'Router не може да consume-не този producer.' });
-      return;
-    }
-
     try {
-      const consumer = await transport.consume({
-        producerId: producer.id,
-        rtpCapabilities: rtpCapabilities as types.RtpCapabilities,
-        paused: true,
-      });
-      state.consumers.set(consumer.id, consumer);
+      const consumer = await this.rooms.createConsumer(session, transportId, producerId, rtpCapabilities as types.RtpCapabilities);
       callback({
         ok: true,
         consumer: {
           id: consumer.id,
-          producer_id: producer.id,
+          producer_id: consumer.producerId,
           kind: consumer.kind,
           rtp_parameters: consumer.rtpParameters,
           type: consumer.type,
         },
       });
     } catch (error) {
-      callback({ ok: false, code: 'CONSUMER_CREATE_FAILED', message: this.message(error) });
+      callback({ ok: false, code: this.code(error), message: this.message(error) });
     }
   }
 
-  private async resumeConsumer(state: SessionState, payload: unknown, callback: (value: unknown) => void): Promise<void> {
+  private async resumeConsumer(sessionId: string, payload: unknown, callback: (value: unknown) => void): Promise<void> {
+    const session = this.sessionManager.get(sessionId);
     const consumerId = this.field(payload, 'consumer_id');
-    const consumer = typeof consumerId === 'string' ? state.consumers.get(consumerId) : undefined;
-
-    if (!consumer) {
+    if (!session || typeof consumerId !== 'string') {
       callback({ ok: false, code: 'CONSUMER_INVALID', message: 'Consumer не е намерен.' });
       return;
     }
 
-    await consumer.resume();
-    callback({ ok: true });
-  }
-
-  private cleanup(state: SessionState): void {
-    for (const consumer of state.consumers.values()) consumer.close();
-    for (const producer of [...state.producers.values()]) this.removeProducer(state, producer.id);
-    for (const transport of state.transports.values()) transport.close();
-    this.sessions.delete(state.sessionId);
-    this.sessionManager.remove(state.sessionId);
-  }
-
-  private removeProducer(state: SessionState, producerId: string): void {
-    state.producers.delete(producerId);
-    const room = this.rooms.get(state.roomId);
-    room?.producers.delete(producerId);
-    if (room && room.producers.size === 0) this.rooms.delete(state.roomId);
+    try {
+      await this.rooms.resumeConsumer(session, consumerId);
+      callback({ ok: true });
+    } catch (error) {
+      callback({ ok: false, code: this.code(error), message: this.message(error) });
+    }
   }
 
   private roomName(roomId: string): string {
@@ -232,6 +177,10 @@ export class SfuSignaling {
   private objectField(payload: unknown, key: string): Record<string, unknown> | null {
     const value = this.field(payload, key);
     return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
+  }
+
+  private code(error: unknown): string {
+    return error && typeof error === 'object' && 'code' in error && typeof error.code === 'string' ? error.code : 'SFU_ERROR';
   }
 
   private message(error: unknown): string {

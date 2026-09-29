@@ -15,7 +15,7 @@ import { goToLiveCatalog } from "@/utils/live-navigation";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function LiveViewerScreen() {
@@ -33,6 +33,7 @@ export default function LiveViewerScreen() {
   const [title, setTitle] = useState("");
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [comment, setComment] = useState("");
+  const [talkingStopped, setTalkingStopped] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
   const exitFullscreen = useCallback(() => setFullscreen(false), []);
   useLiveFullscreenBack(fullscreen, exitFullscreen);
@@ -117,6 +118,34 @@ export default function LiveViewerScreen() {
   }, [token, validLiveId]);
 
   useEffect(() => {
+    const request = room.talkRequest;
+    const mediaSession = request?.media_session;
+    if (request?.status === "accepted" && mediaSession && !media.talking && !talkingStopped) {
+      void media.startTalking({
+        liveId: validLiveId ?? 0,
+        role: "speaker",
+        provider: String(mediaSession.media_provider ?? "mediasoup"),
+        mediaRoomId: typeof mediaSession.media_room_id === "string" ? mediaSession.media_room_id : null,
+        mediaNodeId: typeof mediaSession.media_node_id === "string" ? mediaSession.media_node_id : undefined,
+        sessionId: typeof mediaSession.session_id === "string" ? mediaSession.session_id : undefined,
+        signalingEndpoint: typeof mediaSession.signaling_endpoint === "string" ? mediaSession.signaling_endpoint : undefined,
+        signalingUrl: typeof mediaSession.signaling_url === "string" ? mediaSession.signaling_url : undefined,
+        rtcHost: typeof mediaSession.rtc_host === "string" ? mediaSession.rtc_host : undefined,
+        routerId: typeof mediaSession.router_id === "string" ? mediaSession.router_id : null,
+        routerRtpCapabilities: mediaSession.router_rtp_capabilities,
+      }).catch((error) => Alert.alert("Грешка", error instanceof Error ? error.message : "Микрофонът не можа да се включи."));
+    }
+
+    if (request?.status !== "accepted" && talkingStopped) {
+      setTalkingStopped(false);
+    }
+
+    if ((request?.status === "rejected" || request?.status === "cancelled" || request?.status === "expired") && media.talking) {
+      void media.stopTalking();
+    }
+  }, [media, room.talkRequest, talkingStopped, validLiveId]);
+
+  useEffect(() => {
     if (!room.ended || leavingRef.current) {
       return;
     }
@@ -174,6 +203,26 @@ export default function LiveViewerScreen() {
           </View>
         ) : null}
       </LiveStage>
+      {room.talkRequest?.status === "accepted" && media.talking ? (
+        <TouchableOpacity
+          style={styles.talkButtonActive}
+          onPress={() => {
+            setTalkingStopped(true);
+            room.cancelTalkRequest(room.talkRequest?.request_id);
+            void media.stopTalking();
+          }}
+        >
+          <Text style={styles.talkButtonText}>Спри да говориш</Text>
+        </TouchableOpacity>
+      ) : room.talkRequest?.status === "pending" ? (
+        <TouchableOpacity style={styles.talkButtonPending} onPress={() => room.cancelTalkRequest(room.talkRequest?.request_id)}>
+          <Text style={styles.talkButtonText}>Изчакваш одобрение</Text>
+        </TouchableOpacity>
+      ) : (
+        <TouchableOpacity style={styles.talkButton} onPress={room.requestToSpeak}>
+          <Text style={styles.talkButtonText}>Поискай да говориш</Text>
+        </TouchableOpacity>
+      )}
       {fullscreen ? null : (
         <LiveCommentList
           comments={room.comments}
@@ -207,4 +256,8 @@ const styles = StyleSheet.create({
   fullscreenComposer: {
     width: "100%",
   },
+  talkButton: { marginHorizontal: 16, marginTop: 10, padding: 12, borderRadius: 12, backgroundColor: "#2563eb", alignItems: "center" },
+  talkButtonPending: { marginHorizontal: 16, marginTop: 10, padding: 12, borderRadius: 12, backgroundColor: "#64748b", alignItems: "center" },
+  talkButtonActive: { marginHorizontal: 16, marginTop: 10, padding: 12, borderRadius: 12, backgroundColor: "#dc2626", alignItems: "center" },
+  talkButtonText: { color: "#fff", fontWeight: "800" },
 });

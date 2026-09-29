@@ -75,7 +75,7 @@ export function registerMediaInternalRoutes(app: Express, manager: MediaNodeMana
         if (
             !Number.isInteger(liveId) ||
             liveId <= 0 ||
-            (role !== 'streamer' && role !== 'viewer')
+            (role !== 'streamer' && role !== 'viewer' && role !== 'speaker')
         ) {
             response
                 .status(422)
@@ -84,7 +84,16 @@ export function registerMediaInternalRoutes(app: Express, manager: MediaNodeMana
         }
 
         try {
-            const session = await manager.createSession(liveId, role);
+            const participantId = request.body?.participant_id;
+            if (
+                participantId !== undefined &&
+                (!Number.isInteger(participantId) || participantId <= 0)
+            ) {
+                response.status(422).json({ success: false, message: 'Невалиден participant ID.' });
+                return;
+            }
+
+            const session = await manager.createSession(liveId, role, participantId);
             response.status(201).json({ success: true, session });
         } catch (error) {
             console.error('[media-manager] session creation failed', error);

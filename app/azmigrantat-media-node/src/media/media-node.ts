@@ -21,6 +21,7 @@ export class MediaNode {
   private worker: types.Worker | null = null;
   private router: types.Router | null = null;
   private state: 'starting' | 'ready' | 'failed' | 'closed' = 'starting';
+  private readonly closeListeners = new Set<() => void>();
 
   async start(): Promise<void> {
     if (this.worker || this.state === 'closed') {
@@ -36,10 +37,12 @@ export class MediaNode {
 
       this.worker.on('died', () => {
         this.state = 'failed';
+        this.notifyClosed();
         console.error(`[media-node] mediasoup worker died for ${config.nodeId}`);
       });
 
       this.router = await this.worker.createRouter({ mediaCodecs });
+      this.router.observer.once('close', () => this.notifyClosed());
       this.state = 'ready';
 
       console.log(
@@ -112,5 +115,15 @@ export class MediaNode {
     this.worker?.close();
     this.worker = null;
     this.state = 'closed';
+    this.notifyClosed();
+  }
+
+  onClose(listener: () => void): () => void {
+    this.closeListeners.add(listener);
+    return () => this.closeListeners.delete(listener);
+  }
+
+  private notifyClosed(): void {
+    for (const listener of this.closeListeners) listener();
   }
 }

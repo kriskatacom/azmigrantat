@@ -15,6 +15,7 @@ export class MockLiveMediaProvider implements LiveMediaProvider {
     session: null,
     localStream: null,
     remoteStream: null,
+    talking: false,
   };
 
   getState(): LiveMediaState {
@@ -30,6 +31,7 @@ export class MockLiveMediaProvider implements LiveMediaProvider {
       session,
       localStream: null,
       remoteStream: null,
+      talking: false,
     };
     console.log("[LiveMedia:mock] startStream", session);
   }
@@ -43,6 +45,7 @@ export class MockLiveMediaProvider implements LiveMediaProvider {
       session,
       localStream: null,
       remoteStream: null,
+      talking: false,
     };
     console.log("[LiveMedia:mock] joinStream", session);
   }
@@ -55,6 +58,16 @@ export class MockLiveMediaProvider implements LiveMediaProvider {
   async stopStream(session: LiveMediaSession): Promise<void> {
     console.log("[LiveMedia:mock] stopStream", session);
     this.reset();
+  }
+
+  async startTalking(session: LiveMediaSession): Promise<void> {
+    this.state = { ...this.state, talking: true, session };
+    console.log("[LiveMedia:mock] startTalking", session);
+  }
+
+  async stopTalking(): Promise<void> {
+    this.state = { ...this.state, talking: false };
+    console.log("[LiveMedia:mock] stopTalking");
   }
 
   async muteAudio(muted: boolean): Promise<void> {
@@ -78,6 +91,7 @@ export class MockLiveMediaProvider implements LiveMediaProvider {
       session: null,
       localStream: null,
       remoteStream: null,
+      talking: false,
     };
   }
 }

@@ -75,6 +75,7 @@ const lives = new LiveService(
     new InMemoryLiveStore(),
     new PhpLiveAuthorizationProvider(),
     new PhpLivePersistenceProvider(),
+    mediaNodeManager,
 );
 
 registerLiveInternalRoutes(app, lives);

@@ -117,7 +117,8 @@ export class MediaNodeManager {
 
     async createSession(
         liveId: number,
-        role: 'streamer' | 'viewer',
+        role: 'streamer' | 'viewer' | 'speaker',
+        participantId?: number,
     ): Promise<Record<string, unknown>> {
         const assignment = await this.getAssignment(liveId);
 
@@ -133,6 +134,11 @@ export class MediaNodeManager {
             throw new Error('Assigned media node is not available.');
         }
 
+        const sessionPayload: { role: typeof role; participant_id?: number } = { role };
+        if (participantId != null) {
+            sessionPayload.participant_id = participantId;
+        }
+
         const response = await fetch(
             `http://${node.control_host}:${node.control_port}/v1/rooms/${encodeURIComponent(assignment.media_room_id)}/session`,
             {
@@ -142,7 +148,7 @@ export class MediaNodeManager {
                     'Content-Type': 'application/json',
                     'X-Media-Node-Secret': config.mediaNodeInternalSecret,
                 },
-                body: JSON.stringify({ role }),
+                body: JSON.stringify(sessionPayload),
                 signal: AbortSignal.timeout(5_000),
             },
         );
