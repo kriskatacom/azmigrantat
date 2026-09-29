@@ -79,12 +79,22 @@ export function useLiveRoom(liveId: number | null) {
 
     const onError = (payload: { live_id: number | null; message: string }) => {
       if (payload.live_id === liveId || payload.live_id === null) {
+        console.error("[LiveRoom] server error", {
+          liveId,
+          code: (payload as { code?: string }).code,
+          message: payload.message,
+        });
         setError(payload.message);
       }
     };
 
     const onTalkRequestReceived = (payload: LiveTalkRequestReceivedPayload) => {
       if (payload.live_id !== liveId) return;
+      console.log("[LiveRoom] talk request received", {
+        liveId,
+        requestId: payload.request_id,
+        viewerId: payload.viewer.id,
+      });
       setIncomingTalkRequests((current) => [
         ...current.filter((item) => item.request_id !== payload.request_id),
         payload,
@@ -93,6 +103,12 @@ export function useLiveRoom(liveId: number | null) {
 
     const onTalkRequestUpdated = (payload: LiveTalkRequestUpdatedPayload) => {
       if (payload.live_id !== liveId) return;
+      console.log("[LiveRoom] talk request updated", {
+        liveId,
+        requestId: payload.request_id,
+        status: payload.status,
+        hasMediaSession: Boolean(payload.media_session),
+      });
       setTalkRequest(payload);
       setIncomingTalkRequests((current) =>
         payload.status === "pending"
@@ -144,15 +160,33 @@ export function useLiveRoom(liveId: number | null) {
   );
 
   const requestToSpeak = useCallback(() => {
-    if (socket && liveId != null) socket.emit("live:talk-request", { live_id: liveId });
+    if (!socket || liveId == null) {
+      console.error("[LiveRoom] cannot request to speak: socket is not ready", {
+        liveId,
+        hasSocket: Boolean(socket),
+      });
+      return;
+    }
+    console.log("[LiveRoom] sending talk request", { liveId, socketId: socket.id });
+    socket.emit("live:talk-request", { live_id: liveId });
   }, [socket, liveId]);
 
   const acceptTalkRequest = useCallback((requestId: string) => {
-    if (socket && liveId != null) socket.emit("live:talk-request:accept", { live_id: liveId, request_id: requestId });
+    if (!socket || liveId == null) {
+      console.error("[LiveRoom] cannot accept talk request: socket is not ready", { liveId, requestId });
+      return;
+    }
+    console.log("[LiveRoom] accepting talk request", { liveId, requestId, socketId: socket.id });
+    socket.emit("live:talk-request:accept", { live_id: liveId, request_id: requestId });
   }, [socket, liveId]);
 
   const rejectTalkRequest = useCallback((requestId: string) => {
-    if (socket && liveId != null) socket.emit("live:talk-request:reject", { live_id: liveId, request_id: requestId });
+    if (!socket || liveId == null) {
+      console.error("[LiveRoom] cannot reject talk request: socket is not ready", { liveId, requestId });
+      return;
+    }
+    console.log("[LiveRoom] rejecting talk request", { liveId, requestId, socketId: socket.id });
+    socket.emit("live:talk-request:reject", { live_id: liveId, request_id: requestId });
   }, [socket, liveId]);
 
   const cancelTalkRequest = useCallback((requestId?: string) => {

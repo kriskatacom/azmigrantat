@@ -375,7 +375,7 @@ final class InternalMobileController extends BaseController
         $validator = Validator::make($input, [
             'live_id' => 'required|integer|min:1',
             'user_id' => 'required|integer|min:1',
-            'action' => 'required|string|in:join,leave,comment,reaction,start,end',
+            'action' => 'required|string|in:join,leave,comment,reaction,talk_request,talk_accept,start,end',
         ]);
 
         if ($validator->fails()) {
