@@ -198,9 +198,10 @@ export function listVideos(token: string): Promise<VideosResponse> {
   return authorizedJson<VideosResponse>(`${API_URL}/api/mobile/videos`, token);
 }
 
-export async function listPublicVideos(search = "", signal?: AbortSignal): Promise<PublicVideosResponse> {
+export async function listPublicVideos(search = "", signal?: AbortSignal, categoryId?: number): Promise<PublicVideosResponse> {
   const params = new URLSearchParams();
   if (search.trim()) params.set("search", search.trim());
+  if (categoryId !== undefined) params.set("category_id", String(categoryId));
   const response = await fetch(`${API_URL}/api/videos${params.toString() ? `?${params}` : ""}`, { signal });
   const data = (await response.json()) as PublicVideosResponse | { message?: string };
 

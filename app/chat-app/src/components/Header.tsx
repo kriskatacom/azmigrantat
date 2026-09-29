@@ -8,6 +8,7 @@ interface HeaderProps {
   hideSearchButton?: boolean;
   hideAuthButton?: boolean;
   title?: string;
+  subtitle?: string;
   brandTitle?: string;
   showBackButton?: boolean;
   showNotificationsButton?: boolean;
@@ -19,6 +20,7 @@ export default function Header({
   hideSearchButton = false,
   hideAuthButton = false,
   title,
+  subtitle,
   brandTitle,
   showBackButton = true,
   showNotificationsButton = false,
@@ -150,17 +152,27 @@ export default function Header({
           <View style={styles.backButton} />
         )}
 
-        <Text
-          style={[
-            styles.title,
-            {
-              color: theme.colors.text,
-            },
-          ]}
-          numberOfLines={1}
-        >
-          {title}
-        </Text>
+        <View style={styles.titleBlock}>
+          <Text
+            style={[
+              styles.title,
+              {
+                color: theme.colors.text,
+              },
+            ]}
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text
+              style={[styles.subtitle, { color: theme.colors.textSecondary }]}
+              numberOfLines={3}
+            >
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
 
         <View style={styles.backButton} />
       </View>
@@ -199,6 +211,17 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: "600",
+    textAlign: "center",
+  },
+  titleBlock: {
+    flex: 1,
+    alignItems: "center",
+    gap: 2,
+  },
+  subtitle: {
+    maxWidth: "100%",
+    fontSize: 12,
+    lineHeight: 16,
     textAlign: "center",
   },
   headerContainer: {

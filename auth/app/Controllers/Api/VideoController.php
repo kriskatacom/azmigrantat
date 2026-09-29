@@ -36,12 +36,16 @@ final class VideoController extends BaseController
     public function publicIndex()
     {
         $search = trim((string) ($_GET['search'] ?? ''));
+        $categoryId = isset($_GET['category_id']) && $_GET['category_id'] !== ''
+            ? (int) $_GET['category_id']
+            : null;
         $limit = min(30, max(1, (int) ($_GET['limit'] ?? 12)));
         $page = max(1, (int) ($_GET['page'] ?? 1));
         $seed = max(1, (int) ($_GET['seed'] ?? random_int(1, PHP_INT_MAX)));
         $videos = Video::query()
             ->with('owner')
             ->where('status', Video::STATUS_READY)
+            ->when($categoryId !== null, fn ($query) => $query->where('category_id', $categoryId))
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($searchQuery) use ($search) {
                     $searchQuery

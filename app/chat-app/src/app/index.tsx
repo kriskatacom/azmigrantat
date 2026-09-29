@@ -3,7 +3,6 @@ import { useAuth } from "@/hooks/useAuth";
 import HomeVideoFeed from "@/components/video/home-video-feed";
 import RemoteImage from "@/components/ui/RemoteImage";
 import type { PublicVideoItem } from "@/types/video";
-import { getSubscription } from "@/services/payments";
 import { getBackgroundUploadStatus, subscribeToBackgroundUpload } from "@/services/background-upload-state";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused, useRouter } from "expo-router";
@@ -25,24 +24,9 @@ export default function HomeScreen() {
     process.env.EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED === "true";
   const unreadMessageCount = useUnreadMessageCount();
   const [hasBackgroundUpload, setHasBackgroundUpload] = useState(getBackgroundUploadStatus().active);
-  const [hasPaidSubscription, setHasPaidSubscription] = useState<boolean | null>(null);
   const [activeVideoUser, setActiveVideoUser] = useState<PublicVideoItem["user"]>(null);
 
   useEffect(() => subscribeToBackgroundUpload((status) => setHasBackgroundUpload(status.active)), []);
-
-  useEffect(() => {
-    if (!isAuthenticated || !token) {
-      setHasPaidSubscription(null);
-      return;
-    }
-    let cancelled = false;
-    void getSubscription(token).then((subscription) => {
-      if (!cancelled) setHasPaidSubscription(subscription?.status === "active" && subscription.plan !== "free");
-    }).catch(() => {
-      if (!cancelled) setHasPaidSubscription(null);
-    });
-    return () => { cancelled = true; };
-  }, [isAuthenticated, token]);
 
   return (
     <View style={styles.screen}>
@@ -81,18 +65,15 @@ export default function HomeScreen() {
             <Text style={styles.liveText}>На живо</Text>
           </TouchableOpacity>
 
-          {isAuthenticated && hasPaidSubscription === false ? (
-            <TouchableOpacity
-              style={styles.subscriptionButton}
-              onPress={() => router.push("/(profile)/subscriptions")}
-              accessibilityRole="button"
-              accessibilityLabel="Избери абонамент"
-            >
-              <Ionicons name="sparkles" size={19} color="#101827" />
-              <Text style={styles.subscriptionButtonText}>Планове</Text>
-            </TouchableOpacity>
-          ) : null}
-
+          <TouchableOpacity
+            style={styles.subscriptionButton}
+            onPress={() => router.push("/categories")}
+            accessibilityRole="button"
+            accessibilityLabel="Отвори категориите"
+          >
+            <Ionicons name="grid-outline" size={19} color="#101827" />
+            <Text style={styles.subscriptionButtonText}>Категории</Text>
+          </TouchableOpacity>
           <View style={styles.topRightActions}>
             <TouchableOpacity
               style={styles.searchButton}

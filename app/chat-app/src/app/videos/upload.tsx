@@ -19,7 +19,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as VideoThumbnails from "expo-video-thumbnails";
 import { useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { Alert, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableHighlight, TouchableOpacity, View, ActivityIndicator } from "react-native";
+import { ActivityIndicator, Alert, Animated, Image, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableHighlight, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -37,6 +37,8 @@ export default function VideoUploadScreen() {
   const [categoryPath, setCategoryPath] = useState<Category[]>([]);
   const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
   const [isCategoryModalVisible, setIsCategoryModalVisible] = useState(false);
+  const categoryListOpacity = useRef(new Animated.Value(1)).current;
+  const categoryListOffset = useRef(new Animated.Value(0)).current;
   const [selected, setSelected] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [thumbnail, setThumbnail] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [progress, setProgress] = useState(0);
@@ -94,6 +96,23 @@ export default function VideoUploadScreen() {
 
     return () => controller.abort();
   }, [categories]);
+
+  useEffect(() => {
+    categoryListOpacity.setValue(0);
+    categoryListOffset.setValue(8);
+    Animated.parallel([
+      Animated.timing(categoryListOpacity, {
+        toValue: 1,
+        duration: 180,
+        useNativeDriver: true,
+      }),
+      Animated.timing(categoryListOffset, {
+        toValue: 0,
+        duration: 220,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [categories, categoryListOffset, categoryListOpacity]);
 
   useEffect(() => {
     if (!busy && !backgroundStatus.active) return;
@@ -470,13 +489,22 @@ export default function VideoUploadScreen() {
                 ) : null}
               </View>
             </View>
-            <ScrollView
-              style={styles.categoryOptionsScroll}
-              contentContainerStyle={styles.categoryOptionsContent}
-              keyboardShouldPersistTaps="handled"
-              nestedScrollEnabled
-              showsVerticalScrollIndicator
+            <Animated.View
+              style={[
+                styles.categoryOptionsAnimated,
+                {
+                  opacity: categoryListOpacity,
+                  transform: [{ translateY: categoryListOffset }],
+                },
+              ]}
             >
+              <ScrollView
+                style={styles.categoryOptionsScroll}
+                contentContainerStyle={styles.categoryOptionsContent}
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled
+                showsVerticalScrollIndicator
+              >
               {categoryPath.length === 0 ? (
                 <TouchableHighlight
                   style={[styles.categoryOption, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
@@ -510,7 +538,8 @@ export default function VideoUploadScreen() {
               ))}
               {isCategoriesLoading ? <ActivityIndicator style={styles.categoryLoader} color={theme.colors.primary} /> : null}
               {!isCategoriesLoading && categories.length === 0 ? <Text style={[styles.categoryEmpty, { color: theme.colors.textSecondary }]}>Няма налични категории.</Text> : null}
-            </ScrollView>
+              </ScrollView>
+            </Animated.View>
           </View>
         </View>
       </Modal>
@@ -548,6 +577,7 @@ const styles = StyleSheet.create({
   categoryDismissArea: { ...StyleSheet.absoluteFill },
   categorySheet: { flex: 1 },
   categoryOptionsScroll: { flex: 1 },
+  categoryOptionsAnimated: { flex: 1 },
   categoryOptionsContent: { paddingVertical: 16 },
   categoryHeader: { minHeight: 62, paddingHorizontal: 20, flexDirection: "row", alignItems: "center", gap: 8 },
   categoryBackButton: { width: 42, height: 42, alignItems: "center", justifyContent: "center" },
