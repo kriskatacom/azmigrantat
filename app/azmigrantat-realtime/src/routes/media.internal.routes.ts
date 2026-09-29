@@ -27,7 +27,9 @@ export function registerMediaInternalRoutes(app: Express, manager: MediaNodeMana
         const mediaRoomId = request.body?.media_room_id;
 
         if (!Number.isInteger(liveId) || liveId <= 0 || typeof mediaRoomId !== 'string') {
-            response.status(422).json({ success: false, message: 'Невалидни media allocation данни.' });
+            response
+                .status(422)
+                .json({ success: false, message: 'Невалидни media allocation данни.' });
             return;
         }
 
@@ -50,9 +52,8 @@ export function registerMediaInternalRoutes(app: Express, manager: MediaNodeMana
         }
 
         const liveId = Number(request.params.liveId);
-        const assignment = Number.isInteger(liveId) && liveId > 0
-            ? await manager.getAssignment(liveId)
-            : null;
+        const assignment =
+            Number.isInteger(liveId) && liveId > 0 ? await manager.getAssignment(liveId) : null;
 
         if (!assignment) {
             response.status(404).json({ success: false, message: 'Media assignment not found.' });
@@ -71,8 +72,14 @@ export function registerMediaInternalRoutes(app: Express, manager: MediaNodeMana
         const liveId = Number(request.body?.live_id);
         const role = request.body?.role;
 
-        if (!Number.isInteger(liveId) || liveId <= 0 || (role !== 'streamer' && role !== 'viewer')) {
-            response.status(422).json({ success: false, message: 'Невалидни media session данни.' });
+        if (
+            !Number.isInteger(liveId) ||
+            liveId <= 0 ||
+            (role !== 'streamer' && role !== 'viewer')
+        ) {
+            response
+                .status(422)
+                .json({ success: false, message: 'Невалидни media session данни.' });
             return;
         }
 

@@ -36,16 +36,16 @@ const descriptor = {
 };
 
 function configureNodeScan(raw: unknown) {
-    redisClient.scanIterator.mockImplementation((options: { MATCH: string }) => (
-        async function* () {
+    redisClient.scanIterator.mockImplementation((options: { MATCH: string }) =>
+        (async function* () {
             if (options.MATCH === 'media:nodes:*') {
                 yield ['media:nodes:media-node-1'];
             }
-        }
-    )());
-    redisClient.get.mockImplementation(async (key: string) => (
-        key === 'media:nodes:media-node-1' ? JSON.stringify(raw) : null
-    ));
+        })(),
+    );
+    redisClient.get.mockImplementation(async (key: string) =>
+        key === 'media:nodes:media-node-1' ? JSON.stringify(raw) : null,
+    );
 }
 
 afterEach(() => {
@@ -79,10 +79,13 @@ describe('MediaNodeManager', () => {
     it('uses signaling_url for allocation and control_host for internal session requests', async () => {
         configureNodeScan(descriptor);
         const manager = new MediaNodeManager();
-        const fetchMock = vi.fn(async (url: string) => new Response(
-            JSON.stringify({ session: { session_id: 'session-1' } }),
-            { status: 201, headers: { 'content-type': 'application/json' } },
-        ));
+        const fetchMock = vi.fn(
+            async (url: string) =>
+                new Response(JSON.stringify({ session: { session_id: 'session-1' } }), {
+                    status: 201,
+                    headers: { 'content-type': 'application/json' },
+                }),
+        );
         vi.stubGlobal('fetch', fetchMock);
 
         const assignment = await manager.allocate(7, 'room-7');
@@ -90,9 +93,9 @@ describe('MediaNodeManager', () => {
         expect(assignment.signaling_endpoint).toBe('https://live.azmigrantat.com');
         expect(assignment.rtc_host).toBe('185.199.38.75');
 
-        redisClient.get.mockImplementation(async (key: string) => (
-            key === 'media:rooms:7' ? JSON.stringify(assignment) : JSON.stringify(descriptor)
-        ));
+        redisClient.get.mockImplementation(async (key: string) =>
+            key === 'media:rooms:7' ? JSON.stringify(assignment) : JSON.stringify(descriptor),
+        );
         await manager.createSession(7, 'viewer');
 
         expect(fetchMock).toHaveBeenCalledWith(

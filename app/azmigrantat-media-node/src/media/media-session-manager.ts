@@ -32,8 +32,8 @@ export class MediaSessionManager {
       room_id: normalizedRoomId,
       role,
       node_id: config.nodeId,
-      signaling_url: `http://${config.advertisedHost}:${config.port}`,
-      signaling_endpoint: `http://${config.advertisedHost}:${config.port}/v1/rooms/${encodeURIComponent(normalizedRoomId)}`,
+      signaling_url: config.signalingUrl,
+      signaling_endpoint: `${config.signalingUrl}/v1/rooms/${encodeURIComponent(normalizedRoomId)}`,
       router_rtp_capabilities: this.mediaNode.getRouterRtpCapabilities(),
     };
 

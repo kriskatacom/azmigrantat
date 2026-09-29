@@ -55,7 +55,7 @@ export const config = {
   advertisedHost: required('MEDIA_NODE_ADVERTISED_HOST', 'localhost'),
   signalingUrl: requiredUrl(
     'MEDIA_NODE_SIGNALING_URL',
-    `http://${process.env.MEDIA_NODE_ADVERTISED_HOST?.trim() || 'localhost'}:${process.env.MEDIA_NODE_PORT || '3002'}`,
+    `http://${process.env.MEDIA_NODE_ADVERTISED_HOST?.trim() || 'localhost'}:${process.env.MEDIA_NODE_PORT?.trim() || '3002'}`,
   ),
   controlHost: required('MEDIA_NODE_CONTROL_HOST', process.env.MEDIA_NODE_ADVERTISED_HOST?.trim() || 'localhost'),
   internalSecret: required('MEDIA_NODE_INTERNAL_SECRET', 'local-media-node-secret'),

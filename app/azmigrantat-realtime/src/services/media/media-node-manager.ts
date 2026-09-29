@@ -115,14 +115,19 @@ export class MediaNodeManager {
         }
     }
 
-    async createSession(liveId: number, role: 'streamer' | 'viewer'): Promise<Record<string, unknown>> {
+    async createSession(
+        liveId: number,
+        role: 'streamer' | 'viewer',
+    ): Promise<Record<string, unknown>> {
         const assignment = await this.getAssignment(liveId);
 
         if (!assignment) {
             throw new Error('Media assignment not found.');
         }
 
-        const node = (await this.listNodes()).find((item) => item.node_id === assignment.media_node_id);
+        const node = (await this.listNodes()).find(
+            (item) => item.node_id === assignment.media_node_id,
+        );
 
         if (!node) {
             throw new Error('Assigned media node is not available.');

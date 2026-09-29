@@ -12,43 +12,50 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "1/6 Formatting code..."
+echo "1/7 Formatting code..."
 npm run format
 
-echo "2/6 Checking formatting..."
+echo "2/7 Checking formatting..."
 npm run format:check
 
-echo "3/6 Checking TypeScript build..."
+echo "3/7 Building locally..."
 npm run build
 
-echo "Running automated tests..."
+echo "4/7 Running automated tests..."
 npm test
 
-echo "4/6 Creating deployment archive..."
+echo "5/7 Creating deployment archive..."
 tar \
     --exclude="./node_modules" \
-    --exclude="./dist" \
     --exclude="./.git" \
     --exclude="./.vscode" \
     --exclude="./.env" \
+    --exclude="./secrets" \
+    --exclude="./coverage" \
     --exclude="./deploy.ps1" \
     --exclude="./deploy.sh" \
     -czf "$LOCAL_ARCHIVE" .
 
-echo "5/6 Uploading archive..."
+echo "6/7 Uploading archive..."
 scp "$LOCAL_ARCHIVE" "${SERVER}:${REMOTE_ARCHIVE}"
 
-echo "6/6 Installing and restarting server..."
+echo "7/7 Installing production dependencies and restarting..."
 ssh "$SERVER" "
     set -e
+
     cd '$REMOTE_PATH'
+
     tar -xzf '$REMOTE_ARCHIVE'
     rm -f '$REMOTE_ARCHIVE'
-    npm ci
-    npm run build
-    pm2 restart 0 --update-env
+
+    npm ci --omit=dev --no-audit --no-fund
+
+    pm2 restart azmigrantat-realtime --update-env
     pm2 save
     pm2 status
+
+    sleep 2
+    curl -f http://127.0.0.1:3001/health
 "
 
 echo

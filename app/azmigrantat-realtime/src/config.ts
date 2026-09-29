@@ -22,6 +22,7 @@ export const config = {
     phpApiUrl: requireEnvironmentVariable('PHP_API_URL').replace(/\/+$/, ''),
     internalApiSecret: requireEnvironmentVariable('INTERNAL_API_SECRET'),
     redisUrl: process.env.REDIS_URL?.trim() || 'redis://127.0.0.1:6379',
-    mediaNodeInternalSecret: process.env.MEDIA_NODE_INTERNAL_SECRET?.trim() || 'local-media-node-secret',
+    mediaNodeInternalSecret:
+        process.env.MEDIA_NODE_INTERNAL_SECRET?.trim() || 'local-media-node-secret',
     fcmEnabled: process.env.FCM_ENABLED === 'true',
 };
