@@ -431,7 +431,11 @@ final class LiveStreamService
         if ($includeMediaSession && $stream->isLive() && $stream->media_provider === LiveStream::MEDIA_PROVIDER_MEDIASOUP) {
             try {
                 $role = $stream->isOwnedBy((int) $currentUserId) ? 'streamer' : 'viewer';
-                $payload['media_session'] = $this->mediaNodes->session((int) $stream->id, $role);
+                $payload['media_session'] = $this->mediaNodes->session(
+                    (int) $stream->id,
+                    $role,
+                    $currentUserId !== null ? (int) $currentUserId : null,
+                );
             } catch (Throwable $exception) {
                 error_log('[LiveStreamService] media session serialization failed: ' . $exception->getMessage());
                 $payload['media_session'] = null;

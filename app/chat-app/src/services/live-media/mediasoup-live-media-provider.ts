@@ -1,6 +1,7 @@
 import { Device } from "mediasoup-client";
 import { io, type Socket } from "socket.io-client";
 import { mediaDevices, MediaStream, registerGlobals } from "react-native-webrtc";
+import { setAudioModeAsync } from "expo-audio";
 
 import type {
   LiveMediaProvider,
@@ -16,6 +17,7 @@ type TransportInfo = {
   dtls_parameters: unknown;
   sctp_parameters?: unknown;
 };
+type AudioTrackWithVolume = globalThis.MediaStreamTrack & { _setVolume?: (volume: number) => void };
 
 export class MediasoupLiveMediaProvider implements LiveMediaProvider {
   readonly name = "mediasoup";
@@ -51,7 +53,11 @@ export class MediasoupLiveMediaProvider implements LiveMediaProvider {
   async startStream(session: LiveMediaSession): Promise<void> {
     await this.connect(session);
     const localStream = await mediaDevices.getUserMedia({
-      audio: true,
+      audio: ({
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      } as unknown) as never,
       video: { facingMode: "user" },
     });
 
@@ -108,7 +114,20 @@ export class MediasoupLiveMediaProvider implements LiveMediaProvider {
       await device.load({ routerRtpCapabilities: session.routerRtpCapabilities as never });
       this.talkDevice = device;
       this.talkSendTransport = await this.createTransport("send", socket, device) as ReturnType<Device["createSendTransport"]>;
-      this.talkStream = await mediaDevices.getUserMedia({ audio: true, video: false });
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
+        interruptionMode: "doNotMix",
+        shouldRouteThroughEarpiece: false,
+      });
+      this.talkStream = await mediaDevices.getUserMedia({
+        audio: ({
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        } as unknown) as never,
+        video: false,
+      });
       const track = this.talkStream.getAudioTracks()[0];
       if (!track || !this.talkSendTransport) {
         throw new Error("Микрофонът не е наличен.");
@@ -160,8 +179,9 @@ export class MediasoupLiveMediaProvider implements LiveMediaProvider {
       autoConnect: true,
     });
     this.socket = socket;
-    socket.on("sfu:producer-available", (payload: { producer_id?: string }) => {
-      if ((session.role === "viewer" || session.role === "streamer") && payload?.producer_id) {
+    socket.on("sfu:producer-available", (payload: { producer_id?: string; participant_id?: number | null }) => {
+      const isOwnProducer = session.participantId != null && payload.participant_id === session.participantId;
+      if (!isOwnProducer && (session.role === "viewer" || session.role === "streamer") && payload?.producer_id) {
         void this.consumeProducer(payload.producer_id);
       }
     });
@@ -258,6 +278,17 @@ export class MediasoupLiveMediaProvider implements LiveMediaProvider {
       });
       const remoteStream = this.state.remoteStream ?? new MediaStream();
       remoteStream.addTrack(consumer.track as unknown as Parameters<MediaStream["addTrack"]>[0]);
+      if (info.kind === "audio") {
+        // react-native-webrtc accepts a gain value from 0 to 10.
+        // Use the maximum track gain for live conversations.
+        (consumer.track as unknown as AudioTrackWithVolume)._setVolume?.(10);
+        await setAudioModeAsync({
+          allowsRecording: this.state.talking,
+          playsInSilentMode: true,
+          interruptionMode: "doNotMix",
+          shouldRouteThroughEarpiece: false,
+        });
+      }
       this.state = { ...this.state, remoteStream };
       this.consumers.set(info.id, consumer);
       await this.emitAck("consumer:resume", { consumer_id: info.id });

@@ -64,12 +64,16 @@ final class MediaNodeAllocator
     }
 
     /** @return array<string, mixed> */
-    public function session(int $liveId, string $role): array
+    public function session(int $liveId, string $role, ?int $participantId = null): array
     {
-        $response = $this->request('/internal/media/session', [
+        $payload = [
             'live_id' => $liveId,
             'role' => $role,
-        ]);
+        ];
+        if ($participantId !== null && $participantId > 0) {
+            $payload['participant_id'] = $participantId;
+        }
+        $response = $this->request('/internal/media/session', $payload);
         $session = $response['session'] ?? null;
 
         if (!is_array($session)) {

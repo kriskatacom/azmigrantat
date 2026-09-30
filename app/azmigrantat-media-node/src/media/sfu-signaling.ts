@@ -116,6 +116,7 @@ export class SfuSignaling {
       socket.to(this.roomName(session.room_id)).emit('sfu:producer-available', {
         producer_id: producer.id,
         kind: producer.kind,
+        participant_id: session.participant_id ?? null,
       });
       callback({ ok: true, producer_id: producer.id });
     } catch (error) {

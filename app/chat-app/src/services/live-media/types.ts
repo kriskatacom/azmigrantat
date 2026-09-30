@@ -9,6 +9,7 @@ export type LiveMediaSession = {
   mediaRoomId: string | null;
   mediaNodeId?: string;
   sessionId?: string;
+  participantId?: number | null;
   signalingEndpoint?: string;
   signalingUrl?: string;
   rtcHost?: string;

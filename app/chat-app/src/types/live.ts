@@ -4,6 +4,7 @@ export type LiveMediaProviderName = "mock" | "livekit" | "mediasoup";
 
 export interface LiveMediaSessionData {
   session_id: string;
+  participant_id?: number | null;
   live_id: number;
   media_room_id: string;
   media_provider: "mediasoup";

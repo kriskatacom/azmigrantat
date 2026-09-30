@@ -25,6 +25,7 @@ type TransportState = {
 type ProducerState = {
   producer: types.Producer;
   sessionId: string;
+  participantId?: number | null;
   transportId: string;
 };
 
@@ -97,7 +98,12 @@ export class MediaRoomManager {
 
     const producer = await transport.transport.produce({ kind, rtpParameters, appData });
     const room = this.getOrCreateRoom(session.room_id);
-    room.producers.set(producer.id, { producer, sessionId: session.session_id, transportId });
+    room.producers.set(producer.id, {
+      producer,
+      sessionId: session.session_id,
+      participantId: session.participant_id,
+      transportId,
+    });
     producer.on('transportclose', () => this.removeProducer(session.room_id, producer.id, true));
     producer.observer.once('close', () => this.removeProducer(session.room_id, producer.id, true));
 
@@ -107,7 +113,10 @@ export class MediaRoomManager {
 
   listProducers(session: MediaSession): types.Producer[] {
     return [...(this.rooms.get(session.room_id)?.producers.values() ?? [])]
-      .filter(({ producer }) => !producer.closed)
+      .filter(({ producer, participantId }) => (
+        !producer.closed &&
+        (session.participant_id == null || participantId == null || participantId !== session.participant_id)
+      ))
       .map(({ producer }) => producer);
   }
 
@@ -125,6 +134,14 @@ export class MediaRoomManager {
     const producer = this.rooms.get(session.room_id)?.producers.get(producerId);
     if (!producer || producer.producer.closed) {
       throw new MediaSignalingError('PRODUCER_NOT_FOUND', 'Producer не е намерен.', 404);
+    }
+
+    if (
+      session.participant_id != null &&
+      producer.participantId != null &&
+      session.participant_id === producer.participantId
+    ) {
+      throw new MediaSignalingError('SELF_CONSUME_FORBIDDEN', 'Участникът не може да слуша собствения си producer.', 403);
     }
 
     if (!this.mediaNode.canConsume(producerId, rtpCapabilities)) {

@@ -88,7 +88,10 @@ export default function LiveViewerScreen() {
           provider: stream.media_provider,
           mediaRoomId: stream.media_room_id,
           mediaNodeId: stream.media_session?.media_node_id,
-          sessionId: stream.media_session?.session_id,
+        sessionId: stream.media_session?.session_id,
+        participantId: typeof stream.media_session?.participant_id === "number"
+          ? stream.media_session.participant_id
+          : null,
           signalingEndpoint: stream.media_session?.signaling_endpoint,
           signalingUrl: stream.media_session?.signaling_url,
           rtcHost: stream.media_session?.rtc_host,
@@ -128,6 +131,9 @@ export default function LiveViewerScreen() {
         mediaRoomId: typeof mediaSession.media_room_id === "string" ? mediaSession.media_room_id : null,
         mediaNodeId: typeof mediaSession.media_node_id === "string" ? mediaSession.media_node_id : undefined,
         sessionId: typeof mediaSession.session_id === "string" ? mediaSession.session_id : undefined,
+        participantId: typeof mediaSession.participant_id === "number"
+          ? mediaSession.participant_id
+          : null,
         signalingEndpoint: typeof mediaSession.signaling_endpoint === "string" ? mediaSession.signaling_endpoint : undefined,
         signalingUrl: typeof mediaSession.signaling_url === "string" ? mediaSession.signaling_url : undefined,
         rtcHost: typeof mediaSession.rtc_host === "string" ? mediaSession.rtc_host : undefined,
