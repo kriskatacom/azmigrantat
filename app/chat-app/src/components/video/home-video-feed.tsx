@@ -4,7 +4,7 @@ import ControlledVideoPlayer from "@/components/video/controlled-video-player";
 import type { PublicVideoItem } from "@/types/video";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
-import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
+import { ActivityIndicator, Animated, FlatList, Modal, Pressable, StyleSheet, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type FeedVideo = PublicVideoItem & { playbackUrl: string };
@@ -24,48 +24,35 @@ export default function HomeVideoFeed({
   const insets = useSafeAreaInsets();
   const [videos, setVideos] = useState<FeedVideo[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
-  const [isCaptionVisible, setIsCaptionVisible] = useState(false);
+  const [isActiveVideoPlaying, setIsActiveVideoPlaying] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenIndex, setFullscreenIndex] = useState(0);
+  const [isFullscreenVideoPlaying, setIsFullscreenVideoPlaying] = useState(true);
+  const fullscreenButtonOpacity = useRef(new Animated.Value(0)).current;
   const listRef = useRef<FlatList<FeedVideo>>(null);
   const fullscreenListRef = useRef<FlatList<FeedVideo>>(null);
   const activeIndexRef = useRef(0);
   const requestId = useRef(0);
-  const captionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    return () => {
-      if (captionTimer.current) clearTimeout(captionTimer.current);
-    };
-  }, []);
+    Animated.timing(fullscreenButtonOpacity, {
+      toValue: isFullscreen && !isFullscreenVideoPlaying ? 1 : 0,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+  }, [fullscreenButtonOpacity, isFullscreen, isFullscreenVideoPlaying]);
 
   useEffect(() => {
     if (!focused) {
       setIsFullscreen(false);
-      setIsCaptionVisible(false);
-      if (captionTimer.current) {
-        clearTimeout(captionTimer.current);
-        captionTimer.current = null;
-      }
+      setIsActiveVideoPlaying(true);
     }
   }, [focused]);
 
   useEffect(() => {
     onActiveVideoUserChange?.(videos[activeIndex]?.user ?? null);
   }, [activeIndex, onActiveVideoUserChange, videos]);
-
-  const toggleCaption = useCallback(() => {
-    const nextVisible = !isCaptionVisible;
-    setIsCaptionVisible(nextVisible);
-    if (captionTimer.current) clearTimeout(captionTimer.current);
-    captionTimer.current = nextVisible
-      ? setTimeout(() => {
-          setIsCaptionVisible(false);
-          captionTimer.current = null;
-        }, 3_000)
-      : null;
-  }, [isCaptionVisible]);
 
   const handleViewVideo = useCallback((videoId: number) => {
     if (!token) return;
@@ -113,11 +100,7 @@ export default function HomeVideoFeed({
     const index = Math.max(0, Math.min(videos.length - 1, Math.round(offsetY / height)));
     activeIndexRef.current = index;
     setActiveIndex(index);
-    setIsCaptionVisible(false);
-    if (captionTimer.current) {
-      clearTimeout(captionTimer.current);
-      captionTimer.current = null;
-    }
+    setIsActiveVideoPlaying(true);
   }, [height, videos.length]);
 
   const onScrollEndDrag = useCallback((velocityY: number) => {
@@ -148,8 +131,9 @@ export default function HomeVideoFeed({
             muted={!token}
             width={width}
             height={height}
-            captionVisible={isCaptionVisible}
-            onToggleCaption={toggleCaption}
+            captionVisible={index === activeIndex && !isActiveVideoPlaying}
+            captionBottomOffset={120}
+            onPlaybackChange={index === activeIndex ? setIsActiveVideoPlaying : undefined}
             onViewVideo={handleViewVideo}
           />
         )}
@@ -164,15 +148,16 @@ export default function HomeVideoFeed({
         onMomentumScrollEnd={(event) => onMomentumScrollEnd(event.nativeEvent.contentOffset.y)}
       />
       <Pressable
-        style={[styles.fullscreenButton, { top: 128 }]}
+        style={[styles.fullscreenButton, { top: 100 }]}
         onPress={() => {
           setFullscreenIndex(activeIndex);
+          setIsFullscreenVideoPlaying(true);
           setIsFullscreen(true);
         }}
         accessibilityRole="button"
         accessibilityLabel="Отвори видеото на цял екран"
       >
-        <Ionicons name="expand-outline" size={24} color="#ffffff" />
+        <Ionicons name="expand-outline" size={25} color="#ffffff" />
       </Pressable>
       <Modal
         visible={isFullscreen}
@@ -193,10 +178,11 @@ export default function HomeVideoFeed({
                 muted={!token}
                 width={width}
                 height={height}
-                captionVisible={false}
-                onToggleCaption={() => undefined}
-                showCaption={false}
+                captionVisible={index === fullscreenIndex && !isFullscreenVideoPlaying}
+                captionBottomOffset={32}
+                showCaption
                 onViewVideo={handleViewVideo}
+                onPlaybackChange={index === fullscreenIndex ? setIsFullscreenVideoPlaying : undefined}
               />
             )}
             getItemLayout={(_, index) => ({ length: height, offset: height * index, index })}
@@ -218,20 +204,30 @@ export default function HomeVideoFeed({
               if (nextIndex === fullscreenIndex) return;
 
               setFullscreenIndex(nextIndex);
+              setIsFullscreenVideoPlaying(true);
               fullscreenListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
             }}
             onMomentumScrollEnd={(event) => {
               setFullscreenIndex(Math.max(0, Math.round(event.nativeEvent.contentOffset.y / height)));
+              setIsFullscreenVideoPlaying(true);
             }}
           />
-          <Pressable
-            style={[styles.exitFullscreenButton, { top: Math.max(insets.top + 12, 20) }]}
-            onPress={() => setIsFullscreen(false)}
-            accessibilityRole="button"
-            accessibilityLabel="Върни нормалния режим"
+          <Animated.View
+            pointerEvents={isFullscreenVideoPlaying ? "none" : "auto"}
+            style={[
+              styles.exitFullscreenButton,
+              { top: Math.max(insets.top + 12, 20), opacity: fullscreenButtonOpacity },
+            ]}
           >
-            <Ionicons name="contract-outline" size={24} color="#ffffff" />
-          </Pressable>
+            <Pressable
+              style={styles.exitFullscreenTouchTarget}
+              onPress={() => setIsFullscreen(false)}
+              accessibilityRole="button"
+              accessibilityLabel="Върни нормалния режим"
+            >
+              <Ionicons name="contract-outline" size={25} color="#ffffff" />
+            </Pressable>
+          </Animated.View>
         </View>
       </Modal>
     </View>
@@ -245,9 +241,10 @@ function HomeVideoCard({
   width,
   height,
   captionVisible,
-  onToggleCaption,
+  captionBottomOffset,
   showCaption = true,
   onViewVideo,
+  onPlaybackChange,
 }: {
   video: FeedVideo;
   active: boolean;
@@ -255,9 +252,10 @@ function HomeVideoCard({
   width: number;
   height: number;
   captionVisible: boolean;
-  onToggleCaption: () => void;
+  captionBottomOffset: number;
   showCaption?: boolean;
   onViewVideo?: (videoId: number) => void;
+  onPlaybackChange?: (isPlaying: boolean) => void;
 }) {
   return (
     <View style={{ width, height }}>
@@ -270,7 +268,7 @@ function HomeVideoCard({
         contentFit="cover"
         controlsBottomOffset={showCaption ? 160 : 0}
         showControls={false}
-        onVideoPress={onToggleCaption}
+        onPlaybackChange={onPlaybackChange}
         onViewVideo={() => onViewVideo?.(video.id)}
         videoId={video.id}
       />
@@ -280,11 +278,11 @@ function HomeVideoCard({
             title={video.title}
             description={video.description ?? null}
             visible={captionVisible}
-            height="35%"
-            maxHeight={height * 0.35}
+            height="45%"
+            maxHeight={height * 0.45}
             allowExpand
             fitContent
-            bottomOffset={160}
+            bottomOffset={captionBottomOffset}
             topOffset={120}
           />
         </>
@@ -300,23 +298,27 @@ const styles = StyleSheet.create({
   fullscreenButton: {
     position: "absolute",
     right: 18,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.62)",
+    backgroundColor: "transparent",
     zIndex: 10,
-    elevation: 10,
+    elevation: 0,
   },
   exitFullscreenButton: {
     position: "absolute",
     right: 18,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.62)",
+    backgroundColor: "transparent",
+  },
+  exitFullscreenTouchTarget: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

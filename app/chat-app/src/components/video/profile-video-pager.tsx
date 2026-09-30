@@ -12,13 +12,13 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type PagerColors = {
   background: string;
   text: string;
   textSecondary: string;
 };
+const SWIPE_VELOCITY_THRESHOLD = 0.12;
 
 type Props = {
   visible: boolean;
@@ -45,33 +45,15 @@ export default function ProfileVideoPager({
   const listRef = useRef<FlatList<VideoItem>>(null);
   const activeIndexRef = useRef(Math.max(0, initialIndex));
   const [activeIndex, setActiveIndex] = useState(Math.max(0, initialIndex));
-  const captionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [isCaptionVisible, setIsCaptionVisible] = useState(false);
-
-  useEffect(() => {
-    return () => {
-      if (captionTimer.current) clearTimeout(captionTimer.current);
-    };
-  }, []);
+  const [isActiveVideoPlaying, setIsActiveVideoPlaying] = useState(true);
 
   useEffect(() => {
     if (!visible || initialIndex < 0 || initialIndex === activeIndexRef.current) return;
     activeIndexRef.current = initialIndex;
     setActiveIndex(initialIndex);
+    setIsActiveVideoPlaying(true);
     listRef.current?.scrollToIndex({ index: initialIndex, animated: false });
   }, [initialIndex, visible]);
-
-  const toggleCaption = () => {
-    const nextVisible = !isCaptionVisible;
-    setIsCaptionVisible(nextVisible);
-    if (captionTimer.current) clearTimeout(captionTimer.current);
-    captionTimer.current = nextVisible
-      ? setTimeout(() => {
-          setIsCaptionVisible(false);
-          captionTimer.current = null;
-        }, 3_000)
-      : null;
-  };
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -86,8 +68,8 @@ export default function ProfileVideoPager({
               url={playbackUrls[item.id] ?? null}
               width={width}
               height={height}
-              captionVisible={isCaptionVisible}
-              onToggleCaption={toggleCaption}
+              captionVisible={index === activeIndex && !isActiveVideoPlaying}
+              onPlaybackChange={index === activeIndex ? setIsActiveVideoPlaying : undefined}
               onRequestPlayback={() => onRequestPlayback(index)}
               active={index === activeIndex}
               onViewVideo={onViewVideo}
@@ -104,7 +86,7 @@ export default function ProfileVideoPager({
           decelerationRate="fast"
           onScrollEndDrag={(event) => {
             const velocityY = event.nativeEvent.velocity?.y ?? 0;
-            if (Math.abs(velocityY) < 0.12 || videos.length < 2) return;
+            if (Math.abs(velocityY) < SWIPE_VELOCITY_THRESHOLD || videos.length < 2) return;
             const nextIndex = Math.max(
               0,
               Math.min(
@@ -127,7 +109,7 @@ export default function ProfileVideoPager({
             if (index === activeIndexRef.current) return;
             activeIndexRef.current = index;
             setActiveIndex(index);
-            setIsCaptionVisible(false);
+            setIsActiveVideoPlaying(true);
             onRequestPlayback(index);
           }}
         />
@@ -137,7 +119,7 @@ export default function ProfileVideoPager({
           accessibilityRole="button"
           accessibilityLabel="Затвори видеото"
         >
-          <FontAwesome name="close" size={22} color="#ffffff" />
+          <FontAwesome name="close" size={25} color="#ffffff" />
         </TouchableOpacity>
       </View>
     </Modal>
@@ -150,7 +132,7 @@ function ProfileVideoSlide({
   width,
   height,
   captionVisible,
-  onToggleCaption,
+  onPlaybackChange,
   onRequestPlayback,
   active,
   onViewVideo,
@@ -160,13 +142,11 @@ function ProfileVideoSlide({
   width: number;
   height: number;
   captionVisible: boolean;
-  onToggleCaption: () => void;
+  onPlaybackChange?: (isPlaying: boolean) => void;
   onRequestPlayback: () => void;
   active: boolean;
   onViewVideo?: (videoId: number) => void;
 }) {
-  const insets = useSafeAreaInsets();
-
   return (
     <View style={[styles.slide, { width, height }]}>
       {url ? (
@@ -174,7 +154,7 @@ function ProfileVideoSlide({
           url={url}
           thumbnailUrl={video.thumbnail_url}
           active={active}
-          onToggleCaption={onToggleCaption}
+          onPlaybackChange={onPlaybackChange}
           onViewVideo={onViewVideo}
           videoId={video.id}
         />
@@ -194,7 +174,7 @@ function ProfileVideoSlide({
         visible={captionVisible}
         height="22%"
         maxHeight={height * 0.22}
-        bottomOffset={100 + insets.bottom}
+        bottomOffset={32}
         allowExpand
         fitContent
       />
@@ -206,14 +186,14 @@ function PlayableVideo({
   url,
   thumbnailUrl,
   active,
-  onToggleCaption,
+  onPlaybackChange,
   onViewVideo,
   videoId,
 }: {
   url: string;
   thumbnailUrl: string | null;
   active: boolean;
-  onToggleCaption: () => void;
+  onPlaybackChange?: (isPlaying: boolean) => void;
   onViewVideo?: (videoId: number) => void;
   videoId: number;
 }) {
@@ -222,7 +202,9 @@ function PlayableVideo({
       url={url}
       thumbnailUrl={thumbnailUrl}
       active={active}
-      onVideoPress={onToggleCaption}
+      contentFit="cover"
+      showControls={false}
+      onPlaybackChange={onPlaybackChange}
       onViewVideo={() => onViewVideo?.(videoId)}
       videoId={videoId}
     />
@@ -245,11 +227,11 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 52,
     right: 18,
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 40,
+    height: 40,
+    borderRadius: 0,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(0,0,0,0.55)",
+    backgroundColor: "transparent",
   },
 });

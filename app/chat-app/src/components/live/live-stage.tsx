@@ -15,14 +15,9 @@ type LiveStageProps = {
   error?: string | null;
   viewerCount: number;
   reactions: LiveReactionEvent[];
-  fullscreen: boolean;
-  keyboardVisible?: boolean;
-  topInset?: number;
   bottomInset?: number;
   label: string;
-  hint: string;
   coverUri?: string | null;
-  onToggleFullscreen: () => void;
   onOpenComments?: () => void;
   onOpenTalkers?: () => void;
   onOpenMoreReactions?: () => void;
@@ -47,14 +42,9 @@ export default function LiveStage({
   error = null,
   viewerCount,
   reactions,
-  fullscreen,
-  keyboardVisible = false,
-  topInset = 0,
   bottomInset = 16,
   label,
-  hint,
   coverUri,
-  onToggleFullscreen,
   onOpenComments,
   onOpenTalkers,
   onOpenMoreReactions,
@@ -77,11 +67,7 @@ export default function LiveStage({
 
   return (
     <View
-      style={[
-        styles.stage,
-        fullscreen ? styles.stageFullscreen : null,
-        !fullscreen && keyboardVisible ? styles.stageCompact : null,
-      ]}
+      style={styles.stageFullscreen}
     >
       {coverUri && !hasMediaStream ? (
         <>
@@ -104,23 +90,11 @@ export default function LiveStage({
       ) : null}
 
       {connected && (localStream || onOpenComments) ? (
-        <View
-          style={[styles.captureStatus, fullscreen && styles.captureStatusFullscreen]}
-        >
-          {fullscreen ? (
-            <TouchableOpacity
-              style={[styles.captureStatusItem, styles.captureStatusItemFullscreen]}
-              onPress={onToggleFullscreen}
-              accessibilityRole="button"
-              accessibilityLabel="Изход от цял екран"
-            >
-              <Ionicons name="contract-outline" size={20} color="#ffffff" />
-            </TouchableOpacity>
-          ) : null}
-          {fullscreen && !localStream && topRight ? (
+        <View style={styles.captureStatusFullscreen}>
+          {!localStream && topRight ? (
             <View style={styles.captureStatusEnd}>{topRight}</View>
           ) : null}
-          {fullscreen && onOpenComments ? (
+          {onOpenComments ? (
             <TouchableOpacity
               onPress={onOpenComments}
               style={[styles.captureStatusItem, styles.captureStatusItemFullscreen]}
@@ -130,7 +104,7 @@ export default function LiveStage({
               <Ionicons name="chatbubbles-outline" size={20} color="#ffffff" />
             </TouchableOpacity>
           ) : null}
-          {fullscreen && onOpenTalkers ? (
+          {onOpenTalkers ? (
             <TouchableOpacity
               onPress={onOpenTalkers}
               style={[styles.captureStatusItem, styles.captureStatusItemFullscreen]}
@@ -143,19 +117,18 @@ export default function LiveStage({
           {localStream ? (
             <>
           <TouchableOpacity
-            style={[styles.captureStatusItem, fullscreen && styles.captureStatusItemFullscreen]}
+            style={[styles.captureStatusItem, styles.captureStatusItemFullscreen]}
             onPress={onSwitchCamera}
             disabled={!onSwitchCamera || !cameraEnabled}
             accessibilityRole="button"
             accessibilityLabel="Превключи камерата"
           >
-            <Ionicons name="camera-reverse-outline" size={fullscreen ? 20 : 14} color="#ffffff" />
-            {fullscreen ? null : <Text style={styles.captureStatusText}>Смени камерата</Text>}
+            <Ionicons name="camera-reverse-outline" size={20} color="#ffffff" />
           </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.captureStatusItem,
-              fullscreen && styles.captureStatusItemFullscreen,
+              styles.captureStatusItemFullscreen,
               !cameraEnabled && styles.captureStatusItemOff,
             ]}
             onPress={onToggleCamera}
@@ -165,19 +138,14 @@ export default function LiveStage({
           >
             <Ionicons
               name={cameraEnabled ? "videocam" : "videocam-off"}
-              size={fullscreen ? 20 : 14}
+              size={20}
               color={cameraEnabled ? "#bbf7d0" : "#fecaca"}
             />
-            {fullscreen ? null : (
-              <Text style={styles.captureStatusText}>
-                Камера {cameraEnabled ? "включена" : "изключена"}
-              </Text>
-            )}
           </TouchableOpacity>
           <TouchableOpacity
             style={[
               styles.captureStatusItem,
-              fullscreen && styles.captureStatusItemFullscreen,
+              styles.captureStatusItemFullscreen,
               !microphoneEnabled && styles.captureStatusItemOff,
             ]}
             onPress={onToggleMicrophone}
@@ -187,18 +155,13 @@ export default function LiveStage({
           >
             <Ionicons
               name={microphoneEnabled ? "mic" : "mic-off"}
-              size={fullscreen ? 20 : 14}
+              size={20}
               color={microphoneEnabled ? "#bbf7d0" : "#fecaca"}
             />
-            {fullscreen ? null : (
-              <Text style={styles.captureStatusText}>
-                Микрофон {microphoneEnabled ? "включен" : "изключен"}
-              </Text>
-            )}
           </TouchableOpacity>
             </>
           ) : null}
-          {fullscreen && localStream && topRight ? (
+          {localStream && topRight ? (
             <View style={styles.captureStatusEnd}>{topRight}</View>
           ) : null}
         </View>
@@ -218,36 +181,12 @@ export default function LiveStage({
       ) : null}
 
       {!hasMediaStream && connected ? <Text style={styles.label}>{label}</Text> : null}
-      {!hasMediaStream && connected && !fullscreen && !keyboardVisible ? (
-        <Text style={styles.hint}>{hint}</Text>
-      ) : null}
 
-      <View style={[styles.topBar, { top: fullscreen ? 8 : 12 + topInset }]}>
+      <View style={styles.topBar}>
         <View style={styles.topLeft}>
           {topLeft}
-          {fullscreen ? null : (
-            <TouchableOpacity
-              onPress={onToggleFullscreen}
-              style={styles.iconButton}
-              accessibilityRole="button"
-              accessibilityLabel="Цял екран"
-            >
-              <Ionicons name="expand-outline" size={20} color="#ffffff" />
-            </TouchableOpacity>
-          )}
         </View>
-        <View style={[styles.topRight, fullscreen && styles.topRightFullscreen]}>
-          {fullscreen ? null : topRight}
-          {fullscreen ? null : onOpenComments ? (
-            <TouchableOpacity
-              onPress={onOpenComments}
-              style={styles.iconButton}
-              accessibilityRole="button"
-              accessibilityLabel="Отвори всички коментари"
-            >
-              <Ionicons name="chatbubbles-outline" size={20} color="#ffffff" />
-            </TouchableOpacity>
-          ) : null}
+        <View style={styles.topRight}>
           <LiveViewerCount count={viewerCount} variant="overlay" />
         </View>
       </View>
@@ -255,7 +194,7 @@ export default function LiveStage({
       <View
         style={[
           styles.reactionRail,
-          { top: fullscreen ? 104 : 52 + topInset, bottom: bottomInset },
+          { top: 104, bottom: bottomInset },
         ]}
       >
         <LiveReactions vertical limit={5} onMore={onOpenMoreReactions} onReact={onReact} />
@@ -266,27 +205,14 @@ export default function LiveStage({
       <LiveReactionBurst
         reactions={reactions}
         showChips
-        chipBottom={fullscreen ? "34%" : 14}
-        liftDistance={fullscreen ? 500 : 220}
+        chipBottom="34%"
+        liftDistance={500}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  stage: {
-    height: 240,
-    marginHorizontal: 16,
-    marginTop: 12,
-    borderRadius: 18,
-    backgroundColor: "#0b1220",
-    alignItems: "center",
-    justifyContent: "center",
-    overflow: "hidden",
-  },
-  stageCompact: {
-    height: 132,
-  },
   stageFullscreen: {
     position: "absolute",
     top: 0,
@@ -304,13 +230,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
     paddingHorizontal: 48,
-    zIndex: 2,
-  },
-  hint: {
-    color: "#94a3b8",
-    marginTop: 8,
-    textAlign: "center",
-    paddingHorizontal: 32,
     zIndex: 2,
   },
   topBar: {
@@ -333,37 +252,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  topRightFullscreen: {
-    position: "absolute",
-    top: 48,
-    right: 0,
-  },
   captureStatusEnd: { marginTop: 0 },
-  iconButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(8, 12, 24, 0.72)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
   reactionRail: {
     position: "absolute",
     right: 10,
     width: 48,
-    zIndex: 4,
-  },
-  captureStatus: {
-    position: "absolute",
-    left: 12,
-    bottom: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 14,
-    backgroundColor: "rgba(8, 12, 24, 0.72)",
     zIndex: 4,
   },
   captureStatusFullscreen: {
@@ -391,11 +284,6 @@ const styles = StyleSheet.create({
   },
   captureStatusItemOff: {
     opacity: 0.96,
-  },
-  captureStatusText: {
-    color: "#f8fafc",
-    fontSize: 12,
-    fontWeight: "700",
   },
   connecting: {
     ...StyleSheet.absoluteFill,

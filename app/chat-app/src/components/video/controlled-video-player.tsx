@@ -21,6 +21,7 @@ type Props = {
   showControls?: boolean;
   style?: StyleProp<ViewStyle>;
   onVideoPress?: () => void;
+  onPlaybackChange?: (isPlaying: boolean) => void;
   onViewVideo?: () => void;
   videoId?: number;
 };
@@ -36,6 +37,7 @@ export default function ControlledVideoPlayer({
   showControls = true,
   style,
   onVideoPress,
+  onPlaybackChange,
   onViewVideo,
   videoId,
 }: Props) {
@@ -78,6 +80,7 @@ export default function ControlledVideoPlayer({
 
   useEventListener(player, "playingChange", ({ isPlaying: nextIsPlaying }) => {
     setIsPlaying(nextIsPlaying);
+    onPlaybackChange?.(nextIsPlaying);
   });
 
   useEventListener(player, "timeUpdate", ({ currentTime: nextCurrentTime }) => {

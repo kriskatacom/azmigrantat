@@ -1,5 +1,4 @@
 import { useAppTheme } from "@/app/_layout";
-import Header from "@/components/Header";
 import LiveCommentComposer from "@/components/live/live-comment-composer";
 import LiveCommentTicker from "@/components/live/live-comment-ticker";
 import LiveCommentsModal from "@/components/live/live-comments-modal";
@@ -7,10 +6,8 @@ import LiveActiveTalkersModal from "@/components/live/live-active-talkers-modal"
 import LiveReactionsModal from "@/components/live/live-reactions-modal";
 import LiveScreenRoot from "@/components/live/live-screen-root";
 import LiveStage from "@/components/live/live-stage";
-import AppButton from "@/components/ui/AppButton";
 import RemoteImage from "@/components/ui/RemoteImage";
 import { useChatKeyboard } from "@/hooks/chat/useChatKeyboard";
-import { useLiveFullscreenBack } from "@/hooks/live/useLiveFullscreenBack";
 import { useLiveMedia } from "@/hooks/live/useLiveMedia";
 import { useLiveRoom } from "@/hooks/live/useLiveRoom";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,7 +30,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function LiveStreamerScreen() {
-  const { theme, colorScheme } = useAppTheme();
+  const { theme } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { token, user } = useAuth();
   const router = useRouter();
@@ -44,24 +41,12 @@ export default function LiveStreamerScreen() {
   const room = useLiveRoom(validLiveId);
   const { keyboardVisible, keyboardOverlap } = useChatKeyboard();
   const leavingRef = useRef(false);
-  const [title, setTitle] = useState("");
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [ending, setEnding] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [activeTalkersVisible, setActiveTalkersVisible] = useState(false);
   const [reactionsVisible, setReactionsVisible] = useState(false);
-  const [fullscreen, setFullscreen] = useState(true);
-  const exitFullscreen = useCallback(() => setFullscreen(false), []);
-  useLiveFullscreenBack(fullscreen, exitFullscreen);
-
-  useEffect(() => {
-    if (media.connected) {
-      setFullscreen(true);
-    }
-  }, [media.connected]);
-
-  const overlayBottom = 16;
   const composerBarStyle = {
     backgroundColor: theme.colors.card,
     paddingBottom: keyboardVisible ? 0 : insets.bottom,
@@ -103,7 +88,6 @@ export default function LiveStreamerScreen() {
           return;
         }
 
-        setTitle(stream.title || stream.owner?.name || "Предаване на живо");
         setCoverUri(
           stream.owner?.cover_image ?? user?.cover_image ?? stream.owner?.profile_image ?? null,
         );
@@ -188,28 +172,22 @@ export default function LiveStreamerScreen() {
 
   return (
     <LiveScreenRoot
-      fullscreen={fullscreen}
       style={[
         styles.container,
         { backgroundColor: theme.colors.background },
       ]}
     >
       <StatusBar
-        hidden={fullscreen}
-        style={colorScheme === "dark" || fullscreen ? "light" : "dark"}
+        hidden
+        style="light"
       />
-      {fullscreen ? null : <Header title={title || "Предаване на живо"} hideSearchButton />}
       <LiveStage
         connected={media.connected}
         error={media.error}
         viewerCount={room.viewerCount}
         reactions={room.reactions}
-        fullscreen={fullscreen}
-        keyboardVisible={keyboardVisible}
         label={media.connected ? "Предаваш на живо" : "Свързване..."}
-        hint="Тук по-късно влиза LiveKit SFU, не 1:1 WebRTC."
         coverUri={coverUri}
-        onToggleFullscreen={() => setFullscreen((value) => !value)}
         onOpenComments={() => setCommentsVisible(true)}
         onOpenTalkers={() => setActiveTalkersVisible(true)}
         onOpenMoreReactions={() => setReactionsVisible(true)}
@@ -217,8 +195,7 @@ export default function LiveStreamerScreen() {
         onToggleCamera={() => void media.toggleCamera().then((enabled) => room.sendCameraState(enabled))}
         onSwitchCamera={() => void media.switchCamera().catch((error) => Alert.alert("Грешка", error instanceof Error ? error.message : "Камерата не може да бъде превключена."))}
         onReact={room.sendReaction}
-        topInset={0}
-        bottomInset={fullscreen ? overlayBottom : 16}
+        bottomInset={16}
         localStream={media.localStream}
         remoteStream={media.remoteStream}
         remoteCameraEnabled={room.remoteCameraEnabled}
@@ -227,25 +204,25 @@ export default function LiveStreamerScreen() {
         cameraFacing={media.cameraFacing}
         microphoneEnabled={!media.muted}
         topRight={
-          fullscreen ? (
-            <TouchableOpacity
-              style={styles.endIconButton}
-              onPress={() => void onEnd()}
-              disabled={ending}
-              accessibilityRole="button"
-              accessibilityLabel="Край на предаването"
-            >
-              <Ionicons
-                name={ending ? "hourglass-outline" : "stop-circle-outline"}
-                size={20}
-                color="#ffffff"
-              />
-            </TouchableOpacity>
-          ) : null
+          <TouchableOpacity
+            style={styles.endIconButton}
+            onPress={() => void onEnd()}
+            disabled={ending}
+            accessibilityRole="button"
+            accessibilityLabel="Край на предаването"
+          >
+            <Ionicons
+              name={ending ? "hourglass-outline" : "stop-circle-outline"}
+              size={20}
+              color="#ffffff"
+            />
+          </TouchableOpacity>
         }
-      >
-        <LiveCommentTicker comment={room.latestIncomingComment} />
-      </LiveStage>
+      />
+      <LiveCommentTicker
+        comment={room.latestIncomingComment}
+        bottomOffset={keyboardVisible ? keyboardOverlap + 78 : insets.bottom + 108}
+      />
       <LiveCommentsModal
         visible={commentsVisible}
         comments={room.comments}
@@ -327,24 +304,7 @@ export default function LiveStreamerScreen() {
           </ScrollView>
         </View>
       ) : null}
-      {fullscreen || keyboardVisible ? null : (
-        <View style={styles.controls}>
-          <TouchableOpacity
-            style={styles.control}
-            onPress={() => void media.muteAudio(!media.muted)}
-          >
-            <Text style={[styles.controlText, { color: theme.colors.text }]}>
-              {media.muted ? "Unmute" : "Mute"}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.control} onPress={() => void media.toggleCamera()}>
-            <Text style={[styles.controlText, { color: theme.colors.text }]}>
-              {media.cameraEnabled ? "Camera off" : "Camera on"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
-      {reactionsVisible ? null : fullscreen ? (
+      {reactionsVisible ? null : (
         <View
           style={[
             styles.fullscreenComposer,
@@ -368,24 +328,6 @@ export default function LiveStreamerScreen() {
             colors={theme.colors}
           />
         </View>
-      ) : (
-        <View style={[styles.bottomBar, composerBarStyle]}>
-          <LiveCommentComposer
-            value={comment}
-            placeholder="Напиши коментар"
-            onChangeText={setComment}
-            onSend={sendComment}
-            keyboardVisible={keyboardVisible}
-            compact
-            showSendButton={keyboardVisible}
-            colors={theme.colors}
-          />
-          {keyboardVisible ? null : (
-            <View style={styles.footer}>
-              <AppButton title="Приключи предаването" loading={ending} onPress={() => void onEnd()} />
-            </View>
-          )}
-        </View>
       )}
     </LiveScreenRoot>
   );
@@ -393,16 +335,6 @@ export default function LiveStreamerScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  controls: { flexDirection: "row", gap: 12, paddingHorizontal: 16, paddingTop: 10 },
-  control: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    backgroundColor: "rgba(15, 23, 42, 0.08)",
-  },
-  controlText: { fontWeight: "700" },
-  bottomBar: { width: "100%" },
-  footer: { paddingHorizontal: 16, paddingTop: 8 },
   fullscreenComposer: {
     position: "absolute",
     left: 0,

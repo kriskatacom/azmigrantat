@@ -2,7 +2,13 @@ import type { LiveComment } from "@/types/live";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
-export default function LiveCommentTicker({ comment }: { comment: LiveComment | null }) {
+export default function LiveCommentTicker({
+  comment,
+  bottomOffset = 92,
+}: {
+  comment: LiveComment | null;
+  bottomOffset?: number;
+}) {
   const [visibleComment, setVisibleComment] = useState<LiveComment | null>(null);
 
   useEffect(() => {
@@ -19,7 +25,7 @@ export default function LiveCommentTicker({ comment }: { comment: LiveComment | 
   if (!visibleComment) return null;
 
   return (
-    <View pointerEvents="none" style={styles.container}>
+    <View pointerEvents="none" style={[styles.container, { bottom: bottomOffset }]}>
       <Text style={styles.name} numberOfLines={1}>
         {visibleComment.user?.name ?? "Потребител"}
       </Text>
@@ -35,7 +41,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 16,
     right: 70,
-    bottom: 92,
     alignSelf: "flex-start",
     maxWidth: "88%",
     paddingHorizontal: 12,

@@ -1,5 +1,4 @@
 import { useAppTheme } from "@/app/_layout";
-import Header from "@/components/Header";
 import LiveCommentComposer from "@/components/live/live-comment-composer";
 import LiveCommentTicker from "@/components/live/live-comment-ticker";
 import LiveCommentsModal from "@/components/live/live-comments-modal";
@@ -7,7 +6,6 @@ import LiveReactionsModal from "@/components/live/live-reactions-modal";
 import LiveScreenRoot from "@/components/live/live-screen-root";
 import LiveStage from "@/components/live/live-stage";
 import { useChatKeyboard } from "@/hooks/chat/useChatKeyboard";
-import { useLiveFullscreenBack } from "@/hooks/live/useLiveFullscreenBack";
 import { useLiveMedia } from "@/hooks/live/useLiveMedia";
 import { useLiveRoom } from "@/hooks/live/useLiveRoom";
 import { useAuth } from "@/hooks/useAuth";
@@ -22,7 +20,7 @@ import { Alert, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function LiveViewerScreen() {
-  const { theme, colorScheme } = useAppTheme();
+  const { theme } = useAppTheme();
   const insets = useSafeAreaInsets();
   const { token } = useAuth();
   const router = useRouter();
@@ -33,23 +31,11 @@ export default function LiveViewerScreen() {
   const room = useLiveRoom(validLiveId);
   const { keyboardVisible, keyboardOverlap } = useChatKeyboard();
   const leavingRef = useRef(false);
-  const [title, setTitle] = useState("");
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [talkingStopped, setTalkingStopped] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
   const [reactionsVisible, setReactionsVisible] = useState(false);
-  const [fullscreen, setFullscreen] = useState(true);
-  const exitFullscreen = useCallback(() => setFullscreen(false), []);
-  useLiveFullscreenBack(fullscreen, exitFullscreen);
-
-  useEffect(() => {
-    if (media.connected) {
-      setFullscreen(true);
-    }
-  }, [media.connected]);
-
-  const overlayBottom = 16;
   const composerBarStyle = {
     backgroundColor: theme.colors.card,
     paddingBottom: keyboardVisible ? 0 : insets.bottom,
@@ -91,7 +77,6 @@ export default function LiveViewerScreen() {
           return;
         }
 
-        setTitle(stream.title || stream.owner?.name || "Предаване на живо");
         setCoverUri(stream.owner?.cover_image ?? stream.owner?.profile_image ?? null);
         room.seedViewerCount(stream.viewer_count);
         await media.joinStream({
@@ -184,28 +169,22 @@ export default function LiveViewerScreen() {
 
   return (
     <LiveScreenRoot
-      fullscreen={fullscreen}
       style={[
         styles.container,
         { backgroundColor: theme.colors.background },
       ]}
     >
       <StatusBar
-        hidden={fullscreen}
-        style={colorScheme === "dark" || fullscreen ? "light" : "dark"}
+        hidden
+        style="light"
       />
-      {fullscreen ? null : <Header title={title || "Предаване на живо"} hideSearchButton />}
       <LiveStage
         connected={media.connected}
         error={media.error}
         viewerCount={room.viewerCount}
         reactions={room.reactions}
-        fullscreen={fullscreen}
-        keyboardVisible={keyboardVisible}
         label={media.connected ? "Гледаш предаване на живо" : "Присъединяване..."}
-        hint="Медията ще идва от SFU, не от peer-to-peer call."
         coverUri={coverUri}
-        onToggleFullscreen={() => setFullscreen((value) => !value)}
         onOpenComments={() => setCommentsVisible(true)}
         onOpenMoreReactions={() => setReactionsVisible(true)}
         topRight={
@@ -243,13 +222,14 @@ export default function LiveViewerScreen() {
           )
         }
         onReact={room.sendReaction}
-        topInset={0}
-        bottomInset={fullscreen ? overlayBottom : 16}
+        bottomInset={16}
         remoteStream={media.remoteStream}
         remoteCameraEnabled={room.remoteCameraEnabled}
-      >
-        <LiveCommentTicker comment={room.latestIncomingComment} />
-      </LiveStage>
+      />
+      <LiveCommentTicker
+        comment={room.latestIncomingComment}
+        bottomOffset={keyboardVisible ? keyboardOverlap + 78 : insets.bottom + 108}
+      />
       <LiveCommentsModal
         visible={commentsVisible}
         comments={room.comments}
@@ -270,15 +250,13 @@ export default function LiveViewerScreen() {
       {reactionsVisible ? null : (
         <View
           style={[
-            fullscreen ? styles.fullscreenComposer : null,
+            styles.fullscreenComposer,
             composerBarStyle,
-            fullscreen
-              ? {
-                  bottom: keyboardVisible ? keyboardOverlap + 8 : 0,
-                  paddingBottom: keyboardVisible ? 8 : Math.max(insets.bottom + 16, 24),
-                  backgroundColor: "transparent",
-                }
-              : null,
+            {
+              bottom: keyboardVisible ? keyboardOverlap + 8 : 0,
+              paddingBottom: keyboardVisible ? 8 : Math.max(insets.bottom + 16, 24),
+              backgroundColor: "transparent",
+            },
           ]}
         >
           <LiveCommentComposer
@@ -287,8 +265,8 @@ export default function LiveViewerScreen() {
             onChangeText={setComment}
             onSend={sendComment}
             keyboardVisible={keyboardVisible}
-            compact={fullscreen || !keyboardVisible}
-            transparentBackground={fullscreen}
+            compact
+            transparentBackground
             showSendButton={keyboardVisible}
             colors={theme.colors}
           />

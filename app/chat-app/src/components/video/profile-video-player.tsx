@@ -1,7 +1,8 @@
 import ControlledVideoPlayer from "@/components/video/controlled-video-player";
+import VideoCaption from "@/components/video/video-caption";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { Animated, Modal, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Modal, StyleSheet, View } from "react-native";
+import { useMemo, useState } from "react";
 
 type PlayerColors = { background: string; text: string; textSecondary: string };
 
@@ -65,36 +66,7 @@ function PlayerSurface({
   onSwipeDown?: () => void;
   onSwipeUp?: () => void;
 }) {
-  const [isOverlayVisible, setIsOverlayVisible] = useState(false);
-  const overlayVisible = useRef(false);
-  const overlayOpacity = useRef(new Animated.Value(0)).current;
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const toggleOverlay = useCallback(() => {
-    overlayVisible.current = !overlayVisible.current;
-    setIsOverlayVisible(overlayVisible.current);
-    if (hideTimer.current) clearTimeout(hideTimer.current);
-    overlayOpacity.stopAnimation();
-    Animated.timing(overlayOpacity, {
-      toValue: overlayVisible.current ? 1 : 0,
-      duration: 220,
-      useNativeDriver: true,
-    }).start();
-
-    if (overlayVisible.current) {
-      hideTimer.current = setTimeout(() => {
-        overlayVisible.current = false;
-        setIsOverlayVisible(false);
-        Animated.timing(overlayOpacity, {
-          toValue: 0,
-          duration: 220,
-          useNativeDriver: true,
-        }).start();
-        hideTimer.current = null;
-      }, 3_000);
-    } else {
-      hideTimer.current = null;
-    }
-  }, [overlayOpacity]);
+  const [isPlaying, setIsPlaying] = useState(true);
 
   const swipeGesture = useMemo(
     () =>
@@ -115,58 +87,29 @@ function PlayerSurface({
     [canGoNext, canGoPrevious, onSwipeDown, onSwipeUp],
   );
 
-  const tapGesture = useMemo(
-    () =>
-      Gesture.Tap()
-        .runOnJS(true)
-        .maxDistance(12)
-        .onEnd(() => {
-          toggleOverlay();
-        }),
-    [toggleOverlay],
-  );
-
-  const playerGesture = useMemo(
-    () => Gesture.Exclusive(swipeGesture, tapGesture),
-    [swipeGesture, tapGesture],
-  );
-
-  useEffect(() => {
-    return () => {
-      if (hideTimer.current) clearTimeout(hideTimer.current);
-    };
-  }, []);
-
   return (
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <ControlledVideoPlayer
         url={url}
         active
-        contentFit="contain"
-        onVideoPress={toggleOverlay}
+        contentFit="cover"
+        showControls={false}
+        onPlaybackChange={setIsPlaying}
         style={styles.player}
       />
-      <GestureDetector gesture={playerGesture}>
+      <GestureDetector gesture={swipeGesture}>
         <View
           style={styles.swipeCaptureLayer}
           accessible
           accessibilityLabel="Плъзнете нагоре или надолу за друго видео"
         />
       </GestureDetector>
-      <Animated.View style={[styles.overlay, { opacity: overlayOpacity }]} pointerEvents={isOverlayVisible ? "auto" : "none"}>
-        <ScrollView
-          style={styles.overlayScroll}
-          onTouchEnd={toggleOverlay}
-          persistentScrollbar
-          showsVerticalScrollIndicator
-          contentContainerStyle={styles.overlayContent}
-        >
-          <Text selectable style={styles.title}>{title}</Text>
-          {description ? (
-            <Text selectable style={styles.description}>{description}</Text>
-          ) : null}
-        </ScrollView>
-      </Animated.View>
+      <VideoCaption
+        title={title}
+        description={description}
+        visible={!isPlaying}
+        bottomOffset={32}
+      />
     </View>
   );
 }
@@ -182,18 +125,4 @@ const styles = StyleSheet.create({
     bottom: 96,
     backgroundColor: "transparent",
   },
-  overlay: {
-    position: "absolute",
-    right: 0,
-    bottom: 56,
-    width: "100%",
-    maxHeight: "40%",
-    backgroundColor: "rgba(0, 0, 0, 0.42)",
-    borderRadius: 0,
-    overflow: "hidden",
-  },
-  overlayScroll: { flexGrow: 0 },
-  overlayContent: { padding: 14, gap: 8 },
-  title: { color: "#ffffff", fontSize: 17, lineHeight: 22, fontWeight: "800" },
-  description: { color: "rgba(255,255,255,0.92)", fontSize: 14, lineHeight: 20 },
 });

@@ -1,24 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useAppTheme } from "@/app/_layout";
+import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useRef, useState } from "react";
 import {
   Animated,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-export default function VideoCaption({
-  title,
-  description,
-  visible = true,
-  height = "20%",
-  allowExpand = false,
-  fitContent = false,
-  bottomOffset = 0,
-  topOffset = 0,
-  maxHeight,
-}: {
+type Props = {
   title: string;
   description: string | null;
   visible?: boolean;
@@ -28,142 +22,151 @@ export default function VideoCaption({
   bottomOffset?: number;
   topOffset?: number;
   maxHeight?: number;
-}) {
-  const opacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
-  const [expanded, setExpanded] = useState(false);
-  const [titleLineCount, setTitleLineCount] = useState(1);
-  const [descriptionLineCount, setDescriptionLineCount] = useState(description ? 1 : 0);
-  const [measuredMaxHeight, setMeasuredMaxHeight] = useState<number | null>(null);
-  const insets = useSafeAreaInsets();
-  const bottomInset = Math.max(insets.bottom + 8, 24, bottomOffset);
+};
 
-  const hasMoreContent = useMemo(() => {
-    const titleWords = title.trim().split(/\s+/).filter(Boolean).length;
-    const descriptionWords = description?.trim().split(/\s+/).filter(Boolean).length ?? 0;
-    return titleWords > 18 || descriptionWords > 24;
-  }, [description, title]);
+export default function VideoCaption({
+  title,
+  description,
+  visible = true,
+  bottomOffset = 0,
+}: Props) {
+  const { theme } = useAppTheme();
+  const insets = useSafeAreaInsets();
+  const [modalVisible, setModalVisible] = useState(false);
+  const opacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const hasContent = Boolean(title.trim() || description?.trim());
 
   useEffect(() => {
     Animated.timing(opacity, {
-      toValue: visible ? 1 : 0,
+      toValue: visible && hasContent ? 1 : 0,
       duration: 220,
       useNativeDriver: true,
     }).start();
-  }, [opacity, visible]);
 
-  useEffect(() => {
-    setExpanded(false);
-    setTitleLineCount(1);
-    setDescriptionLineCount(description ? 1 : 0);
-    setMeasuredMaxHeight(null);
-  }, [description, title]);
+    if (!visible) setModalVisible(false);
+  }, [hasContent, opacity, visible]);
 
-  const collapsedContentHeight =
-    6 +
-    titleLineCount * 23 +
-    (descriptionLineCount > 0 ? 4 + descriptionLineCount * 20 : 0) +
-    (allowExpand && hasMoreContent ? 4 + 28 : 0) +
-    12;
-  const effectiveMaxHeight = maxHeight ?? measuredMaxHeight;
-  const collapsedHeight = fitContent && effectiveMaxHeight
-    ? Math.min(effectiveMaxHeight, collapsedContentHeight)
-    : height;
+  if (!hasContent) return null;
 
   return (
-    <Animated.View
-      style={[
-        styles.caption,
-        expanded
-          ? {
-              top: topOffset,
-              bottom: bottomInset,
-              height: undefined,
-              opacity,
-            }
-          : {
-              top: undefined,
-              bottom: bottomInset,
-              height: collapsedHeight,
-              opacity,
-            },
-        expanded && styles.expandedCaption,
-      ]}
-      pointerEvents={visible ? "box-none" : "none"}
-      onLayout={(event) => {
-        if (fitContent && !maxHeight && !measuredMaxHeight) {
-          setMeasuredMaxHeight(event.nativeEvent.layout.height);
-        }
-      }}
-    >
-      <ScrollView
-        style={styles.contentScroll}
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        pointerEvents="auto"
+    <>
+      <Animated.View
+        pointerEvents={visible ? "auto" : "none"}
+        style={[styles.triggerContainer, { bottom: Math.max(insets.bottom + 8, 24, bottomOffset), opacity }]}
       >
-        <Text
-          style={styles.title}
-          numberOfLines={expanded ? undefined : 2}
-          onTextLayout={(event) => {
-            setTitleLineCount(Math.min(2, event.nativeEvent.lines.length));
-          }}
+        <Pressable
+          style={styles.moreButton}
+          onPress={() => setModalVisible(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Виж заглавието и цялото описание на видеото"
         >
-          {title}
-        </Text>
-        {description ? (
-          <Text
-            style={styles.description}
-            numberOfLines={expanded ? undefined : 2}
-            onTextLayout={(event) => {
-              setDescriptionLineCount(Math.min(2, event.nativeEvent.lines.length));
-            }}
-          >
-            {description}
-          </Text>
-        ) : null}
-        {allowExpand && hasMoreContent ? (
+          <Ionicons name="information-circle-outline" size={28} color="#ffffff" />
+          <Text style={styles.moreButtonText}>Виж повече</Text>
+        </Pressable>
+      </Animated.View>
+
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
           <Pressable
-            style={styles.moreButton}
-            onPress={() => setExpanded((current) => !current)}
+            style={StyleSheet.absoluteFill}
+            onPress={() => setModalVisible(false)}
             accessibilityRole="button"
-            accessibilityLabel={expanded ? "Скрий описанието" : "Вижте още"}
-          >
-            <Text style={styles.moreButtonText}>{expanded ? "Скрий" : "Вижте още"}</Text>
-          </Pressable>
-        ) : null}
-      </ScrollView>
-    </Animated.View>
+            accessibilityLabel="Затвори описанието"
+          />
+          <View style={[styles.modalPanel, { backgroundColor: theme.colors.background }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: theme.colors.inputBorder }]}>
+              <Text style={[styles.modalHeading, { color: theme.colors.text }]}>Детайли за видеото</Text>
+              <Pressable
+                style={styles.closeButton}
+                onPress={() => setModalVisible(false)}
+                accessibilityRole="button"
+                accessibilityLabel="Затвори описанието"
+              >
+                <Ionicons name="close" size={24} color={theme.colors.text} />
+              </Pressable>
+            </View>
+            <ScrollView
+              style={styles.modalScroll}
+              contentContainerStyle={styles.modalContent}
+              showsVerticalScrollIndicator
+              nestedScrollEnabled
+            >
+              <View style={styles.titleSection}>
+                <Text style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
+              </View>
+              <View style={[styles.divider, { backgroundColor: theme.colors.inputBorder }]} />
+              <View style={styles.descriptionSection}>
+                {description ? (
+                  <Text style={[styles.description, { color: theme.colors.text }]}>{description}</Text>
+                ) : (
+                  <Text style={[styles.emptyDescription, { color: theme.colors.textSecondary }]}>Няма описание.</Text>
+                )}
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  caption: {
+  triggerContainer: {
     position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: "20%",
-    justifyContent: "flex-start",
-    backgroundColor: "rgba(0,0,0,0.42)",
-  },
-  expandedCaption: {
-    backgroundColor: "rgba(0,0,0,0.76)",
-  },
-  contentScroll: { flex: 1 },
-  content: { paddingHorizontal: 8, paddingTop: 6, paddingBottom: 12, gap: 4 },
-  title: { color: "#fff", fontSize: 18, lineHeight: 23, fontWeight: "800" },
-  description: {
-    color: "rgba(255,255,255,0.92)",
-    fontSize: 14,
-    lineHeight: 20,
+    left: 16,
+    zIndex: 9,
   },
   moreButton: {
-    alignSelf: "flex-start",
-    marginTop: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    backgroundColor: "rgba(255,255,255,0.18)",
+    minHeight: 44,
+    paddingHorizontal: 14,
+    borderRadius: 22,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    backgroundColor: "rgba(8,12,24,0.76)",
   },
-  moreButtonText: { color: "#fff", fontSize: 13, fontWeight: "700" },
+  moreButtonText: { color: "#ffffff", fontSize: 14, fontWeight: "800" },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.62)",
+  },
+  modalPanel: {
+    width: "100%",
+    height: "76%",
+    maxHeight: "80%",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 28,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingBottom: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  modalHeading: { flex: 1, fontSize: 20, fontWeight: "800" },
+  closeButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalScroll: { flex: 1 },
+  modalContent: { paddingBottom: 24 },
+  titleSection: { paddingVertical: 16 },
+  descriptionSection: { paddingVertical: 16 },
+  divider: { width: "100%", height: StyleSheet.hairlineWidth },
+  title: { fontSize: 22, lineHeight: 28, fontWeight: "800" },
+  description: { fontSize: 17, lineHeight: 25 },
+  emptyDescription: { fontSize: 16, lineHeight: 24 },
 });

@@ -26,14 +26,24 @@ export default function LiveCommentsModal({
 }) {
   const { theme } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const { keyboardVisible } = useChatKeyboard();
+  const { keyboardVisible, keyboardOverlap } = useChatKeyboard();
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
+        <Pressable
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Затвори коментарите"
+        />
         <View
           style={[
             styles.panel,
+            keyboardVisible && {
+              height: "60%",
+              marginBottom: keyboardOverlap,
+            },
             {
               backgroundColor: theme.colors.background,
               paddingBottom: Math.max(insets.bottom, 16),
@@ -46,7 +56,11 @@ export default function LiveCommentsModal({
               <Ionicons name="close" size={24} color={theme.colors.text} />
             </Pressable>
           </View>
-          <LiveCommentList comments={comments} onPressUser={onPressUser} />
+          <LiveCommentList
+            comments={comments}
+            onPressUser={onPressUser}
+            keyboardVisible={keyboardVisible}
+          />
           <LiveCommentComposer
             value={comment}
             placeholder="Напиши коментар"

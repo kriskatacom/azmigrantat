@@ -48,7 +48,7 @@ export default function HomeScreen() {
 
         <View style={styles.topBar}>
           <TouchableOpacity
-            style={[styles.topPill, styles.livePill]}
+            style={styles.liveIconButton}
             onPress={() => {
               if (isAuthenticated) {
                 router.push("/live");
@@ -60,26 +60,27 @@ export default function HomeScreen() {
                 params: { returnTo: "/live" },
               });
             }}
+            accessibilityRole="button"
+            accessibilityLabel="На живо"
           >
-            <View style={styles.liveDot} />
-            <Text style={styles.liveText}>На живо</Text>
+            <Ionicons name="radio-outline" size={25} color="#ffffff" />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.subscriptionButton}
-            onPress={() => router.push("/categories")}
+            onPress={() => router.push("/main-categories")}
             accessibilityRole="button"
             accessibilityLabel="Отвори категориите"
           >
-            <Ionicons name="grid-outline" size={19} color="#101827" />
-            <Text style={styles.subscriptionButtonText}>Категории</Text>
+            <Ionicons name="grid-outline" size={17} color="#ffffff" />
+            <Text style={styles.subscriptionButtonText}>Виж повече</Text>
           </TouchableOpacity>
           <View style={styles.topRightActions}>
             <TouchableOpacity
               style={styles.searchButton}
               onPress={() => router.push("/search")}
             >
-              <Ionicons name="search-outline" size={31} color="#ffffff" />
+              <Ionicons name="search-outline" size={25} color="#ffffff" />
             </TouchableOpacity>
           </View>
         </View>
@@ -106,10 +107,9 @@ export default function HomeScreen() {
           >
             <Ionicons
               name="chatbubble-ellipses-outline"
-              size={26}
+              size={25}
               color="#ffffff"
             />
-            <Text style={styles.actionLabel}>Чат</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -132,7 +132,7 @@ export default function HomeScreen() {
             {activeVideoUser?.profile_image ? (
               <RemoteImage uri={activeVideoUser.profile_image} style={styles.videoAuthorAvatar} />
             ) : (
-              <Ionicons name="person-outline" size={28} color="#ffffff" />
+              <Ionicons name="person-outline" size={25} color="#ffffff" />
             )}
           </TouchableOpacity>
 
@@ -164,7 +164,7 @@ export default function HomeScreen() {
             }}
           >
             <View style={styles.uploadCircle}>
-              <Ionicons name="add" size={50} color="#ffffff" />
+              <Ionicons name="cloud-upload-outline" size={32} color="#ffffff" />
             </View>
             <Text style={styles.uploadLabel}>Качи</Text>
           </TouchableOpacity>
@@ -224,7 +224,7 @@ function NavigationItem({
       <View style={styles.navigationIcon}>
         <Ionicons
           name={icon}
-          size={29}
+          size={24}
           color="#ffffff"
         />
         {badgeCount > 0 ? (
@@ -260,18 +260,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   topBar: {
-    minHeight: 120,
+    minHeight: 108,
     paddingHorizontal: 18,
-    paddingTop: 50,
-    paddingBottom: 12,
+    paddingTop: 46,
+    paddingBottom: 10,
     flexDirection: "row",
     alignItems: "center",
     gap: 9,
     backgroundColor: "transparent",
   },
   topPill: {
-    height: 35,
-    paddingHorizontal: 14,
+    height: 30,
+    paddingHorizontal: 11,
     borderRadius: 24,
     borderWidth: 1,
     borderColor: "rgba(148, 163, 184, 0.24)",
@@ -279,25 +279,23 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 7,
+    gap: 6,
   },
   livePill: {
     borderColor: "#E8E296",
   },
-  liveDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#E8E296",
-  },
-  liveText: {
-    color: "#E8E296",
-    fontSize: 12,
-    fontWeight: "800",
+  liveIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 0,
+    paddingHorizontal: 0,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "transparent",
   },
   searchButton: {
-    width: 46,
-    height: 46,
+    width: 40,
+    height: 40,
     alignItems: "center",
     justifyContent: "center",
     overflow: "visible",
@@ -309,16 +307,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   subscriptionButton: {
-    height: 40,
-    paddingHorizontal: 11,
-    borderRadius: 20,
-    backgroundColor: "#E8E296",
+    height: 35,
+    paddingHorizontal: 9,
+    borderRadius: 18,
+    backgroundColor: "transparent",
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
+    gap: 4,
     marginRight: 4,
   },
-  subscriptionButtonText: { color: "#101827", fontSize: 11, fontWeight: "900" },
+  subscriptionButtonText: { color: "#ffffff", fontSize: 10, fontWeight: "900" },
   backgroundUploadNotice: {
     position: "absolute",
     top: 126,
@@ -368,34 +366,22 @@ const styles = StyleSheet.create({
   },
   quickActions: {
     position: "absolute",
-    right: 24,
+    right: 18,
     bottom: 182,
-    gap: 14,
+    gap: 10,
   },
   actionButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 46,
-    backgroundColor: "rgba(2, 8, 30, 0.93)",
-    borderWidth: 1,
-    borderColor: "rgba(59, 130, 246, 0.24)",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000000",
-    shadowOpacity: 0.32,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 5 },
-    elevation: 8,
-  },
-  actionLabel: {
-    color: "#ffffff",
-    fontSize: 10,
-    marginTop: 2,
   },
   videoAuthorAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     borderWidth: 2,
     borderColor: "rgba(255,255,255,0.9)",
   },
@@ -404,9 +390,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 160,
+    height: 140,
     paddingHorizontal: 10,
-    paddingBottom: 60,
+    paddingBottom: 52,
     backgroundColor: "transparent",
     flexDirection: "row",
     alignItems: "flex-end",
@@ -414,13 +400,13 @@ const styles = StyleSheet.create({
   },
   navigationItem: {
     width: "18%",
-    height: 76,
+    height: 68,
     alignItems: "center",
     justifyContent: "center",
   },
   navigationLabel: {
     color: "#ffffff",
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "700",
     marginTop: 7,
   },
@@ -456,22 +442,18 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   uploadCircle: {
-    width: 60,
-    height: 60,
+    width: 52,
+    height: 52,
     borderRadius: 42,
     marginBottom: 3,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#E8E296",
-    shadowColor: "#334C54",
-    shadowOpacity: 0.7,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 15,
+    backgroundColor: "transparent",
   },
   uploadLabel: {
     color: "#ffffff",
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: "700",
+    transform: [{ translateY: -10 }],
   },
 });

@@ -3,11 +3,9 @@ import type { ReactNode } from "react";
 import { KeyboardAvoidingView, Platform, View, type StyleProp, type ViewStyle } from "react-native";
 
 export default function LiveScreenRoot({
-  fullscreen,
   style,
   children,
 }: {
-  fullscreen: boolean;
   style: StyleProp<ViewStyle>;
   children: ReactNode;
 }) {
@@ -21,7 +19,7 @@ export default function LiveScreenRoot({
     <KeyboardAvoidingView
       style={style}
       behavior="padding"
-      keyboardVerticalOffset={fullscreen ? 0 : 8}
+      keyboardVerticalOffset={0}
     >
       {children}
     </KeyboardAvoidingView>
