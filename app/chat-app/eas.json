@@ -15,7 +15,7 @@
         "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "149310026747-0276747vvqrhrgapqcqlg9o1uekn2snr.apps.googleusercontent.com",
         "EXPO_PUBLIC_FORCE_TURN": "false",
-        "EXPO_PUBLIC_LIVE_MEDIA_PROVIDER": "mock",
+        "EXPO_PUBLIC_LIVE_MEDIA_PROVIDER": "mediasoup",
         "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED": "false"
       }
     },
@@ -32,7 +32,7 @@
         "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "149310026747-0276747vvqrhrgapqcqlg9o1uekn2snr.apps.googleusercontent.com",
         "EXPO_PUBLIC_FORCE_TURN": "false",
-        "EXPO_PUBLIC_LIVE_MEDIA_PROVIDER": "mock",
+        "EXPO_PUBLIC_LIVE_MEDIA_PROVIDER": "mediasoup",
         "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED": "false"
       }
     },
@@ -46,7 +46,7 @@
         "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "149310026747-0276747vvqrhrgapqcqlg9o1uekn2snr.apps.googleusercontent.com",
         "EXPO_PUBLIC_FORCE_TURN": "false",
-        "EXPO_PUBLIC_LIVE_MEDIA_PROVIDER": "mock",
+        "EXPO_PUBLIC_LIVE_MEDIA_PROVIDER": "mediasoup",
         "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED": "false"
       }
     }

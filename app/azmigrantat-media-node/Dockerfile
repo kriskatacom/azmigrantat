@@ -22,6 +22,6 @@ RUN npm run build
 
 ENV NODE_ENV=production
 EXPOSE 3002
-EXPOSE 40000-40099/udp
+EXPOSE 40000-40499/udp
 
 CMD ["npm", "run", "start:production"]
