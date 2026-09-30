@@ -1,12 +1,14 @@
 import { useEventListener } from "expo";
 import { Image } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const SEEK_STEP_SECONDS = 10;
+const DOUBLE_TAP_DELAY_MS = 260;
+const SEEK_SEQUENCE_RESET_MS = 900;
 
 type Props = {
   url: string;
@@ -49,7 +51,18 @@ export default function ControlledVideoPlayer({
   const [currentTime, setCurrentTime] = useState(player.currentTime);
   const [duration, setDuration] = useState(player.duration);
   const [progressWidth, setProgressWidth] = useState(0);
+  const [isPlaybackIndicatorVisible, setIsPlaybackIndicatorVisible] = useState(false);
+  const [seekFeedback, setSeekFeedback] = useState<{
+    direction: "backward" | "forward";
+    seconds: number;
+  } | null>(null);
   const viewCountedRef = useRef(false);
+  const videoWidthRef = useRef(0);
+  const pendingTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const seekResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const seekFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSeekDirectionRef = useRef<"backward" | "forward" | null>(null);
+  const accumulatedSeekRef = useRef(0);
 
   useEventListener(player, "statusChange", ({ status, error }) => {
     setIsReady(status === "readyToPlay");
@@ -86,13 +99,59 @@ export default function ControlledVideoPlayer({
     }
   }, [active, isReady, onViewVideo, player]);
 
-  const togglePlayback = () => {
+  const togglePlayback = useCallback(() => {
     if (player.playing) {
       player.pause();
     } else {
       player.play();
     }
-  };
+  }, [player]);
+
+  const handleVideoTap = useCallback((locationX: number) => {
+    const direction: "backward" | "forward" =
+      locationX < videoWidthRef.current / 2 ? "backward" : "forward";
+
+    if (pendingTapTimerRef.current) {
+      clearTimeout(pendingTapTimerRef.current);
+      pendingTapTimerRef.current = null;
+
+      const nextSeek = lastSeekDirectionRef.current === direction
+        ? accumulatedSeekRef.current + 5
+        : 5;
+      accumulatedSeekRef.current = nextSeek;
+      lastSeekDirectionRef.current = direction;
+      player.seekBy(direction === "backward" ? -nextSeek : nextSeek);
+      setSeekFeedback({ direction, seconds: nextSeek });
+      if (seekFeedbackTimerRef.current) clearTimeout(seekFeedbackTimerRef.current);
+      seekFeedbackTimerRef.current = setTimeout(() => {
+        setSeekFeedback(null);
+        seekFeedbackTimerRef.current = null;
+      }, SEEK_SEQUENCE_RESET_MS);
+
+      if (seekResetTimerRef.current) clearTimeout(seekResetTimerRef.current);
+      seekResetTimerRef.current = setTimeout(() => {
+        lastSeekDirectionRef.current = null;
+        accumulatedSeekRef.current = 0;
+        seekResetTimerRef.current = null;
+      }, SEEK_SEQUENCE_RESET_MS);
+      return;
+    }
+
+    pendingTapTimerRef.current = setTimeout(() => {
+      pendingTapTimerRef.current = null;
+      togglePlayback();
+      setIsPlaybackIndicatorVisible((visible) => !visible);
+      onVideoPress?.();
+    }, DOUBLE_TAP_DELAY_MS);
+  }, [onVideoPress, player, togglePlayback]);
+
+  useEffect(() => {
+    return () => {
+      if (pendingTapTimerRef.current) clearTimeout(pendingTapTimerRef.current);
+      if (seekResetTimerRef.current) clearTimeout(seekResetTimerRef.current);
+      if (seekFeedbackTimerRef.current) clearTimeout(seekFeedbackTimerRef.current);
+    };
+  }, []);
 
   const seek = (seconds: number) => {
     player.seekBy(seconds);
@@ -126,10 +185,38 @@ export default function ControlledVideoPlayer({
       ) : null}
       <Pressable
         style={[styles.touchLayer, { bottom: insets.bottom }]}
-        onPress={onVideoPress}
+        onLayout={(event) => {
+          videoWidthRef.current = event.nativeEvent.layout.width;
+        }}
+        onPress={(event) => handleVideoTap(event.nativeEvent.locationX)}
         accessibilityRole="button"
-        accessibilityLabel="Покажи контролите за видеото"
+        accessibilityLabel="Пусни или спри видеото. Двойно натискане отляво или отдясно превърта видеото."
       />
+      {isPlaybackIndicatorVisible ? (
+        <View style={styles.playbackIndicatorLayer} pointerEvents="none">
+          <View style={styles.playbackIndicator}>
+            <Ionicons name={isPlaying ? "pause" : "play"} size={34} color="#ffffff" />
+          </View>
+        </View>
+      ) : null}
+      {seekFeedback ? (
+        <View
+          style={[
+            styles.seekFeedback,
+            seekFeedback.direction === "backward" ? styles.seekFeedbackLeft : styles.seekFeedbackRight,
+          ]}
+          pointerEvents="none"
+        >
+          <Ionicons
+            name={seekFeedback.direction === "backward" ? "play-back" : "play-forward"}
+            size={24}
+            color="#ffffff"
+          />
+          <Text style={styles.seekFeedbackText}>
+            {seekFeedback.direction === "backward" ? "-" : "+"}{seekFeedback.seconds} сек
+          </Text>
+        </View>
+      ) : null}
       {showControls ? (
         <View
           style={[styles.controls, { bottom: Math.max(insets.bottom, controlsBottomOffset) }]}
@@ -193,6 +280,39 @@ const styles = StyleSheet.create({
   video: { ...StyleSheet.absoluteFill, backgroundColor: "#000" },
   thumbnail: { ...StyleSheet.absoluteFill, backgroundColor: "#000" },
   touchLayer: { ...StyleSheet.absoluteFill, backgroundColor: "transparent" },
+  playbackIndicatorLayer: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  playbackIndicator: {
+    width: 74,
+    height: 74,
+    borderRadius: 37,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.62)",
+  },
+  seekFeedback: {
+    position: "absolute",
+    top: "45%",
+    minWidth: 112,
+    height: 64,
+    paddingHorizontal: 14,
+    borderRadius: 32,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    backgroundColor: "rgba(0,0,0,0.68)",
+  },
+  seekFeedbackLeft: { left: 28 },
+  seekFeedbackRight: { right: 28 },
+  seekFeedbackText: {
+    color: "#ffffff",
+    fontSize: 16,
+    fontWeight: "800",
+  },
   controls: {
     position: "absolute",
     right: 0,

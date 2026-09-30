@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type FeedVideo = PublicVideoItem & { playbackUrl: string };
 type ActiveVideoUser = PublicVideoItem["user"];
+const SWIPE_VELOCITY_THRESHOLD = 0.08;
 
 export default function HomeVideoFeed({
   token,
@@ -28,6 +29,7 @@ export default function HomeVideoFeed({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenIndex, setFullscreenIndex] = useState(0);
   const listRef = useRef<FlatList<FeedVideo>>(null);
+  const fullscreenListRef = useRef<FlatList<FeedVideo>>(null);
   const activeIndexRef = useRef(0);
   const requestId = useRef(0);
   const captionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -119,7 +121,7 @@ export default function HomeVideoFeed({
   }, [height, videos.length]);
 
   const onScrollEndDrag = useCallback((velocityY: number) => {
-    if (Math.abs(velocityY) < 0.12 || videos.length < 2) return;
+    if (Math.abs(velocityY) < SWIPE_VELOCITY_THRESHOLD || videos.length < 2) return;
     const nextIndex = Math.max(
       0,
       Math.min(videos.length - 1, activeIndexRef.current + (velocityY > 0 ? -1 : 1)),
@@ -180,6 +182,7 @@ export default function HomeVideoFeed({
       >
         <View style={styles.fullscreenScreen}>
           <FlatList
+            ref={fullscreenListRef}
             data={videos}
             keyExtractor={(item) => `fullscreen-${item.id}`}
             renderItem={({ item, index }) => (
@@ -204,6 +207,19 @@ export default function HomeVideoFeed({
             initialNumToRender={1}
             maxToRenderPerBatch={2}
             windowSize={3}
+            onScrollEndDrag={(event) => {
+              const velocityY = event.nativeEvent.velocity?.y ?? 0;
+              if (Math.abs(velocityY) < SWIPE_VELOCITY_THRESHOLD || videos.length < 2) return;
+
+              const nextIndex = Math.max(
+                0,
+                Math.min(videos.length - 1, fullscreenIndex + (velocityY > 0 ? -1 : 1)),
+              );
+              if (nextIndex === fullscreenIndex) return;
+
+              setFullscreenIndex(nextIndex);
+              fullscreenListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+            }}
             onMomentumScrollEnd={(event) => {
               setFullscreenIndex(Math.max(0, Math.round(event.nativeEvent.contentOffset.y / height)));
             }}
@@ -253,7 +269,7 @@ function HomeVideoCard({
         loop
         contentFit="cover"
         controlsBottomOffset={showCaption ? 160 : 0}
-        showControls={!showCaption}
+        showControls={false}
         onVideoPress={onToggleCaption}
         onViewVideo={() => onViewVideo?.(video.id)}
         videoId={video.id}
