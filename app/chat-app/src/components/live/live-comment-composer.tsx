@@ -9,6 +9,8 @@ type LiveCommentComposerProps = {
   onSend: () => void;
   keyboardVisible: boolean;
   compact?: boolean;
+  transparentBackground?: boolean;
+  showSendButton?: boolean;
   colors: {
     card: string;
     text: string;
@@ -27,6 +29,8 @@ export default function LiveCommentComposer({
   keyboardVisible,
   colors,
   compact = false,
+  transparentBackground = false,
+  showSendButton = keyboardVisible,
 }: LiveCommentComposerProps) {
   const { colorScheme } = useAppTheme();
   const canSend = value.trim().length > 0;
@@ -35,8 +39,9 @@ export default function LiveCommentComposer({
     <View
       style={[
         styles.row,
+        transparentBackground && styles.transparentRow,
         {
-          backgroundColor: colors.card,
+          backgroundColor: transparentBackground ? "transparent" : colors.card,
           borderTopColor: colors.inputBorder,
           paddingBottom: keyboardVisible ? 0 : compact ? 8 : 10,
         },
@@ -54,9 +59,9 @@ export default function LiveCommentComposer({
         style={[
           styles.input,
           {
-            color: colors.text,
-            backgroundColor: colors.input,
-            borderColor: colors.inputBorder,
+            color: transparentBackground ? "#ffffff" : colors.text,
+            backgroundColor: transparentBackground ? "rgba(8, 12, 24, 0.58)" : colors.input,
+            borderColor: transparentBackground ? "rgba(255, 255, 255, 0.6)" : colors.inputBorder,
           },
         ]}
         maxLength={280}
@@ -64,15 +69,17 @@ export default function LiveCommentComposer({
         onSubmitEditing={onSend}
         blurOnSubmit={false}
       />
-      <TouchableOpacity
-        onPress={onSend}
-        disabled={!canSend}
-        style={[styles.send, { backgroundColor: colors.primary, opacity: canSend ? 1 : 0.45 }]}
-        accessibilityRole="button"
-        accessibilityLabel="Изпрати коментар"
-      >
-        <FontAwesome name="send" size={16} color="#ffffff" />
-      </TouchableOpacity>
+      {showSendButton ? (
+        <TouchableOpacity
+          onPress={onSend}
+          disabled={!canSend}
+          style={[styles.send, { backgroundColor: colors.primary, opacity: canSend ? 1 : 0.45 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Изпрати коментар"
+        >
+          <FontAwesome name="send" size={16} color="#ffffff" />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 }
@@ -85,6 +92,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  transparentRow: {
+    borderTopWidth: 0,
   },
   input: {
     flex: 1,

@@ -1,7 +1,27 @@
 export type LiveRole = 'streamer' | 'viewer';
 export type LiveTalkRequestStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled' | 'expired';
 
-export type LiveReactionType = 'like' | 'heart' | 'fire' | 'clap' | 'wow';
+export type LiveReactionType =
+    | 'like'
+    | 'heart'
+    | 'fire'
+    | 'clap'
+    | 'wow'
+    | 'laugh'
+    | 'sad'
+    | 'angry'
+    | 'party'
+    | 'rocket'
+    | 'cool'
+    | 'kiss'
+    | 'wink'
+    | 'surprised'
+    | 'cry'
+    | 'scream'
+    | 'poop'
+    | 'sparkles'
+    | 'star'
+    | 'pray';
 
 export interface LiveClientPayload {
     live_id: number;
@@ -56,6 +76,12 @@ export interface LiveCommentPayload {
 export interface LiveViewerCountPayload {
     live_id: number;
     viewer_count: number;
+}
+
+export interface LiveCameraStatePayload {
+    live_id: number;
+    user_id: number;
+    camera_enabled: boolean;
 }
 
 export interface LiveEndedPayload {

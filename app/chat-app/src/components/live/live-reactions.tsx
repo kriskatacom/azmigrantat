@@ -1,23 +1,27 @@
 import { LIVE_REACTION_TYPES, type LiveReactionType } from "@/types/live";
+import LiveReactionButton from "@/components/live/live-reaction-button";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function LiveReactions({
   onReact,
   vertical = false,
+  limit,
+  onMore,
 }: {
   onReact: (type: LiveReactionType) => void;
   vertical?: boolean;
+  limit?: number;
+  onMore?: () => void;
 }) {
-  const buttons = LIVE_REACTION_TYPES.map((item) => (
-    <TouchableOpacity
+  const reactionTypes = limit ? LIVE_REACTION_TYPES.slice(0, limit) : LIVE_REACTION_TYPES;
+  const buttons = reactionTypes.map((item) => (
+    <LiveReactionButton
       key={item.type}
+      emoji={item.emoji}
+      label={`Реакция ${item.type}`}
       onPress={() => onReact(item.type)}
-      style={styles.button}
-      accessibilityRole="button"
-      accessibilityLabel={`Реакция ${item.type}`}
-    >
-      <Text style={styles.emoji}>{item.emoji}</Text>
-    </TouchableOpacity>
+      size={44}
+    />
   ));
 
   if (!vertical) {
@@ -34,7 +38,21 @@ export default function LiveReactions({
       bounces={false}
     >
       {buttons}
+      {onMore ? <MoreButton onPress={onMore} /> : null}
     </ScrollView>
+  );
+}
+
+function MoreButton({ onPress }: { onPress: () => void }) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      style={styles.moreButton}
+      accessibilityRole="button"
+      accessibilityLabel="Покажи още реакции"
+    >
+      <Text style={styles.moreText}>•••</Text>
+    </TouchableOpacity>
   );
 }
 
@@ -46,12 +64,13 @@ const styles = StyleSheet.create({
   },
   columnContent: {
     flexGrow: 1,
-    justifyContent: "flex-end",
+    justifyContent: "flex-start",
     alignItems: "center",
     gap: 8,
-    paddingVertical: 4,
+    paddingTop: 4,
+    paddingBottom: 12,
   },
-  button: {
+  moreButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
@@ -59,5 +78,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  emoji: { fontSize: 20 },
+  moreText: { color: "#ffffff", fontSize: 18, fontWeight: "900", letterSpacing: 2 },
 });

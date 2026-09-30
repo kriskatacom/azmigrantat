@@ -166,6 +166,33 @@ export class MediaNodeManager {
         return payload.session as Record<string, unknown>;
     }
 
+    async closeSession(liveId: number, session: Record<string, unknown>): Promise<void> {
+        const sessionId = typeof session.session_id === 'string' ? session.session_id : null;
+        const assignment = await this.getAssignment(liveId);
+        if (!sessionId || !assignment) return;
+
+        const node = (await this.listNodes()).find(
+            (item) => item.node_id === assignment.media_node_id,
+        );
+        if (!node) return;
+
+        const response = await fetch(
+            `http://${node.control_host}:${node.control_port}/v1/rooms/${encodeURIComponent(assignment.media_room_id)}/session/${encodeURIComponent(sessionId)}`,
+            {
+                method: 'DELETE',
+                headers: {
+                    Accept: 'application/json',
+                    'X-Media-Node-Secret': config.mediaNodeInternalSecret,
+                },
+                signal: AbortSignal.timeout(5_000),
+            },
+        );
+
+        if (!response.ok && response.status !== 404) {
+            throw new Error(`Media node session close failed with HTTP ${response.status}.`);
+        }
+    }
+
     async allocate(liveId: number, mediaRoomId: string): Promise<MediaAssignment> {
         const existing = await this.getAssignment(liveId);
 

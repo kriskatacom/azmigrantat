@@ -9,6 +9,7 @@ import type {
 export function registerSessionRoutes(
   app: Express,
   sessions: MediaSessionManager,
+  cleanupSession: (sessionId: string) => void,
 ): void {
   app.post("/v1/rooms/:roomId/session", (request, response) => {
     if (request.header("X-Media-Node-Secret") !== config.internalSecret) {
@@ -55,5 +56,22 @@ export function registerSessionRoutes(
             : "Media session creation failed.",
       });
     }
+  });
+
+  app.delete("/v1/rooms/:roomId/session/:sessionId", (request, response) => {
+    if (request.header("X-Media-Node-Secret") !== config.internalSecret) {
+      response.status(401).json({ success: false, message: "Невалиден media node ключ." });
+      return;
+    }
+
+    const session = sessions.get(request.params.sessionId);
+    if (!session || session.room_id !== request.params.roomId) {
+      response.status(404).json({ success: false, message: "Media session not found." });
+      return;
+    }
+
+    cleanupSession(session.session_id);
+    sessions.remove(session.session_id);
+    response.json({ success: true });
   });
 }

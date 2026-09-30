@@ -1,88 +1,132 @@
 <!doctype html>
-<meta charset="utf-8">
+<meta charset="utf-8" />
 <title>SFU load test</title>
-<script>window.__loadError = null; window.addEventListener("error", (event) => { window.__loadError = event.message || String(event.error); }); window.addEventListener("unhandledrejection", (event) => { window.__loadError = String(event.reason); });</script>
+<script>
+    window.__loadError = null;
+    window.addEventListener('error', (event) => {
+        window.__loadError = event.message || String(event.error);
+    });
+    window.addEventListener('unhandledrejection', (event) => {
+        window.__loadError = String(event.reason);
+    });
+</script>
 <script type="module">
-import mediasoupClient from "/mediasoup-client.bundle.js";
-import { io } from "/socket.io-client/dist/socket.io.esm.min.js";
-const { Device } = mediasoupClient;
+    import mediasoupClient from '/mediasoup-client.bundle.js';
+    import { io } from '/socket.io-client/dist/socket.io.esm.min.js';
+    const { Device } = mediasoupClient;
 
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-const ack = (socket, event, payload) => new Promise((resolve, reject) => {
-  socket.emit(event, payload, (response) => response?.ok ? resolve(response) : reject(new Error(response?.message || event)));
-});
-const once = (socket, event) => new Promise((resolve, reject) => {
-  socket.once(event, resolve);
-  socket.once("connect_error", reject);
-  socket.once("sfu:error", reject);
-});
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const ack = (socket, event, payload) =>
+        new Promise((resolve, reject) => {
+            socket.emit(event, payload, (response) =>
+                response?.ok ? resolve(response) : reject(new Error(response?.message || event)),
+            );
+        });
+    const once = (socket, event) =>
+        new Promise((resolve, reject) => {
+            socket.once(event, resolve);
+            socket.once('connect_error', reject);
+            socket.once('sfu:error', reject);
+        });
 
-async function connectMedia(session, signalingUrl, role, report) {
-  const socket = io(signalingUrl, { auth: { session_id: session.session_id }, transports: ["websocket"], reconnection: false });
-  const readyPromise = once(socket, "sfu:ready");
-  await once(socket, "connect");
-  const ready = await readyPromise;
-  const device = await Device.factory();
-  await device.load({ routerRtpCapabilities: session.router_rtp_capabilities });
-  const transportInfo = (await ack(socket, "transport:create", { direction: role === "streamer" ? "send" : "recv" })).transport;
-  const options = {
-    id: transportInfo.id,
-    iceParameters: transportInfo.ice_parameters,
-    iceCandidates: transportInfo.ice_candidates,
-    dtlsParameters: transportInfo.dtls_parameters,
-    sctpParameters: transportInfo.sctp_parameters,
-  };
-  const transport = role === "streamer" ? device.createSendTransport(options) : device.createRecvTransport(options);
-  transport.on("connect", ({ dtlsParameters }, callback, errback) => {
-    ack(socket, "transport:connect", { transport_id: transport.id, dtls_parameters: dtlsParameters }).then(callback).catch(errback);
-  });
-  const consumers = [];
-  const consume = async (producerId) => {
-    const response = await ack(socket, "consumer:create", {
-      transport_id: transport.id,
-      producer_id: producerId,
-      rtp_capabilities: device.recvRtpCapabilities,
-    });
-    const consumer = await transport.consume({
-      id: response.consumer.id,
-      producerId: response.consumer.producer_id,
-      kind: response.consumer.kind,
-      rtpParameters: response.consumer.rtp_parameters,
-    });
-    consumers.push(consumer);
-    await ack(socket, "consumer:resume", { consumer_id: consumer.id });
-  };
-  if (role === "streamer") {
-    transport.on("produce", ({ kind, rtpParameters }, callback, errback) => {
-      ack(socket, "producer:create", { transport_id: transport.id, kind, rtp_parameters: rtpParameters })
-        .then(({ producer_id }) => callback({ id: producer_id })).catch(errback);
-    });
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-    for (const track of stream.getTracks()) await transport.produce({ track });
-  } else {
-    socket.on("sfu:producer-available", ({ producer_id }) => void consume(producer_id).catch((error) => report("consumer-error", String(error))));
-    for (const producerId of ready.producer_ids || []) await consume(producerId);
-  }
-  report("connected", { role, producers: ready.producer_ids?.length || 0 });
-  return { socket, transport, consumers };
-}
-
-window.runSfuLoad = async ({ signalingUrl, streamer, viewers, holdMs }) => {
-  const events = [];
-  const report = (event, value) => { events.push({ event, value, at: Date.now() }); console.log(event, value || ""); };
-  const resources = [];
-  try {
-    if (streamer) resources.push(await connectMedia(streamer, signalingUrl, "streamer", report));
-    if (streamer) await wait(1000);
-    for (const session of viewers) resources.push(await connectMedia(session, signalingUrl, "viewer", report));
-    await wait(holdMs);
-    return { ok: true, events, connected: resources.length };
-  } finally {
-    for (const resource of resources) {
-      resource.consumers.forEach((consumer) => consumer.close());
-      resource.transport.close();
-      resource.socket.disconnect();
+    async function connectMedia(session, signalingUrl, role, report) {
+        const socket = io(signalingUrl, {
+            auth: { session_id: session.session_id },
+            transports: ['websocket'],
+            reconnection: false,
+        });
+        const readyPromise = once(socket, 'sfu:ready');
+        await once(socket, 'connect');
+        const ready = await readyPromise;
+        const device = await Device.factory();
+        await device.load({ routerRtpCapabilities: session.router_rtp_capabilities });
+        const transportInfo = (
+            await ack(socket, 'transport:create', {
+                direction: role === 'streamer' ? 'send' : 'recv',
+            })
+        ).transport;
+        const options = {
+            id: transportInfo.id,
+            iceParameters: transportInfo.ice_parameters,
+            iceCandidates: transportInfo.ice_candidates,
+            dtlsParameters: transportInfo.dtls_parameters,
+            sctpParameters: transportInfo.sctp_parameters,
+        };
+        const transport =
+            role === 'streamer'
+                ? device.createSendTransport(options)
+                : device.createRecvTransport(options);
+        transport.on('connect', ({ dtlsParameters }, callback, errback) => {
+            ack(socket, 'transport:connect', {
+                transport_id: transport.id,
+                dtls_parameters: dtlsParameters,
+            })
+                .then(callback)
+                .catch(errback);
+        });
+        const consumers = [];
+        const consume = async (producerId) => {
+            const response = await ack(socket, 'consumer:create', {
+                transport_id: transport.id,
+                producer_id: producerId,
+                rtp_capabilities: device.recvRtpCapabilities,
+            });
+            const consumer = await transport.consume({
+                id: response.consumer.id,
+                producerId: response.consumer.producer_id,
+                kind: response.consumer.kind,
+                rtpParameters: response.consumer.rtp_parameters,
+            });
+            consumers.push(consumer);
+            await ack(socket, 'consumer:resume', { consumer_id: consumer.id });
+        };
+        if (role === 'streamer') {
+            transport.on('produce', ({ kind, rtpParameters }, callback, errback) => {
+                ack(socket, 'producer:create', {
+                    transport_id: transport.id,
+                    kind,
+                    rtp_parameters: rtpParameters,
+                })
+                    .then(({ producer_id }) => callback({ id: producer_id }))
+                    .catch(errback);
+            });
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+            for (const track of stream.getTracks()) await transport.produce({ track });
+        } else {
+            socket.on(
+                'sfu:producer-available',
+                ({ producer_id }) =>
+                    void consume(producer_id).catch((error) =>
+                        report('consumer-error', String(error)),
+                    ),
+            );
+            for (const producerId of ready.producer_ids || []) await consume(producerId);
+        }
+        report('connected', { role, producers: ready.producer_ids?.length || 0 });
+        return { socket, transport, consumers };
     }
-  }
-};
+
+    window.runSfuLoad = async ({ signalingUrl, streamer, viewers, holdMs }) => {
+        const events = [];
+        const report = (event, value) => {
+            events.push({ event, value, at: Date.now() });
+            console.log(event, value || '');
+        };
+        const resources = [];
+        try {
+            if (streamer)
+                resources.push(await connectMedia(streamer, signalingUrl, 'streamer', report));
+            if (streamer) await wait(1000);
+            for (const session of viewers)
+                resources.push(await connectMedia(session, signalingUrl, 'viewer', report));
+            await wait(holdMs);
+            return { ok: true, events, connected: resources.length };
+        } finally {
+            for (const resource of resources) {
+                resource.consumers.forEach((consumer) => consumer.close());
+                resource.transport.close();
+                resource.socket.disconnect();
+            }
+        }
+    };
 </script>

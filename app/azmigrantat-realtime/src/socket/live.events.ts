@@ -66,6 +66,12 @@ export function registerLiveEvents(socket: RealtimeSocket, lives: LiveService): 
         void lives.reaction(socket, liveId, payload.type);
     });
 
+    socket.on('live:camera-state', (payload) => {
+        const liveId = parseLiveId(payload);
+        if (liveId === null || typeof payload?.camera_enabled !== 'boolean') return;
+        void lives.cameraState(socket, liveId, payload.camera_enabled);
+    });
+
     socket.on('live:talk-request', (payload) => {
         const liveId = parseLiveId(payload);
         if (liveId === null) return;

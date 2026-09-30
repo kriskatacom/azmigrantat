@@ -21,12 +21,15 @@ function reactionId(payload: { live_id: number; type: string; user: { id: number
 export function useLiveRoom(liveId: number | null) {
   const { socket, isConnected } = useSocket();
   const [viewerCount, setViewerCount] = useState(0);
+  const [remoteCameraEnabled, setRemoteCameraEnabled] = useState(true);
   const [comments, setComments] = useState<LiveComment[]>([]);
+  const [latestIncomingComment, setLatestIncomingComment] = useState<LiveComment | null>(null);
   const [reactions, setReactions] = useState<LiveReactionEvent[]>([]);
   const [ended, setEnded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [talkRequest, setTalkRequest] = useState<LiveTalkRequestUpdatedPayload | null>(null);
   const [incomingTalkRequests, setIncomingTalkRequests] = useState<LiveTalkRequestReceivedPayload[]>([]);
+  const [acceptedTalkRequests, setAcceptedTalkRequests] = useState<LiveTalkRequestUpdatedPayload[]>([]);
 
   useEffect(() => {
     if (!socket || !isConnected || liveId == null) {
@@ -53,6 +56,7 @@ export function useLiveRoom(liveId: number | null) {
 
         return [...current, payload].slice(-100);
       });
+      setLatestIncomingComment(payload);
     };
 
     const onReaction = (payload: {
@@ -88,6 +92,12 @@ export function useLiveRoom(liveId: number | null) {
       }
     };
 
+    const onCameraState = (payload: { live_id: number; user_id: number; camera_enabled: boolean }) => {
+      if (payload.live_id === liveId) {
+        setRemoteCameraEnabled(payload.camera_enabled);
+      }
+    };
+
     const onTalkRequestReceived = (payload: LiveTalkRequestReceivedPayload) => {
       if (payload.live_id !== liveId) return;
       console.log("[LiveRoom] talk request received", {
@@ -110,6 +120,11 @@ export function useLiveRoom(liveId: number | null) {
         hasMediaSession: Boolean(payload.media_session),
       });
       setTalkRequest(payload);
+      setAcceptedTalkRequests((current) =>
+        payload.status === "accepted"
+          ? [...current.filter((item) => item.request_id !== payload.request_id), payload]
+          : current.filter((item) => item.request_id !== payload.request_id),
+      );
       setIncomingTalkRequests((current) =>
         payload.status === "pending"
           ? current
@@ -118,6 +133,7 @@ export function useLiveRoom(liveId: number | null) {
     };
 
     socket.on("live:viewer-count", onCount);
+    socket.on("live:camera-state", onCameraState);
     socket.on("live:comment", onComment);
     socket.on("live:reaction", onReaction);
     socket.on("live:ended", onEnded);
@@ -128,6 +144,7 @@ export function useLiveRoom(liveId: number | null) {
     return () => {
       socket.emit("live:leave", { live_id: liveId });
       socket.off("live:viewer-count", onCount);
+      socket.off("live:camera-state", onCameraState);
       socket.off("live:comment", onComment);
       socket.off("live:reaction", onReaction);
       socket.off("live:ended", onEnded);
@@ -158,6 +175,11 @@ export function useLiveRoom(liveId: number | null) {
     },
     [socket, liveId],
   );
+
+  const sendCameraState = useCallback((cameraEnabled: boolean) => {
+    if (!socket || liveId == null) return;
+    socket.emit("live:camera-state", { live_id: liveId, camera_enabled: cameraEnabled });
+  }, [socket, liveId]);
 
   const requestToSpeak = useCallback(() => {
     if (!socket || liveId == null) {
@@ -204,17 +226,21 @@ export function useLiveRoom(liveId: number | null) {
   return {
     viewerCount,
     comments,
+    latestIncomingComment,
     reactions,
     ended,
     error,
     sendComment,
     sendReaction,
+    sendCameraState,
+    remoteCameraEnabled,
     requestToSpeak,
     acceptTalkRequest,
     rejectTalkRequest,
     cancelTalkRequest,
     talkRequest,
     incomingTalkRequests,
+    acceptedTalkRequests,
     seedComments,
     seedViewerCount,
   };

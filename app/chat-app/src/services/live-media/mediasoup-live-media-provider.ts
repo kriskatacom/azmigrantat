@@ -18,6 +18,10 @@ type TransportInfo = {
   sctp_parameters?: unknown;
 };
 type AudioTrackWithVolume = globalThis.MediaStreamTrack & { _setVolume?: (volume: number) => void };
+type CameraTrack = globalThis.MediaStreamTrack & {
+  _switchCamera?: () => void;
+  switchCamera?: () => void;
+};
 
 export class MediasoupLiveMediaProvider implements LiveMediaProvider {
   readonly name = "mediasoup";
@@ -27,6 +31,7 @@ export class MediasoupLiveMediaProvider implements LiveMediaProvider {
     error: null,
     muted: false,
     cameraEnabled: true,
+    cameraFacing: "user",
     session: null,
     localStream: null,
     remoteStream: null,
@@ -161,6 +166,23 @@ export class MediasoupLiveMediaProvider implements LiveMediaProvider {
     }
     this.state = { ...this.state, cameraEnabled };
     return cameraEnabled;
+  }
+
+  async switchCamera(): Promise<"user" | "environment"> {
+    const track = this.state.localStream?.getVideoTracks()[0] as CameraTrack | undefined;
+    if (!track) {
+      throw new Error("Камерата не е стартирана.");
+    }
+
+    const switchCamera = track._switchCamera ?? track.switchCamera;
+    if (!switchCamera) {
+      throw new Error("Това устройство не поддържа превключване на камерата.");
+    }
+
+    switchCamera.call(track);
+    const cameraFacing = this.state.cameraFacing === "user" ? "environment" : "user";
+    this.state = { ...this.state, cameraFacing };
+    return cameraFacing;
   }
 
   private async connect(session: LiveMediaSession): Promise<void> {
@@ -347,6 +369,7 @@ export class MediasoupLiveMediaProvider implements LiveMediaProvider {
       error: null,
       muted: false,
       cameraEnabled: true,
+      cameraFacing: "user",
       session: null,
       localStream: null,
       remoteStream: null,

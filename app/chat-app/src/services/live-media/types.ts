@@ -27,6 +27,7 @@ export interface LiveMediaProvider {
   stopTalking(): Promise<void>;
   muteAudio(muted: boolean): Promise<void>;
   toggleCamera(): Promise<boolean>;
+  switchCamera(): Promise<"user" | "environment">;
   getState?(): LiveMediaState;
 }
 
@@ -35,6 +36,7 @@ export type LiveMediaState = {
   error: string | null;
   muted: boolean;
   cameraEnabled: boolean;
+  cameraFacing: "user" | "environment";
   session: LiveMediaSession | null;
   localStream: MediaStream | null;
   remoteStream: MediaStream | null;

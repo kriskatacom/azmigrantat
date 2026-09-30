@@ -34,7 +34,7 @@ async function main(): Promise<void> {
   app.disable('x-powered-by');
   app.use(express.json());
   registerHealthRoutes(app, mediaNode, registry);
-  registerSessionRoutes(app, sessions);
+  registerSessionRoutes(app, sessions, (sessionId) => rooms.cleanupSession(sessionId));
   registerMediaRoutes(app, sessions, rooms);
 
   const server = httpServer.listen(config.port, config.host, () => {

@@ -23,14 +23,23 @@ type LiveStageProps = {
   hint: string;
   coverUri?: string | null;
   onToggleFullscreen: () => void;
+  onOpenComments?: () => void;
+  onOpenTalkers?: () => void;
+  onOpenMoreReactions?: () => void;
+  onToggleMicrophone?: () => void;
+  onToggleCamera?: () => void;
+  onSwitchCamera?: () => void;
   onReact: (type: LiveReactionType) => void;
   topLeft?: ReactNode;
+  topRight?: ReactNode;
   children?: ReactNode;
   localStream?: MediaStream | null;
   remoteStream?: MediaStream | null;
   showLocalVideo?: boolean;
   microphoneEnabled?: boolean;
   cameraEnabled?: boolean;
+  cameraFacing?: "user" | "environment";
+  remoteCameraEnabled?: boolean;
 };
 
 export default function LiveStage({
@@ -46,14 +55,23 @@ export default function LiveStage({
   hint,
   coverUri,
   onToggleFullscreen,
+  onOpenComments,
+  onOpenTalkers,
+  onOpenMoreReactions,
+  onToggleMicrophone,
+  onToggleCamera,
+  onSwitchCamera,
   onReact,
   topLeft,
+  topRight,
   children,
   localStream = null,
   remoteStream = null,
   showLocalVideo = true,
   microphoneEnabled = true,
   cameraEnabled = showLocalVideo,
+  cameraFacing = "user",
+  remoteCameraEnabled = true,
 }: LiveStageProps) {
   const hasMediaStream = Boolean(localStream || remoteStream);
 
@@ -78,33 +96,111 @@ export default function LiveStage({
             localStream={localStream}
             remoteStream={remoteStream}
             isCameraEnabled={showLocalVideo}
+            localMirror={cameraFacing === "user"}
+            isRemoteCameraEnabled={remoteCameraEnabled}
             displayName={label}
           />
         </View>
       ) : null}
 
-      {connected && localStream ? (
-        <View style={styles.captureStatus} pointerEvents="none">
-          <View style={[styles.captureStatusItem, !cameraEnabled && styles.captureStatusItemOff]}>
+      {connected && (localStream || onOpenComments) ? (
+        <View
+          style={[styles.captureStatus, fullscreen && styles.captureStatusFullscreen]}
+        >
+          {fullscreen ? (
+            <TouchableOpacity
+              style={[styles.captureStatusItem, styles.captureStatusItemFullscreen]}
+              onPress={onToggleFullscreen}
+              accessibilityRole="button"
+              accessibilityLabel="Изход от цял екран"
+            >
+              <Ionicons name="contract-outline" size={20} color="#ffffff" />
+            </TouchableOpacity>
+          ) : null}
+          {fullscreen && !localStream && topRight ? (
+            <View style={styles.captureStatusEnd}>{topRight}</View>
+          ) : null}
+          {fullscreen && onOpenComments ? (
+            <TouchableOpacity
+              onPress={onOpenComments}
+              style={[styles.captureStatusItem, styles.captureStatusItemFullscreen]}
+              accessibilityRole="button"
+              accessibilityLabel="Отвори всички коментари"
+            >
+              <Ionicons name="chatbubbles-outline" size={20} color="#ffffff" />
+            </TouchableOpacity>
+          ) : null}
+          {fullscreen && onOpenTalkers ? (
+            <TouchableOpacity
+              onPress={onOpenTalkers}
+              style={[styles.captureStatusItem, styles.captureStatusItemFullscreen]}
+              accessibilityRole="button"
+              accessibilityLabel="Покажи активните разговори"
+            >
+              <Ionicons name="people-outline" size={20} color="#ffffff" />
+            </TouchableOpacity>
+          ) : null}
+          {localStream ? (
+            <>
+          <TouchableOpacity
+            style={[styles.captureStatusItem, fullscreen && styles.captureStatusItemFullscreen]}
+            onPress={onSwitchCamera}
+            disabled={!onSwitchCamera || !cameraEnabled}
+            accessibilityRole="button"
+            accessibilityLabel="Превключи камерата"
+          >
+            <Ionicons name="camera-reverse-outline" size={fullscreen ? 20 : 14} color="#ffffff" />
+            {fullscreen ? null : <Text style={styles.captureStatusText}>Смени камерата</Text>}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.captureStatusItem,
+              fullscreen && styles.captureStatusItemFullscreen,
+              !cameraEnabled && styles.captureStatusItemOff,
+            ]}
+            onPress={onToggleCamera}
+            disabled={!onToggleCamera}
+            accessibilityRole="button"
+            accessibilityLabel={cameraEnabled ? "Изключи камерата" : "Включи камерата"}
+          >
             <Ionicons
               name={cameraEnabled ? "videocam" : "videocam-off"}
-              size={14}
+              size={fullscreen ? 20 : 14}
               color={cameraEnabled ? "#bbf7d0" : "#fecaca"}
             />
-            <Text style={styles.captureStatusText}>
-              Камера {cameraEnabled ? "включена" : "изключена"}
-            </Text>
-          </View>
-          <View style={[styles.captureStatusItem, !microphoneEnabled && styles.captureStatusItemOff]}>
+            {fullscreen ? null : (
+              <Text style={styles.captureStatusText}>
+                Камера {cameraEnabled ? "включена" : "изключена"}
+              </Text>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.captureStatusItem,
+              fullscreen && styles.captureStatusItemFullscreen,
+              !microphoneEnabled && styles.captureStatusItemOff,
+            ]}
+            onPress={onToggleMicrophone}
+            disabled={!onToggleMicrophone}
+            accessibilityRole="button"
+            accessibilityLabel={microphoneEnabled ? "Изключи микрофона" : "Включи микрофона"}
+          >
             <Ionicons
               name={microphoneEnabled ? "mic" : "mic-off"}
-              size={14}
+              size={fullscreen ? 20 : 14}
               color={microphoneEnabled ? "#bbf7d0" : "#fecaca"}
             />
-            <Text style={styles.captureStatusText}>
-              Микрофон {microphoneEnabled ? "включен" : "изключен"}
-            </Text>
-          </View>
+            {fullscreen ? null : (
+              <Text style={styles.captureStatusText}>
+                Микрофон {microphoneEnabled ? "включен" : "изключен"}
+              </Text>
+            )}
+          </TouchableOpacity>
+            </>
+          ) : null}
+          {fullscreen && localStream && topRight ? (
+            <View style={styles.captureStatusEnd}>{topRight}</View>
+          ) : null}
         </View>
       ) : null}
 
@@ -121,35 +217,48 @@ export default function LiveStage({
         </View>
       ) : null}
 
-      {!hasMediaStream ? <Text style={styles.label}>{label}</Text> : null}
-      {!hasMediaStream && !fullscreen && !keyboardVisible ? <Text style={styles.hint}>{hint}</Text> : null}
+      {!hasMediaStream && connected ? <Text style={styles.label}>{label}</Text> : null}
+      {!hasMediaStream && connected && !fullscreen && !keyboardVisible ? (
+        <Text style={styles.hint}>{hint}</Text>
+      ) : null}
 
       <View style={[styles.topBar, { top: fullscreen ? 8 : 12 + topInset }]}>
         <View style={styles.topLeft}>
           {topLeft}
-          <TouchableOpacity
-            onPress={onToggleFullscreen}
-            style={styles.iconButton}
-            accessibilityRole="button"
-            accessibilityLabel={fullscreen ? "Изход от цял екран" : "Цял екран"}
-          >
-            <Ionicons
-              name={fullscreen ? "contract-outline" : "expand-outline"}
-              size={20}
-              color="#ffffff"
-            />
-          </TouchableOpacity>
+          {fullscreen ? null : (
+            <TouchableOpacity
+              onPress={onToggleFullscreen}
+              style={styles.iconButton}
+              accessibilityRole="button"
+              accessibilityLabel="Цял екран"
+            >
+              <Ionicons name="expand-outline" size={20} color="#ffffff" />
+            </TouchableOpacity>
+          )}
         </View>
-        <LiveViewerCount count={viewerCount} variant="overlay" />
+        <View style={[styles.topRight, fullscreen && styles.topRightFullscreen]}>
+          {fullscreen ? null : topRight}
+          {fullscreen ? null : onOpenComments ? (
+            <TouchableOpacity
+              onPress={onOpenComments}
+              style={styles.iconButton}
+              accessibilityRole="button"
+              accessibilityLabel="Отвори всички коментари"
+            >
+              <Ionicons name="chatbubbles-outline" size={20} color="#ffffff" />
+            </TouchableOpacity>
+          ) : null}
+          <LiveViewerCount count={viewerCount} variant="overlay" />
+        </View>
       </View>
 
       <View
         style={[
           styles.reactionRail,
-          { top: fullscreen ? 44 : 52 + topInset, bottom: bottomInset },
+          { top: fullscreen ? 104 : 52 + topInset, bottom: bottomInset },
         ]}
       >
-        <LiveReactions vertical onReact={onReact} />
+        <LiveReactions vertical limit={5} onMore={onOpenMoreReactions} onReact={onReact} />
       </View>
 
       {children}
@@ -157,7 +266,8 @@ export default function LiveStage({
       <LiveReactionBurst
         reactions={reactions}
         showChips
-        chipBottom={fullscreen ? Math.max(bottomInset + 8, 96) : 14}
+        chipBottom={fullscreen ? "34%" : 14}
+        liftDistance={fullscreen ? 500 : 220}
       />
     </View>
   );
@@ -178,7 +288,11 @@ const styles = StyleSheet.create({
     height: 132,
   },
   stageFullscreen: {
-    flex: 1,
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     height: undefined,
     marginHorizontal: 0,
     marginTop: 0,
@@ -214,6 +328,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  topRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  topRightFullscreen: {
+    position: "absolute",
+    top: 48,
+    right: 0,
+  },
+  captureStatusEnd: { marginTop: 0 },
   iconButton: {
     width: 36,
     height: 36,
@@ -241,10 +366,28 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(8, 12, 24, 0.72)",
     zIndex: 4,
   },
+  captureStatusFullscreen: {
+    top: 56,
+    bottom: undefined,
+    left: 12,
+    flexDirection: "column",
+    alignItems: "flex-start",
+    paddingHorizontal: 0,
+    paddingVertical: 0,
+    gap: 8,
+    backgroundColor: "transparent",
+  },
   captureStatusItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+  },
+  captureStatusItemFullscreen: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: "center",
+    backgroundColor: "rgba(8, 12, 24, 0.72)",
   },
   captureStatusItemOff: {
     opacity: 0.96,

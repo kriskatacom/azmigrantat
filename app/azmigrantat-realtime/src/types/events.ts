@@ -11,6 +11,7 @@ import type {
     LiveLeaveClientPayload,
     LiveReactionClientPayload,
     LiveReactionPayload,
+    LiveCameraStatePayload,
     LiveViewerCountPayload,
     LiveTalkRequestClientPayload,
     LiveTalkRequestPayload,
@@ -77,6 +78,7 @@ export interface ServerToClientEvents {
     'auth:revoked': (payload: { reason: string }) => void;
 
     'live:viewer-count': (payload: LiveViewerCountPayload) => void;
+    'live:camera-state': (payload: LiveCameraStatePayload) => void;
     'live:comment': (payload: LiveCommentPayload) => void;
     'live:reaction': (payload: LiveReactionPayload) => void;
     'live:started': (payload: LiveStartedPayload) => void;
@@ -109,6 +111,7 @@ export interface ClientToServerEvents {
     'live:leave': (payload: LiveLeaveClientPayload) => void;
     'live:comment': (payload: LiveCommentClientPayload) => void;
     'live:reaction': (payload: LiveReactionClientPayload) => void;
+    'live:camera-state': (payload: { live_id: number; camera_enabled: boolean }) => void;
     'live:talk-request': (payload: LiveTalkRequestClientPayload) => void;
     'live:talk-request:accept': (payload: LiveTalkRequestClientPayload) => void;
     'live:talk-request:reject': (payload: LiveTalkRequestClientPayload) => void;

@@ -1,9 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image } from "expo-image";
-import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import { MediaStream, RTCView } from "react-native-webrtc";
-import { toPublicFileUrl } from "@/utils/public-file-url";
 
 type Props = {
   localStream: MediaStream | null;
@@ -14,61 +11,20 @@ type Props = {
   avatarUrl?: string | null;
   localName?: string;
   localAvatarUrl?: string | null;
+  localMirror?: boolean;
 };
 
-function CameraOffState({
-  name,
-  avatarUrl,
-  compact = false,
-}: {
-  name: string;
-  avatarUrl?: string | null;
-  compact?: boolean;
-}) {
-  const avatarSize = compact ? 48 : 128;
-  const iconSize = compact ? 16 : 22;
-
+function CameraOffState({ name }: { name: string }) {
   return (
-    <View style={[styles.cameraOff, compact && styles.cameraOffCompact]}>
-      {avatarUrl ? (
-        <Image
-          accessibilityLabel={`Снимка на ${name}`}
-          contentFit="cover"
-          source={{ uri: toPublicFileUrl(avatarUrl) ?? avatarUrl }}
-          style={{
-            width: avatarSize,
-            height: avatarSize,
-            borderRadius: avatarSize / 2,
-          }}
-        />
-      ) : (
-        <View
-          style={[
-            styles.cameraOffAvatarPlaceholder,
-            {
-              width: avatarSize,
-              height: avatarSize,
-              borderRadius: avatarSize / 2,
-            },
-          ]}
-        >
-          <Ionicons name="person" size={compact ? 22 : 48} color="#dbeafe" />
-        </View>
-      )}
-      <View style={[styles.cameraOffBadge, compact && styles.cameraOffBadgeCompact]}>
-        <Ionicons name="videocam-off" size={iconSize} color="#f8fafc" />
+    <View style={styles.cameraOff}>
+      <View style={styles.cameraOffAvatar}>
+        <Ionicons name="person" size={52} color="#dbeafe" />
       </View>
-      {compact ? null : (
-        <>
-          <Text style={styles.cameraOffName}>{name}</Text>
-          <Text style={styles.cameraOffText}>Камерата е изключена</Text>
-        </>
-      )}
-      {compact ? (
-        <Text numberOfLines={1} style={styles.localCameraOffText}>
-          Камерата е изключена
-        </Text>
-      ) : null}
+      <View style={styles.cameraOffBadge}>
+        <Ionicons name="videocam-off" size={20} color="#f8fafc" />
+      </View>
+      <Text style={styles.cameraOffName}>{name}</Text>
+      <Text style={styles.cameraOffText}>Камерата е изключена</Text>
     </View>
   );
 }
@@ -78,7 +34,6 @@ function ParticipantSurface({
   showVideo,
   name,
   avatarUrl,
-  compact = false,
   mirror = false,
   zOrder,
 }: {
@@ -86,16 +41,18 @@ function ParticipantSurface({
   showVideo: boolean;
   name: string;
   avatarUrl?: string | null;
-  compact?: boolean;
   mirror?: boolean;
   zOrder: number;
 }) {
-  if (showVideo && stream) {
+  const videoTrack = stream?.getVideoTracks()[0];
+  const videoVisible = Boolean(showVideo && videoTrack && videoTrack.enabled !== false);
+
+  if (videoVisible && stream) {
     return (
       <RTCView
-        key={`${stream.id}-${compact ? "pip" : "main"}`}
+        key={`${stream.id}-video`}
         streamURL={stream.toURL()}
-        style={compact ? styles.pipVideo : styles.remoteVideo}
+        style={styles.remoteVideo}
         objectFit="cover"
         mirror={mirror}
         zOrder={zOrder}
@@ -103,7 +60,9 @@ function ParticipantSurface({
     );
   }
 
-  return <CameraOffState compact={compact} name={name} avatarUrl={avatarUrl} />;
+  return <View key={`${stream?.id ?? name}-camera-off`} style={styles.cameraOffSurface}>
+    <CameraOffState name={name} />
+  </View>;
 }
 
 export default function VideoCallView({
@@ -115,12 +74,12 @@ export default function VideoCallView({
   avatarUrl = null,
   localName = "Вие",
   localAvatarUrl = null,
+  localMirror = true,
 }: Props) {
-  const [localIsPrimary, setLocalIsPrimary] = useState(false);
-  const showRemoteVideo = Boolean(remoteStream) && isRemoteCameraEnabled;
+  const remoteVideoTrack = remoteStream?.getVideoTracks()[0];
+  const showRemoteVideo = Boolean(remoteVideoTrack && remoteVideoTrack.enabled !== false && isRemoteCameraEnabled);
   const showLocalVideo = Boolean(localStream) && isCameraEnabled;
-  const canSwap = Boolean(remoteStream);
-  const primaryIsLocal = canSwap ? localIsPrimary : showLocalVideo;
+  const primaryIsLocal = Boolean(localStream);
 
   return (
     <View style={styles.videoContainer}>
@@ -130,7 +89,7 @@ export default function VideoCallView({
           showVideo={showLocalVideo}
           name={localName}
           avatarUrl={localAvatarUrl}
-          mirror
+          mirror={localMirror}
           zOrder={0}
         />
       ) : (
@@ -143,36 +102,6 @@ export default function VideoCallView({
         />
       )}
 
-      {canSwap ? (
-        <View style={styles.pipPreview}>
-          {primaryIsLocal ? (
-            <ParticipantSurface
-              compact
-              stream={remoteStream}
-              showVideo={showRemoteVideo}
-              name={displayName}
-              avatarUrl={avatarUrl}
-              zOrder={1}
-            />
-          ) : (
-            <ParticipantSurface
-              compact
-              stream={localStream}
-              showVideo={showLocalVideo}
-              name={localName}
-              avatarUrl={localAvatarUrl}
-              mirror
-              zOrder={1}
-            />
-          )}
-          <Pressable
-            accessibilityLabel="Размени изгледа на камерите"
-            accessibilityRole="button"
-            onPress={() => setLocalIsPrimary((current) => !current)}
-            style={styles.pipHitArea}
-          />
-        </View>
-      ) : null}
     </View>
   );
 }
@@ -202,23 +131,25 @@ const styles = StyleSheet.create({
     backgroundColor: "#0b1220",
   },
 
-  cameraOffCompact: {
-    gap: 8,
-    paddingHorizontal: 8,
+  cameraOffSurface: {
+    ...StyleSheet.absoluteFill,
   },
 
-  cameraOffAvatarPlaceholder: {
+  cameraOffAvatar: {
+    width: 112,
+    height: 112,
+    borderRadius: 56,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#164e63",
   },
 
   cameraOffBadge: {
-    width: 48,
-    height: 48,
-    marginTop: -28,
+    width: 44,
+    height: 44,
+    marginTop: -32,
     marginBottom: 4,
-    borderRadius: 24,
+    borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#0f172a",
@@ -226,32 +157,8 @@ const styles = StyleSheet.create({
     borderColor: "#334155",
   },
 
-  cameraOffBadgeCompact: {
-    width: 28,
-    height: 28,
-    marginTop: -16,
-    marginBottom: 0,
-    borderRadius: 14,
-  },
-
-  cameraOffName: {
-    color: "#f8fafc",
-    fontSize: 22,
-    fontWeight: "700",
-  },
-
-  cameraOffText: {
-    color: "#94a3b8",
-    fontSize: 15,
-    fontWeight: "600",
-  },
-
-  localCameraOffText: {
-    color: "#e2e8f0",
-    fontSize: 11,
-    fontWeight: "700",
-    textAlign: "center",
-  },
+  cameraOffName: { color: "#f8fafc", fontSize: 16, fontWeight: "800" },
+  cameraOffText: { color: "#cbd5e1", fontSize: 14, fontWeight: "700" },
 
   pipPreview: {
     position: "absolute",

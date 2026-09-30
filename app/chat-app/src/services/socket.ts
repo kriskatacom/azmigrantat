@@ -111,6 +111,7 @@ interface ServerToClientEvents {
   "auth:revoked": (payload: { reason: string }) => void;
 
   "live:viewer-count": (payload: { live_id: number; viewer_count: number }) => void;
+  "live:camera-state": (payload: { live_id: number; user_id: number; camera_enabled: boolean }) => void;
   "live:comment": (payload: LiveComment) => void;
   "live:reaction": (payload: {
     live_id: number;
@@ -145,6 +146,7 @@ interface ClientToServerEvents {
   "live:leave": (payload: { live_id: number }) => void;
   "live:comment": (payload: { live_id: number; body: string }) => void;
   "live:reaction": (payload: { live_id: number; type: LiveReactionType }) => void;
+  "live:camera-state": (payload: { live_id: number; camera_enabled: boolean }) => void;
   "live:talk-request": (payload: { live_id: number }) => void;
   "live:talk-request:accept": (payload: { live_id: number; request_id: string }) => void;
   "live:talk-request:reject": (payload: { live_id: number; request_id: string }) => void;

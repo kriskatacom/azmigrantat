@@ -29,7 +29,28 @@ type RealtimeSocket = Socket<
     SocketData
 >;
 
-const REACTION_TYPES = new Set<LiveReactionType>(['like', 'heart', 'fire', 'clap', 'wow']);
+const REACTION_TYPES = new Set<LiveReactionType>([
+    'like',
+    'heart',
+    'fire',
+    'clap',
+    'wow',
+    'laugh',
+    'sad',
+    'angry',
+    'party',
+    'rocket',
+    'cool',
+    'kiss',
+    'wink',
+    'surprised',
+    'cry',
+    'scream',
+    'poop',
+    'sparkles',
+    'star',
+    'pray',
+]);
 const VIEWER_COUNT_BROADCAST_MS = 150;
 const VIEWER_COUNT_PERSIST_MS = 2_000;
 const TALK_REQUEST_TTL_MS = 60_000;
@@ -154,6 +175,22 @@ export class LiveService {
                 id: socket.data.user.id,
                 name: socket.data.user.name,
             },
+        });
+    }
+
+    async cameraState(socket: RealtimeSocket, liveId: number, enabled: boolean): Promise<void> {
+        const authorization = await this.authorize(liveId, socket.data.user.id, 'join');
+        if (
+            !authorization.authorized ||
+            (authorization.role !== 'streamer' && authorization.role !== 'viewer')
+        ) {
+            return;
+        }
+
+        this.io.to(liveRoomName(liveId)).emit('live:camera-state', {
+            live_id: liveId,
+            user_id: socket.data.user.id,
+            camera_enabled: enabled,
         });
     }
 
@@ -317,6 +354,23 @@ export class LiveService {
         liveId: number,
         requestId?: string,
     ): Promise<void> {
+        const authorization = await this.authorize(liveId, socket.data.user.id, 'talk_accept');
+        if (authorization.authorized && authorization.role === 'streamer') {
+            const request = requestId ? this.talkRequests.get(requestId) : undefined;
+            if (!request || request.liveId !== liveId || request.status !== 'accepted') {
+                this.emitError(
+                    socket,
+                    liveId,
+                    'LIVE_TALK_REQUEST_INVALID',
+                    'Активният разговор не е намерен.',
+                );
+                return;
+            }
+
+            this.updateTalkRequest(request, 'cancelled');
+            return;
+        }
+
         const request = [...this.talkRequests.values()].find(
             (item) =>
                 item.liveId === liveId &&
@@ -451,6 +505,18 @@ export class LiveService {
 
     private updateTalkRequest(request: TalkRequest, status: LiveTalkRequestStatus): void {
         request.status = status;
+        if (
+            status !== 'pending' &&
+            status !== 'accepted' &&
+            request.mediaSession &&
+            this.mediaNodes
+        ) {
+            void this.mediaNodes
+                .closeSession(request.liveId, request.mediaSession)
+                .catch((error) => {
+                    console.error('[live] failed to close speaker media session', error);
+                });
+        }
         this.emitTalkRequestUpdate(request.viewerSocketId, request);
         const streamerSocketId = this.store.socketIdForRole(request.liveId, 'streamer');
         if (streamerSocketId) {

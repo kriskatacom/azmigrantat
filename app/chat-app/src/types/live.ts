@@ -16,7 +16,27 @@ export interface LiveMediaSessionData {
   router_rtp_capabilities: unknown;
 }
 
-export type LiveReactionType = "like" | "heart" | "fire" | "clap" | "wow";
+export type LiveReactionType =
+  | "like"
+  | "heart"
+  | "fire"
+  | "clap"
+  | "wow"
+  | "laugh"
+  | "sad"
+  | "angry"
+  | "party"
+  | "rocket"
+  | "cool"
+  | "kiss"
+  | "wink"
+  | "surprised"
+  | "cry"
+  | "scream"
+  | "poop"
+  | "sparkles"
+  | "star"
+  | "pray";
 
 export interface LiveUser {
   id: number;
@@ -89,4 +109,19 @@ export const LIVE_REACTION_TYPES: {
   { type: "clap", emoji: "👏" },
   { type: "wow", emoji: "😮" },
   { type: "like", emoji: "👍" },
+  { type: "laugh", emoji: "😂" },
+  { type: "sad", emoji: "😢" },
+  { type: "angry", emoji: "😡" },
+  { type: "party", emoji: "🎉" },
+  { type: "rocket", emoji: "🚀" },
+  { type: "cool", emoji: "😎" },
+  { type: "kiss", emoji: "😘" },
+  { type: "wink", emoji: "😉" },
+  { type: "surprised", emoji: "😲" },
+  { type: "cry", emoji: "😭" },
+  { type: "scream", emoji: "😱" },
+  { type: "poop", emoji: "💩" },
+  { type: "sparkles", emoji: "✨" },
+  { type: "star", emoji: "⭐" },
+  { type: "pray", emoji: "🙏" },
 ];

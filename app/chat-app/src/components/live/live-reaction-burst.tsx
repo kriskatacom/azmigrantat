@@ -13,16 +13,18 @@ function emojiFor(type: LiveReactionEvent["type"]): string {
 function FloatingEmoji({
   reaction,
   onDone,
+  liftDistance,
 }: {
   reaction: LiveReactionEvent;
   onDone: (id: string) => void;
+  liftDistance: number;
 }) {
   const translateY = useRef(new Animated.Value(0)).current;
   const translateX = useRef(new Animated.Value(0)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(0.35)).current;
   const drift = useMemo(() => (Math.random() - 0.5) * 36, []);
-  const lift = useMemo(() => 140 + Math.random() * 70, []);
+  const lift = useMemo(() => liftDistance + Math.random() * 90, [liftDistance]);
 
   useEffect(() => {
     const animation = Animated.parallel([
@@ -149,10 +151,12 @@ export default function LiveReactionBurst({
   reactions,
   showChips = true,
   chipBottom = 14,
+  liftDistance = 220,
 }: {
   reactions: LiveReactionEvent[];
   showChips?: boolean;
-  chipBottom?: number;
+  chipBottom?: number | `${number}%`;
+  liftDistance?: number;
 }) {
   const [now, setNow] = useState(() => Date.now());
   const visible = reactions.slice(-8);
@@ -186,7 +190,12 @@ export default function LiveReactionBurst({
       ) : null}
       <View style={styles.burst}>
         {visible.map((reaction) => (
-          <FloatingEmoji key={reaction.id} reaction={reaction} onDone={() => undefined} />
+          <FloatingEmoji
+            key={reaction.id}
+            reaction={reaction}
+            liftDistance={liftDistance}
+            onDone={() => undefined}
+          />
         ))}
       </View>
     </View>

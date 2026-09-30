@@ -7,6 +7,7 @@ const initialState: LiveMediaState = {
   error: null,
   muted: false,
   cameraEnabled: true,
+  cameraFacing: "user",
   session: null,
   localStream: null,
   remoteStream: null,
@@ -99,6 +100,12 @@ export function useLiveMedia() {
     return cameraEnabled;
   }, [updateState]);
 
+  const switchCamera = useCallback(async () => {
+    const cameraFacing = await providerRef.current.switchCamera();
+    updateState(providerRef.current.getState?.() ?? ((current) => ({ ...current, cameraFacing })));
+    return cameraFacing;
+  }, [updateState]);
+
   return {
     providerName: providerRef.current.name,
     role: (state.session?.role ?? null) as LiveMediaRole | null,
@@ -111,5 +118,6 @@ export function useLiveMedia() {
     stopTalking,
     muteAudio,
     toggleCamera,
+    switchCamera,
   };
 }

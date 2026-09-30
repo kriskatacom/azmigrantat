@@ -1,10 +1,14 @@
 import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
 import LiveCommentComposer from "@/components/live/live-comment-composer";
-import LiveCommentList from "@/components/live/live-comment-list";
+import LiveCommentTicker from "@/components/live/live-comment-ticker";
+import LiveCommentsModal from "@/components/live/live-comments-modal";
+import LiveActiveTalkersModal from "@/components/live/live-active-talkers-modal";
+import LiveReactionsModal from "@/components/live/live-reactions-modal";
 import LiveScreenRoot from "@/components/live/live-screen-root";
 import LiveStage from "@/components/live/live-stage";
 import AppButton from "@/components/ui/AppButton";
+import RemoteImage from "@/components/ui/RemoteImage";
 import { useChatKeyboard } from "@/hooks/chat/useChatKeyboard";
 import { useLiveFullscreenBack } from "@/hooks/live/useLiveFullscreenBack";
 import { useLiveMedia } from "@/hooks/live/useLiveMedia";
@@ -14,10 +18,13 @@ import { endLive, getLive, listLiveComments } from "@/services/live";
 import { isNetworkError } from "@/services/network-guard";
 import { goToLiveCatalog } from "@/utils/live-navigation";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
+  Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -35,15 +42,25 @@ export default function LiveStreamerScreen() {
   const validLiveId = Number.isInteger(liveId) && liveId > 0 ? liveId : null;
   const media = useLiveMedia();
   const room = useLiveRoom(validLiveId);
-  const { keyboardVisible } = useChatKeyboard();
+  const { keyboardVisible, keyboardOverlap } = useChatKeyboard();
   const leavingRef = useRef(false);
   const [title, setTitle] = useState("");
   const [coverUri, setCoverUri] = useState<string | null>(null);
   const [comment, setComment] = useState("");
   const [ending, setEnding] = useState(false);
-  const [fullscreen, setFullscreen] = useState(false);
+  const [commentsVisible, setCommentsVisible] = useState(false);
+  const [activeTalkersVisible, setActiveTalkersVisible] = useState(false);
+  const [reactionsVisible, setReactionsVisible] = useState(false);
+  const [fullscreen, setFullscreen] = useState(true);
   const exitFullscreen = useCallback(() => setFullscreen(false), []);
   useLiveFullscreenBack(fullscreen, exitFullscreen);
+
+  useEffect(() => {
+    if (media.connected) {
+      setFullscreen(true);
+    }
+  }, [media.connected]);
+
   const overlayBottom = 16;
   const composerBarStyle = {
     backgroundColor: theme.colors.card,
@@ -193,57 +210,123 @@ export default function LiveStreamerScreen() {
         hint="Тук по-късно влиза LiveKit SFU, не 1:1 WebRTC."
         coverUri={coverUri}
         onToggleFullscreen={() => setFullscreen((value) => !value)}
+        onOpenComments={() => setCommentsVisible(true)}
+        onOpenTalkers={() => setActiveTalkersVisible(true)}
+        onOpenMoreReactions={() => setReactionsVisible(true)}
+        onToggleMicrophone={() => void media.muteAudio(!media.muted)}
+        onToggleCamera={() => void media.toggleCamera().then((enabled) => room.sendCameraState(enabled))}
+        onSwitchCamera={() => void media.switchCamera().catch((error) => Alert.alert("Грешка", error instanceof Error ? error.message : "Камерата не може да бъде превключена."))}
         onReact={room.sendReaction}
         topInset={0}
         bottomInset={fullscreen ? overlayBottom : 16}
         localStream={media.localStream}
         remoteStream={media.remoteStream}
+        remoteCameraEnabled={room.remoteCameraEnabled}
         showLocalVideo={media.cameraEnabled}
         cameraEnabled={media.cameraEnabled}
+        cameraFacing={media.cameraFacing}
         microphoneEnabled={!media.muted}
-        topLeft={
+        topRight={
           fullscreen ? (
             <TouchableOpacity
-              style={styles.endChip}
+              style={styles.endIconButton}
               onPress={() => void onEnd()}
               disabled={ending}
+              accessibilityRole="button"
+              accessibilityLabel="Край на предаването"
             >
-              <Text style={styles.endChipText}>{ending ? "..." : "Край"}</Text>
+              <Ionicons
+                name={ending ? "hourglass-outline" : "stop-circle-outline"}
+                size={20}
+                color="#ffffff"
+              />
             </TouchableOpacity>
           ) : null
         }
       >
-        {fullscreen ? (
-          <View style={[styles.fullscreenComments, { bottom: overlayBottom }]}>
-            <LiveCommentList
-              comments={room.comments}
-              onPressUser={openCommenterProfile}
-              keyboardVisible={keyboardVisible}
-            />
-          </View>
-        ) : null}
+        <LiveCommentTicker comment={room.latestIncomingComment} />
       </LiveStage>
-      {room.incomingTalkRequests.map((request) => (
-        <View key={request.request_id} style={styles.talkRequestCard}>
-          <Text style={[styles.talkRequestText, { color: theme.colors.text }]}>
-            {request.viewer.name} иска да говори с теб.
-          </Text>
-          <View style={styles.talkRequestActions}>
-            <TouchableOpacity
-              style={styles.talkAcceptButton}
-              onPress={() => room.acceptTalkRequest(request.request_id)}
-            >
-              <Text style={styles.talkActionText}>Приеми</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.talkRejectButton}
-              onPress={() => room.rejectTalkRequest(request.request_id)}
-            >
-              <Text style={styles.talkActionText}>Откажи</Text>
-            </TouchableOpacity>
+      <LiveCommentsModal
+        visible={commentsVisible}
+        comments={room.comments}
+        onClose={() => setCommentsVisible(false)}
+        onPressUser={openCommenterProfile}
+        comment={comment}
+        onChangeComment={setComment}
+        onSendComment={sendComment}
+      />
+      <LiveActiveTalkersModal
+        visible={activeTalkersVisible}
+        talkers={room.acceptedTalkRequests}
+        onClose={() => setActiveTalkersVisible(false)}
+        onRemove={(requestId) => room.cancelTalkRequest(requestId)}
+        onPressUser={openCommenterProfile}
+      />
+      <LiveReactionsModal
+        visible={reactionsVisible}
+        onClose={() => setReactionsVisible(false)}
+        onReact={room.sendReaction}
+        comment={comment}
+        onChangeComment={setComment}
+        onSendComment={sendComment}
+      />
+      {room.incomingTalkRequests.length > 0 ? (
+        <View style={styles.talkRequestsPanel}>
+          <View style={styles.talkRequestsHeader}>
+            <Ionicons name="mic-outline" size={18} color="#ffffff" />
+            <Text style={styles.talkRequestsTitle}>
+              Заявки за разговор ({room.incomingTalkRequests.length})
+            </Text>
           </View>
+          <ScrollView
+            style={styles.talkRequestsScroll}
+            contentContainerStyle={styles.talkRequestsContent}
+            showsVerticalScrollIndicator={false}
+            nestedScrollEnabled
+          >
+            {room.incomingTalkRequests.map((request) => (
+              <View key={request.request_id} style={styles.talkRequestCard}>
+                <Pressable
+                  style={styles.talkRequestUser}
+                  onPress={() => openCommenterProfile(request.viewer.id)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Профил на ${request.viewer.name}`}
+                >
+                  {request.viewer.profile_image ? (
+                    <RemoteImage uri={request.viewer.profile_image} style={styles.talkRequestAvatar} />
+                  ) : (
+                    <View style={styles.talkRequestAvatarFallback}>
+                      <Ionicons name="person" size={20} color="#ffffff" />
+                    </View>
+                  )}
+                  <View style={styles.talkRequestUserText}>
+                    <Text style={styles.talkRequestName} numberOfLines={1}>{request.viewer.name}</Text>
+                    <Text style={styles.talkRequestSubtitle}>Иска да говори с теб</Text>
+                  </View>
+                </Pressable>
+                <View style={styles.talkRequestActions}>
+                  <TouchableOpacity
+                    style={styles.talkAcceptButton}
+                    onPress={() => room.acceptTalkRequest(request.request_id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Приеми заявката от ${request.viewer.name}`}
+                  >
+                    <Ionicons name="checkmark" size={18} color="#ffffff" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.talkRejectButton}
+                    onPress={() => room.rejectTalkRequest(request.request_id)}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Откажи заявката от ${request.viewer.name}`}
+                  >
+                    <Ionicons name="close" size={18} color="#ffffff" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+          </ScrollView>
         </View>
-      ))}
+      ) : null}
       {fullscreen || keyboardVisible ? null : (
         <View style={styles.controls}>
           <TouchableOpacity
@@ -261,15 +344,18 @@ export default function LiveStreamerScreen() {
           </TouchableOpacity>
         </View>
       )}
-      {fullscreen ? null : (
-        <LiveCommentList
-          comments={room.comments}
-          onPressUser={openCommenterProfile}
-          keyboardVisible={keyboardVisible}
-        />
-      )}
-      {fullscreen ? (
-        <View style={[styles.fullscreenComposer, composerBarStyle]}>
+      {reactionsVisible ? null : fullscreen ? (
+        <View
+          style={[
+            styles.fullscreenComposer,
+            composerBarStyle,
+            {
+              bottom: keyboardVisible ? keyboardOverlap + 8 : 0,
+              paddingBottom: keyboardVisible ? 8 : Math.max(insets.bottom + 16, 24),
+              backgroundColor: "transparent",
+            },
+          ]}
+        >
           <LiveCommentComposer
             value={comment}
             placeholder="Напиши коментар"
@@ -277,6 +363,8 @@ export default function LiveStreamerScreen() {
             onSend={sendComment}
             keyboardVisible={keyboardVisible}
             compact
+            transparentBackground
+            showSendButton={keyboardVisible}
             colors={theme.colors}
           />
         </View>
@@ -289,6 +377,7 @@ export default function LiveStreamerScreen() {
             onSend={sendComment}
             keyboardVisible={keyboardVisible}
             compact
+            showSendButton={keyboardVisible}
             colors={theme.colors}
           />
           {keyboardVisible ? null : (
@@ -314,28 +403,47 @@ const styles = StyleSheet.create({
   controlText: { fontWeight: "700" },
   bottomBar: { width: "100%" },
   footer: { paddingHorizontal: 16, paddingTop: 8 },
-  fullscreenComments: {
+  fullscreenComposer: {
     position: "absolute",
     left: 0,
-    right: 70,
-    height: 180,
-  },
-  fullscreenComposer: {
+    right: 0,
+    bottom: 0,
     width: "100%",
+    paddingHorizontal: 16,
+    zIndex: 10,
   },
-  endChip: {
-    paddingHorizontal: 12,
+  endIconButton: {
+    width: 36,
     height: 36,
     borderRadius: 18,
     backgroundColor: "#dc2626",
     alignItems: "center",
     justifyContent: "center",
   },
-  endChipText: { color: "#ffffff", fontWeight: "800", fontSize: 12 },
-  talkRequestCard: { marginHorizontal: 16, marginTop: 10, padding: 12, borderRadius: 12, backgroundColor: "rgba(37, 99, 235, 0.12)", gap: 10 },
-  talkRequestText: { fontWeight: "700" },
-  talkRequestActions: { flexDirection: "row", gap: 10 },
-  talkAcceptButton: { flex: 1, padding: 10, borderRadius: 10, alignItems: "center", backgroundColor: "#16a34a" },
-  talkRejectButton: { flex: 1, padding: 10, borderRadius: 10, alignItems: "center", backgroundColor: "#dc2626" },
-  talkActionText: { color: "#fff", fontWeight: "800" },
+  talkRequestsPanel: {
+    position: "absolute",
+    top: 118,
+    left: 16,
+    right: 16,
+    zIndex: 30,
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: "rgba(8, 12, 24, 0.92)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.18)",
+  },
+  talkRequestsHeader: { flexDirection: "row", alignItems: "center", gap: 8, paddingBottom: 8 },
+  talkRequestsTitle: { color: "#ffffff", fontWeight: "800", fontSize: 15 },
+  talkRequestsScroll: { maxHeight: 300 },
+  talkRequestsContent: { gap: 8 },
+  talkRequestCard: { flexDirection: "row", alignItems: "center", gap: 10, padding: 8, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.1)" },
+  talkRequestUser: { flex: 1, flexDirection: "row", alignItems: "center", gap: 10, minWidth: 0 },
+  talkRequestAvatar: { width: 42, height: 42, borderRadius: 21 },
+  talkRequestAvatarFallback: { width: 42, height: 42, borderRadius: 21, alignItems: "center", justifyContent: "center", backgroundColor: "#475569" },
+  talkRequestUserText: { flex: 1, minWidth: 0 },
+  talkRequestName: { color: "#ffffff", fontWeight: "800", fontSize: 14 },
+  talkRequestSubtitle: { color: "#cbd5e1", fontSize: 12, marginTop: 2 },
+  talkRequestActions: { flexDirection: "row", gap: 8 },
+  talkAcceptButton: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: "#16a34a" },
+  talkRejectButton: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: "#dc2626" },
 });

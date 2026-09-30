@@ -12,6 +12,7 @@ export class MockLiveMediaProvider implements LiveMediaProvider {
     error: null,
     muted: false,
     cameraEnabled: true,
+    cameraFacing: "user",
     session: null,
     localStream: null,
     remoteStream: null,
@@ -28,6 +29,7 @@ export class MockLiveMediaProvider implements LiveMediaProvider {
       error: null,
       muted: false,
       cameraEnabled: true,
+      cameraFacing: "user",
       session,
       localStream: null,
       remoteStream: null,
@@ -42,6 +44,7 @@ export class MockLiveMediaProvider implements LiveMediaProvider {
       error: null,
       muted: false,
       cameraEnabled: true,
+      cameraFacing: "user",
       session,
       localStream: null,
       remoteStream: null,
@@ -82,12 +85,20 @@ export class MockLiveMediaProvider implements LiveMediaProvider {
     return cameraEnabled;
   }
 
+  async switchCamera(): Promise<"user" | "environment"> {
+    const cameraFacing = this.state.cameraFacing === "user" ? "environment" : "user";
+    this.state = { ...this.state, cameraFacing };
+    console.log("[LiveMedia:mock] switchCamera", cameraFacing);
+    return cameraFacing;
+  }
+
   private reset(): void {
     this.state = {
       connected: false,
       error: null,
       muted: false,
       cameraEnabled: true,
+      cameraFacing: "user",
       session: null,
       localStream: null,
       remoteStream: null,
