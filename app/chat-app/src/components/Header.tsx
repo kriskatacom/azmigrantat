@@ -1,4 +1,3 @@
-import { useAppTheme } from "@/app/_layout";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import type { ReactNode } from "react";
@@ -27,9 +26,11 @@ export default function Header({
   notificationCount = 0,
   actions,
 }: HeaderProps) {
-  const { theme } = useAppTheme();
   const router = useRouter();
   const canGoBack = router.canGoBack();
+  const headerBackground = "#111827";
+  const headerForeground = "#ffffff";
+  const headerSecondary = "#d1d5db";
 
   return (
     <>
@@ -37,19 +38,19 @@ export default function Header({
         style={[
           styles.headerContainer,
           {
-            backgroundColor: theme.colors.card,
-            borderBottomColor: theme.colors.border,
+            backgroundColor: headerBackground,
+            borderBottomColor: "#273244",
           },
         ]}
       >
         <View style={styles.brandBlock}>
           <Image
-            source={require("../../assets/images/eto-me.png")}
+            source={require("../../assets/images/logo-dark.png")}
             style={styles.logo}
             resizeMode="contain"
           />
           {brandTitle ? (
-            <Text style={[styles.brandTitle, { color: theme.colors.text }]} numberOfLines={2}>
+            <Text style={[styles.brandTitle, { color: headerForeground }]} numberOfLines={2}>
               {brandTitle}
             </Text>
           ) : null}
@@ -62,13 +63,14 @@ export default function Header({
               style={[
                 styles.headerIconButton,
                 {
-                  backgroundColor: theme.colors.background,
+                  backgroundColor: "transparent",
+                  borderColor: "#374151",
                 },
               ]}
               accessibilityRole="button"
               accessibilityLabel="Търсене на постове"
             >
-              <FontAwesome name="search" size={24} color={theme.colors.icon} />
+              <FontAwesome name="search" size={24} color={headerForeground} />
             </TouchableOpacity>
           )}
 
@@ -78,7 +80,8 @@ export default function Header({
               style={[
                 styles.headerIconButton,
                 {
-                  backgroundColor: theme.colors.background,
+                  backgroundColor: "transparent",
+                  borderColor: "#374151",
                 },
               ]}
               accessibilityRole="button"
@@ -88,7 +91,7 @@ export default function Header({
                   : "Известия"
               }
             >
-              <FontAwesome name="bell" size={22} color={theme.colors.icon} />
+              <FontAwesome name="bell" size={22} color={headerForeground} />
               {notificationCount > 0 ? (
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>
@@ -105,13 +108,14 @@ export default function Header({
               style={[
                 styles.headerIconButton,
                 {
-                  backgroundColor: theme.colors.background,
+                  backgroundColor: "transparent",
+                  borderColor: "#374151",
                 },
               ]}
               accessibilityRole="button"
               accessibilityLabel="Вход"
             >
-              <FontAwesome name="user" size={24} color={theme.colors.icon} />
+              <FontAwesome name="user" size={24} color={headerForeground} />
             </TouchableOpacity>
           )}
 
@@ -123,8 +127,8 @@ export default function Header({
         style={[
           styles.header,
           {
-            backgroundColor: theme.colors.card,
-            borderBottomColor: theme.colors.border,
+            backgroundColor: headerBackground,
+            borderBottomColor: "#273244",
           },
         ]}
       >
@@ -145,7 +149,7 @@ export default function Header({
             <FontAwesome
               name={canGoBack ? "chevron-left" : "home"}
               size={20}
-              color={theme.colors.text}
+              color={headerForeground}
             />
           </TouchableOpacity>
         ) : (
@@ -157,7 +161,7 @@ export default function Header({
             style={[
               styles.title,
               {
-                color: theme.colors.text,
+                color: headerForeground,
               },
             ]}
             numberOfLines={1}
@@ -166,7 +170,7 @@ export default function Header({
           </Text>
           {subtitle ? (
             <Text
-              style={[styles.subtitle, { color: theme.colors.textSecondary }]}
+              style={[styles.subtitle, { color: headerSecondary }]}
               numberOfLines={3}
             >
               {subtitle}
@@ -235,8 +239,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   logo: {
-    width: 50,
-    height: 50,
+    width: 108,
+    height: 54,
+    marginRight: 4,
   },
   brandTitle: {
     maxWidth: 220,
@@ -251,6 +256,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     overflow: "visible",
+    borderWidth: 1,
   },
   badge: {
     position: "absolute",

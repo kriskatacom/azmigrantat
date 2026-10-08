@@ -67,6 +67,7 @@ function PlayerSurface({
   onSwipeUp?: () => void;
 }) {
   const [isPlaying, setIsPlaying] = useState(true);
+  const [captionInteractionKey, setCaptionInteractionKey] = useState(0);
 
   const swipeGesture = useMemo(
     () =>
@@ -94,6 +95,7 @@ function PlayerSurface({
         active
         contentFit="cover"
         showControls={false}
+        onVideoPress={() => setCaptionInteractionKey((key) => key + 1)}
         onPlaybackChange={setIsPlaying}
         style={styles.player}
       />
@@ -107,8 +109,10 @@ function PlayerSurface({
       <VideoCaption
         title={title}
         description={description}
-        visible={!isPlaying}
+        visible
         bottomOffset={32}
+        interactionKey={captionInteractionKey}
+        isPlaying={isPlaying}
       />
     </View>
   );

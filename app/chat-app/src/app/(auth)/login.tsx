@@ -454,7 +454,7 @@ export default function LoginScreen() {
           automaticallyAdjustKeyboardInsets
         >
           <Image
-            source={require("../../../assets/images/eto-me.png")}
+            source={require("../../../assets/images/logo-dark.png")}
             style={styles.logo}
             resizeMode="contain"
           />

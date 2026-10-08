@@ -45,6 +45,16 @@ function withNoSandbox(args) {
   return args.includes("--no-sandbox") ? args : ["--no-sandbox", ...args];
 }
 
+function getLaunchArgs(flavor, baseArgs, args) {
+  if (flavor === "dev") {
+    // Electron flags must come before the application entry point. If they are
+    // appended after index.js, Node's argument parser treats them as app args.
+    return [...withNoSandbox([]), ...baseArgs, ...args];
+  }
+
+  return [...baseArgs, ...withNoSandbox(args)];
+}
+
 debuggerShell.unstable_prepareDebuggerShell = async function unstable_prepareDebuggerShell({
   prebuiltBinaryPath,
   flavor = process.env.RNDT_DEV === "1" ? "dev" : "prebuilt",
@@ -65,10 +75,10 @@ debuggerShell.unstable_prepareDebuggerShell = async function unstable_prepareDeb
       flavor,
       prebuiltBinaryPath,
     );
-    const { code, stderr } = await spawnAndGetStderr(binaryPath, [
-      ...baseArgs,
-      ...withNoSandbox(["--version"]),
-    ]);
+    const { code, stderr } = await spawnAndGetStderr(
+      binaryPath,
+      getLaunchArgs(flavor, baseArgs, ["--version"]),
+    );
 
     if (code !== 0) {
       return {
@@ -104,7 +114,7 @@ debuggerShell.unstable_spawnDebuggerShellWithArgs = async function unstable_spaw
     const { ELECTRON_RUN_AS_NODE: _, ...env } = process.env;
     const child = spawn(
       binaryPath,
-      [...baseArgs, ...withNoSandbox(args)],
+      getLaunchArgs(flavor, baseArgs, args),
       {
         stdio: ["ignore", "pipe", "pipe"],
         windowsHide: true,

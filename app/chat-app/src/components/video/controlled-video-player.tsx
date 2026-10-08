@@ -9,6 +9,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 const SEEK_STEP_SECONDS = 10;
 const DOUBLE_TAP_DELAY_MS = 260;
 const SEEK_SEQUENCE_RESET_MS = 900;
+const PLAYBACK_INDICATOR_HIDE_MS = 3000;
 
 type Props = {
   url: string;
@@ -63,6 +64,7 @@ export default function ControlledVideoPlayer({
   const pendingTapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seekResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const seekFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const playbackIndicatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSeekDirectionRef = useRef<"backward" | "forward" | null>(null);
   const accumulatedSeekRef = useRef(0);
 
@@ -87,6 +89,30 @@ export default function ControlledVideoPlayer({
     setCurrentTime(nextCurrentTime);
     if (player.duration > 0) setDuration(player.duration);
   });
+
+  useEffect(() => {
+    if (playbackIndicatorTimerRef.current) {
+      clearTimeout(playbackIndicatorTimerRef.current);
+      playbackIndicatorTimerRef.current = null;
+    }
+
+    if (!isPlaying) {
+      setIsPlaybackIndicatorVisible(true);
+      return;
+    }
+
+    playbackIndicatorTimerRef.current = setTimeout(() => {
+      setIsPlaybackIndicatorVisible(false);
+      playbackIndicatorTimerRef.current = null;
+    }, PLAYBACK_INDICATOR_HIDE_MS);
+
+    return () => {
+      if (playbackIndicatorTimerRef.current) {
+        clearTimeout(playbackIndicatorTimerRef.current);
+        playbackIndicatorTimerRef.current = null;
+      }
+    };
+  }, [isPlaying]);
 
   useEffect(() => {
     if (!active) {
@@ -153,6 +179,7 @@ export default function ControlledVideoPlayer({
       if (pendingTapTimerRef.current) clearTimeout(pendingTapTimerRef.current);
       if (seekResetTimerRef.current) clearTimeout(seekResetTimerRef.current);
       if (seekFeedbackTimerRef.current) clearTimeout(seekFeedbackTimerRef.current);
+      if (playbackIndicatorTimerRef.current) clearTimeout(playbackIndicatorTimerRef.current);
     };
   }, []);
 

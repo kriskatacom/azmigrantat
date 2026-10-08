@@ -42,6 +42,7 @@ export type PendingIncomingCallAction = {
 };
 
 const handledEvents = new Map<string, number>();
+const presentedIncomingCallIds = new Set<string>();
 const pendingActionListeners = new Set<
   (value: PendingIncomingCallAction | null) => void
 >();
@@ -283,46 +284,63 @@ export async function presentIncomingCallAlert(options: {
   callerAvatar?: string | null;
   callType?: CallType;
 }): Promise<void> {
+  if (presentedIncomingCallIds.has(options.callId)) {
+    return;
+  }
+
+  presentedIncomingCallIds.add(options.callId);
+
   const callType = parseCallType(options.callType);
   const body =
     callType === "audio"
       ? "Входящо аудио обаждане"
       : "Входящо видео обаждане";
 
-  if (Platform.OS === "android") {
-    await displayIncomingCallNative({
-      callId: options.callId,
-      callerId: options.callerId,
-      callerName: options.callerName?.trim() || "Потребител",
-      callerAvatar: options.callerAvatar,
-      callType,
-    });
-    return;
-  }
+  try {
+    if (Platform.OS === "android") {
+      await displayIncomingCallNative({
+        callId: options.callId,
+        callerId: options.callerId,
+        callerName: options.callerName?.trim() || "Потребител",
+        callerAvatar: options.callerAvatar,
+        callType,
+      });
+      return;
+    }
 
-  await Notifications.scheduleNotificationAsync({
-    identifier: incomingCallNotificationId(options.callId),
-    content: {
-      title: options.callerName?.trim() || "Потребител",
-      body,
-      sound: "incoming_call.wav",
-      categoryIdentifier: INCOMING_CALL_CATEGORY,
-      interruptionLevel: "timeSensitive",
-      data: {
-        type: "incoming_call",
-        call_id: options.callId,
-        caller_id: options.callerId,
-        caller_name: options.callerName,
-        caller_avatar: options.callerAvatar,
-        call_type: callType,
-        timestamp: Date.now(),
+    await Notifications.scheduleNotificationAsync({
+      identifier: incomingCallNotificationId(options.callId),
+      content: {
+        title: options.callerName?.trim() || "Потребител",
+        body,
+        sound: "incoming_call.wav",
+        categoryIdentifier: INCOMING_CALL_CATEGORY,
+        interruptionLevel: "timeSensitive",
+        data: {
+          type: "incoming_call",
+          call_id: options.callId,
+          caller_id: options.callerId,
+          caller_name: options.callerName,
+          caller_avatar: options.callerAvatar,
+          call_type: callType,
+          timestamp: Date.now(),
+        },
       },
-    },
-    trigger: null,
-  });
+      trigger: null,
+    });
+  } catch (error) {
+    presentedIncomingCallIds.delete(options.callId);
+    throw error;
+  }
 }
 
 export async function dismissIncomingCallAlert(callId?: string): Promise<void> {
+  if (callId) {
+    presentedIncomingCallIds.delete(callId);
+  } else {
+    presentedIncomingCallIds.clear();
+  }
+
   if (callId) {
     await dismissIncomingCallNative(callId);
 

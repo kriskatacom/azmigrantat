@@ -6,7 +6,8 @@ import type { LiveReactionEvent } from "@/hooks/live/useLiveRoom";
 import type { LiveReactionType } from "@/types/live";
 import { Ionicons } from "@expo/vector-icons";
 import type { ReactNode } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Animated, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import type { MediaStream } from "react-native-webrtc";
 import VideoCallView from "@/components/video/video-call-view";
 
@@ -64,6 +65,43 @@ export default function LiveStage({
   remoteCameraEnabled = true,
 }: LiveStageProps) {
   const hasMediaStream = Boolean(localStream || remoteStream);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  const controlsOpacity = useRef(new Animated.Value(1)).current;
+  const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearHideControlsTimer = useCallback(() => {
+    if (hideControlsTimer.current) {
+      clearTimeout(hideControlsTimer.current);
+      hideControlsTimer.current = null;
+    }
+  }, []);
+
+  const showControls = useCallback(() => {
+    clearHideControlsTimer();
+    setControlsVisible(true);
+    Animated.timing(controlsOpacity, {
+      toValue: 1,
+      duration: 220,
+      useNativeDriver: true,
+    }).start();
+    hideControlsTimer.current = setTimeout(() => {
+      setControlsVisible(false);
+      Animated.timing(controlsOpacity, {
+        toValue: 0,
+        duration: 320,
+        useNativeDriver: true,
+      }).start();
+      hideControlsTimer.current = null;
+    }, 3000);
+  }, [clearHideControlsTimer, controlsOpacity]);
+
+  useEffect(() => {
+    if (connected) {
+      showControls();
+    }
+
+    return clearHideControlsTimer;
+  }, [clearHideControlsTimer, connected, showControls]);
 
   return (
     <View
@@ -89,9 +127,20 @@ export default function LiveStage({
         </View>
       ) : null}
 
-      {connected && (localStream || onOpenComments) ? (
-        <View style={styles.captureStatusFullscreen}>
-          {!localStream && topRight ? (
+      <Pressable
+        style={styles.controlsRevealArea}
+        onPress={showControls}
+        accessibilityRole="button"
+        accessibilityLabel="Покажи контролите"
+      />
+
+      <Animated.View
+        pointerEvents={controlsVisible ? "auto" : "none"}
+        style={[styles.controlsOverlay, { opacity: controlsOpacity }]}
+      >
+        {connected && (localStream || onOpenComments) ? (
+          <View style={styles.captureStatusFullscreen}>
+          {topRight ? (
             <View style={styles.captureStatusEnd}>{topRight}</View>
           ) : null}
           {onOpenComments ? (
@@ -161,11 +210,8 @@ export default function LiveStage({
           </TouchableOpacity>
             </>
           ) : null}
-          {localStream && topRight ? (
-            <View style={styles.captureStatusEnd}>{topRight}</View>
-          ) : null}
-        </View>
-      ) : null}
+          </View>
+        ) : null}
 
       {!connected && !error ? (
         <View pointerEvents="none" style={styles.connecting}>
@@ -182,25 +228,26 @@ export default function LiveStage({
 
       {!hasMediaStream && connected ? <Text style={styles.label}>{label}</Text> : null}
 
-      <View style={styles.topBar}>
-        <View style={styles.topLeft}>
-          {topLeft}
+        <View style={styles.topBar}>
+          <View style={styles.topLeft}>
+            {topLeft}
+          </View>
+          <View style={styles.topRight}>
+            <LiveViewerCount count={viewerCount} variant="overlay" />
+          </View>
         </View>
-        <View style={styles.topRight}>
-          <LiveViewerCount count={viewerCount} variant="overlay" />
+
+        <View
+          style={[
+            styles.reactionRail,
+            { top: 104, bottom: bottomInset },
+          ]}
+        >
+          <LiveReactions vertical limit={5} onMore={onOpenMoreReactions} onReact={onReact} />
         </View>
-      </View>
 
-      <View
-        style={[
-          styles.reactionRail,
-          { top: 104, bottom: bottomInset },
-        ]}
-      >
-        <LiveReactions vertical limit={5} onMore={onOpenMoreReactions} onReact={onReact} />
-      </View>
-
-      {children}
+        {children}
+      </Animated.View>
 
       <LiveReactionBurst
         reactions={reactions}
@@ -246,6 +293,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+  },
+  controlsRevealArea: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 2,
+  },
+  controlsOverlay: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 3,
   },
   topRight: {
     flexDirection: "row",

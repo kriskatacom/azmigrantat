@@ -205,20 +205,42 @@ export default function LiveStreamerScreen() {
         microphoneEnabled={!media.muted}
         topRight={
           <TouchableOpacity
-            style={styles.endIconButton}
+            style={styles.endButton}
             onPress={() => void onEnd()}
             disabled={ending}
             accessibilityRole="button"
             accessibilityLabel="Край на предаването"
           >
-            <Ionicons
-              name={ending ? "hourglass-outline" : "stop-circle-outline"}
-              size={20}
-              color="#ffffff"
-            />
+            <Text style={styles.endButtonText}>{ending ? "..." : "Край"}</Text>
           </TouchableOpacity>
         }
-      />
+      >
+        {reactionsVisible ? null : (
+          <View
+            style={[
+              styles.fullscreenComposer,
+              composerBarStyle,
+              {
+                bottom: keyboardVisible ? keyboardOverlap + 8 : 0,
+                paddingBottom: keyboardVisible ? 8 : Math.max(insets.bottom + 16, 24),
+                backgroundColor: "transparent",
+              },
+            ]}
+          >
+            <LiveCommentComposer
+              value={comment}
+              placeholder="Напиши коментар"
+              onChangeText={setComment}
+              onSend={sendComment}
+              keyboardVisible={keyboardVisible}
+              compact
+              transparentBackground
+              showSendButton={keyboardVisible}
+              colors={theme.colors}
+            />
+          </View>
+        )}
+      </LiveStage>
       <LiveCommentTicker
         comment={room.latestIncomingComment}
         bottomOffset={keyboardVisible ? keyboardOverlap + 78 : insets.bottom + 108}
@@ -304,31 +326,6 @@ export default function LiveStreamerScreen() {
           </ScrollView>
         </View>
       ) : null}
-      {reactionsVisible ? null : (
-        <View
-          style={[
-            styles.fullscreenComposer,
-            composerBarStyle,
-            {
-              bottom: keyboardVisible ? keyboardOverlap + 8 : 0,
-              paddingBottom: keyboardVisible ? 8 : Math.max(insets.bottom + 16, 24),
-              backgroundColor: "transparent",
-            },
-          ]}
-        >
-          <LiveCommentComposer
-            value={comment}
-            placeholder="Напиши коментар"
-            onChangeText={setComment}
-            onSend={sendComment}
-            keyboardVisible={keyboardVisible}
-            compact
-            transparentBackground
-            showSendButton={keyboardVisible}
-            colors={theme.colors}
-          />
-        </View>
-      )}
     </LiveScreenRoot>
   );
 }
@@ -344,13 +341,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     zIndex: 10,
   },
-  endIconButton: {
-    width: 36,
+  endButton: {
+    minWidth: 58,
     height: 36,
+    paddingHorizontal: 14,
     borderRadius: 18,
     backgroundColor: "#dc2626",
     alignItems: "center",
     justifyContent: "center",
+  },
+  endButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "800",
   },
   talkRequestsPanel: {
     position: "absolute",

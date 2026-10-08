@@ -1,15 +1,12 @@
-import { useAppTheme } from "@/app/_layout";
-import { Ionicons } from "@expo/vector-icons";
+import Animated, {
+  LinearTransition,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import { useEffect, useRef, useState } from "react";
-import {
-  Animated,
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Props = {
@@ -22,6 +19,8 @@ type Props = {
   bottomOffset?: number;
   topOffset?: number;
   maxHeight?: number;
+  interactionKey?: number;
+  isPlaying?: boolean;
 };
 
 export default function VideoCaption({
@@ -29,89 +28,110 @@ export default function VideoCaption({
   description,
   visible = true,
   bottomOffset = 0,
+  interactionKey = 0,
+  isPlaying = false,
 }: Props) {
-  const { theme } = useAppTheme();
   const insets = useSafeAreaInsets();
-  const [modalVisible, setModalVisible] = useState(false);
-  const opacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const [expanded, setExpanded] = useState(false);
+  const [autoHidden, setAutoHidden] = useState(false);
+  const [descriptionHeight, setDescriptionHeight] = useState(50);
+  const autoHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const opacity = useSharedValue(visible ? 1 : 0);
+  const translateY = useSharedValue(visible ? 0 : 10);
   const hasContent = Boolean(title.trim() || description?.trim());
+  const cleanDescription = description?.trim() ?? "";
+  const hasDescription = cleanDescription.length > 0;
 
   useEffect(() => {
-    Animated.timing(opacity, {
-      toValue: visible && hasContent ? 1 : 0,
-      duration: 220,
-      useNativeDriver: true,
-    }).start();
+    opacity.value = withTiming(visible && hasContent && !autoHidden ? 1 : 0, { duration: 220 });
+    translateY.value = withTiming(visible && hasContent ? 0 : 10, { duration: 220 });
+    if (!visible) setExpanded(false);
+  }, [autoHidden, hasContent, opacity, translateY, visible]);
 
-    if (!visible) setModalVisible(false);
-  }, [hasContent, opacity, visible]);
+  useEffect(() => {
+    if (autoHideTimerRef.current) clearTimeout(autoHideTimerRef.current);
+    if (!visible || !isPlaying) {
+      setAutoHidden(false);
+      return;
+    }
+
+    setAutoHidden(false);
+    autoHideTimerRef.current = setTimeout(() => {
+      setAutoHidden(true);
+      autoHideTimerRef.current = null;
+    }, 3000);
+
+    return () => {
+      if (autoHideTimerRef.current) clearTimeout(autoHideTimerRef.current);
+    };
+  }, [interactionKey, isPlaying, visible]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }));
 
   if (!hasContent) return null;
 
-  return (
-    <>
-      <Animated.View
-        pointerEvents={visible ? "auto" : "none"}
-        style={[styles.triggerContainer, { bottom: Math.max(insets.bottom + 8, 24, bottomOffset), opacity }]}
-      >
-        <Pressable
-          style={styles.moreButton}
-          onPress={() => setModalVisible(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Виж заглавието и цялото описание на видеото"
-        >
-          <Ionicons name="information-circle-outline" size={28} color="#ffffff" />
-          <Text style={styles.moreButtonText}>Виж повече</Text>
-        </Pressable>
-      </Animated.View>
+  const bottom = Math.max(insets.bottom + 8, 24, bottomOffset);
+  const gradientHeight = Math.max(72, Math.min(descriptionHeight + 20, 280));
 
-      <Modal
-        visible={modalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setModalVisible(false)}
+  return (
+    <Animated.View
+      pointerEvents={visible && !autoHidden ? "box-none" : "none"}
+      layout={LinearTransition.duration(280)}
+      style={[styles.triggerContainer, { bottom }, animatedStyle]}
+    >
+      <View
+        pointerEvents="none"
+        style={[styles.gradient, { bottom: -bottom, height: gradientHeight + bottom }]}
       >
-        <View style={styles.modalOverlay}>
+        <Svg width="100%" height="100%">
+          <Defs>
+            <SvgLinearGradient id="videoCaptionGradient" x1="0" y1="0" x2="0" y2="1">
+              <Stop offset="0" stopColor="#000000" stopOpacity="0.1" />
+              <Stop offset="0.55" stopColor="#000000" stopOpacity="0.35" />
+              <Stop offset="1" stopColor="#000000" stopOpacity="0.6" />
+            </SvgLinearGradient>
+          </Defs>
+          <Rect width="100%" height="100%" fill="url(#videoCaptionGradient)" />
+        </Svg>
+      </View>
+
+      <Animated.View layout={LinearTransition.duration(280)} style={styles.captionContent}>
+        {title.trim() ? (
+          <Text style={[styles.title, { color: "#ffffff" }]} numberOfLines={2}>
+            {title.trim()}
+          </Text>
+        ) : null}
+
+        {hasDescription ? (
+          <Text
+            style={[styles.description, { color: "#ffffff" }]}
+            numberOfLines={expanded ? undefined : 2}
+            onTextLayout={(event) => {
+              const lineCount = event.nativeEvent.lines.length;
+              setDescriptionHeight(Math.max(50, lineCount * 25 + 12));
+            }}
+          >
+            {cleanDescription}
+          </Text>
+        ) : null}
+
+        {hasDescription ? (
           <Pressable
-            style={StyleSheet.absoluteFill}
-            onPress={() => setModalVisible(false)}
+            onPress={() => setExpanded((current) => !current)}
+            style={styles.moreButton}
             accessibilityRole="button"
-            accessibilityLabel="Затвори описанието"
-          />
-          <View style={[styles.modalPanel, { backgroundColor: theme.colors.background }]}>
-            <View style={[styles.modalHeader, { borderBottomColor: theme.colors.inputBorder }]}>
-              <Text style={[styles.modalHeading, { color: theme.colors.text }]}>Детайли за видеото</Text>
-              <Pressable
-                style={styles.closeButton}
-                onPress={() => setModalVisible(false)}
-                accessibilityRole="button"
-                accessibilityLabel="Затвори описанието"
-              >
-                <Ionicons name="close" size={24} color={theme.colors.text} />
-              </Pressable>
-            </View>
-            <ScrollView
-              style={styles.modalScroll}
-              contentContainerStyle={styles.modalContent}
-              showsVerticalScrollIndicator
-              nestedScrollEnabled
-            >
-              <View style={styles.titleSection}>
-                <Text style={[styles.title, { color: theme.colors.text }]}>{title}</Text>
-              </View>
-              <View style={[styles.divider, { backgroundColor: theme.colors.inputBorder }]} />
-              <View style={styles.descriptionSection}>
-                {description ? (
-                  <Text style={[styles.description, { color: theme.colors.text }]}>{description}</Text>
-                ) : (
-                  <Text style={[styles.emptyDescription, { color: theme.colors.textSecondary }]}>Няма описание.</Text>
-                )}
-              </View>
-            </ScrollView>
-          </View>
-        </View>
-      </Modal>
-    </>
+            accessibilityLabel={expanded ? "Свий описанието" : "Покажи цялото описание"}
+          >
+            <Text style={[styles.moreButtonText, { color: "#ffffff" }]}>
+              {expanded ? "по-малко" : "още"}
+            </Text>
+          </Pressable>
+        ) : null}
+      </Animated.View>
+    </Animated.View>
   );
 }
 
@@ -119,54 +139,36 @@ const styles = StyleSheet.create({
   triggerContainer: {
     position: "absolute",
     left: 16,
-    zIndex: 9,
+    right: 16,
+    zIndex: 30,
+    overflow: "visible",
   },
-  moreButton: {
-    minHeight: 44,
-    paddingHorizontal: 14,
-    borderRadius: 22,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
-    backgroundColor: "rgba(8,12,24,0.76)",
+  gradient: { position: "absolute", left: -16, right: -16, bottom: 0, zIndex: 1 },
+  captionContent: { alignItems: "flex-start", zIndex: 2 },
+  title: {
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: "800",
+    textShadowColor: "rgba(0,0,0,0.65)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
-  moreButtonText: { color: "#ffffff", fontSize: 14, fontWeight: "800" },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: "flex-end",
-    backgroundColor: "rgba(0,0,0,0.62)",
+  description: {
+    maxWidth: "100%",
+    marginTop: 3,
+    fontSize: 13,
+    lineHeight: 19,
+    textShadowColor: "rgba(0,0,0,0.65)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
-  modalPanel: {
-    width: "100%",
-    height: "76%",
-    maxHeight: "80%",
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 28,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+  moreButton: { marginTop: 2, paddingVertical: 4, paddingRight: 8 },
+  moreButtonText: {
+    fontSize: 12,
+    fontWeight: "800",
+    textDecorationLine: "underline",
+    textShadowColor: "rgba(0,0,0,0.65)",
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingBottom: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  modalHeading: { flex: 1, fontSize: 20, fontWeight: "800" },
-  closeButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalScroll: { flex: 1 },
-  modalContent: { paddingBottom: 24 },
-  titleSection: { paddingVertical: 16 },
-  descriptionSection: { paddingVertical: 16 },
-  divider: { width: "100%", height: StyleSheet.hairlineWidth },
-  title: { fontSize: 22, lineHeight: 28, fontWeight: "800" },
-  description: { fontSize: 17, lineHeight: 25 },
-  emptyDescription: { fontSize: 16, lineHeight: 24 },
 });

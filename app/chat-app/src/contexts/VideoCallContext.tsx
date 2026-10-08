@@ -135,6 +135,9 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
   const [incomingCall, setIncomingCall] = useState<CallServerPayload | null>(
     null,
   );
+  const [isAppActive, setIsAppActive] = useState(
+    AppState.currentState === "active",
+  );
   const [acceptedIncomingCall, setAcceptedIncomingCall] =
     useState<AcceptedIncomingCall | null>(null);
   const [isAccepting, setIsAccepting] = useState(false);
@@ -813,6 +816,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextState) => {
       appStateRef.current = nextState;
+      setIsAppActive(nextState === "active");
       void setIncomingCallAppForeground(nextState === "active");
       socket?.emit("app:state", {
         app_state: appStateToSocketState(nextState),
@@ -1344,7 +1348,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       <View style={{ flex: 1 }}>
         {children}
         <IncomingCall
-          visible={incomingCall !== null}
+          visible={incomingCall !== null && isAppActive}
           connecting={false}
           callerName={incomingCall?.caller_name}
           callerImage={incomingCall?.caller_avatar}

@@ -464,6 +464,11 @@ class IncomingCallModule : Module() {
         return
       }
 
+      if (activeCallIds.contains(options.callId)) {
+        Log.i(TAG, "[CALL] duplicate display ignored callId=${options.callId}")
+        return
+      }
+
       activeCallIds.add(options.callId)
       scheduleTimeout(context.applicationContext, options.callId)
 

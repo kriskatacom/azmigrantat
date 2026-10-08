@@ -68,7 +68,7 @@ export default function ProfileVideoPager({
               url={playbackUrls[item.id] ?? null}
               width={width}
               height={height}
-              captionVisible={index === activeIndex && !isActiveVideoPlaying}
+              captionVisible={index === activeIndex}
               onPlaybackChange={index === activeIndex ? setIsActiveVideoPlaying : undefined}
               onRequestPlayback={() => onRequestPlayback(index)}
               active={index === activeIndex}
@@ -147,6 +147,9 @@ function ProfileVideoSlide({
   active: boolean;
   onViewVideo?: (videoId: number) => void;
 }) {
+  const [captionInteractionKey, setCaptionInteractionKey] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(true);
+
   return (
     <View style={[styles.slide, { width, height }]}>
       {url ? (
@@ -154,7 +157,11 @@ function ProfileVideoSlide({
           url={url}
           thumbnailUrl={video.thumbnail_url}
           active={active}
-          onPlaybackChange={onPlaybackChange}
+          onVideoPress={() => setCaptionInteractionKey((key) => key + 1)}
+          onPlaybackChange={(nextIsPlaying) => {
+            setIsPlaying(nextIsPlaying);
+            onPlaybackChange?.(nextIsPlaying);
+          }}
           onViewVideo={onViewVideo}
           videoId={video.id}
         />
@@ -177,6 +184,8 @@ function ProfileVideoSlide({
         bottomOffset={32}
         allowExpand
         fitContent
+        interactionKey={captionInteractionKey}
+        isPlaying={isPlaying}
       />
     </View>
   );
@@ -186,6 +195,7 @@ function PlayableVideo({
   url,
   thumbnailUrl,
   active,
+  onVideoPress,
   onPlaybackChange,
   onViewVideo,
   videoId,
@@ -193,6 +203,7 @@ function PlayableVideo({
   url: string;
   thumbnailUrl: string | null;
   active: boolean;
+  onVideoPress?: () => void;
   onPlaybackChange?: (isPlaying: boolean) => void;
   onViewVideo?: (videoId: number) => void;
   videoId: number;
@@ -204,6 +215,7 @@ function PlayableVideo({
       active={active}
       contentFit="cover"
       showControls={false}
+      onVideoPress={onVideoPress}
       onPlaybackChange={onPlaybackChange}
       onViewVideo={() => onViewVideo?.(videoId)}
       videoId={videoId}

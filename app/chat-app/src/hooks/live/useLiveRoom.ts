@@ -4,7 +4,8 @@ import type {
   LiveTalkRequestUpdatedPayload,
 } from "@/services/socket";
 import type { LiveComment, LiveReactionType } from "@/types/live";
-import { useCallback, useEffect, useState } from "react";
+import { AppState, type AppStateStatus } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export type LiveReactionEvent = {
   id: string;
@@ -30,6 +31,7 @@ export function useLiveRoom(liveId: number | null) {
   const [talkRequest, setTalkRequest] = useState<LiveTalkRequestUpdatedPayload | null>(null);
   const [incomingTalkRequests, setIncomingTalkRequests] = useState<LiveTalkRequestReceivedPayload[]>([]);
   const [acceptedTalkRequests, setAcceptedTalkRequests] = useState<LiveTalkRequestUpdatedPayload[]>([]);
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState);
 
   useEffect(() => {
     if (!socket || !isConnected || liveId == null) {
@@ -152,6 +154,27 @@ export function useLiveRoom(liveId: number | null) {
       socket.off("live:talk-request:received", onTalkRequestReceived);
       socket.off("live:talk-request:updated", onTalkRequestUpdated);
     };
+  }, [socket, isConnected, liveId]);
+
+  useEffect(() => {
+    if (!socket || !isConnected || liveId == null) {
+      return;
+    }
+
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      const previousState = appStateRef.current;
+      appStateRef.current = nextState;
+
+      if (previousState === "active" && nextState !== "active") {
+        console.log("[LiveRoom] app moved to background; leaving live room", { liveId });
+        socket.emit("live:leave", { live_id: liveId });
+      } else if (previousState !== "active" && nextState === "active") {
+        console.log("[LiveRoom] app returned to foreground; joining live room", { liveId });
+        socket.emit("live:join", { live_id: liveId });
+      }
+    });
+
+    return () => subscription.remove();
   }, [socket, isConnected, liveId]);
 
   const sendComment = useCallback(

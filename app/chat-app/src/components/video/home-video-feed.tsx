@@ -130,8 +130,9 @@ export default function HomeVideoFeed({
             active={focused && index === activeIndex && !isFullscreen}
             muted={!token}
             width={width}
-            height={height}
-            captionVisible={index === activeIndex && !isActiveVideoPlaying}
+                height={height}
+                captionVisible={index === activeIndex}
+                isPlaying={index === activeIndex ? isActiveVideoPlaying : true}
             captionBottomOffset={120}
             onPlaybackChange={index === activeIndex ? setIsActiveVideoPlaying : undefined}
             onViewVideo={handleViewVideo}
@@ -178,7 +179,8 @@ export default function HomeVideoFeed({
                 muted={!token}
                 width={width}
                 height={height}
-                captionVisible={index === fullscreenIndex && !isFullscreenVideoPlaying}
+                captionVisible={index === fullscreenIndex}
+                isPlaying={index === fullscreenIndex ? isFullscreenVideoPlaying : true}
                 captionBottomOffset={32}
                 showCaption
                 onViewVideo={handleViewVideo}
@@ -241,6 +243,7 @@ function HomeVideoCard({
   width,
   height,
   captionVisible,
+  isPlaying,
   captionBottomOffset,
   showCaption = true,
   onViewVideo,
@@ -252,11 +255,14 @@ function HomeVideoCard({
   width: number;
   height: number;
   captionVisible: boolean;
+  isPlaying: boolean;
   captionBottomOffset: number;
   showCaption?: boolean;
   onViewVideo?: (videoId: number) => void;
   onPlaybackChange?: (isPlaying: boolean) => void;
 }) {
+  const [captionInteractionKey, setCaptionInteractionKey] = useState(0);
+
   return (
     <View style={{ width, height }}>
       <ControlledVideoPlayer
@@ -268,6 +274,7 @@ function HomeVideoCard({
         contentFit="cover"
         controlsBottomOffset={showCaption ? 160 : 0}
         showControls={false}
+        onVideoPress={() => setCaptionInteractionKey((key) => key + 1)}
         onPlaybackChange={onPlaybackChange}
         onViewVideo={() => onViewVideo?.(video.id)}
         videoId={video.id}
@@ -284,6 +291,8 @@ function HomeVideoCard({
             fitContent
             bottomOffset={captionBottomOffset}
             topOffset={120}
+            interactionKey={captionInteractionKey}
+            isPlaying={isPlaying}
           />
         </>
       ) : null}

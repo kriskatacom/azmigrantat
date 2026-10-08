@@ -4,10 +4,13 @@ import HomeVideoFeed from "@/components/video/home-video-feed";
 import RemoteImage from "@/components/ui/RemoteImage";
 import type { PublicVideoItem } from "@/types/video";
 import { getBackgroundUploadStatus, subscribeToBackgroundUpload } from "@/services/background-upload-state";
+import { useAppTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused, useRouter } from "expo-router";
+import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from "react-native-svg";
 import { useEffect, useState } from "react";
 import {
+  Image,
   ImageBackground,
   StatusBar,
   StyleSheet,
@@ -37,7 +40,6 @@ export default function HomeScreen() {
         style={styles.background}
         resizeMode="cover"
       >
-        <View style={styles.overlay} />
         {!isHomeVideoFeedDisabled ? (
           <HomeVideoFeed
             token={token}
@@ -46,7 +48,37 @@ export default function HomeScreen() {
           />
         ) : null}
 
+        <View pointerEvents="none" style={styles.topGradient}>
+          <Svg width="100%" height="100%">
+            <Defs>
+              <SvgLinearGradient id="homeTopGradient" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor="#000000" stopOpacity="1" />
+                <Stop offset="0.5" stopColor="#000000" stopOpacity="0.5" />
+                <Stop offset="1" stopColor="#000000" stopOpacity="0" />
+              </SvgLinearGradient>
+            </Defs>
+            <Rect width="100%" height="100%" fill="url(#homeTopGradient)" />
+          </Svg>
+        </View>
+        <View pointerEvents="none" style={styles.bottomGradient}>
+          <Svg width="100%" height="100%">
+            <Defs>
+              <SvgLinearGradient id="homeBottomGradient" x1="0" y1="0" x2="0" y2="1">
+                <Stop offset="0" stopColor="#000000" stopOpacity="0" />
+                <Stop offset="0.5" stopColor="#000000" stopOpacity="0.5" />
+                <Stop offset="1" stopColor="#000000" stopOpacity="1" />
+              </SvgLinearGradient>
+            </Defs>
+            <Rect width="100%" height="100%" fill="url(#homeBottomGradient)" />
+          </Svg>
+        </View>
+
         <View style={styles.topBar}>
+          <Image
+            source={require("../../assets/images/logo-dark.png")}
+            style={styles.homeLogo}
+            resizeMode="contain"
+          />
           <TouchableOpacity
             style={styles.liveIconButton}
             onPress={() => {
@@ -103,17 +135,6 @@ export default function HomeScreen() {
         <View style={styles.quickActions}>
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => router.push("/inbox")}
-          >
-            <Ionicons
-              name="chatbubble-ellipses-outline"
-              size={25}
-              color="#ffffff"
-            />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
             disabled={!activeVideoUser}
             onPress={() => {
               if (!activeVideoUser) return;
@@ -134,6 +155,20 @@ export default function HomeScreen() {
             ) : (
               <Ionicons name="person-outline" size={25} color="#ffffff" />
             )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.chatActionButton}
+            onPress={() => router.push("/inbox")}
+            accessibilityRole="button"
+            accessibilityLabel="Чат"
+          >
+            <Image
+              source={require("../../assets/images/chat.png")}
+              style={styles.quickActionIcon}
+              resizeMode="contain"
+            />
+            <Text style={styles.chatActionLabel}>Чат</Text>
           </TouchableOpacity>
 
         </View>
@@ -252,9 +287,19 @@ const styles = StyleSheet.create({
   background: {
     flex: 1,
   },
-  overlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: "rgba(0, 0, 0, 0.12)",
+  topGradient: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 300,
+  },
+  bottomGradient: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 200,
   },
   safeArea: {
     flex: 1,
@@ -301,6 +346,11 @@ const styles = StyleSheet.create({
     overflow: "visible",
     position: "relative",
   },
+  homeLogo: {
+    width: 102,
+    height: 50,
+    marginLeft: 2,
+  },
   topRightActions: {
     marginLeft: "auto",
     flexDirection: "row",
@@ -313,7 +363,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 0,
     marginRight: 4,
   },
   subscriptionButtonText: { color: "#ffffff", fontSize: 10, fontWeight: "900" },
@@ -331,7 +381,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(232, 226, 150, 0.55)",
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 4,
   },
   backgroundUploadText: {
     flex: 1,
@@ -348,7 +398,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     borderRadius: 10,
     backgroundColor: "#2563eb",
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: "#030718",
     alignItems: "center",
     justifyContent: "center",
@@ -367,16 +417,37 @@ const styles = StyleSheet.create({
   quickActions: {
     position: "absolute",
     right: 18,
-    bottom: 182,
+    bottom: 140,
     gap: 10,
+    alignItems: "center",
   },
   actionButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
+  },
+  chatActionButton: {
+    width: 60,
+    height: 60,
+    marginTop: -8,
+    borderRadius: 30,
+    backgroundColor: "transparent",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  quickActionIcon: {
+    width: 50,
+    height: 50,
+  },
+  chatActionLabel: {
+    position: "absolute",
+    bottom: -14,
+    color: "#ffffff",
+    fontSize: 11,
+    fontWeight: "700",
   },
   videoAuthorAvatar: {
     width: 40,
