@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFocusEffect } from "expo-router";
 
 const SEEK_STEP_SECONDS = 10;
 const DOUBLE_TAP_DELAY_MS = 260;
@@ -27,7 +28,24 @@ type Props = {
   videoId?: number;
 };
 
-export default function ControlledVideoPlayer({
+export default function ControlledVideoPlayer(props: Props) {
+  const [isScreenFocused, setIsScreenFocused] = useState(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      setIsScreenFocused(true);
+      return () => setIsScreenFocused(false);
+    }, []),
+  );
+
+  if (!isScreenFocused) {
+    return <View style={[styles.container, props.style]} />;
+  }
+
+  return <FocusedControlledVideoPlayer {...props} />;
+}
+
+function FocusedControlledVideoPlayer({
   url,
   thumbnailUrl,
   active,

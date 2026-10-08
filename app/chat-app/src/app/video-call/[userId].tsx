@@ -320,6 +320,9 @@ export default function VideoCallScreen() {
 
     let cancelled = false;
     let completed = false;
+    const fallbackTimer = setTimeout(() => {
+      finishFeedback();
+    }, 6_000);
     const player = createAudioPlayer(
       TERMINAL_FEEDBACK_SOUNDS[terminalFeedbackState],
       {
@@ -333,6 +336,7 @@ export default function VideoCallScreen() {
         return;
       }
       completed = true;
+      clearTimeout(fallbackTimer);
       leaveVideoCallScreen();
     };
 
@@ -361,6 +365,7 @@ export default function VideoCallScreen() {
 
     return () => {
       cancelled = true;
+      clearTimeout(fallbackTimer);
       statusSubscription.remove();
       player.pause();
       player.release();
@@ -426,7 +431,7 @@ export default function VideoCallScreen() {
       callType,
       direction: "outgoing",
     });
-    void startCall(recipientId).catch((error: unknown) => {
+    void startCall(recipientId, callType).catch((error: unknown) => {
       hasStartedCallRef.current = false;
       console.error("Видео обаждането не можа да стартира автоматично:", error);
     });
@@ -547,7 +552,7 @@ export default function VideoCallScreen() {
           isRemoteAudioEnabled={isRemoteAudioEnabled}
           onStartCamera={startCamera}
           onStopCamera={stopCamera}
-          onStartCall={() => void startCall(recipientId)}
+          onStartCall={() => void startCall(recipientId, callType)}
           onEndCall={handleEndCall}
           onToggleMicrophone={toggleMicrophone}
           onToggleCamera={toggleCamera}

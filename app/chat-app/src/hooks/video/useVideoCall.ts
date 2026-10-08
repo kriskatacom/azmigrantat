@@ -3,9 +3,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createAudioPlayer, setAudioModeAsync } from "expo-audio";
 import {
   RTCIceCandidate,
+  MediaStream,
   RTCPeerConnection,
   RTCSessionDescription,
-  type MediaStream,
   type MediaStreamTrack,
 } from "react-native-webrtc";
 
@@ -41,6 +41,10 @@ type Options = {
 };
 type SwitchableTrack = MediaStreamTrack & { _switchCamera?: () => void };
 type VolumeTrack = MediaStreamTrack & { _setVolume?: (volume: number) => void };
+type ReplaceableSender = {
+  track?: MediaStreamTrack | null;
+  replaceTrack?: (track: MediaStreamTrack | null) => Promise<void>;
+};
 type IceEvent = {
   candidate: {
     candidate: string;
@@ -55,6 +59,19 @@ function isPeerOpen(peer: RTCPeerConnection | null): peer is RTCPeerConnection {
     peer.connectionState !== "closed" &&
     peer.signalingState !== "closed"
   );
+}
+
+function getVideoSender(peer: RTCPeerConnection | null): ReplaceableSender | undefined {
+  if (!peer) return undefined;
+
+  // In an audio-first call the reserved video sender has no track. Looking for
+  // the first track-less sender can accidentally select a different m-line;
+  // the receiver kind identifies the video transceiver unambiguously.
+  const videoTransceiver = peer
+    .getTransceivers()
+    .find((transceiver) => transceiver.receiver.track?.kind === "video");
+
+  return videoTransceiver?.sender as ReplaceableSender | undefined;
 }
 
 function isPeerShutdownError(error: unknown): boolean {
@@ -497,7 +514,12 @@ export function useVideoCall({
   }, []);
 
   const createPeer = useCallback(
-    async (targetId: number, callId: string, preserveCandidates = false) => {
+    async (
+      targetId: number,
+      callId: string,
+      preserveCandidates = false,
+      prepareVideoUpgrade = false,
+    ) => {
       if (callIdRef.current !== callId) throw new Error("Разговорът вече не е активен.");
       peerRef.current?.close();
       remoteSetRef.current = false;
@@ -517,7 +539,7 @@ export function useVideoCall({
       const peer = new RTCPeerConnection(peerConfig);
       peerRef.current = peer;
       targetIdRef.current = targetId;
-      const stream = await startCamera();
+      const stream = await startCamera(callTypeRef.current);
       localMediaStreamRef.current = stream;
       if (!mountedRef.current || callIdRef.current !== callId || peerRef.current !== peer) {
         stream.getTracks().forEach((track) => track.stop());
@@ -525,6 +547,9 @@ export function useVideoCall({
         throw new Error("Разговорът беше прекратен.");
       }
       stream.getTracks().forEach((track) => peer.addTrack(track, stream));
+      if (prepareVideoUpgrade && stream.getVideoTracks().length === 0) {
+        peer.addTransceiver("video", { direction: "sendrecv" });
+      }
       const batteryHold =
         batteryMediaHoldRef.current &&
         batteryWarningCallIdRef.current === callId;
@@ -544,15 +569,29 @@ export function useVideoCall({
 
       peer.ontrack = (event: { streams?: MediaStream[]; track?: MediaStreamTrack }) => {
         if (peerRef.current !== peer || callIdRef.current !== callId) return;
-        const streamValue = event.streams?.[0];
-        if (!streamValue) return;
+        const receivedTracks = [
+          ...(remoteStreamRef.current?.getTracks() ?? []),
+          ...(event.streams?.[0]?.getTracks() ?? []),
+          ...(event.track ? [event.track] : []),
+        ];
+        const uniqueTracks = receivedTracks.filter(
+          (track, index, tracks) =>
+            tracks.findIndex((candidate) => candidate.id === track.id) === index,
+        );
+        if (uniqueTracks.length === 0) return;
+
+        // WebRTC may mutate the same MediaStream instance when the video track
+        // arrives after audio. A fresh stream forces RTCView to receive the new
+        // track instead of React retaining the earlier audio-only object.
+        const streamValue = new MediaStream(uniqueTracks);
         remoteStreamRef.current = streamValue;
         applyRemoteListenEnabled(streamValue, isRemoteAudioEnabledRef.current);
-        setRemoteStream((current) => current?.id === streamValue.id ? current : streamValue);
+        setRemoteStream(streamValue);
         const videoTrack = event.track?.kind === "video"
           ? event.track
           : streamValue.getVideoTracks()[0];
         if (!videoTrack) return;
+        setIsRemoteCameraEnabled(videoTrack.enabled !== false);
         const handleEnded = () => {
           if (callIdRef.current === callId) setIsRemoteCameraEnabled(false);
         };
@@ -627,7 +666,10 @@ export function useVideoCall({
     [accessToken, changeState, clearConnection, clearDuration, clearIceFail, clearNoAnswer, emitCameraState, emitEnd, finish, startCamera],
   );
 
-  const startCall = useCallback(async (overrideRecipientId?: number) => {
+  const startCall = useCallback(async (
+    overrideRecipientId?: number,
+    overrideCallType?: CallType,
+  ) => {
     const socket = getSocket();
     if (!socket?.connected) throw new Error("Socket връзката не е налична.");
     await emitDeviceBattery(socket).catch(() => null);
@@ -653,10 +695,10 @@ export function useVideoCall({
     }
     callIdRef.current = callId;
     targetIdRef.current = targetRecipientId;
-    callTypeRef.current = parseCallType(callType);
+    callTypeRef.current = parseCallType(overrideCallType ?? callType);
     changeState("calling");
     try {
-      const peer = await createPeer(targetRecipientId, callId);
+      const peer = await createPeer(targetRecipientId, callId, false, true);
       if (callIdRef.current !== callId) return;
       const offer = await peer.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
       if (callIdRef.current !== callId) return;
@@ -710,6 +752,19 @@ export function useVideoCall({
       await peer.setRemoteDescription(new RTCSessionDescription(call.description));
       if (callIdRef.current !== call.call_id) return;
       remoteSetRef.current = true;
+
+      if (callTypeRef.current === "audio") {
+        const videoTransceiver = peer
+          .getTransceivers()
+          .find((transceiver) => transceiver.receiver.track?.kind === "video");
+
+        // Keep both directions negotiated even though the call currently has
+        // no local camera track. replaceTrack() can then start sending video
+        // later without requiring a second offer/answer exchange.
+        if (videoTransceiver && !videoTransceiver.stopped) {
+          videoTransceiver.direction = "sendrecv";
+        }
+      }
       await flushCandidates();
       if (callIdRef.current !== call.call_id) return;
       const answer = await peer.createAnswer();
@@ -950,19 +1005,34 @@ export function useVideoCall({
     tracks.forEach((track) => { track.enabled = enabled; });
     setIsMicrophoneEnabled(enabled);
   }, [localStream]);
-  const toggleCamera = useCallback(() => {
+  const toggleCamera = useCallback(async () => {
     if (
       stateRef.current !== "connected" ||
       batteryMediaHoldRef.current ||
       !localStream
     ) return;
-    const tracks = localStream.getVideoTracks();
-    if (!tracks.length) return;
+    let tracks = localStream.getVideoTracks();
+    if (!tracks.length) {
+      try {
+        const upgradedStream = await startCamera("video");
+        tracks = upgradedStream.getVideoTracks();
+        const track = tracks[0];
+        const sender = getVideoSender(peerRef.current);
+        if (!track || !sender?.replaceTrack) return;
+        await sender.replaceTrack(track);
+        track.enabled = true;
+        setIsCameraEnabled(true);
+        emitCameraState(true);
+      } catch (error) {
+        console.error("Камерата не можа да бъде включена:", error);
+      }
+      return;
+    }
     const enabled = !tracks[0].enabled;
     tracks.forEach((track) => { track.enabled = enabled; });
     setIsCameraEnabled(enabled);
     emitCameraState(enabled);
-  }, [emitCameraState, localStream]);
+  }, [emitCameraState, localStream, startCamera]);
   const switchCamera = useCallback(() => {
     if (stateRef.current !== "connected" || !localStream) return;
     (localStream.getVideoTracks()[0] as SwitchableTrack | undefined)?._switchCamera?.();

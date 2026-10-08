@@ -76,6 +76,9 @@ export function registerSocketConnections(
             const remainingSockets = await io.in(userRoom).fetchSockets();
 
             if (remainingSockets.length === 0) {
+                void calls.disconnectUser(user.id, socket.id).catch((error: unknown) => {
+                    console.error('[CALL] disconnect cleanup failed', error);
+                });
                 const lastSeenAt = new Date().toISOString();
 
                 lastSeenByUser.set(user.id, lastSeenAt);

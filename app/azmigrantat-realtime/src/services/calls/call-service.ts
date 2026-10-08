@@ -28,6 +28,8 @@ type RealtimeSocket = Socket<
 >;
 
 const CALL_TTL_MS = 30_000;
+const ANSWER_TTL_MS = 45_000;
+const DISCONNECT_GRACE_MS = 8_000;
 
 export class CallService {
     constructor(
@@ -50,10 +52,22 @@ export class CallService {
                     caller.id,
                     payload.recipient_id,
                 );
-                if (!authorization.authorized) return;
+                if (!authorization.authorized) {
+                    socket.emit('call:end', {
+                        call_id: payload.call_id,
+                        sender_id: payload.recipient_id,
+                        reason: 'unavailable',
+                    });
+                    return;
+                }
                 conversationId = authorization.conversationId;
             } catch (error) {
                 console.error('Call authorization failed:', error);
+                socket.emit('call:end', {
+                    call_id: payload.call_id,
+                    sender_id: payload.recipient_id,
+                    reason: 'failed',
+                });
                 return;
             }
         }
@@ -148,6 +162,7 @@ export class CallService {
             if (call.expiresAt <= this.now()) return;
             if (!this.store.claim(call.callId, 'pending', 'accepted')) return;
             call.acceptedAt = this.now();
+            call.answerExpiresAt = new Date(call.acceptedAt.getTime() + ANSWER_TTL_MS);
             call.recipientSocketId = socket.id;
             await this.maybeEmitBatteryWarning(call);
             console.log('[CALL] server state ringing -> accepted callId=' + call.callId);
@@ -166,6 +181,7 @@ export class CallService {
         }
 
         call.answered = true;
+        call.answerExpiresAt = undefined;
 
         console.log('[CALL] accepted', {
             callId: call.callId,
@@ -207,6 +223,7 @@ export class CallService {
             if (call.expiresAt <= this.now()) return;
             if (!this.store.claim(call.callId, 'pending', 'accepted')) return;
             call.acceptedAt = this.now();
+            call.answerExpiresAt = new Date(call.acceptedAt.getTime() + ANSWER_TTL_MS);
             call.recipientSocketId = socket.id;
             await this.maybeEmitBatteryWarning(call);
             console.log('[CALL] server state ringing -> accepted callId=' + call.callId);
@@ -372,6 +389,7 @@ export class CallService {
         }
 
         call.acceptedAt = this.now();
+        call.answerExpiresAt = new Date(call.acceptedAt.getTime() + ANSWER_TTL_MS);
         await this.maybeEmitBatteryWarning(call);
         console.log('[CALL] accepted', { callId: call.callId, userId, source: 'http' });
         const event = { call_id: call.callId, sender_id: userId };
@@ -482,6 +500,34 @@ export class CallService {
     async expirePendingCalls(): Promise<void> {
         const now = this.now();
         for (const call of this.store.getExpiredPending(now)) await this.expire(call);
+        for (const call of this.store.getExpiredUnanswered(now)) {
+            await this.finish(call, call.recipientId, 'connection_timeout');
+        }
+    }
+
+    async disconnectUser(userId: number, socketId: string): Promise<void> {
+        await new Promise((resolve) => setTimeout(resolve, DISCONNECT_GRACE_MS));
+
+        const remainingSockets = await this.io.in(`user:${userId}`).fetchSockets();
+        if (remainingSockets.length > 0) return;
+
+        const call = this.store.findActiveForUser(userId, this.now());
+        if (!call) return;
+
+        const ownsActiveSocket =
+            (call.callerId === userId && call.callerSocketId === socketId) ||
+            (call.recipientId === userId && call.recipientSocketId === socketId);
+
+        if (!ownsActiveSocket) return;
+        if (call.status === 'pending' && call.recipientId === userId) return;
+
+        const otherUserId = call.callerId === userId ? call.recipientId : call.callerId;
+        await this.finish(call, userId, call.status === 'pending' ? 'cancelled' : 'hangup');
+        console.log('[CALL] ended after disconnect grace', {
+            callId: call.callId,
+            userId,
+            otherUserId,
+        });
     }
 
     private async expire(call: PendingCall): Promise<void> {
@@ -567,7 +613,7 @@ export class CallService {
             await this.recordMissedVideoCall(call);
         }
 
-        const outcome = this.toCallOutcome(nextStatus, wasPending, reason);
+        const outcome = this.toCallOutcome(nextStatus, wasPending, call.answered === true, reason);
         await this.recordCallEvent(call, outcome, senderId, reason);
 
         return true;
@@ -576,11 +622,18 @@ export class CallService {
     private toCallOutcome(
         nextStatus: PendingCall['status'],
         wasPending: boolean,
+        wasAnswered: boolean,
         reason: string | undefined,
     ): 'completed' | 'missed' | 'rejected' | 'cancelled' | 'unanswered' {
         if (nextStatus === 'rejected') return 'rejected';
         if (nextStatus === 'cancelled') return 'cancelled';
-        if (reason === 'timeout' || nextStatus === 'expired') return 'unanswered';
+        if (
+            reason === 'timeout' ||
+            nextStatus === 'expired' ||
+            (reason === 'connection_timeout' && !wasAnswered)
+        ) {
+            return 'unanswered';
+        }
         if (wasPending) return 'missed';
         return 'completed';
     }

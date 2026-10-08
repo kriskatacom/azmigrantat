@@ -57,6 +57,7 @@ function createHarness(initialNow = new Date('2026-08-17T12:00:00.000Z')) {
 
     return {
         calls,
+        io,
         store,
         notifications,
         hasActiveTokenForUser,
@@ -135,6 +136,32 @@ describe('CallService', () => {
         expect(harness.store.get('call-1')).toBeUndefined();
         expect(harness.notifications.sendIncomingCallPush).not.toHaveBeenCalled();
         expect(harness.missedCalls.recordMissedVideoCall).not.toHaveBeenCalled();
+    });
+
+    it('връща unavailable веднага, когато backend откаже authorization', async () => {
+        const authorization = {
+            authorizeCall: vi.fn().mockResolvedValue({ authorized: false }),
+        };
+        const calls = new CallService(
+            harness.io,
+            harness.store,
+            harness.notifications,
+            authorization,
+        );
+        const caller = harness.socket(22, 'Caller');
+
+        await calls.offer(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+        });
+
+        expect(caller.socketEmit).toHaveBeenCalledWith('call:end', {
+            call_id: 'call-1',
+            sender_id: 44,
+            reason: 'unavailable',
+        });
+        expect(harness.store.get('call-1')).toBeUndefined();
     });
 
     it('стартира обаждането при активен socket без push token', async () => {
@@ -636,6 +663,86 @@ describe('CallService', () => {
             call_id: 'call-1',
             sender_id: 44,
         });
+    });
+
+    it('приключва accepted повикване, ако SDP answer не пристигне навреме', async () => {
+        const caller = harness.socket(22, 'Caller');
+        const recipient = harness.socket(44, 'Recipient');
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+        });
+        await harness.calls.acceptIntent(recipient.value, {
+            call_id: 'call-1',
+            recipient_id: 22,
+        });
+
+        harness.setNow(new Date('2026-08-17T12:00:46.000Z'));
+        await harness.calls.expirePendingCalls();
+
+        expect(harness.store.get('call-1')?.status).toBe('ended');
+        expect(harness.roomEmit).toHaveBeenCalledWith(
+            'user:22',
+            'call:end',
+            expect.objectContaining({
+                call_id: 'call-1',
+                reason: 'connection_timeout',
+            }),
+        );
+    });
+
+    it('не изтича accepted повикване след получен SDP answer', async () => {
+        const caller = harness.socket(22, 'Caller');
+        const recipient = harness.socket(44, 'Recipient');
+        await harness.calls.offer(caller.value, {
+            call_id: 'call-1',
+            recipient_id: 44,
+            description: offer,
+        });
+        await harness.calls.answer(recipient.value, {
+            call_id: 'call-1',
+            recipient_id: 22,
+            description: answer,
+        });
+
+        harness.setNow(new Date('2026-08-17T12:01:00.000Z'));
+        await harness.calls.expirePendingCalls();
+
+        expect(harness.store.get('call-1')?.status).toBe('accepted');
+        expect(harness.store.get('call-1')?.answered).toBe(true);
+    });
+
+    it('приключва активен разговор след disconnect grace period', async () => {
+        vi.useFakeTimers();
+        try {
+            const caller = harness.socket(22, 'Caller');
+            const recipient = harness.socket(44, 'Recipient');
+            await harness.calls.offer(caller.value, {
+                call_id: 'call-1',
+                recipient_id: 44,
+                description: offer,
+            });
+            await harness.calls.answer(recipient.value, {
+                call_id: 'call-1',
+                recipient_id: 22,
+                description: answer,
+            });
+            harness.setConnectedSocketCount(0);
+
+            const cleanup = harness.calls.disconnectUser(44, recipient.value.id);
+            await vi.advanceTimersByTimeAsync(8_000);
+            await cleanup;
+
+            expect(harness.store.get('call-1')?.status).toBe('ended');
+            expect(harness.roomEmit).toHaveBeenCalledWith(
+                'user:22',
+                'call:end',
+                expect.objectContaining({ call_id: 'call-1', reason: 'hangup' }),
+            );
+        } finally {
+            vi.useRealTimers();
+        }
     });
 
     it('предупреждава и двамата при ниска батерия на участник', async () => {

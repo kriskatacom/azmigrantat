@@ -79,29 +79,29 @@ export default function VideoCallView({
   const remoteVideoTrack = remoteStream?.getVideoTracks()[0];
   const showRemoteVideo = Boolean(remoteVideoTrack && remoteVideoTrack.enabled !== false && isRemoteCameraEnabled);
   const showLocalVideo = Boolean(localStream) && isCameraEnabled;
-  const primaryIsLocal = Boolean(localStream);
 
   return (
     <View style={styles.videoContainer}>
-      {primaryIsLocal ? (
-        <ParticipantSurface
-          stream={localStream}
-          showVideo={showLocalVideo}
-          name={localName}
-          avatarUrl={localAvatarUrl}
-          mirror={localMirror}
-          zOrder={0}
-        />
-      ) : (
-        <ParticipantSurface
-          stream={remoteStream}
-          showVideo={showRemoteVideo}
-          name={displayName}
-          avatarUrl={avatarUrl}
-          zOrder={0}
-        />
-      )}
+      <ParticipantSurface
+        stream={remoteStream}
+        showVideo={showRemoteVideo}
+        name={displayName}
+        avatarUrl={avatarUrl}
+        zOrder={0}
+      />
 
+      {localStream ? (
+        <View style={styles.pipPreview}>
+          <ParticipantSurface
+            stream={localStream}
+            showVideo={showLocalVideo}
+            name={localName}
+            avatarUrl={localAvatarUrl}
+            mirror={localMirror}
+            zOrder={1}
+          />
+        </View>
+      ) : null}
     </View>
   );
 }

@@ -16,6 +16,7 @@ export interface PendingCall {
     cameraEnabled: boolean;
     conversationId?: number;
     acceptedAt?: Date;
+    answerExpiresAt?: Date;
     callerSocketId?: string;
     recipientSocketId?: string;
     batteryWarningEmitted?: boolean;
@@ -34,6 +35,7 @@ export interface CallStore {
     claim(callId: string, from: CallStatus, to: CallStatus): PendingCall | undefined;
     addIce(callId: string, candidate: IceCandidatePayload): boolean;
     getExpiredPending(now: Date): PendingCall[];
+    getExpiredUnanswered(now: Date): PendingCall[];
 }
 
 export class InMemoryCallStore implements CallStore {
@@ -110,6 +112,16 @@ export class InMemoryCallStore implements CallStore {
     getExpiredPending(now: Date): PendingCall[] {
         return [...this.calls.values()].filter(
             (call) => call.status === 'pending' && call.expiresAt <= now,
+        );
+    }
+
+    getExpiredUnanswered(now: Date): PendingCall[] {
+        return [...this.calls.values()].filter(
+            (call) =>
+                call.status === 'accepted' &&
+                call.answered !== true &&
+                call.answerExpiresAt !== undefined &&
+                call.answerExpiresAt <= now,
         );
     }
 }

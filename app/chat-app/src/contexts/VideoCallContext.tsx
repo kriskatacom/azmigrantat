@@ -89,7 +89,7 @@ type VideoCallContextValue = {
   isRemoteCameraEnabled: boolean;
   startCamera: () => Promise<MediaStream>;
   stopCamera: () => void;
-  startCall: (recipientId?: number) => Promise<void>;
+  startCall: (recipientId?: number, callType?: CallType) => Promise<void>;
   endCall: () => void;
   toggleMicrophone: () => void;
   toggleCamera: () => void;
@@ -158,6 +158,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
   const acceptingCallRef = useRef<CallServerPayload | null>(null);
   const dismissedIncomingUiRef = useRef(new Set<string>());
   const mediaCallStateRef = useRef<CallState>("idle");
+  const endMediaCallRef = useRef<() => void>(() => undefined);
 
   const updateIncomingCall = useCallback((call: CallServerPayload | null) => {
     incomingCallRef.current = call;
@@ -515,8 +516,14 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       if (pending.action === "decline") {
         if (
           incomingCallRef.current?.call_id === pending.callId ||
-          pending.meta.call_id
+          pending.meta.call_id === pending.callId
         ) {
+          if (
+            incomingCallRef.current &&
+            incomingCallRef.current.call_id !== pending.callId
+          ) {
+            return;
+          }
           if (!incomingCallRef.current) {
             beginIncomingCall(toIncomingCallPayload(pending.meta));
           }
@@ -626,6 +633,9 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
 
     const handleCallState = (payload: CallStatePayload) => {
       if (!payload.call) {
+        if (ACTIVE_CALL_STATES.includes(mediaCallStateRef.current)) {
+          endMediaCallRef.current();
+        }
         if (incomingCallRef.current && !acceptedIncomingCallRef.current) {
           const currentId = incomingCallRef.current.call_id;
           const stillPendingAccept = pendingAcceptRef.current;
@@ -1127,12 +1137,26 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
         if (result.call) {
           beginIncomingCall(result.call);
           applyCallState(result.call.call_id, "accepted");
+          return;
         }
+
+        pendingAcceptRef.current = false;
+        pendingCallIdRef.current = null;
+        acceptingCallRef.current = null;
+        setIsAccepting(false);
+        clearCallArtifacts(callId);
       })
       .catch((error: unknown) => {
         console.error("Текущото входящо обаждане не се зареди:", error);
       });
-  }, [applyCallState, beginIncomingCall, isAccepting, storeCandidates, token]);
+  }, [
+    applyCallState,
+    beginIncomingCall,
+    clearCallArtifacts,
+    isAccepting,
+    storeCandidates,
+    token,
+  ]);
 
   useEffect(() => {
     const accepted = acceptedIncomingCall;
@@ -1219,6 +1243,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
   });
 
   mediaCallStateRef.current = mediaCall.callState;
+  endMediaCallRef.current = mediaCall.endCall;
 
   const attachCallSession = useCallback((ui: ActiveCallUi) => {
     setCallUi(ui);
