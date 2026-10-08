@@ -158,7 +158,6 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
   const acceptingCallRef = useRef<CallServerPayload | null>(null);
   const dismissedIncomingUiRef = useRef(new Set<string>());
   const mediaCallStateRef = useRef<CallState>("idle");
-  const endMediaCallRef = useRef<() => void>(() => undefined);
 
   const updateIncomingCall = useCallback((call: CallServerPayload | null) => {
     incomingCallRef.current = call;
@@ -633,8 +632,14 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
 
     const handleCallState = (payload: CallStatePayload) => {
       if (!payload.call) {
+        // A sync immediately after Android resumes can arrive before the new
+        // socket has been associated with the active call. Treating that
+        // transient empty result as a hangup closes a healthy WebRTC session
+        // and also tells the other participant that we ended the call. An
+        // actual end is delivered through the explicit call:end event.
         if (ACTIVE_CALL_STATES.includes(mediaCallStateRef.current)) {
-          endMediaCallRef.current();
+          console.log("[CALL] empty sync ignored while media session is active");
+          return;
         }
         if (incomingCallRef.current && !acceptedIncomingCallRef.current) {
           const currentId = incomingCallRef.current.call_id;
@@ -851,7 +856,8 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
         const callId =
           incomingCallRef.current?.call_id ??
           acceptedIncomingCallRef.current?.call.call_id ??
-          pendingCallIdRef.current;
+          pendingCallIdRef.current ??
+          activeCallIdRef.current;
         console.log("[CALL] app resumed callId=" + (callId ?? "none"));
 
         if (!callId) {
@@ -1243,7 +1249,6 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
   });
 
   mediaCallStateRef.current = mediaCall.callState;
-  endMediaCallRef.current = mediaCall.endCall;
 
   const attachCallSession = useCallback((ui: ActiveCallUi) => {
     setCallUi(ui);
@@ -1284,7 +1289,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
       callId: acceptedIncomingCall?.call.call_id ?? `active-${callUi.recipientId}`,
       callerId: callUi.recipientId,
       callerName: callUi.name,
-      callType: callUi.callType,
+      callType: mediaCall.isCameraEnabled ? "video" : "audio",
     });
 
     return () => {
@@ -1293,6 +1298,7 @@ export function VideoCallProvider({ children }: PropsWithChildren) {
   }, [
     acceptedIncomingCall?.call.call_id,
     callUi,
+    mediaCall.isCameraEnabled,
     mediaCall.callState,
   ]);
 

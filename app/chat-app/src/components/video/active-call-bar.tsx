@@ -1,6 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
 import RemoteImage from "@/components/ui/RemoteImage";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  PanResponder,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  useWindowDimensions,
+  type LayoutChangeEvent,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type ActiveCallBarProps = {
@@ -30,13 +40,81 @@ export default function ActiveCallBar({
   onEndCall,
 }: ActiveCallBarProps) {
   const insets = useSafeAreaInsets();
+  const { height: screenHeight } = useWindowDimensions();
+  const [barHeight, setBarHeight] = useState(0);
+  const [positionReady, setPositionReady] = useState(false);
+  const positionY = useRef(new Animated.Value(0)).current;
+  const positionYRef = useRef(0);
+  const dragOriginYRef = useRef(0);
+  const initializedRef = useRef(false);
+  const verticalBoundsRef = useRef({ min: 0, max: 0 });
+
+  verticalBoundsRef.current = {
+    min: insets.top,
+    max: Math.max(insets.top, screenHeight - insets.bottom - barHeight),
+  };
+
+  const setVerticalPosition = useCallback((value: number) => {
+    const nextValue = Math.max(
+      verticalBoundsRef.current.min,
+      Math.min(value, verticalBoundsRef.current.max),
+    );
+    positionYRef.current = nextValue;
+    positionY.setValue(nextValue);
+  }, [positionY]);
+
+  useEffect(() => {
+    if (!visible) {
+      initializedRef.current = false;
+      setPositionReady(false);
+      return;
+    }
+    if (barHeight === 0) return;
+
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      setVerticalPosition(screenHeight - insets.bottom - 12 - barHeight);
+      setPositionReady(true);
+      return;
+    }
+    setVerticalPosition(positionYRef.current);
+  }, [barHeight, insets.bottom, screenHeight, setVerticalPosition, visible]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_event, gestureState) =>
+        Math.abs(gestureState.dx) > 4 || Math.abs(gestureState.dy) > 4,
+      onMoveShouldSetPanResponderCapture: (_event, gestureState) =>
+        Math.abs(gestureState.dx) > 4 || Math.abs(gestureState.dy) > 4,
+      onPanResponderGrant: () => {
+        dragOriginYRef.current = positionYRef.current;
+      },
+      onPanResponderMove: (_event, gestureState) => {
+        setVerticalPosition(dragOriginYRef.current + gestureState.dy);
+      },
+    }),
+  ).current;
 
   if (!visible) {
     return null;
   }
 
   return (
-    <View pointerEvents="box-none" style={[styles.wrap, { bottom: Math.max(insets.bottom, 12) }]}>
+    <Animated.View
+      {...panResponder.panHandlers}
+      onLayout={(event: LayoutChangeEvent) => {
+        const { height } = event.nativeEvent.layout;
+        setBarHeight((current) => current === height ? current : height);
+      }}
+      style={[
+        styles.wrap,
+        {
+          opacity: positionReady ? 1 : 0,
+          transform: [{ translateY: positionY }],
+        },
+      ]}
+    >
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel="Върни се към обаждането"
@@ -69,13 +147,14 @@ export default function ActiveCallBar({
           <Ionicons name="call" color="#ffffff" size={18} />
         </TouchableOpacity>
       </TouchableOpacity>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   wrap: {
     position: "absolute",
+    top: 0,
     left: 12,
     right: 12,
     zIndex: 30,

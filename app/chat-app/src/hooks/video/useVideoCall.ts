@@ -347,6 +347,7 @@ export function useVideoCall({
     if (stateRef.current === "connected") {
       void setAudioModeAsync({
         allowsRecording: true,
+        allowsBackgroundRecording: true,
         playsInSilentMode: true,
         interruptionMode: "doNotMix",
         shouldPlayInBackground: true,
@@ -1056,6 +1057,7 @@ export function useVideoCall({
 
     void setAudioModeAsync({
       allowsRecording: true,
+      allowsBackgroundRecording: true,
       playsInSilentMode: true,
       interruptionMode: "doNotMix",
       shouldPlayInBackground: true,
