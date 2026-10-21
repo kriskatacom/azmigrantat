@@ -54,6 +54,7 @@ const REACTION_TYPES = new Set<LiveReactionType>([
 const VIEWER_COUNT_BROADCAST_MS = 150;
 const VIEWER_COUNT_PERSIST_MS = 2_000;
 const TALK_REQUEST_TTL_MS = 60_000;
+export const STREAMER_OFFLINE_GRACE_MS = 2_000;
 
 type TalkRequest = {
     requestId: string;
@@ -72,6 +73,7 @@ export function liveRoomName(liveId: number): string {
 export class LiveService {
     private readonly broadcastTimers = new Map<number, ReturnType<typeof setTimeout>>();
     private readonly persistTimers = new Map<number, ReturnType<typeof setTimeout>>();
+    private readonly streamerOfflineTimers = new Map<number, ReturnType<typeof setTimeout>>();
 
     constructor(
         private readonly io: RealtimeServer,
@@ -103,13 +105,20 @@ export class LiveService {
             userId: socket.data.user.id,
             role: authorization.role,
         });
+        if (authorization.role === 'streamer') {
+            this.cancelStreamerOfflineTimer(liveId);
+        }
         this.scheduleViewerCount(liveId);
     }
 
     async leave(socket: RealtimeSocket, liveId: number): Promise<void> {
+        const occupant = this.store.occupant(liveId, socket.id);
         await socket.leave(liveRoomName(liveId));
         this.forgetMembership(socket, liveId);
         this.store.leave(liveId, socket.id);
+        if (occupant?.role === 'streamer') {
+            this.scheduleStreamerOfflineEnd(liveId);
+        }
         this.scheduleViewerCount(liveId);
     }
 
@@ -392,11 +401,17 @@ export class LiveService {
                 this.updateTalkRequest(request, 'cancelled');
             }
         }
+        const streamerLiveIds = (socket.data.liveRooms ?? []).filter(
+            (liveId) => this.store.occupant(liveId, socket.id)?.role === 'streamer',
+        );
         const liveIds = this.store.leaveAll(socket.id);
         socket.data.liveRooms = [];
 
         for (const liveId of liveIds) {
             this.scheduleViewerCount(liveId);
+        }
+        for (const liveId of streamerLiveIds) {
+            this.scheduleStreamerOfflineEnd(liveId);
         }
     }
 
@@ -406,6 +421,7 @@ export class LiveService {
 
     started(stream: LiveStreamBroadcastPayload): void {
         this.io.emit('live:started', { stream });
+        this.scheduleStreamerOfflineEnd(stream.id);
     }
 
     end(liveId: number): void {
@@ -501,6 +517,44 @@ export class LiveService {
             clearTimeout(persist);
             this.persistTimers.delete(liveId);
         }
+
+        this.cancelStreamerOfflineTimer(liveId);
+    }
+
+    private scheduleStreamerOfflineEnd(liveId: number): void {
+        if (this.store.socketIdForRole(liveId, 'streamer')) {
+            this.cancelStreamerOfflineTimer(liveId);
+            return;
+        }
+        if (this.streamerOfflineTimers.has(liveId)) {
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            this.streamerOfflineTimers.delete(liveId);
+            if (this.store.socketIdForRole(liveId, 'streamer')) {
+                return;
+            }
+
+            void this.persistence
+                ?.endDisconnectedLive(liveId)
+                .then((ended) => {
+                    if (ended) this.end(liveId);
+                })
+                .catch((error) => {
+                    console.error('[live] failed to end disconnected stream', { liveId, error });
+                });
+        }, STREAMER_OFFLINE_GRACE_MS);
+
+        timer.unref?.();
+        this.streamerOfflineTimers.set(liveId, timer);
+    }
+
+    private cancelStreamerOfflineTimer(liveId: number): void {
+        const timer = this.streamerOfflineTimers.get(liveId);
+        if (!timer) return;
+        clearTimeout(timer);
+        this.streamerOfflineTimers.delete(liveId);
     }
 
     private updateTalkRequest(request: TalkRequest, status: LiveTalkRequestStatus): void {

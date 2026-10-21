@@ -24,7 +24,7 @@ if (!API_URL) {
 
 export function beginVideoUpload(
   token: string,
-  input: { title: string; description: string; filename: string; mimeType: string; fileSize: number; categoryId?: number | null },
+  input: { title: string; description: string; filename: string; mimeType: string; fileSize: number; categoryId: number },
 ): Promise<BeginVideoUploadResponse> {
   return authorizedJson<BeginVideoUploadResponse>(
     `${API_URL}/api/mobile/videos/uploads`,
@@ -37,7 +37,7 @@ export function beginVideoUpload(
         filename: input.filename,
         mime_type: input.mimeType,
         file_size: input.fileSize,
-        category_id: input.categoryId ?? null,
+        category_id: input.categoryId,
       }),
     },
   );

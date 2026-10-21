@@ -188,6 +188,7 @@ $router->post('/internal/mobile/conversations/typing', [InternalMobileController
 $router->post('/internal/mobile/lives/authorize', [InternalMobileController::class, 'authorizeLive']);
 $router->post('/internal/mobile/lives/comments', [InternalMobileController::class, 'storeLiveComment']);
 $router->post('/internal/mobile/lives/viewer-count', [InternalMobileController::class, 'syncLiveViewerCount']);
+$router->post('/internal/mobile/lives/end-disconnected', [InternalMobileController::class, 'endDisconnectedLive']);
 $router->post('/internal/mobile/notifications/missed-video-call', [InternalMobileController::class, 'missedVideoCall']);
 $router->post('/internal/mobile/calls/log', [InternalMobileController::class, 'recordCallLog']);
 $router->post('/internal/mobile/notifications', [InternalMobileController::class, 'createNotification']);

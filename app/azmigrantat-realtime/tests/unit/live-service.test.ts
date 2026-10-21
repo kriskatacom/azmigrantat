@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { LiveAuthorizationProvider } from '../../src/services/live/live-authorization.provider';
 import type { LivePersistenceProvider } from '../../src/services/live/live-persistence.provider';
-import { LiveService } from '../../src/services/live/live-service';
+import { LiveService, STREAMER_OFFLINE_GRACE_MS } from '../../src/services/live/live-service';
 import { InMemoryLiveStore } from '../../src/services/live/live-store';
 import type { RealtimeServer } from '../../src/types/events';
 
@@ -34,6 +34,7 @@ function createHarness() {
             user: { id: 7, name: 'Krisi' },
         })),
         syncViewerCount: vi.fn(async () => undefined),
+        endDisconnectedLive: vi.fn(async () => true),
     };
 
     const store = new InMemoryLiveStore();
@@ -165,5 +166,45 @@ describe('LiveService', () => {
             live_id: 9,
             viewer_count: 1,
         });
+    });
+
+    it('приключва live след 2 секунди без streamer', async () => {
+        const { lives, persistence, emit, socket, authorizer } = createHarness();
+        authorizer.authorize = vi.fn(async () => ({
+            authorized: true,
+            role: 'streamer' as const,
+            status: 'live',
+            liveId: 9,
+        }));
+        const streamer = socket(1);
+        await lives.join(streamer as never, 9);
+
+        await lives.disconnect(streamer as never);
+        await vi.advanceTimersByTimeAsync(STREAMER_OFFLINE_GRACE_MS - 1);
+        expect(persistence.endDisconnectedLive).not.toHaveBeenCalled();
+
+        await vi.advanceTimersByTimeAsync(1);
+        expect(persistence.endDisconnectedLive).toHaveBeenCalledWith(9);
+        expect(emit).toHaveBeenCalledWith('live:ended', { live_id: 9 });
+    });
+
+    it('отменя приключването, когато streamer-ът се върне до 2 секунди', async () => {
+        const { lives, persistence, socket, authorizer } = createHarness();
+        authorizer.authorize = vi.fn(async () => ({
+            authorized: true,
+            role: 'streamer' as const,
+            status: 'live',
+            liveId: 9,
+        }));
+        const firstSocket = socket(1);
+        await lives.join(firstSocket as never, 9);
+        await lives.disconnect(firstSocket as never);
+
+        const reconnectedSocket = socket(1);
+        await vi.advanceTimersByTimeAsync(STREAMER_OFFLINE_GRACE_MS - 1);
+        await lives.join(reconnectedSocket as never, 9);
+        await vi.advanceTimersByTimeAsync(STREAMER_OFFLINE_GRACE_MS);
+
+        expect(persistence.endDisconnectedLive).not.toHaveBeenCalled();
     });
 });

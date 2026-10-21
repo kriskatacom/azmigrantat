@@ -1,15 +1,12 @@
 import LiveReactionBurst from "@/components/live/live-reaction-burst";
-import LiveReactions from "@/components/live/live-reactions";
 import LiveViewerCount from "@/components/live/live-viewer-count";
 import RemoteImage from "@/components/ui/RemoteImage";
 import type { LiveReactionEvent } from "@/hooks/live/useLiveRoom";
-import type { LiveReactionType } from "@/types/live";
 import { Ionicons } from "@expo/vector-icons";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import type { MediaStream } from "react-native-webrtc";
-import VideoCallView from "@/components/video/video-call-view";
+import { RTCView, type MediaStream } from "react-native-webrtc";
 
 type LiveStageProps = {
   connected: boolean;
@@ -25,7 +22,8 @@ type LiveStageProps = {
   onToggleMicrophone?: () => void;
   onToggleCamera?: () => void;
   onSwitchCamera?: () => void;
-  onReact: (type: LiveReactionType) => void;
+  hostMenuVisible?: boolean;
+  onDismissHostMenu?: () => void;
   topLeft?: ReactNode;
   topRight?: ReactNode;
   children?: ReactNode;
@@ -43,16 +41,15 @@ export default function LiveStage({
   error = null,
   viewerCount,
   reactions,
-  bottomInset = 16,
   label,
   coverUri,
   onOpenComments,
   onOpenTalkers,
-  onOpenMoreReactions,
   onToggleMicrophone,
   onToggleCamera,
   onSwitchCamera,
-  onReact,
+  hostMenuVisible = false,
+  onDismissHostMenu,
   topLeft,
   topRight,
   children,
@@ -65,6 +62,14 @@ export default function LiveStage({
   remoteCameraEnabled = true,
 }: LiveStageProps) {
   const hasMediaStream = Boolean(localStream || remoteStream);
+  const primaryStream = remoteStream ?? localStream;
+  const primaryVideoTrack = primaryStream?.getVideoTracks()[0];
+  const primaryVideoVisible = Boolean(
+    primaryStream &&
+      primaryVideoTrack?.enabled !== false &&
+      (remoteStream ? remoteCameraEnabled : showLocalVideo),
+  );
+  const showLocalPreview = Boolean(remoteStream && localStream && showLocalVideo);
   const [controlsVisible, setControlsVisible] = useState(true);
   const controlsOpacity = useRef(new Animated.Value(1)).current;
   const hideControlsTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -116,20 +121,40 @@ export default function LiveStage({
 
       {hasMediaStream ? (
         <View style={styles.mediaSurface}>
-          <VideoCallView
-            localStream={localStream}
-            remoteStream={remoteStream}
-            isCameraEnabled={showLocalVideo}
-            localMirror={cameraFacing === "user"}
-            isRemoteCameraEnabled={remoteCameraEnabled}
-            displayName={label}
-          />
+          {primaryVideoVisible && primaryStream ? (
+            <RTCView
+              streamURL={primaryStream.toURL()}
+              style={StyleSheet.absoluteFill}
+              objectFit="cover"
+              mirror={!remoteStream && cameraFacing === "user"}
+              zOrder={0}
+            />
+          ) : (
+            <View style={styles.cameraOffState}>
+              <Ionicons name="videocam-off-outline" size={42} color="#e2e8f0" />
+              <Text style={styles.cameraOffText}>Камерата е изключена</Text>
+            </View>
+          )}
+          {showLocalPreview && localStream ? (
+            <View style={styles.localPreview}>
+              <RTCView
+                streamURL={localStream.toURL()}
+                style={StyleSheet.absoluteFill}
+                objectFit="cover"
+                mirror={cameraFacing === "user"}
+                zOrder={1}
+              />
+            </View>
+          ) : null}
         </View>
       ) : null}
 
       <Pressable
         style={styles.controlsRevealArea}
-        onPress={showControls}
+        onPress={() => {
+          onDismissHostMenu?.();
+          showControls();
+        }}
         accessibilityRole="button"
         accessibilityLabel="Покажи контролите"
       />
@@ -138,81 +163,6 @@ export default function LiveStage({
         pointerEvents={controlsVisible ? "auto" : "none"}
         style={[styles.controlsOverlay, { opacity: controlsOpacity }]}
       >
-        {connected && (localStream || onOpenComments) ? (
-          <View style={styles.captureStatusFullscreen}>
-          {topRight ? (
-            <View style={styles.captureStatusEnd}>{topRight}</View>
-          ) : null}
-          {onOpenComments ? (
-            <TouchableOpacity
-              onPress={onOpenComments}
-              style={[styles.captureStatusItem, styles.captureStatusItemFullscreen]}
-              accessibilityRole="button"
-              accessibilityLabel="Отвори всички коментари"
-            >
-              <Ionicons name="chatbubbles-outline" size={20} color="#ffffff" />
-            </TouchableOpacity>
-          ) : null}
-          {onOpenTalkers ? (
-            <TouchableOpacity
-              onPress={onOpenTalkers}
-              style={[styles.captureStatusItem, styles.captureStatusItemFullscreen]}
-              accessibilityRole="button"
-              accessibilityLabel="Покажи активните разговори"
-            >
-              <Ionicons name="people-outline" size={20} color="#ffffff" />
-            </TouchableOpacity>
-          ) : null}
-          {localStream ? (
-            <>
-          <TouchableOpacity
-            style={[styles.captureStatusItem, styles.captureStatusItemFullscreen]}
-            onPress={onSwitchCamera}
-            disabled={!onSwitchCamera || !cameraEnabled}
-            accessibilityRole="button"
-            accessibilityLabel="Превключи камерата"
-          >
-            <Ionicons name="camera-reverse-outline" size={20} color="#ffffff" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.captureStatusItem,
-              styles.captureStatusItemFullscreen,
-              !cameraEnabled && styles.captureStatusItemOff,
-            ]}
-            onPress={onToggleCamera}
-            disabled={!onToggleCamera}
-            accessibilityRole="button"
-            accessibilityLabel={cameraEnabled ? "Изключи камерата" : "Включи камерата"}
-          >
-            <Ionicons
-              name={cameraEnabled ? "videocam" : "videocam-off"}
-              size={20}
-              color={cameraEnabled ? "#bbf7d0" : "#fecaca"}
-            />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.captureStatusItem,
-              styles.captureStatusItemFullscreen,
-              !microphoneEnabled && styles.captureStatusItemOff,
-            ]}
-            onPress={onToggleMicrophone}
-            disabled={!onToggleMicrophone}
-            accessibilityRole="button"
-            accessibilityLabel={microphoneEnabled ? "Изключи микрофона" : "Включи микрофона"}
-          >
-            <Ionicons
-              name={microphoneEnabled ? "mic" : "mic-off"}
-              size={20}
-              color={microphoneEnabled ? "#bbf7d0" : "#fecaca"}
-            />
-          </TouchableOpacity>
-            </>
-          ) : null}
-          </View>
-        ) : null}
-
       {!connected && !error ? (
         <View pointerEvents="none" style={styles.connecting}>
           <Text style={styles.connectingText}>Свързване...</Text>
@@ -231,23 +181,53 @@ export default function LiveStage({
         <View style={styles.topBar}>
           <View style={styles.topLeft}>
             {topLeft}
-          </View>
-          <View style={styles.topRight}>
+            <View style={styles.liveBadge}>
+              <View style={styles.liveDot} />
+              <Text style={styles.liveBadgeText}>LIVE</Text>
+            </View>
             <LiveViewerCount count={viewerCount} variant="overlay" />
           </View>
+          <View style={styles.topRight}>
+            {topRight}
+          </View>
         </View>
-
-        <View
-          style={[
-            styles.reactionRail,
-            { top: 104, bottom: bottomInset },
-          ]}
-        >
-          <LiveReactions vertical limit={5} onMore={onOpenMoreReactions} onReact={onReact} />
-        </View>
-
-        {children}
       </Animated.View>
+
+      {connected && localStream && hostMenuVisible ? (
+        <View style={styles.hostMenu}>
+          <LiveControlRow
+            icon={microphoneEnabled ? "mic-outline" : "mic-off-outline"}
+            label="Микрофон"
+            active={microphoneEnabled}
+            onPress={onToggleMicrophone}
+          />
+          <LiveControlRow
+            icon={cameraEnabled ? "videocam-outline" : "videocam-off-outline"}
+            label="Камера"
+            active={cameraEnabled}
+            onPress={onToggleCamera}
+          />
+          <LiveControlRow
+            icon="camera-reverse-outline"
+            label="Обръщане на камера"
+            active={cameraEnabled}
+            onPress={cameraEnabled ? onSwitchCamera : undefined}
+          />
+          <LiveControlRow
+            icon="people-outline"
+            label="Участници"
+            onPress={onOpenTalkers}
+          />
+          <LiveControlRow
+            icon="chatbubbles-outline"
+            label="Коментари"
+            onPress={onOpenComments}
+            last
+          />
+        </View>
+      ) : null}
+
+      {children}
 
       <LiveReactionBurst
         reactions={reactions}
@@ -256,6 +236,33 @@ export default function LiveStage({
         liftDistance={500}
       />
     </View>
+  );
+}
+
+function LiveControlRow({
+  icon,
+  label,
+  active = true,
+  onPress,
+  last = false,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  active?: boolean;
+  onPress?: () => void;
+  last?: boolean;
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.hostMenuRow, !last && styles.hostMenuRowBorder]}
+      onPress={onPress}
+      disabled={!onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      <Ionicons name={icon} size={22} color={active ? "#ffffff" : "#fca5a5"} />
+      <Text style={styles.hostMenuLabel}>{label}</Text>
+    </TouchableOpacity>
   );
 }
 
@@ -294,6 +301,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
+  liveBadge: {
+    height: 32,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "rgba(20, 24, 31, 0.72)",
+  },
+  liveDot: { width: 9, height: 9, borderRadius: 5, backgroundColor: "#f43f5e" },
+  liveBadgeText: { color: "#ffffff", fontSize: 13, fontWeight: "800" },
   controlsRevealArea: {
     ...StyleSheet.absoluteFill,
     zIndex: 2,
@@ -307,39 +325,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  captureStatusEnd: { marginTop: 0 },
-  reactionRail: {
+  hostMenu: {
     position: "absolute",
-    right: 10,
-    width: 48,
-    zIndex: 4,
+    right: 18,
+    bottom: 144,
+    width: 176,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+    backgroundColor: "rgba(28, 29, 32, 0.9)",
+    zIndex: 5,
   },
-  captureStatusFullscreen: {
-    top: 56,
-    bottom: undefined,
-    left: 12,
-    flexDirection: "column",
-    alignItems: "flex-start",
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-    gap: 8,
-    backgroundColor: "transparent",
-  },
-  captureStatusItem: {
+  hostMenuRow: {
+    minHeight: 48,
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 12,
   },
-  captureStatusItemFullscreen: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    justifyContent: "center",
-    backgroundColor: "rgba(8, 12, 24, 0.72)",
-  },
-  captureStatusItemOff: {
-    opacity: 0.96,
-  },
+  hostMenuRowBorder: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: "rgba(255,255,255,0.2)" },
+  hostMenuLabel: { flex: 1, color: "#ffffff", fontSize: 13, fontWeight: "500" },
   connecting: {
     ...StyleSheet.absoluteFill,
     backgroundColor: "rgba(3, 7, 18, 0.35)",
@@ -378,5 +381,25 @@ const styles = StyleSheet.create({
   },
   mediaSurface: {
     ...StyleSheet.absoluteFill,
+  },
+  cameraOffState: {
+    ...StyleSheet.absoluteFill,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#111827",
+  },
+  cameraOffText: { color: "#e2e8f0", fontSize: 14, fontWeight: "700" },
+  localPreview: {
+    position: "absolute",
+    top: 74,
+    right: 14,
+    width: 92,
+    height: 132,
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "rgba(255,255,255,0.65)",
+    backgroundColor: "#111827",
   },
 });

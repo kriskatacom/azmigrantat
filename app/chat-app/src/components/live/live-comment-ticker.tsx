@@ -1,4 +1,6 @@
 import type { LiveComment } from "@/types/live";
+import RemoteImage from "@/components/ui/RemoteImage";
+import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -9,29 +11,43 @@ export default function LiveCommentTicker({
   comment: LiveComment | null;
   bottomOffset?: number;
 }) {
-  const [visibleComment, setVisibleComment] = useState<LiveComment | null>(null);
+  const [visibleComments, setVisibleComments] = useState<LiveComment[]>([]);
 
   useEffect(() => {
     if (!comment) return;
 
-    setVisibleComment(comment);
-    const timer = setTimeout(() => {
-      setVisibleComment((current) => (current?.id === comment.id ? null : current));
-    }, 5_000);
+    setVisibleComments((current) => {
+      if (current.some((item) => item.id === comment.id)) {
+        return current;
+      }
 
-    return () => clearTimeout(timer);
+      return [...current, comment].slice(-5);
+    });
   }, [comment]);
 
-  if (!visibleComment) return null;
+  if (visibleComments.length === 0) return null;
 
   return (
     <View pointerEvents="none" style={[styles.container, { bottom: bottomOffset }]}>
-      <Text style={styles.name} numberOfLines={1}>
-        {visibleComment.user?.name ?? "Потребител"}
-      </Text>
-      <Text style={styles.body} numberOfLines={3}>
-        {visibleComment.body}
-      </Text>
+      {visibleComments.map((visibleComment) => (
+        <View key={visibleComment.id} style={styles.commentRow}>
+          {visibleComment.user?.profile_image ? (
+            <RemoteImage uri={visibleComment.user.profile_image} style={styles.avatar} />
+          ) : (
+            <View style={styles.avatarFallback}>
+              <Ionicons name="person" size={18} color="#ffffff" />
+            </View>
+          )}
+          <View style={styles.copy}>
+            <Text style={styles.name} numberOfLines={1}>
+              {visibleComment.user?.name ?? "Потребител"}
+            </Text>
+            <Text style={styles.body} numberOfLines={2}>
+              {visibleComment.body}
+            </Text>
+          </View>
+        </View>
+      ))}
     </View>
   );
 }
@@ -43,12 +59,17 @@ const styles = StyleSheet.create({
     right: 70,
     alignSelf: "flex-start",
     maxWidth: "88%",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: "rgba(8, 12, 24, 0.72)",
+    gap: 7,
     zIndex: 8,
   },
-  name: { color: "rgba(255,255,255,0.78)", fontSize: 12, fontWeight: "800" },
-  body: { color: "#ffffff", fontSize: 15, lineHeight: 20, marginTop: 2 },
+  commentRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 9,
+  },
+  avatar: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, borderColor: "#ffffff" },
+  avatarFallback: { width: 38, height: 38, borderRadius: 19, alignItems: "center", justifyContent: "center", backgroundColor: "#475569", borderWidth: 1, borderColor: "#ffffff" },
+  copy: { flex: 1, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 12, backgroundColor: "rgba(8, 12, 24, 0.48)" },
+  name: { color: "#ffffff", fontSize: 12, fontWeight: "800" },
+  body: { color: "#ffffff", fontSize: 13, lineHeight: 17, marginTop: 1 },
 });

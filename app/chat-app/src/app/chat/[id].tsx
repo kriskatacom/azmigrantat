@@ -66,6 +66,7 @@ export default function ChatRoom() {
     lastPresenceStatus,
     lastUserBlock,
     lastConversationCleared,
+    lastConversationClearedAt,
   } = useSocket();
 
   const flatListRef = useRef<FlatList<ChatMessage>>(null);
@@ -138,6 +139,7 @@ export default function ChatRoom() {
     lastReactionUpdate,
     lastUserBlock,
     lastConversationCleared,
+    lastConversationClearedAt,
     otherUserId: routeUserId,
     inputRef,
     flatListRef,

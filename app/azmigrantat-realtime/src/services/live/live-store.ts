@@ -69,6 +69,10 @@ export class InMemoryLiveStore {
         return this.rooms.get(liveId)?.has(socketId) ?? false;
     }
 
+    occupant(liveId: number, socketId: string): LiveOccupant | null {
+        return this.rooms.get(liveId)?.get(socketId) ?? null;
+    }
+
     socketIdForRole(liveId: number, role: LiveRole): string | null {
         for (const [socketId, occupant] of this.rooms.get(liveId) ?? []) {
             if (occupant.role === role) {

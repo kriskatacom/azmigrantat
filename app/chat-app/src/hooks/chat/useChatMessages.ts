@@ -111,6 +111,7 @@ type UseChatMessagesParams = {
   lastReactionUpdate?: MessageReactionPayload | null;
   lastUserBlock?: UserBlockPayload | null;
   lastConversationCleared?: ConversationClearedPayload | null;
+  lastConversationClearedAt?: number;
   otherUserId?: number | null;
 
   inputRef: RefObject<TextInput | null>;
@@ -129,6 +130,7 @@ export function useChatMessages({
   lastReactionUpdate,
   lastUserBlock,
   lastConversationCleared,
+  lastConversationClearedAt = 0,
   otherUserId,
   inputRef,
   flatListRef,
@@ -149,6 +151,7 @@ export function useChatMessages({
   const lastDeliveredReceiptRef = useRef(lastDeliveredReceipt);
   const isAppActiveRef = useRef(isAppActive);
   const isBlockedRef = useRef(false);
+  const mountedAtRef = useRef(Date.now());
 
   useEffect(() => {
     lastReadReceiptRef.current = lastReadReceipt;
@@ -296,7 +299,11 @@ export function useChatMessages({
   }, [lastUserBlock, currentUserId, otherUser?.id, otherUserId]);
 
   useEffect(() => {
-    if (!lastConversationCleared || currentUserId === undefined) {
+    if (
+      !lastConversationCleared ||
+      currentUserId === undefined ||
+      lastConversationClearedAt < mountedAtRef.current
+    ) {
       return;
     }
 
@@ -326,7 +333,12 @@ export function useChatMessages({
           Number(message.sender_id) !== Number(lastConversationCleared.actor_id),
       ),
     );
-  }, [lastConversationCleared, conversationId, currentUserId]);
+  }, [
+    lastConversationCleared,
+    lastConversationClearedAt,
+    conversationId,
+    currentUserId,
+  ]);
 
   useEffect(() => {
     if (

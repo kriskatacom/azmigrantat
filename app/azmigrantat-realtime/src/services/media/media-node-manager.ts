@@ -28,7 +28,6 @@ export type MediaAssignment = {
 
 const NODE_KEY_PREFIX = 'media:nodes:';
 const ROOM_KEY_PREFIX = 'media:rooms:';
-const ASSIGNMENT_TTL_SECONDS = 86_400;
 
 export function isValidMediaNodeDescriptor(value: unknown): value is MediaNodeDescriptor {
     if (!value || typeof value !== 'object') {
@@ -225,7 +224,7 @@ export class MediaNodeManager {
             const created = await this.client.set(
                 this.roomKey(liveId),
                 JSON.stringify(assignment),
-                { NX: true, EX: ASSIGNMENT_TTL_SECONDS },
+                { NX: true },
             );
 
             if (created === 'OK') {

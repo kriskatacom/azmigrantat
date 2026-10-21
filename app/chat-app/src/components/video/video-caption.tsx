@@ -21,6 +21,7 @@ type Props = {
   maxHeight?: number;
   interactionKey?: number;
   isPlaying?: boolean;
+  rightInset?: number;
 };
 
 export default function VideoCaption({
@@ -30,6 +31,7 @@ export default function VideoCaption({
   bottomOffset = 0,
   interactionKey = 0,
   isPlaying = false,
+  rightInset = 16,
 }: Props) {
   const insets = useSafeAreaInsets();
   const [expanded, setExpanded] = useState(false);
@@ -80,11 +82,14 @@ export default function VideoCaption({
     <Animated.View
       pointerEvents={visible && !autoHidden ? "box-none" : "none"}
       layout={LinearTransition.duration(280)}
-      style={[styles.triggerContainer, { bottom }, animatedStyle]}
+      style={[styles.triggerContainer, { right: rightInset, bottom }, animatedStyle]}
     >
       <View
         pointerEvents="none"
-        style={[styles.gradient, { bottom: -bottom, height: gradientHeight + bottom }]}
+        style={[
+          styles.gradient,
+          { right: -rightInset, bottom: -bottom, height: gradientHeight + bottom },
+        ]}
       >
         <Svg width="100%" height="100%">
           <Defs>
@@ -139,11 +144,10 @@ const styles = StyleSheet.create({
   triggerContainer: {
     position: "absolute",
     left: 16,
-    right: 16,
     zIndex: 30,
     overflow: "visible",
   },
-  gradient: { position: "absolute", left: -16, right: -16, bottom: 0, zIndex: 1 },
+  gradient: { position: "absolute", left: -16, bottom: 0, zIndex: 1 },
   captionContent: { alignItems: "flex-start", zIndex: 2 },
   title: {
     fontSize: 16,
@@ -166,7 +170,6 @@ const styles = StyleSheet.create({
   moreButtonText: {
     fontSize: 12,
     fontWeight: "800",
-    textDecorationLine: "underline",
     textShadowColor: "rgba(0,0,0,0.65)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,

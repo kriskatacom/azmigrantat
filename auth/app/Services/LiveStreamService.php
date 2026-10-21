@@ -65,15 +65,15 @@ final class LiveStreamService
         $stream = $this->findOwnedStream($liveId, (int) $user->id);
 
         if ($stream->isLive()) {
+            $roomId = $stream->media_room_id ?: ('live-' . $stream->id);
+
+            try {
+                $assignment = $this->mediaNodes->allocate((int) $stream->id, $roomId);
+            } catch (Throwable $exception) {
+                throw new LiveStateException('Няма наличен media node за активното live предаване.');
+            }
+
             if ($stream->media_provider !== LiveStream::MEDIA_PROVIDER_MEDIASOUP || !$stream->media_room_id) {
-                $roomId = $stream->media_room_id ?: ('live-' . $stream->id);
-
-                try {
-                    $assignment = $this->mediaNodes->allocate((int) $stream->id, $roomId);
-                } catch (Throwable $exception) {
-                    throw new LiveStateException('Няма наличен media node за активното live предаване.');
-                }
-
                 $stream->media_provider = LiveStream::MEDIA_PROVIDER_MEDIASOUP;
                 $stream->media_room_id = (string) ($assignment['media_room_id'] ?? $roomId);
                 $stream->save();
@@ -144,7 +144,6 @@ final class LiveStreamService
 
         $stream->loadMissing('owner');
         $this->notifyEnded($stream);
-
         try {
             $this->mediaNodes->release((int) $stream->id);
         } catch (Throwable $exception) {
@@ -197,6 +196,37 @@ final class LiveStreamService
         }
 
         return $stream;
+    }
+
+    public function endDisconnected(int $liveId): bool
+    {
+        $stream = LiveStream::query()->find($liveId);
+
+        if (!$stream || !$stream->isLive()) {
+            return false;
+        }
+
+        $now = Carbon::now();
+
+        Capsule::connection()->transaction(function () use ($stream, $now): void {
+            $stream->status = LiveStream::STATUS_ENDED;
+            $stream->ended_at = $now;
+            $stream->viewer_count = 0;
+            $stream->save();
+
+            LiveViewer::query()
+                ->where('live_stream_id', $stream->id)
+                ->whereNull('left_at')
+                ->update(['left_at' => $now, 'updated_at' => $now]);
+        });
+
+        try {
+            $this->mediaNodes->release((int) $stream->id);
+        } catch (Throwable $exception) {
+            error_log('[LiveStreamService] disconnected media assignment release failed: ' . $exception->getMessage());
+        }
+
+        return true;
     }
 
     private function upgradeLegacyLiveMedia(LiveStream $stream): void
@@ -430,6 +460,8 @@ final class LiveStreamService
 
         if ($includeMediaSession && $stream->isLive() && $stream->media_provider === LiveStream::MEDIA_PROVIDER_MEDIASOUP) {
             try {
+                $roomId = $stream->media_room_id ?: ('live-' . $stream->id);
+                $this->mediaNodes->allocate((int) $stream->id, $roomId);
                 $role = $stream->isOwnedBy((int) $currentUserId) ? 'streamer' : 'viewer';
                 $payload['media_session'] = $this->mediaNodes->session(
                     (int) $stream->id,

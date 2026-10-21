@@ -455,6 +455,26 @@ final class InternalMobileController extends BaseController
         return $this->json(['success' => true]);
     }
 
+    public function endDisconnectedLive()
+    {
+        if (!$this->hasValidInternalSecret()) {
+            return $this->json(['success' => false, 'message' => 'Unauthorized.'], 401);
+        }
+
+        $input = $this->jsonInput();
+        $validator = Validator::make($input, [
+            'live_id' => 'required|integer|min:1',
+        ]);
+
+        if ($validator->fails()) {
+            return $this->validationError($validator);
+        }
+
+        $ended = $this->lives->endDisconnected((int) $input['live_id']);
+
+        return $this->json(['success' => true, 'ended' => $ended]);
+    }
+
     private function dispatchNotification(int $userId, ?array $payload, string $event): void
     {
         if (!$payload) {

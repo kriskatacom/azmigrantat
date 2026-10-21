@@ -175,6 +175,10 @@ export default function VideoUploadScreen() {
 
   async function upload() {
     if (!token || !selected || uploadStarted.current) return;
+    if (!selectedCategory) {
+      Alert.alert("Изберете категория", "Категорията е задължителна за качване на видео.");
+      return;
+    }
     if (!selected.size) {
       Alert.alert("Липсва размер", "Не може да се определи размерът на видеото.");
       return;
@@ -216,7 +220,7 @@ export default function VideoUploadScreen() {
       const initialized = await beginVideoUpload(token, {
         title: title.trim() || selected.name,
         description: description.trim(),
-        categoryId: selectedCategory?.id ?? null,
+        categoryId: selectedCategory.id,
         filename: selected.name,
         mimeType: selected.mimeType ?? "video/mp4",
         fileSize,
@@ -392,7 +396,7 @@ export default function VideoUploadScreen() {
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="interactive"
       >
-        <Text style={[styles.help, { color: theme.colors.textSecondary }]}>Качи едно видео, добави заглавие, описание и thumbnail.</Text>
+        <Text style={[styles.help, { color: theme.colors.textSecondary }]}>Качи едно видео, избери категория и добави заглавие, описание и thumbnail.</Text>
         <AppInput
           label="Заглавие"
           value={title}
@@ -402,7 +406,7 @@ export default function VideoUploadScreen() {
           editable={!busy}
         />
         <View style={styles.fieldGroup}>
-          <Text style={[styles.fieldLabel, { color: theme.colors.text }]}>Категория (по желание)</Text>
+          <Text style={[styles.fieldLabel, { color: theme.colors.text }]}>Категория *</Text>
           <Pressable
             onPress={openCategoryModal}
             disabled={busy}
@@ -442,7 +446,7 @@ export default function VideoUploadScreen() {
             {thumbnail ? <Text style={[styles.fileButtonText, { color: theme.colors.text }]}>{thumbnail.fileName ?? "Избрано изображение"}</Text> : null}
           </Pressable>
         </View>
-        <AppButton title={busy ? "Качва се…" : "Качи видео"} loading={busy} disabled={!selected} onPress={() => void upload()} />
+        <AppButton title={busy ? "Качва се…" : "Качи видео"} loading={busy} disabled={!selected || !selectedCategory} onPress={() => void upload()} />
       </ScrollView>
       </KeyboardAvoidingView>
       <Modal
@@ -505,21 +509,6 @@ export default function VideoUploadScreen() {
                 nestedScrollEnabled
                 showsVerticalScrollIndicator
               >
-              {categoryPath.length === 0 ? (
-                <TouchableHighlight
-                  style={[styles.categoryOption, { borderColor: theme.colors.border, backgroundColor: theme.colors.card }]}
-                  onPress={() => {
-                    setSelectedCategory(null);
-                    setIsCategoryModalVisible(false);
-                  }}
-                  disabled={isCategoriesLoading}
-                  underlayColor={theme.colors.background}
-                >
-                  <View style={styles.categoryOptionRow} pointerEvents="none">
-                    <Text style={[styles.categoryOptionText, { color: theme.colors.text }]}>Без категория</Text>
-                  </View>
-                </TouchableHighlight>
-              ) : null}
               {categories.map((category) => (
                 <TouchableHighlight
                   key={category.id}

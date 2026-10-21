@@ -56,6 +56,7 @@ interface SocketContextValue {
   lastNotificationEventAt: number;
   lastUserBlock: UserBlockPayload | null;
   lastConversationCleared: ConversationClearedPayload | null;
+  lastConversationClearedAt: number;
 }
 
 export const SocketContext = createContext<SocketContextValue | undefined>(
@@ -103,6 +104,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
   );
   const [lastConversationCleared, setLastConversationCleared] =
     useState<ConversationClearedPayload | null>(null);
+  const [lastConversationClearedAt, setLastConversationClearedAt] = useState(0);
 
   useEffect(() => {
     if (isLoading) {
@@ -131,6 +133,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
       setLastNotificationEventAt(0);
       setLastUserBlock(null);
       setLastConversationCleared(null);
+      setLastConversationClearedAt(0);
 
       return;
     }
@@ -262,6 +265,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
 
     const handleConversationCleared = (payload: ConversationClearedPayload) => {
       setLastConversationCleared(payload);
+      setLastConversationClearedAt(Date.now());
     };
 
     const handleConnectError = (error: Error) => {
@@ -394,6 +398,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
       lastNotificationEventAt,
       lastUserBlock,
       lastConversationCleared,
+      lastConversationClearedAt,
     }),
     [
       socket,
@@ -416,6 +421,7 @@ export function SocketProvider({ children }: PropsWithChildren) {
       lastNotificationEventAt,
       lastUserBlock,
       lastConversationCleared,
+      lastConversationClearedAt,
     ],
   );
 

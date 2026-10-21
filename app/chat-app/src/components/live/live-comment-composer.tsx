@@ -1,5 +1,5 @@
 import { useAppTheme } from "@/app/_layout";
-import { FontAwesome } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
 
 type LiveCommentComposerProps = {
@@ -11,6 +11,9 @@ type LiveCommentComposerProps = {
   compact?: boolean;
   transparentBackground?: boolean;
   showSendButton?: boolean;
+  onOpenReactions?: () => void;
+  onOpenComments?: () => void;
+  onOpenMenu?: () => void;
   colors: {
     card: string;
     text: string;
@@ -31,6 +34,9 @@ export default function LiveCommentComposer({
   compact = false,
   transparentBackground = false,
   showSendButton = keyboardVisible,
+  onOpenReactions,
+  onOpenComments,
+  onOpenMenu,
 }: LiveCommentComposerProps) {
   const { colorScheme } = useAppTheme();
   const canSend = value.trim().length > 0;
@@ -47,6 +53,16 @@ export default function LiveCommentComposer({
         },
       ]}
     >
+      {transparentBackground ? (
+        <TouchableOpacity
+          onPress={onOpenReactions}
+          style={styles.leadingButton}
+          accessibilityRole="button"
+          accessibilityLabel="Отвори реакциите"
+        >
+          <Ionicons name="happy-outline" size={25} color="#ffffff" />
+        </TouchableOpacity>
+      ) : null}
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -60,8 +76,8 @@ export default function LiveCommentComposer({
           styles.input,
           {
             color: transparentBackground ? "#ffffff" : colors.text,
-            backgroundColor: transparentBackground ? "rgba(8, 12, 24, 0.58)" : colors.input,
-            borderColor: transparentBackground ? "rgba(255, 255, 255, 0.6)" : colors.inputBorder,
+            backgroundColor: transparentBackground ? "transparent" : colors.input,
+            borderColor: transparentBackground ? "transparent" : colors.inputBorder,
           },
         ]}
         maxLength={280}
@@ -69,6 +85,16 @@ export default function LiveCommentComposer({
         onSubmitEditing={onSend}
         blurOnSubmit={false}
       />
+      {transparentBackground ? (
+        <TouchableOpacity
+          onPress={onOpenMenu ?? onOpenComments}
+          style={styles.moreButton}
+          accessibilityRole="button"
+          accessibilityLabel={onOpenMenu ? "Отвори опциите за предаването" : "Покажи всички коментари"}
+        >
+          <Ionicons name="ellipsis-horizontal" size={22} color="#ffffff" />
+        </TouchableOpacity>
+      ) : null}
       {showSendButton ? (
         <TouchableOpacity
           onPress={onSend}
@@ -77,7 +103,7 @@ export default function LiveCommentComposer({
           accessibilityRole="button"
           accessibilityLabel="Изпрати коментар"
         >
-          <FontAwesome name="send" size={16} color="#ffffff" />
+          <Ionicons name="send" size={18} color="#ffffff" />
         </TouchableOpacity>
       ) : null}
     </View>
@@ -95,6 +121,12 @@ const styles = StyleSheet.create({
   },
   transparentRow: {
     borderTopWidth: 0,
+    minHeight: 54,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 27,
+    gap: 6,
+    backgroundColor: "rgba(28, 29, 32, 0.66)",
   },
   input: {
     flex: 1,
@@ -111,5 +143,21 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: "center",
     justifyContent: "center",
+  },
+  leadingButton: {
+    width: 38,
+    height: 38,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: "rgba(255,255,255,0.45)",
+  },
+  moreButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.34)",
   },
 });

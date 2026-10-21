@@ -4,10 +4,17 @@ import HomeVideoFeed from "@/components/video/home-video-feed";
 import RemoteImage from "@/components/ui/RemoteImage";
 import type { PublicVideoItem } from "@/types/video";
 import { getBackgroundUploadStatus, subscribeToBackgroundUpload } from "@/services/background-upload-state";
-import { useAppTheme } from "@/contexts/ThemeContext";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused, useRouter } from "expo-router";
-import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from "react-native-svg";
+import Svg, {
+  Circle,
+  Defs,
+  LinearGradient as SvgLinearGradient,
+  Path,
+  Rect,
+  Stop,
+  Text as SvgText,
+} from "react-native-svg";
 import { useEffect, useState } from "react";
 import {
   Image,
@@ -18,6 +25,41 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+
+function LiveMenuIcon() {
+  return (
+    <Svg width={34} height={30} viewBox="0 0 56 48" accessibilityElementsHidden>
+      <Path
+        d="M5 15V8h13M38 8h13v7M5 34v7h13M38 41h13v-7"
+        fill="none"
+        stroke="#ffffff"
+        strokeWidth={3}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <SvgText
+        x="28"
+        y="32"
+        fill="#ffffff"
+        fontSize="19"
+        fontWeight="800"
+        textAnchor="middle"
+      >
+        LIVE
+      </SvgText>
+    </Svg>
+  );
+}
+
+function SeeMoreIcon() {
+  return (
+    <Svg width={30} height={12} viewBox="0 0 30 12" accessibilityElementsHidden>
+      <Circle cx="4" cy="6" r="4" fill="#ffffff" />
+      <Circle cx="15" cy="6" r="4" fill="#ffffff" />
+      <Circle cx="26" cy="6" r="4" fill="#ffffff" />
+    </Svg>
+  );
+}
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -60,19 +102,6 @@ export default function HomeScreen() {
             <Rect width="100%" height="100%" fill="url(#homeTopGradient)" />
           </Svg>
         </View>
-        <View pointerEvents="none" style={styles.bottomGradient}>
-          <Svg width="100%" height="100%">
-            <Defs>
-              <SvgLinearGradient id="homeBottomGradient" x1="0" y1="0" x2="0" y2="1">
-                <Stop offset="0" stopColor="#000000" stopOpacity="0" />
-                <Stop offset="0.5" stopColor="#000000" stopOpacity="0.5" />
-                <Stop offset="1" stopColor="#000000" stopOpacity="1" />
-              </SvgLinearGradient>
-            </Defs>
-            <Rect width="100%" height="100%" fill="url(#homeBottomGradient)" />
-          </Svg>
-        </View>
-
         <View style={styles.topBar}>
           <Image
             source={require("../../assets/images/logo-dark.png")}
@@ -95,7 +124,7 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="На живо"
           >
-            <Ionicons name="radio-outline" size={25} color="#ffffff" />
+            <LiveMenuIcon />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -104,8 +133,7 @@ export default function HomeScreen() {
             accessibilityRole="button"
             accessibilityLabel="Отвори категориите"
           >
-            <Ionicons name="grid-outline" size={17} color="#ffffff" />
-            <Text style={styles.subscriptionButtonText}>Виж повече</Text>
+            <SeeMoreIcon />
           </TouchableOpacity>
           <View style={styles.topRightActions}>
             <TouchableOpacity
@@ -168,12 +196,11 @@ export default function HomeScreen() {
               style={styles.quickActionIcon}
               resizeMode="contain"
             />
-            <Text style={styles.chatActionLabel}>Чат</Text>
           </TouchableOpacity>
 
         </View>
 
-        <View style={styles.bottomNavigation}>
+        <View pointerEvents="box-none" style={styles.bottomNavigation}>
           <NavigationItem
             icon="home"
             label="Начало"
@@ -199,7 +226,7 @@ export default function HomeScreen() {
             }}
           >
             <View style={styles.uploadCircle}>
-              <Ionicons name="cloud-upload-outline" size={32} color="#ffffff" />
+              <Ionicons name="add" size={30} color="#111111" />
             </View>
             <Text style={styles.uploadLabel}>Качи</Text>
           </TouchableOpacity>
@@ -294,13 +321,6 @@ const styles = StyleSheet.create({
     right: 0,
     height: 300,
   },
-  bottomGradient: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 200,
-  },
   safeArea: {
     flex: 1,
   },
@@ -331,7 +351,7 @@ const styles = StyleSheet.create({
   },
   liveIconButton: {
     width: 40,
-    height: 40,
+    height: 42,
     borderRadius: 0,
     paddingHorizontal: 0,
     alignItems: "center",
@@ -357,16 +377,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   subscriptionButton: {
-    height: 35,
-    paddingHorizontal: 9,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    paddingHorizontal: 0,
+    borderRadius: 0,
     backgroundColor: "transparent",
-    flexDirection: "row",
     alignItems: "center",
-    gap: 0,
-    marginRight: 4,
+    justifyContent: "center",
+    marginRight: 0,
   },
-  subscriptionButtonText: { color: "#ffffff", fontSize: 10, fontWeight: "900" },
   backgroundUploadNotice: {
     position: "absolute",
     top: 126,
@@ -442,13 +461,6 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
   },
-  chatActionLabel: {
-    position: "absolute",
-    bottom: -14,
-    color: "#ffffff",
-    fontSize: 11,
-    fontWeight: "700",
-  },
   videoAuthorAvatar: {
     width: 40,
     height: 40,
@@ -513,18 +525,18 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   uploadCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 42,
+    width: 37,
+    height: 37,
+    borderRadius: 19,
     marginBottom: 3,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "transparent",
+    backgroundColor: "#E8E296",
   },
   uploadLabel: {
     color: "#ffffff",
     fontSize: 11,
     fontWeight: "700",
-    transform: [{ translateY: -10 }],
+    transform: [{ translateY: -2 }],
   },
 });

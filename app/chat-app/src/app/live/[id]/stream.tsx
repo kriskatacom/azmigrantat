@@ -45,6 +45,7 @@ export default function LiveStreamerScreen() {
   const [comment, setComment] = useState("");
   const [ending, setEnding] = useState(false);
   const [commentsVisible, setCommentsVisible] = useState(false);
+  const [hostMenuVisible, setHostMenuVisible] = useState(false);
   const [activeTalkersVisible, setActiveTalkersVisible] = useState(false);
   const [reactionsVisible, setReactionsVisible] = useState(false);
   const composerBarStyle = {
@@ -188,13 +189,18 @@ export default function LiveStreamerScreen() {
         reactions={room.reactions}
         label={media.connected ? "Предаваш на живо" : "Свързване..."}
         coverUri={coverUri}
-        onOpenComments={() => setCommentsVisible(true)}
-        onOpenTalkers={() => setActiveTalkersVisible(true)}
+        onOpenComments={() => {
+          setHostMenuVisible(false);
+          setCommentsVisible(true);
+        }}
+        onOpenTalkers={() => {
+          setHostMenuVisible(false);
+          setActiveTalkersVisible(true);
+        }}
         onOpenMoreReactions={() => setReactionsVisible(true)}
         onToggleMicrophone={() => void media.muteAudio(!media.muted)}
         onToggleCamera={() => void media.toggleCamera().then((enabled) => room.sendCameraState(enabled))}
         onSwitchCamera={() => void media.switchCamera().catch((error) => Alert.alert("Грешка", error instanceof Error ? error.message : "Камерата не може да бъде превключена."))}
-        onReact={room.sendReaction}
         bottomInset={16}
         localStream={media.localStream}
         remoteStream={media.remoteStream}
@@ -203,6 +209,8 @@ export default function LiveStreamerScreen() {
         cameraEnabled={media.cameraEnabled}
         cameraFacing={media.cameraFacing}
         microphoneEnabled={!media.muted}
+        hostMenuVisible={hostMenuVisible}
+        onDismissHostMenu={() => setHostMenuVisible(false)}
         topRight={
           <TouchableOpacity
             style={styles.endButton}
@@ -229,13 +237,15 @@ export default function LiveStreamerScreen() {
           >
             <LiveCommentComposer
               value={comment}
-              placeholder="Напиши коментар"
+              placeholder="Добави коментар..."
               onChangeText={setComment}
               onSend={sendComment}
               keyboardVisible={keyboardVisible}
               compact
               transparentBackground
-              showSendButton={keyboardVisible}
+              showSendButton
+              onOpenReactions={() => setReactionsVisible(true)}
+              onOpenMenu={() => setHostMenuVisible((visible) => !visible)}
               colors={theme.colors}
             />
           </View>

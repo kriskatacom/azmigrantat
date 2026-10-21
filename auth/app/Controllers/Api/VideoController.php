@@ -106,7 +106,7 @@ final class VideoController extends BaseController
         $input = $this->jsonInput();
         $title = trim((string) ($input['title'] ?? $input['filename'] ?? 'Видео'));
         $description = trim((string) ($input['description'] ?? ''));
-        $categoryId = isset($input['category_id']) && $input['category_id'] !== '' ? (int) $input['category_id'] : null;
+        $categoryId = isset($input['category_id']) && $input['category_id'] !== '' ? (int) $input['category_id'] : 0;
         $mimeType = strtolower(trim((string) ($input['mime_type'] ?? '')));
         $fileSize = (int) ($input['file_size'] ?? 0);
 
@@ -118,8 +118,12 @@ final class VideoController extends BaseController
             return $this->json(['success' => false, 'message' => 'Описанието не може да е по-дълго от 2000 символа.'], 422);
         }
 
-        if ($categoryId !== null && !Category::query()->active()->whereKey($categoryId)->exists()) {
-            return $this->json(['success' => false, 'message' => 'Избраната категория не е активна.'], 422);
+        if ($categoryId < 1) {
+            return $this->json(['success' => false, 'message' => 'Категорията е задължителна.'], 422);
+        }
+
+        if (!Category::query()->active()->whereKey($categoryId)->exists()) {
+            return $this->json(['success' => false, 'message' => 'Изберете валидна активна категория.'], 422);
         }
 
         if (!in_array($mimeType, ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-m4v'], true)) {

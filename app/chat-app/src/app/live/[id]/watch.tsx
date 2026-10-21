@@ -221,7 +221,6 @@ export default function LiveViewerScreen() {
             </TouchableOpacity>
           )
         }
-        onReact={room.sendReaction}
         bottomInset={16}
         remoteStream={media.remoteStream}
         remoteCameraEnabled={room.remoteCameraEnabled}
@@ -261,13 +260,15 @@ export default function LiveViewerScreen() {
         >
           <LiveCommentComposer
             value={comment}
-            placeholder="Напиши коментар"
+            placeholder="Добави коментар..."
             onChangeText={setComment}
             onSend={sendComment}
             keyboardVisible={keyboardVisible}
             compact
             transparentBackground
-            showSendButton={keyboardVisible}
+            showSendButton
+            onOpenReactions={() => setReactionsVisible(true)}
+            onOpenComments={() => setCommentsVisible(true)}
             colors={theme.colors}
           />
         </View>

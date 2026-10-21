@@ -9,6 +9,7 @@ export interface LivePersistenceProvider {
         body: string,
     ): Promise<LiveCommentPayload | null>;
     syncViewerCount(liveId: number, viewerCount: number): Promise<void>;
+    endDisconnectedLive(liveId: number): Promise<boolean>;
 }
 
 export class PhpLivePersistenceProvider implements LivePersistenceProvider {
@@ -62,5 +63,25 @@ export class PhpLivePersistenceProvider implements LivePersistenceProvider {
         if (!response.ok) {
             throw new Error(`PHP live viewer-count sync failed with HTTP ${response.status}.`);
         }
+    }
+
+    async endDisconnectedLive(liveId: number): Promise<boolean> {
+        const response = await fetch(`${config.phpApiUrl}/internal/mobile/lives/end-disconnected`, {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
+                'X-Internal-Secret': config.internalApiSecret,
+            },
+            body: JSON.stringify({ live_id: liveId }),
+            signal: AbortSignal.timeout(5_000),
+        });
+
+        if (!response.ok) {
+            throw new Error(`PHP disconnected live end failed with HTTP ${response.status}.`);
+        }
+
+        const payload = (await response.json()) as { ended?: unknown };
+        return payload.ended === true;
     }
 }
