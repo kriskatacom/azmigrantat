@@ -18,6 +18,7 @@ vi.mock('redis', () => ({
 
 import {
     isValidMediaNodeDescriptor,
+    mediaRedisKey,
     MediaNodeManager,
 } from '../../src/services/media/media-node-manager';
 
@@ -56,6 +57,15 @@ afterEach(() => {
 });
 
 describe('media node descriptor', () => {
+    it('keeps staging and production Redis keys separate', () => {
+        expect(mediaRedisKey('rooms', 7, 'azmigrantat:realtime:staging:')).toBe(
+            'azmigrantat:realtime:staging:media:rooms:7',
+        );
+        expect(mediaRedisKey('rooms', 7, 'azmigrantat:realtime:staging:')).not.toBe(
+            mediaRedisKey('rooms', 7, 'azmigrantat:realtime:production:'),
+        );
+    });
+
     it('accepts a descriptor with separate signaling, RTC and control addresses', () => {
         expect(isValidMediaNodeDescriptor(descriptor)).toBe(true);
     });

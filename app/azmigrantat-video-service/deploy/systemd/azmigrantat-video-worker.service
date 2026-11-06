@@ -1,0 +1,25 @@
+[Unit]
+Description=Azmigrantat Dedicated video processing worker
+Wants=network-online.target
+After=network-online.target redis-server.service
+RequiresMountsFor=/srv/azmigrantat-video
+
+[Service]
+Type=simple
+User=azmigrantat-video
+Group=azmigrantat-video
+WorkingDirectory=/opt/azmigrantat-video-service
+EnvironmentFile=/etc/azmigrantat-video/video-service.env
+ExecStart=/usr/local/bin/node dist/worker-server.js
+Restart=on-failure
+RestartSec=10s
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/srv/azmigrantat-video
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

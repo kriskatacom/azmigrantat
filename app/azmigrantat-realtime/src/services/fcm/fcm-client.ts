@@ -1,6 +1,7 @@
 import { applicationDefault, getApps, initializeApp } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 
+import { config } from '../../config';
 import type { PushTokenProvider } from './push-token.provider';
 
 export interface FcmDataMessage {
@@ -44,7 +45,6 @@ export class FirebaseFcmSender implements FcmSender {
         console.log('[FCM] Tokens found', {
             userId,
             count: tokens.length,
-            tokens: tokens.map((item) => `${item.token.slice(0, 12)}...`),
         });
 
         if (tokens.length === 0 || message.expiresAt <= new Date()) {
@@ -56,12 +56,18 @@ export class FirebaseFcmSender implements FcmSender {
             return;
         }
 
-        if (getApps().length === 0) {
+        const appName = `azmigrantat-realtime-${config.environment}`;
+        let firebaseApp = getApps().find((app) => app.name === appName);
+        if (!firebaseApp) {
             console.log('[FCM] Initializing Firebase Admin');
 
-            initializeApp({
-                credential: applicationDefault(),
-            });
+            firebaseApp = initializeApp(
+                {
+                    credential: applicationDefault(),
+                    ...(config.firebaseProjectId ? { projectId: config.firebaseProjectId } : {}),
+                },
+                appName,
+            );
         }
 
         const ttl = Math.max(0, message.expiresAt.getTime() - Date.now());
@@ -75,7 +81,7 @@ export class FirebaseFcmSender implements FcmSender {
         for (let offset = 0; offset < tokens.length; offset += 500) {
             const batch = tokens.slice(offset, offset + 500);
 
-            const result = await getMessaging().sendEachForMulticast({
+            const result = await getMessaging(firebaseApp).sendEachForMulticast({
                 tokens: batch.map(({ token }) => token),
                 data: message.data,
                 android: {
@@ -94,12 +100,12 @@ export class FirebaseFcmSender implements FcmSender {
             result.responses.forEach((response, index) => {
                 if (response.success) {
                     console.log('[FCM] Token success', {
-                        token: batch[index].token.slice(0, 12) + '...',
+                        tokenIndex: offset + index,
                         messageId: response.messageId,
                     });
                 } else {
                     console.error('[FCM] Token failed', {
-                        token: batch[index].token.slice(0, 12) + '...',
+                        tokenIndex: offset + index,
                         code: response.error?.code,
                         message: response.error?.message,
                     });

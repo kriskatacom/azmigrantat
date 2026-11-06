@@ -4,6 +4,7 @@ namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
 use App\Services\PaymentMethodService;
+use App\Services\PaymentsFeature;
 use Illuminate\Support\Facades\Validator;
 use RuntimeException;
 
@@ -44,6 +45,9 @@ final class PaymentMethodController extends BaseController
         }
 
         $input = $this->jsonInput();
+        if (!PaymentsFeature::isEnabled() && filter_var($input['auto_renewal'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            return $this->paymentsUnavailable();
+        }
         $validator = Validator::make(
             $input,
             ['auto_renewal' => 'required|boolean'],
@@ -79,6 +83,10 @@ final class PaymentMethodController extends BaseController
 
         if (!$user) {
             return $this->unauthorized();
+        }
+
+        if (!PaymentsFeature::isEnabled()) {
+            return $this->paymentsUnavailable();
         }
 
         $input = $this->jsonInput();
@@ -205,5 +213,14 @@ final class PaymentMethodController extends BaseController
             'success' => false,
             'message' => 'Необходима е автентикация.',
         ], 401);
+    }
+
+    private function paymentsUnavailable()
+    {
+        return $this->json([
+            'success' => false,
+            'code' => 'payments_disabled',
+            'message' => 'Плащанията не са достъпни в тази версия.',
+        ], 503);
     }
 }

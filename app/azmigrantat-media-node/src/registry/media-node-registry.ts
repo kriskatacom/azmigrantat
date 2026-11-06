@@ -27,6 +27,10 @@ export function createHeartbeatPayload(health: MediaNodeHealth) {
   };
 }
 
+export function mediaNodeRegistryKey(nodeId: string, prefix = config.redisKeyPrefix): string {
+  return `${prefix}media:nodes:${nodeId}`;
+}
+
 export class MediaNodeRegistry {
   private readonly client: RedisClientType;
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -80,6 +84,6 @@ export class MediaNodeRegistry {
   }
 
   private key(): string {
-    return `media:nodes:${config.nodeId}`;
+    return mediaNodeRegistryKey(config.nodeId);
   }
 }

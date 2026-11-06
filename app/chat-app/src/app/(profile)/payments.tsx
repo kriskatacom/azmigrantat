@@ -1,4 +1,5 @@
 import { useAppTheme } from "@/app/_layout";
+import { PAYMENTS_ENABLED } from "@/config/environment";
 import Header from "@/components/Header";
 import CardScanModal from "@/components/profile/card-scan-modal";
 import AppButton from "@/components/ui/AppButton";
@@ -43,6 +44,30 @@ import {
 } from "react-native";
 
 export default function PaymentsScreen() {
+  if (!PAYMENTS_ENABLED) {
+    return <PaymentsUnavailableScreen />;
+  }
+
+  return <PaymentsEnabledScreen />;
+}
+
+function PaymentsUnavailableScreen() {
+  const { theme } = useAppTheme();
+  return (
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
+      <Header title="Плащания" hideSearchButton hideAuthButton />
+      <View style={styles.unavailable}>
+        <FontAwesome name="credit-card" size={36} color={theme.colors.textSecondary} />
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Плащанията не са активни</Text>
+        <Text style={[styles.description, styles.unavailableText, { color: theme.colors.textSecondary }]}>
+          В тази версия на „Ето ме“ не могат да се добавят карти, да се започват плащания или да се активират платени абонаменти.
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function PaymentsEnabledScreen() {
   const { theme } = useAppTheme();
   const { token } = useAuth();
   const [cards, setCards] = useState<SavedPaymentMethod[]>([]);
@@ -484,6 +509,8 @@ export default function PaymentsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  unavailable: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 28 },
+  unavailableText: { textAlign: "center", maxWidth: 420 },
   content: { padding: 20, paddingBottom: 44, gap: 14 },
   sectionTitle: { fontSize: 20, fontWeight: "800" },
   description: { fontSize: 14, lineHeight: 20 },

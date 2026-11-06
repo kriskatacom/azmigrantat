@@ -3,6 +3,7 @@
 namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
+use App\Services\PaymentsFeature;
 use App\Services\SubscriptionService;
 use RuntimeException;
 
@@ -23,6 +24,7 @@ final class SubscriptionController extends BaseController
     public function checkout()
     {
         $user = $this->authenticatedUser(); if (!$user) return $this->json(['success' => false, 'message' => 'Необходима е автентикация.'], 401);
+        if (!PaymentsFeature::isEnabled()) return $this->paymentsUnavailable();
         $input = json_decode(file_get_contents('php://input'), true); $plan = is_array($input) ? trim((string) ($input['plan'] ?? '')) : '';
         try { return $this->json(['success' => true, 'url' => $this->subscriptions->createCheckout($user, $plan)]); }
         catch (RuntimeException $e) { return $this->json(['success' => false, 'message' => $e->getMessage()], 422); }
@@ -30,7 +32,17 @@ final class SubscriptionController extends BaseController
 
     public function webhook()
     {
+        if (!PaymentsFeature::isEnabled()) return $this->paymentsUnavailable();
         try { $this->subscriptions->handleWebhook(file_get_contents('php://input'), $_SERVER['HTTP_STRIPE_SIGNATURE'] ?? ''); return $this->json(['received' => true]); }
         catch (RuntimeException $e) { return $this->json(['success' => false, 'message' => $e->getMessage()], 400); }
+    }
+
+    private function paymentsUnavailable()
+    {
+        return $this->json([
+            'success' => false,
+            'code' => 'payments_disabled',
+            'message' => 'Плащанията не са достъпни в тази версия.',
+        ], 503);
     }
 }

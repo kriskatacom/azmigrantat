@@ -1,4 +1,5 @@
 import { useAppTheme } from "@/app/_layout";
+import { PAYMENTS_ENABLED } from "@/config/environment";
 import Header from "@/components/Header";
 import ProfileIdentityCard from "@/components/profile/profile-identity-card";
 import ProfileCompanyCard from "@/components/profile/profile-company-card";
@@ -159,12 +160,14 @@ export default function ProfileHomeScreen() {
           title="Сигурност"
           description="Парола, биометрия и начин на вход"
         />
-        <ProfileNavRow
-          href="/(profile)/payments"
-          icon="credit-card"
-          title="Плащания"
-          description="Сканиране и запазване на карти"
-        />
+        {PAYMENTS_ENABLED ? (
+          <ProfileNavRow
+            href="/(profile)/payments"
+            icon="credit-card"
+            title="Плащания"
+            description="Сканиране и запазване на карти"
+          />
+        ) : null}
         <ProfileNavRow
           href="/(profile)/blocked"
           icon="ban"

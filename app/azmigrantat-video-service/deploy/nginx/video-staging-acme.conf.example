@@ -1,0 +1,18 @@
+# Temporary HTTP-only ACME challenge server for video-staging.azmigrantat.com.
+# Install only while issuing the dedicated staging certificate, then remove it
+# after the HTTPS staging server block is validated.
+server {
+    listen 80;
+    listen [::]:80;
+    server_name video-staging.azmigrantat.com;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+        default_type text/plain;
+        try_files $uri =404;
+    }
+
+    location / {
+        return 404;
+    }
+}

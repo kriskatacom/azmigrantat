@@ -1,0 +1,47 @@
+Final production AAB validation
+Date: 2026-10-31
+
+File: build/eto-me-1.0.0-9-com.etome.app-production.aab
+EAS build ID: fb2346db-a452-4693-96fb-37646e7a3cc4
+Package: com.etome.app
+Version name: 1.0.0
+Version code: 9
+Distribution: STORE
+SDK: Expo 57.0.0; Android min 24, target/compile 36
+
+Archive integrity: PASS (unzip: no errors)
+JAR signature: PASS (jarsigner: jar verified)
+SHA-256: c80042d05a669da4c07f9829842ad1939e55c0441c9a04425f294b8163bb97b4
+
+Upload signing certificate (same existing EAS keystore):
+  Algorithm: SHA256withRSA
+  Public key: 2048-bit RSA
+  Valid until: 2054-01-24
+  SHA-1: AB:55:52:05:9A:8D:FC:CD:0E:B7:C1:7D:AA:0F:A8:03:27:16:65:FD
+  SHA-256: 99:4B:63:87:9E:0A:74:ED:71:0B:0F:1A:B1:65:71:6D:A1:29:6D:1A:DC:D5:70:19:94:7C:FC:3A:30:53:51:B4
+
+Final manifest (Google bundletool 1.18.1):
+  Required camera/microphone/notification/foreground-service permissions: present
+  SYSTEM_ALERT_WINDOW: absent
+  READ_EXTERNAL_STORAGE: absent
+  WRITE_EXTERNAL_STORAGE: absent
+  READ_MEDIA_IMAGES: absent
+  READ_MEDIA_VIDEO: absent
+
+Release configuration:
+  Production environment validator: PASS
+  EXPO_PUBLIC_ENABLE_PAYMENTS=false (EAS production profile)
+  Payment UI/client mutations: disabled by code and contract tests
+  Production endpoints embedded: users, business, realtime and video azmigrantat.com
+  staging.azmigrantat.com: absent
+  Firebase Android client: com.etome.app
+  Google Web OAuth audience: shared existing Web client; matches backend contract
+
+Notes:
+- jarsigner also reports expected warnings for a self-signed Android upload
+  certificate, no timestamp, and AAB ZIP/JarInputStream attribute handling.
+  The cryptographic result itself is "jar verified".
+- No Android device or emulator was connected. Google Sign-In, FCM, calls and
+  upload behavior are not claimed as device-tested.
+- Production payment guard is deployed with PAYMENTS_ENABLED=false. Moderation
+  reporting API/migration and public legal pages are still not deployed.

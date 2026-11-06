@@ -194,17 +194,19 @@ export default function VideoUploadProgressOverlay({
         </View>
         <Text style={[styles.description, { color: theme.colors.textSecondary }]}>{content.description}</Text>
 
-        <View style={styles.details}>
+        <View style={[styles.details, stage === "processing" && styles.processingDetails]}>
           <View style={styles.detail}>
             <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Изминало време</Text>
             <Text style={[styles.detailValue, { color: theme.colors.text }]}>{formatDuration(elapsedSeconds)}</Text>
           </View>
-          <View style={styles.detail}>
-            <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Оставащо време</Text>
-            <Text style={[styles.detailValue, { color: theme.colors.text }]}>
-              {stage === "processing" || remainingSeconds === null ? "Изчислява се" : formatDuration(remainingSeconds)}
-            </Text>
-          </View>
+          {stage !== "processing" ? (
+            <View style={styles.detail}>
+              <Text style={[styles.detailLabel, { color: theme.colors.textSecondary }]}>Оставащо време</Text>
+              <Text style={[styles.detailValue, { color: theme.colors.text }]}> 
+                {remainingSeconds === null ? "Изчислява се" : formatDuration(remainingSeconds)}
+              </Text>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.stages}>
@@ -256,6 +258,7 @@ const styles = StyleSheet.create({
   titleRow: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 34 },
   description: { fontSize: 15, lineHeight: 22, textAlign: "center", maxWidth: 360, marginTop: 12 },
   details: { flexDirection: "row", gap: 34, marginTop: 32 },
+  processingDetails: { alignSelf: "stretch", justifyContent: "center" },
   detail: { alignItems: "center", minWidth: 120 },
   detailLabel: { fontSize: 13 },
   detailValue: { fontSize: 20, fontWeight: "700", marginTop: 5 },

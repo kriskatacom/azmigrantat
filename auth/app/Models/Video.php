@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Video extends Model
 {
+    private static ?bool $providerMetadataAvailable = null;
+
     public const STATUS_PENDING_UPLOAD = 'pending_upload';
     public const STATUS_UPLOADING = 'uploading';
     public const STATUS_PROCESSING = 'processing';
@@ -16,7 +18,8 @@ class Video extends Model
     protected $table = 'videos';
 
     protected $fillable = [
-        'user_id', 'category_id', 'bunny_library_id', 'bunny_video_guid', 'title', 'description', 'thumbnail_url', 'status',
+        'user_id', 'category_id', 'provider', 'provider_video_id', 'storage_path', 'playback_url',
+        'processing_status', 'duration', 'bunny_library_id', 'bunny_video_guid', 'title', 'description', 'thumbnail_url', 'status',
         'bunny_status', 'mime_type', 'file_size', 'duration_seconds', 'width',
         'height', 'upload_expires_at', 'uploaded_at', 'processed_at', 'failed_at',
         'failure_reason', 'total_views', 'unique_viewers',
@@ -25,6 +28,7 @@ class Video extends Model
     protected $casts = [
         'user_id' => 'integer',
         'category_id' => 'integer',
+        'duration' => 'float',
         'bunny_library_id' => 'integer',
         'bunny_status' => 'integer',
         'file_size' => 'integer',
@@ -40,6 +44,22 @@ class Video extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    public static function providerMetadataAvailable(): bool
+    {
+        if (self::$providerMetadataAvailable !== null) {
+            return self::$providerMetadataAvailable;
+        }
+
+        // This application boots Eloquent directly rather than through the
+        // Laravel framework, so the Schema facade has no `db.schema` binding.
+        // Resolve the schema builder from the model's real DB connection.
+        $schema = (new self())->getConnection()->getSchemaBuilder();
+
+        return self::$providerMetadataAvailable = $schema->hasColumn('videos', 'provider')
+            && $schema->hasColumn('videos', 'provider_video_id')
+            && $schema->hasColumn('videos', 'processing_status');
+    }
 
     public function owner()
     {

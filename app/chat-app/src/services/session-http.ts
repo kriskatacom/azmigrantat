@@ -1,4 +1,5 @@
 import { isNetworkError, toNetworkError } from "@/services/network-guard";
+import { parseJsonResponse } from "@/services/http-response";
 
 interface ApiErrorResponse {
   success?: false;
@@ -45,7 +46,7 @@ export async function authorizedJson<T>(
   url: string,
   token: string,
   options: RequestInit = {},
-  invalidJsonMessage = "Сървърът върна невалиден JSON:",
+  invalidJsonMessage = "Сървърът върна невалиден JSON.",
 ): Promise<T> {
   const execute = async (accessToken: string) => {
     let response: Response;
@@ -68,14 +69,10 @@ export async function authorizedJson<T>(
       throw toNetworkError(error);
     }
 
-    const rawResponse = await response.text();
-    let data: T | ApiErrorResponse;
-
-    try {
-      data = JSON.parse(rawResponse) as T | ApiErrorResponse;
-    } catch {
-      throw new Error(`${invalidJsonMessage} ${rawResponse.slice(0, 300)}`);
-    }
+    const data = await parseJsonResponse<T | ApiErrorResponse>(
+      response,
+      invalidJsonMessage,
+    );
 
     return { response, data };
   };

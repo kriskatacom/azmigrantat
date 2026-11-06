@@ -17,7 +17,7 @@ class MediaService
 
         $datePath = date('Y/m/d');
         $relativeFolder = $this->baseUploadPath . DIRECTORY_SEPARATOR . $datePath;
-        $targetDir = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . $relativeFolder . DIRECTORY_SEPARATOR;
+        $targetDir = UPLOAD_STORAGE_ROOT . DIRECTORY_SEPARATOR . $datePath . DIRECTORY_SEPARATOR;
 
         if (!is_dir($targetDir)) {
             mkdir($targetDir, 0755, true);
@@ -206,7 +206,11 @@ class MediaService
     public function deleteFile(?string $relativePath): bool
     {
         if (!$relativePath) return false;
-        $fullPath = dirname(__DIR__, 2) . DIRECTORY_SEPARATOR . 'public' . str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativePath);
+        $normalizedPath = str_replace('\\', '/', $relativePath);
+        if (!str_starts_with($normalizedPath, '/uploads/') || str_contains($normalizedPath, '..')) {
+            return false;
+        }
+        $fullPath = UPLOAD_STORAGE_ROOT . str_replace('/', DIRECTORY_SEPARATOR, substr($normalizedPath, strlen('/uploads')));
         return (file_exists($fullPath) && is_file($fullPath)) ? unlink($fullPath) : false;
     }
 }

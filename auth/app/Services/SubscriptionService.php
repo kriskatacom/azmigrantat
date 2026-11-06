@@ -17,6 +17,7 @@ final class SubscriptionService
 
     public function createCheckout(User $user, string $plan): string
     {
+        PaymentsFeature::assertEnabled();
         $plans = $this->plans();
         $priceId = trim((string) ($_ENV['STRIPE_PRICE_' . strtoupper($plan)] ?? getenv('STRIPE_PRICE_' . strtoupper($plan)) ?: ''));
 
@@ -51,6 +52,7 @@ final class SubscriptionService
 
     public function handleWebhook(string $payload, string $signature): void
     {
+        PaymentsFeature::assertEnabled();
         $event = json_decode($payload, true);
         if (!is_array($event) || !isset($event['id'], $event['type'], $event['data']['object'])) {
             throw new RuntimeException('Невалиден Stripe webhook.');

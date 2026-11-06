@@ -20,6 +20,7 @@ final class PaymentMethodService
 
     public function save(User $user, string $number, int $expMonth, int $expYear, ?string $holderName): PaymentMethod
     {
+        PaymentsFeature::assertEnabled();
         $pan = preg_replace('/\D+/', '', $number) ?? '';
 
         if (!$this->isValidPan($pan)) {

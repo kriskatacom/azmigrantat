@@ -9,6 +9,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
+import android.content.pm.ServiceInfo
 import androidx.core.app.NotificationCompat
 import java.net.HttpURLConnection
 import java.net.URL
@@ -16,6 +18,7 @@ import java.net.URL
 class BunnyUploadForegroundService : Service() {
   private var cancelUrl: String = ""
   private var authToken: String = ""
+  private var wakeLock: PowerManager.WakeLock? = null
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     if (intent?.action == ACTION_CANCEL) {
@@ -30,11 +33,32 @@ class BunnyUploadForegroundService : Service() {
     authToken = intent?.getStringExtra(EXTRA_AUTH_TOKEN).orEmpty()
 
     createChannel()
-    startForeground(NOTIFICATION_ID, notification(0))
+    acquireWakeLock()
+    val initialNotification = notification(0)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      startForeground(NOTIFICATION_ID, initialNotification, ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
+    } else {
+      startForeground(NOTIFICATION_ID, initialNotification)
+    }
     return START_NOT_STICKY
   }
 
   override fun onBind(intent: Intent?): IBinder? = null
+
+  override fun onDestroy() {
+    wakeLock?.takeIf { it.isHeld }?.release()
+    wakeLock = null
+    super.onDestroy()
+  }
+
+  private fun acquireWakeLock() {
+    if (wakeLock?.isHeld == true) return
+    val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+    wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "$packageName:video-upload").apply {
+      setReferenceCounted(false)
+      acquire()
+    }
+  }
 
   private fun createChannel() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

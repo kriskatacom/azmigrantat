@@ -11,6 +11,9 @@ final class AuthRateLimiter
     public const ACTION_LOGIN_EMAIL = 'login_email';
     public const ACTION_REGISTER_IP = 'register_ip';
     public const ACTION_GOOGLE_IP = 'google_ip';
+    public const ACTION_FACEBOOK_IP = 'facebook_ip';
+    public const ACTION_FACEBOOK_LINK_IP = 'facebook_link_ip';
+    public const ACTION_FACEBOOK_LINK_USER = 'facebook_link_user';
     public const ACTION_REFRESH_IP = 'refresh_ip';
     public const ACTION_PASSWORD_FORGOT_IP = 'password_forgot_ip';
     public const ACTION_PASSWORD_FORGOT_EMAIL = 'password_forgot_email';
@@ -169,6 +172,9 @@ final class AuthRateLimiter
         return match ($action) {
             self::ACTION_REGISTER_IP => 5,
             self::ACTION_GOOGLE_IP => 10,
+            self::ACTION_FACEBOOK_IP => 10,
+            self::ACTION_FACEBOOK_LINK_IP => 10,
+            self::ACTION_FACEBOOK_LINK_USER => 5,
             self::ACTION_REFRESH_IP => 20,
             self::ACTION_PASSWORD_FORGOT_IP => 8,
             self::ACTION_PASSWORD_FORGOT_EMAIL => 3,

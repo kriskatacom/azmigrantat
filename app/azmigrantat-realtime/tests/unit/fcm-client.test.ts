@@ -1,17 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { sendEachForMulticast } = vi.hoisted(() => ({
+const { firebaseApp, getMessaging, initializeApp, sendEachForMulticast } = vi.hoisted(() => ({
+    firebaseApp: { name: 'azmigrantat-realtime-development' },
+    getMessaging: vi.fn(),
+    initializeApp: vi.fn(),
     sendEachForMulticast: vi.fn(),
 }));
 
 vi.mock('firebase-admin/app', () => ({
     applicationDefault: vi.fn(() => ({})),
-    getApps: vi.fn(() => [{}]),
-    initializeApp: vi.fn(),
+    getApps: vi.fn(() => []),
+    initializeApp,
 }));
 
 vi.mock('firebase-admin/messaging', () => ({
-    getMessaging: vi.fn(() => ({ sendEachForMulticast })),
+    getMessaging,
 }));
 
 import { FirebaseFcmSender } from '../../src/services/fcm/fcm-client';
@@ -20,6 +23,9 @@ import type { PushTokenProvider } from '../../src/services/fcm/push-token.provid
 describe('FirebaseFcmSender', () => {
     beforeEach(() => {
         sendEachForMulticast.mockReset();
+        initializeApp.mockReset().mockReturnValue(firebaseApp);
+        getMessaging.mockReset().mockReturnValue({ sendEachForMulticast });
+        vi.restoreAllMocks();
     });
 
     it('проверява дали потребителят има активен FCM token', async () => {
@@ -37,6 +43,7 @@ describe('FirebaseFcmSender', () => {
     });
 
     it('fanout-ва data-only high-priority push към всички Android tokens', async () => {
+        const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
         sendEachForMulticast.mockResolvedValue({
             responses: [{ success: true }, { success: true }],
         });
@@ -66,6 +73,13 @@ describe('FirebaseFcmSender', () => {
             },
         });
         expect(sendEachForMulticast.mock.calls[0][0]).not.toHaveProperty('notification');
+        expect(initializeApp).toHaveBeenCalledWith(
+            expect.any(Object),
+            'azmigrantat-realtime-development',
+        );
+        expect(getMessaging).toHaveBeenCalledWith(firebaseApp);
+        expect(log.mock.calls.flat().join(' ')).not.toContain('token-1');
+        expect(log.mock.calls.flat().join(' ')).not.toContain('token-2');
     });
 
     it('деактивира permanent invalid token, но запазва transient failure', async () => {

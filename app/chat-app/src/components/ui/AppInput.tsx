@@ -8,24 +8,27 @@ import {
   TextInputProps,
   TouchableOpacity,
   View,
+  type StyleProp,
+  type ViewStyle,
 } from "react-native";
 
 interface AppInputProps extends TextInputProps {
   label: string;
   error?: string;
   isPassword?: boolean;
+  containerStyle?: StyleProp<ViewStyle>;
 }
 
 const AppInput = forwardRef<TextInput, AppInputProps>(
   (
-    { label, error, isPassword = false, secureTextEntry, style, ...props },
+    { label, error, isPassword = false, secureTextEntry, style, containerStyle, ...props },
     ref,
   ) => {
     const { theme } = useAppTheme();
     const [passwordVisible, setPasswordVisible] = useState(false);
 
     return (
-      <View style={styles.wrapper}>
+      <View style={[styles.wrapper, containerStyle]}>
         <Text style={[styles.label, { color: theme.colors.text }]}>
           {label}
         </Text>

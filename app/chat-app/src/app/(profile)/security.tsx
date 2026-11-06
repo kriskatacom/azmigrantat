@@ -9,13 +9,19 @@ import {
   ApiError,
   changePasswordRequest,
   clearLoginPinRequest,
+  facebookLinkStatusRequest,
   forgotPasswordRequest,
   resetPasswordRequest,
   setLoginPinRequest,
+  linkFacebookRequest,
 } from "@/services/auth";
+import {
+  isFacebookSignInEnabled,
+  requestFacebookAccessToken,
+} from "@/services/facebook-sdk";
 import { authenticateCurrentUser } from "@/services/biometric";
 import { FontAwesome } from "@expo/vector-icons";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -60,8 +66,48 @@ export default function SecurityScreen() {
   const [pin, setPin] = useState("");
   const [pinConfirmation, setPinConfirmation] = useState("");
   const [isSavingPin, setIsSavingPin] = useState(false);
+  const [facebookLinked, setFacebookLinked] = useState(false);
+  const [facebookPassword, setFacebookPassword] = useState("");
+  const [isLinkingFacebook, setIsLinkingFacebook] = useState(false);
+  const facebookEnabled = isFacebookSignInEnabled();
   const canVerifyOnDevice =
     fingerprintAvailable || deviceUnlockAvailable;
+
+  useEffect(() => {
+    if (!token) return;
+    void facebookLinkStatusRequest(token)
+      .then((status) => setFacebookLinked(status.linked))
+      .catch(() => undefined);
+  }, [token]);
+
+  const handleLinkFacebook = async () => {
+    if (!token || facebookLinked) return;
+    if (!facebookEnabled) {
+      Alert.alert("Предстои", "Facebook входът ще бъде активиран след проверката на Meta.");
+      return;
+    }
+    if (user?.has_password === false || !facebookPassword) {
+      Alert.alert("Необходима е парола", "Задайте и въведете текущата си парола за сигурно свързване.");
+      return;
+    }
+
+    try {
+      setIsLinkingFacebook(true);
+      const accessToken = await requestFacebookAccessToken();
+      if (!accessToken) return;
+      await linkFacebookRequest(token, accessToken, facebookPassword);
+      setFacebookLinked(true);
+      setFacebookPassword("");
+      Alert.alert("Готово", "Facebook профилът беше свързан успешно.");
+    } catch (error) {
+      Alert.alert(
+        "Неуспешно свързване",
+        error instanceof Error ? error.message : "Facebook профилът не беше свързан.",
+      );
+    } finally {
+      setIsLinkingFacebook(false);
+    }
+  };
 
   const handleChangePassword = async (
     currentPassword: string | null,
@@ -511,6 +557,34 @@ export default function SecurityScreen() {
             ]}
           />
         </Pressable>
+
+        <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
+          Facebook вход
+        </Text>
+        <Text style={[styles.sectionDescription, { color: theme.colors.textSecondary }]}>
+          {facebookLinked
+            ? "Facebook профилът е свързан. Можете да го използвате за вход."
+            : facebookEnabled
+              ? "За да предотвратим превземане на акаунта, свързването изисква текущата ви парола."
+              : "Функцията е подготвена, но е заключена до проверката на Meta и реалния Android тест."}
+        </Text>
+        {!facebookLinked && facebookEnabled ? (
+          <>
+            <ProfileField
+              label="Текуща парола"
+              value={facebookPassword}
+              onChangeText={setFacebookPassword}
+              secureTextEntry
+              autoComplete="current-password"
+            />
+            <AppButton
+              title="Свържи Facebook"
+              loading={isLinkingFacebook}
+              disabled={user?.has_password === false}
+              onPress={() => void handleLinkFacebook()}
+            />
+          </>
+        ) : null}
 
         <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>
           Смяна на парола

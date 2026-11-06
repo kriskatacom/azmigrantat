@@ -11,12 +11,14 @@ import type {
 } from "@/types/auth";
 import { toNetworkError } from "@/services/network-guard";
 import { getDeviceIdentity } from "@/services/device-identity";
+import { parseJsonResponse } from "@/services/http-response";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL!;
 const CLIENT_ID = process.env.EXPO_PUBLIC_CLIENT_ID!;
 
 interface ApiErrorResponse {
   success?: false;
+  code?: string;
   message?: string;
   errors?: Record<string, string[]>;
   retry_after?: number;
@@ -25,12 +27,19 @@ interface ApiErrorResponse {
 export class ApiError extends Error {
   readonly status: number;
   readonly retryAfter: number | null;
+  readonly code: string | null;
 
-  constructor(message: string, status: number, retryAfter: number | null = null) {
+  constructor(
+    message: string,
+    status: number,
+    retryAfter: number | null = null,
+    code: string | null = null,
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.retryAfter = retryAfter;
+    this.code = code;
   }
 }
 
@@ -283,20 +292,7 @@ async function request<T>(
     throw toNetworkError(error);
   }
 
-  const rawResponse = await response.text();
-
-  console.log("API status:", response.status);
-  console.log("API response:", rawResponse);
-
-  let data: T | ApiErrorResponse;
-
-  try {
-    data = JSON.parse(rawResponse);
-  } catch {
-    throw new Error(
-      `Сървърът върна невалиден JSON: ${rawResponse.slice(0, 300)}`,
-    );
-  }
+  const data = await parseJsonResponse<T | ApiErrorResponse>(response);
 
   if (!response.ok) {
     const errorData = data as ApiErrorResponse;
@@ -307,6 +303,7 @@ async function request<T>(
       errorData.message ?? "Възникна грешка при комуникацията със сървъра.",
       response.status,
       retryAfter,
+      typeof errorData.code === "string" ? errorData.code : null,
     );
   }
 
@@ -638,6 +635,55 @@ export async function googleLoginRequest(
   );
 
   return finishMobileAuth(response);
+}
+
+export async function facebookLoginRequest(
+  accessToken: string,
+  rememberMe = false,
+): Promise<AuthResponse> {
+  const response = await request<
+    MobileAuthResponse | TotpPendingResponse | DevicePendingResponse | EmailCodePendingResponse
+  >("/api/mobile/auth/facebook", {
+    method: "POST",
+    body: JSON.stringify(
+      await withDevice({
+        client_id: CLIENT_ID,
+        access_token: accessToken,
+        remember_me: Boolean(rememberMe),
+      }),
+    ),
+  });
+
+  return finishMobileAuth(response);
+}
+
+export async function facebookLinkStatusRequest(
+  token: string,
+): Promise<{ linked: boolean; enabled: boolean }> {
+  const response = await request<{ success: true; linked: boolean; enabled: boolean }>(
+    "/api/mobile/profile/social/facebook",
+    { method: "GET", headers: { Authorization: `Bearer ${token}` } },
+  );
+
+  return { linked: response.linked, enabled: response.enabled };
+}
+
+export async function linkFacebookRequest(
+  token: string,
+  accessToken: string,
+  currentPassword: string,
+): Promise<void> {
+  await request<{ success: true; linked: true }>(
+    "/api/mobile/profile/social/facebook",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        access_token: accessToken,
+        current_password: currentPassword,
+      }),
+    },
+  );
 }
 
 export async function refreshRequest(refreshToken: string): Promise<AuthResponse> {

@@ -100,6 +100,7 @@ abstract class BaseController
 
         return $this->json([
             'success' => false,
+            'code' => 'rate_limited',
             'message' => $this->tooManyAuthAttemptsMessage($action, $retryAfter),
             'retry_after' => $retryAfter,
         ], 429);

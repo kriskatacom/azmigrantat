@@ -3,4 +3,5 @@ export type BunnyUploadProgressEvent = {
   percentage: number;
   status: "uploading" | "success" | "error";
   message?: string;
+  code?: "token_expired";
 };

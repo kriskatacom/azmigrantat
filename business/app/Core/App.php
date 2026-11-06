@@ -41,6 +41,15 @@ class App
 
         if (session_status() === PHP_SESSION_NONE) {
             try {
+                session_name($_ENV['SESSION_NAME'] ?? 'KRISKATA_SESS');
+                session_set_cookie_params([
+                    'lifetime' => 0,
+                    'path' => '/',
+                    'domain' => '',
+                    'secure' => isset($_SERVER['HTTPS']) || in_array($_ENV['APP_ENV'] ?? '', ['staging', 'production'], true),
+                    'httponly' => true,
+                    'samesite' => 'Lax',
+                ]);
                 if ($isInstallRoute) {
                     session_start();
                 } else {

@@ -1,0 +1,25 @@
+[Unit]
+Description=Azmigrantat dedicated staging Redis
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=/srv/azmigrantat-video-staging
+
+[Service]
+Type=notify
+User=azmigrantat-video-staging-redis
+Group=azmigrantat-video-staging-redis
+ExecStart=/usr/bin/redis-server /etc/azmigrantat-video-staging/redis.conf
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/var/lib/azmigrantat-video-staging-redis /run/azmigrantat-video-staging
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RuntimeDirectory=azmigrantat-video-staging
+RuntimeDirectoryMode=0750
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

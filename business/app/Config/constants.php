@@ -1,17 +1,51 @@
 <?php
 
-header("Access-Control-Allow-Origin: " . $_ENV['ETOME_APP_SERVER_URL']);
+$appEnvironment = $_ENV['APP_ENV'] ?? 'development';
+$appServerUrl = rtrim($_ENV['ETOME_APP_SERVER_URL'] ?? '', '/');
+$oauthServerUrl = rtrim($_ENV['OAUTH_SERVER_URL'] ?? '', '/');
+$uploadStorageRoot = rtrim($_ENV['UPLOAD_STORAGE_ROOT'] ?? dirname(__DIR__, 2) . '/public/uploads', '/');
+
+if (!in_array($appEnvironment, ['development', 'staging', 'production'], true)) {
+    throw new RuntimeException('APP_ENV must be development, staging or production.');
+}
+
+if ($appServerUrl === '') {
+    throw new RuntimeException('ETOME_APP_SERVER_URL is required.');
+}
+if ($oauthServerUrl === '') {
+    throw new RuntimeException('OAUTH_SERVER_URL is required.');
+}
+if ($appEnvironment === 'staging') {
+    $oauthParts = parse_url($oauthServerUrl);
+    if (($oauthParts['scheme'] ?? '') !== 'https' || ($oauthParts['host'] ?? '') !== 'users-staging.azmigrantat.com') {
+        throw new RuntimeException('Staging business OAuth must use users-staging.azmigrantat.com over HTTPS.');
+    }
+    if (($_ENV['SESSION_NAME'] ?? '') !== 'ETOME_BUSINESS_STAGING') {
+        throw new RuntimeException('Staging business requires an isolated SESSION_NAME.');
+    }
+    if ($appServerUrl !== 'https://users-staging.azmigrantat.com' ||
+        rtrim($_ENV['AUTH_SERVER_URL'] ?? '', '/') !== 'https://users-staging.azmigrantat.com') {
+        throw new RuntimeException('Staging business app/auth URLs must use users-staging.azmigrantat.com.');
+    }
+    if (($_ENV['OAUTH_REDIRECT_URI'] ?? '') !== 'https://business-staging.azmigrantat.com/auth/callback') {
+        throw new RuntimeException('Staging business requires the isolated OAuth callback URL.');
+    }
+    if (stripos($_ENV['OAUTH_CLIENT_ID'] ?? '', 'staging') === false || empty($_ENV['OAUTH_CLIENT_SECRET'])) {
+        throw new RuntimeException('Staging business requires staging-only OAuth credentials.');
+    }
+    if (stripos($_ENV['DB_NAME'] ?? '', 'staging') === false || stripos($_ENV['DB_USER'] ?? '', 'staging') === false) {
+        throw new RuntimeException('Staging business requires a staging-specific database and user.');
+    }
+    if (!str_starts_with($uploadStorageRoot, '/') || stripos($uploadStorageRoot, 'staging') === false) {
+        throw new RuntimeException('Staging business requires an absolute staging-only UPLOAD_STORAGE_ROOT.');
+    }
+}
+
+header("Access-Control-Allow-Origin: " . $appServerUrl);
 header("Access-Control-Allow-Headers: Content-Type, Accept, Authorization");
 header("Access-Control-Allow-Methods: GET, OPTIONS");
 
-$isLocal = (strpos($_SERVER['HTTP_HOST'], 'localhost') !== false || 
-            strpos($_SERVER['HTTP_HOST'], '.test') !== false);
-
-if ($isLocal) {
-    define('OAUTH_SERVER_URL', 'http://localhost:8000');
-} else {
-    define('OAUTH_SERVER_URL', 'https://users.azmigrantat.com');
-}
+define('OAUTH_SERVER_URL', $oauthServerUrl);
 
 define('DOMAIN', $_SERVER['HTTP_HOST']);
 define('DOMAIN_NO_WWW', preg_replace('/^www\./', '', $_SERVER['HTTP_HOST']));
@@ -25,6 +59,7 @@ define('PROTOCOL', (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'h
 
 define('ROOT', dirname(__DIR__, 2));
 define('PUBLIC_PATH', ROOT . '/public');
+define('UPLOAD_STORAGE_ROOT', $uploadStorageRoot);
 
 define('WEBSITE_NAME', 'KRISKATA.COM');
 define('FULL_DOMAIN', 'https://kriskata.com');

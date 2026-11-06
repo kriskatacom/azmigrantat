@@ -1,57 +1,73 @@
 {
-  "cli": {
-    "version": ">= 21.4.0",
-    "appVersionSource": "remote"
-  },
+  "cli": { "version": ">= 21.4.0", "appVersionSource": "remote" },
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "environment": "development",
       "env": {
+        "EXPO_PUBLIC_APP_ENV": "development",
         "EXPO_PUBLIC_API_URL": "https://users.azmigrantat.com",
         "EXPO_PUBLIC_BUSINESS_API_URL": "https://business.azmigrantat.com",
         "EXPO_PUBLIC_SUBSCRIPTIONS_URL": "https://users.azmigrantat.com/subscriptions",
         "EXPO_PUBLIC_SOCKET_URL": "https://realtime.azmigrantat.com",
         "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63",
+        "EXPO_PUBLIC_VIDEO_SERVICE_URL": "https://video.azmigrantat.com",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "149310026747-0276747vvqrhrgapqcqlg9o1uekn2snr.apps.googleusercontent.com",
+        "EXPO_PUBLIC_ENABLE_PUSH_NOTIFICATIONS": "true",
+        "EXPO_PUBLIC_ENABLE_GOOGLE_SIGN_IN": "true",
+        "EXPO_PUBLIC_ENABLE_FACEBOOK_SIGN_IN": "false",
         "EXPO_PUBLIC_FORCE_TURN": "false",
         "EXPO_PUBLIC_LIVE_MEDIA_PROVIDER": "mediasoup",
-        "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED": "false"
+        "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED": "false",
+        "EXPO_PUBLIC_ENABLE_PAYMENTS": "false"
       }
     },
-    "preview": {
+    "staging": {
       "distribution": "internal",
-      "android": {
-        "buildType": "apk"
-      },
+      "environment": "preview",
+      "android": { "buildType": "apk" },
       "env": {
+        "EXPO_PUBLIC_APP_ENV": "staging",
         "EXPO_PUBLIC_API_URL": "https://users.azmigrantat.com",
         "EXPO_PUBLIC_BUSINESS_API_URL": "https://business.azmigrantat.com",
         "EXPO_PUBLIC_SUBSCRIPTIONS_URL": "https://users.azmigrantat.com/subscriptions",
         "EXPO_PUBLIC_SOCKET_URL": "https://realtime.azmigrantat.com",
         "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63",
+        "EXPO_PUBLIC_VIDEO_SERVICE_URL": "https://video.azmigrantat.com",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "149310026747-0276747vvqrhrgapqcqlg9o1uekn2snr.apps.googleusercontent.com",
+        "EXPO_PUBLIC_ENABLE_PUSH_NOTIFICATIONS": "true",
+        "EXPO_PUBLIC_ENABLE_GOOGLE_SIGN_IN": "true",
+        "EXPO_PUBLIC_ENABLE_FACEBOOK_SIGN_IN": "false",
         "EXPO_PUBLIC_FORCE_TURN": "false",
         "EXPO_PUBLIC_LIVE_MEDIA_PROVIDER": "mediasoup",
-        "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED": "false"
+        "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED": "false",
+        "EXPO_PUBLIC_ENABLE_PAYMENTS": "false"
       }
     },
+    "preview": { "extends": "staging" },
     "production": {
       "autoIncrement": true,
+      "credentialsSource": "local",
+      "environment": "production",
       "env": {
+        "EXPO_PUBLIC_APP_ENV": "production",
         "EXPO_PUBLIC_API_URL": "https://users.azmigrantat.com",
         "EXPO_PUBLIC_BUSINESS_API_URL": "https://business.azmigrantat.com",
         "EXPO_PUBLIC_SUBSCRIPTIONS_URL": "https://users.azmigrantat.com/subscriptions",
         "EXPO_PUBLIC_SOCKET_URL": "https://realtime.azmigrantat.com",
         "EXPO_PUBLIC_CLIENT_ID": "app_hpte5xcxll63",
+        "EXPO_PUBLIC_VIDEO_SERVICE_URL": "https://video.azmigrantat.com",
+        "EXPO_PUBLIC_ENABLE_PUSH_NOTIFICATIONS": "true",
+        "EXPO_PUBLIC_ENABLE_GOOGLE_SIGN_IN": "true",
+        "EXPO_PUBLIC_ENABLE_FACEBOOK_SIGN_IN": "false",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "149310026747-0276747vvqrhrgapqcqlg9o1uekn2snr.apps.googleusercontent.com",
         "EXPO_PUBLIC_FORCE_TURN": "false",
         "EXPO_PUBLIC_LIVE_MEDIA_PROVIDER": "mediasoup",
-        "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED": "false"
+        "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED": "false",
+        "EXPO_PUBLIC_ENABLE_PAYMENTS": "false"
       }
     }
   },
-  "submit": {
-    "production": {}
-  }
+  "submit": { "production": {} }
 }

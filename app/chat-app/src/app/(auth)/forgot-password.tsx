@@ -1,7 +1,13 @@
 import { useAppTheme } from "@/app/_layout";
+import AuthHero from "@/components/auth/auth-hero";
 import AuthLegalLinks from "@/components/auth/auth-legal-links";
 import AppButton from "@/components/ui/AppButton";
 import AppInput from "@/components/ui/AppInput";
+import {
+  AUTH_ELEMENT_GAP,
+  AUTH_HORIZONTAL_PADDING,
+  AUTH_VERTICAL_PADDING,
+} from "@/constants/auth-layout";
 import {
   ApiError,
   forgotPasswordRequest,
@@ -157,18 +163,13 @@ export default function ForgotPasswordScreen() {
         showsVerticalScrollIndicator={false}
         automaticallyAdjustKeyboardInsets
       >
-        <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
-          <Text style={[styles.title, { color: theme.colors.text }]}>
-            {title}
-          </Text>
-          <Text
-            style={[styles.subtitle, { color: theme.colors.textSecondary }]}
-          >
-            {subtitle}
-          </Text>
+        <View style={styles.page}>
+          <AuthHero title={title} subtitle={subtitle} />
+          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
 
           {step === "email" ? (
             <AppInput
+              containerStyle={styles.authInput}
               label="Имейл"
               placeholder="например: name@example.com"
               value={email}
@@ -184,6 +185,7 @@ export default function ForgotPasswordScreen() {
 
           {step === "code" ? (
             <AppInput
+              containerStyle={styles.authInput}
               ref={codeRef}
               label="Код"
               placeholder="6 цифри"
@@ -205,6 +207,7 @@ export default function ForgotPasswordScreen() {
           {step === "password" ? (
             <>
               <AppInput
+                containerStyle={styles.authInput}
                 ref={passwordRef}
                 label="Нова парола"
                 placeholder="Поне 6 символа"
@@ -218,6 +221,7 @@ export default function ForgotPasswordScreen() {
                 }
               />
               <AppInput
+                containerStyle={styles.authInput}
                 ref={passwordConfirmationRef}
                 label="Потвърждение"
                 placeholder="Повторете паролата"
@@ -298,9 +302,9 @@ export default function ForgotPasswordScreen() {
               </TouchableOpacity>
             </Link>
           )}
+          <AuthLegalLinks />
+          </View>
         </View>
-
-        <AuthLegalLinks />
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -312,28 +316,20 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    justifyContent: "center",
-    padding: 22,
+    padding: 0,
   },
+  page: { flexGrow: 1 },
   card: {
-    borderRadius: 22,
-    padding: 22,
+    flexGrow: 1,
+    borderRadius: 0,
+    paddingHorizontal: AUTH_HORIZONTAL_PADDING,
+    paddingTop: AUTH_ELEMENT_GAP,
+    paddingBottom: AUTH_VERTICAL_PADDING,
+    gap: AUTH_ELEMENT_GAP,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: "center",
-    marginTop: 7,
-    marginBottom: 24,
-  },
+  authInput: { marginBottom: 0 },
   secondaryAction: {
     alignSelf: "center",
-    marginTop: 18,
   },
   secondaryText: {
     fontWeight: "600",

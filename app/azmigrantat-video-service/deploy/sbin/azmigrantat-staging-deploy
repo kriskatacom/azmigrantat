@@ -1,0 +1,298 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+# This file is intended to be installed root-owned and is deliberately not
+# configurable through command-line arguments or environment overrides.
+
+readonly PATH='/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+export PATH
+umask 022
+
+readonly RELEASE='azmigrantat-video-service-staging-20261025194301'
+readonly INPUT_DIR='/var/lib/azmigrantat-video-staging/inputs'
+readonly ARCHIVE="${INPUT_DIR}/${RELEASE}.tgz"
+readonly RELEASE_SHA256='26ea19f697189e67dd3c7e492991a31906ffd7d7e24c8f17c0bcadd976a3feb2'
+readonly API_UNIT_INPUT="${INPUT_DIR}/azmigrantat-video-staging.service"
+readonly API_UNIT_SHA256='df1189ded3be803e6477bbce4ade7d7f4171e67925c84a82956012dcb7c7b449'
+readonly WORKER_UNIT_INPUT="${INPUT_DIR}/azmigrantat-video-staging-worker.service"
+readonly WORKER_UNIT_SHA256='e85bf8d5730572c544714551850f0641db660fb4b71e36bc440f87a3546c69d1'
+readonly REDIS_UNIT_INPUT="${INPUT_DIR}/azmigrantat-video-staging-redis.service"
+readonly REDIS_UNIT_SHA256='e591f832ce58fd2c7c4f18ca30cd13ae0678ce5761c9d4a0ffe035319a15e2a6'
+readonly REDIS_CONF_INPUT="${INPUT_DIR}/azmigrantat-video-staging.conf.example"
+readonly REDIS_CONF_SHA256='2a4cb5470150c1d92188ebc0448a9d0d32ead86e31f44b2631efa3949683e18e'
+readonly NGINX_INPUT="${INPUT_DIR}/video-staging-loopback.conf.example"
+readonly NGINX_INPUT_SHA256='66ca5a2cdcaa26096d3d3cf16b89349f4b67152e6310a70b265a16acaa8791b5'
+readonly RELEASE_DIR="/opt/releases/${RELEASE}"
+readonly CURRENT_DIR='/opt/azmigrantat-video-service-staging'
+readonly ROLLBACK_DIR='/opt/azmigrantat-video-service-staging.rollback'
+readonly FAILED_DIR='/opt/azmigrantat-video-service-staging.failed'
+readonly STAGING_ROOT='/srv/azmigrantat-video-staging'
+readonly PRODUCTION_ROOT='/srv/azmigrantat-video'
+readonly ENV_DIR='/etc/azmigrantat-video-staging'
+readonly ENV_FILE="${ENV_DIR}/video-service.env"
+readonly SERVICE_USER='azmigrantat-video-staging'
+readonly SERVICE_GROUP='azmigrantat-video-staging'
+readonly SERVICE_HOME='/var/lib/azmigrantat-video-staging'
+readonly REDIS_USER='azmigrantat-video-staging-redis'
+readonly REDIS_GROUP='azmigrantat-video-staging-redis'
+readonly REDIS_DATA_DIR='/var/lib/azmigrantat-video-staging-redis'
+readonly REDIS_UNIT='azmigrantat-video-staging-redis.service'
+readonly REDIS_CONF='/etc/azmigrantat-video-staging/redis.conf'
+readonly REDIS_ACL='/etc/azmigrantat-video-staging/users.acl'
+readonly NPM_CACHE='/var/cache/azmigrantat-video-staging-npm'
+readonly API_UNIT='azmigrantat-video-staging.service'
+readonly WORKER_UNIT='azmigrantat-video-staging-worker.service'
+readonly API_PORT='3101'
+readonly PLAYBACK_PORT='3102'
+readonly NGINX_FILE='/etc/nginx/conf.d/azmigrantat-video-staging.conf'
+
+die() { printf '%s\n' "azmigrantat-staging-deploy: $*" >&2; exit 1; }
+root_only() { [ "${EUID}" -eq 0 ] || die 'must run as root'; }
+no_extra_args() { [ "$#" -eq 1 ] || die 'exactly one fixed action is required'; }
+
+require_env_value() {
+    local key="$1" expected="$2"
+    awk -F= -v key="$key" -v expected="$expected" \
+        '$1 == key { count++; if ($2 == expected) good++ } END { exit(count == 1 && good == 1 ? 0 : 1) }' \
+        "$ENV_FILE" || die "invalid staging env: ${key}"
+}
+
+require_env_pattern() {
+    local key="$1" pattern="$2"
+    awk -F= -v key="$key" -v pattern="$pattern" \
+        '$1 == key { count++; if ($2 ~ pattern) good++ } END { exit(count == 1 && good == 1 ? 0 : 1) }' \
+        "$ENV_FILE" || die "invalid staging env: ${key}"
+}
+
+validate_fixed_input() {
+    local path="$1" expected="$2"
+    [ -f "$path" ] || die "fixed deployment input is missing"
+    [ ! -L "$path" ] || die 'fixed deployment input must not be a symlink'
+    [ "$(stat -c '%U:%G:%a' "$path")" = 'root:root:644' ] \
+        || die 'fixed deployment input must be root:root 0644'
+    [ "$(sha256sum "$path" | awk '{print $1}')" = "$expected" ] \
+        || die 'fixed deployment input SHA-256 mismatch'
+}
+
+validate_inputs() {
+    validate_fixed_input "$ARCHIVE" "$RELEASE_SHA256"
+    validate_fixed_input "$API_UNIT_INPUT" "$API_UNIT_SHA256"
+    validate_fixed_input "$WORKER_UNIT_INPUT" "$WORKER_UNIT_SHA256"
+    validate_fixed_input "$REDIS_UNIT_INPUT" "$REDIS_UNIT_SHA256"
+    validate_fixed_input "$REDIS_CONF_INPUT" "$REDIS_CONF_SHA256"
+    validate_fixed_input "$NGINX_INPUT" "$NGINX_INPUT_SHA256"
+}
+
+validate_env() {
+    [ -f "$ENV_FILE" ] || die 'staging env file is missing'
+    [ "$(stat -c '%U:%G:%a' "$ENV_FILE")" = "root:${SERVICE_GROUP}:640" ] \
+        || die 'staging env ownership/mode must be root:azmigrantat-video-staging 0640'
+    for key in VIDEO_SERVICE_TOKEN_SECRET VIDEO_SERVICE_CALLBACK_SECRET VIDEO_SERVICE_ADMIN_SECRET; do
+        awk -F= -v key="$key" \
+            '$1 == key { count++; if ($2 != "" && $2 !~ /^replace-with-/) good++ } END { exit(count == 1 && good == 1 ? 0 : 1) }' \
+            "$ENV_FILE" || die "missing staging secret: ${key}"
+    done
+    require_env_value VIDEO_SERVICE_HOST 127.0.0.1
+    require_env_value VIDEO_SERVICE_PORT "$API_PORT"
+    require_env_value VIDEO_SERVICE_ROOT "$STAGING_ROOT"
+    require_env_value VIDEO_SERVICE_QUEUE_KEY azmigrantat:video:staging:processing
+    require_env_value VIDEO_SERVICE_CALLBACK_URL http://127.0.0.1:18082/internal/video/dedicated/callback
+    require_env_pattern REDIS_URL '^redis://azmigrantat-staging:[A-Za-z0-9._~-]+@127[.]0[.]0[.]1:6380$'
+}
+
+validate_archive() {
+    validate_fixed_input "$ARCHIVE" "$RELEASE_SHA256"
+    if tar -tvf "$ARCHIVE" | awk '$1 !~ /^[-d]/ { bad=1 } END { exit(bad ? 1 : 0) }'; then :; else
+        die 'release archive contains a non-regular/non-directory entry'
+    fi
+    while IFS= read -r entry; do
+        case "$entry" in
+            /*|*'..'*|*\\*) die 'release archive contains an unsafe path' ;;
+        esac
+        case "$entry" in
+            dist/*|package.json|package-lock.json) ;;
+            *) die "unexpected path in release archive" ;;
+        esac
+    done < <(tar -tzf "$ARCHIVE")
+}
+
+ensure_identity() {
+    if ! getent group "$SERVICE_GROUP" >/dev/null; then
+        groupadd --system "$SERVICE_GROUP"
+    fi
+    if ! id -u "$SERVICE_USER" >/dev/null 2>&1; then
+        useradd --system --gid "$SERVICE_GROUP" --home-dir "$SERVICE_HOME" \
+            --create-home --shell /usr/sbin/nologin "$SERVICE_USER"
+    fi
+    if ! getent group "$REDIS_GROUP" >/dev/null; then
+        groupadd --system "$REDIS_GROUP"
+    fi
+    if ! id -u "$REDIS_USER" >/dev/null 2>&1; then
+        useradd --system --gid "$REDIS_GROUP" --home-dir /nonexistent \
+            --no-create-home --shell /usr/sbin/nologin "$REDIS_USER"
+    fi
+}
+
+ensure_dirs() {
+    [ "$STAGING_ROOT" != "$PRODUCTION_ROOT" ] || die 'staging and production roots must differ'
+    [ ! -L "$STAGING_ROOT" ] || die 'staging root must not be a symlink'
+    install -d -o "$SERVICE_USER" -g www-data -m 2750 "$STAGING_ROOT"
+    install -d -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 0750 \
+        "$STAGING_ROOT/private" "$STAGING_ROOT/state" "$STAGING_ROOT/logs"
+    install -d -o "$SERVICE_USER" -g www-data -m 2750 \
+        "$STAGING_ROOT/public/videos" "$STAGING_ROOT/public/thumbnails"
+    install -d -o root -g root -m 0755 "$ENV_DIR"
+    install -d -o root -g root -m 0755 /opt/releases
+    install -d -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 0750 "$SERVICE_HOME" "$NPM_CACHE"
+    install -d -o "$REDIS_USER" -g "$REDIS_GROUP" -m 0750 "$REDIS_DATA_DIR"
+}
+
+write_redis_acl() {
+    local redis_url redis_password acl_tmp
+    redis_url="$(awk -F= '$1 == "REDIS_URL" { print $2 }' "$ENV_FILE")"
+    redis_password="${redis_url#redis://azmigrantat-staging:}"
+    redis_password="${redis_password%@127.0.0.1:6380}"
+    case "$redis_password" in
+        ''|replace-with-*|*[!A-Za-z0-9._~-]*) die 'invalid staging Redis ACL secret' ;;
+    esac
+    acl_tmp="$(mktemp "$ENV_DIR/.users.acl.XXXXXX")"
+    chmod 0600 "$acl_tmp"
+    printf '%s\n' \
+        'user default off' \
+        "user azmigrantat-staging on >${redis_password} ~azmigrantat:video:staging:processing ~azmigrantat:video:staging:processing:processing ~azmigrantat:video:staging:processing:retry ~azmigrantat:video:staging:processing:dead-letter +ping +info +@read +@write +@list +@sortedset" \
+        > "$acl_tmp"
+    install -o root -g "$REDIS_GROUP" -m 0640 "$acl_tmp" "$REDIS_ACL"
+    rm -f -- "$acl_tmp"
+}
+
+redis_check() {
+    local redis_url redis_password
+    redis_url="$(awk -F= '$1 == "REDIS_URL" { print $2 }' "$ENV_FILE")"
+    redis_password="${redis_url#redis://azmigrantat-staging:}"
+    redis_password="${redis_password%@127.0.0.1:6380}"
+    REDISCLI_AUTH="$redis_password" redis-cli --no-auth-warning -h 127.0.0.1 -p 6380 \
+        --user azmigrantat-staging PING | grep -qx PONG || return 1
+    REDISCLI_AUTH="$redis_password" redis-cli --no-auth-warning -h 127.0.0.1 -p 6380 \
+        --user azmigrantat-staging INFO persistence | tr -d '\r' | grep -qx 'aof_enabled:1' \
+        || return 1
+    if REDISCLI_AUTH="$redis_password" redis-cli --no-auth-warning -h 127.0.0.1 -p 6380 \
+        --user azmigrantat-staging GET azmigrantat:video:processing:__staging_isolation_probe__ 2>&1 \
+        | grep -q 'NOPERM'; then :; else return 1; fi
+    ss -H -ltn | awk '$4 == "127.0.0.1:6380" { found=1 } END { exit(found ? 0 : 1) }' || return 1
+}
+
+validate_boundary() {
+    [ -w "$STAGING_ROOT" ] || die 'staging root is not writable'
+    ! runuser -u "$SERVICE_USER" -- test -r "$PRODUCTION_ROOT/private" \
+        || die 'staging user can read production private storage'
+    ! runuser -u "$SERVICE_USER" -- test -r "$PRODUCTION_ROOT/state" \
+        || die 'staging user can read production state'
+    ! runuser -u "$SERVICE_USER" -- test -w "$PRODUCTION_ROOT" \
+        || die 'staging user can write production storage'
+}
+
+install_release() {
+    validate_inputs
+    validate_archive
+    ensure_identity
+    ensure_dirs
+    validate_env
+    validate_boundary
+    if [ -e "$RELEASE_DIR" ]; then
+        die 'fixed release directory already exists; refusing overwrite'
+    fi
+    local tmpdir
+    tmpdir="$(mktemp -d /opt/releases/.azmigrantat-staging.XXXXXX)"
+    trap 'rm -rf -- "$tmpdir"' RETURN
+    tar --extract --no-same-owner --no-same-permissions -f "$ARCHIVE" -C "$tmpdir"
+    chown -R root:root "$tmpdir"
+    chmod 0755 "$tmpdir"
+    install -d -o "$SERVICE_USER" -g "$SERVICE_GROUP" -m 0750 "$tmpdir/node_modules"
+    (
+        cd "$tmpdir"
+        runuser -u "$SERVICE_USER" -- env HOME="$SERVICE_HOME" \
+            npm_config_cache="$NPM_CACHE" /usr/local/bin/npm ci --omit=dev --ignore-scripts \
+            --prefix "$tmpdir" >/dev/null
+    )
+    runuser -u "$SERVICE_USER" -- /usr/local/bin/node --check "$tmpdir/dist/server.js"
+    runuser -u "$SERVICE_USER" -- /usr/local/bin/node --check "$tmpdir/dist/worker-server.js"
+    [ -f "$tmpdir/dist/admin-token.js" ] || die 'release lacks admin-token.js'
+    find "$tmpdir" -type d -exec chmod 0755 {} +
+    find "$tmpdir" -type f -exec chmod 0644 {} +
+    mv "$tmpdir" "$RELEASE_DIR"
+    trap - RETURN
+    if [ -e "$CURRENT_DIR" ]; then
+        [ ! -e "$ROLLBACK_DIR" ] || die 'rollback directory already exists; refusing overwrite'
+        mv "$CURRENT_DIR" "$ROLLBACK_DIR"
+    fi
+    mv "$RELEASE_DIR" "$CURRENT_DIR"
+    install -o root -g root -m 0644 "$API_UNIT_INPUT" "/etc/systemd/system/$API_UNIT"
+    install -o root -g root -m 0644 "$WORKER_UNIT_INPUT" "/etc/systemd/system/$WORKER_UNIT"
+    install -o root -g root -m 0644 "$REDIS_UNIT_INPUT" "/etc/systemd/system/$REDIS_UNIT"
+    install -o root -g root -m 0644 "$REDIS_CONF_INPUT" "$REDIS_CONF"
+    write_redis_acl
+    install -o root -g root -m 0644 "$NGINX_INPUT" "$NGINX_FILE"
+    systemctl daemon-reload
+    systemd-analyze verify "/etc/systemd/system/$REDIS_UNIT" "/etc/systemd/system/$API_UNIT" "/etc/systemd/system/$WORKER_UNIT"
+    nginx -t
+}
+
+verify() {
+    validate_inputs
+    validate_archive
+    validate_env
+    validate_boundary
+    [ -f "/etc/systemd/system/$REDIS_UNIT" ] || die 'staging Redis unit is missing'
+    [ -f "/etc/systemd/system/$API_UNIT" ] || die 'API unit is missing'
+    [ -f "/etc/systemd/system/$WORKER_UNIT" ] || die 'worker unit is missing'
+    [ "$(stat -c '%U:%G:%a' "$REDIS_ACL")" = "root:${REDIS_GROUP}:640" ] \
+        || die 'staging Redis ACL ownership/mode is invalid'
+    [ -d "$CURRENT_DIR" ] || die 'active staging release is missing'
+    systemd-analyze verify "/etc/systemd/system/$REDIS_UNIT" "/etc/systemd/system/$API_UNIT" "/etc/systemd/system/$WORKER_UNIT"
+    nginx -t
+}
+
+status() {
+    systemctl is-active "$API_UNIT" || true
+    systemctl is-active "$WORKER_UNIT" || true
+    ss -ltn | awk -v port=":$API_PORT" '$4 == "127.0.0.1" port { found=1 } END { exit(found ? 0 : 1) }' \
+        || printf '%s\n' 'staging API is not listening on 127.0.0.1:3101'
+    curl --fail --silent --show-error --max-time 5 http://127.0.0.1:3101/health || true
+    redis_check || printf '%s\n' 'staging Redis PING/persistence check failed'
+}
+
+start() {
+    verify
+    systemctl reload nginx
+    systemctl enable --now "$REDIS_UNIT" "$API_UNIT" "$WORKER_UNIT"
+    curl --fail --silent --show-error --max-time 10 http://127.0.0.1:3101/health
+}
+
+stop() { systemctl stop "$API_UNIT" "$WORKER_UNIT" "$REDIS_UNIT"; }
+restart() { verify; systemctl restart "$REDIS_UNIT" "$API_UNIT" "$WORKER_UNIT"; }
+logs() { journalctl --unit="$API_UNIT" --unit="$WORKER_UNIT" --unit="$REDIS_UNIT" --no-pager -n 100; }
+
+rollback() {
+    [ -d "$ROLLBACK_DIR" ] || die 'no fixed staging rollback directory exists'
+    systemctl stop "$API_UNIT" "$WORKER_UNIT" "$REDIS_UNIT"
+    [ ! -e "$FAILED_DIR" ] || die 'failed directory already exists; refusing overwrite'
+    mv "$CURRENT_DIR" "$FAILED_DIR"
+    mv "$ROLLBACK_DIR" "$CURRENT_DIR"
+    systemctl daemon-reload
+    verify
+    systemctl enable --now "$REDIS_UNIT" "$API_UNIT" "$WORKER_UNIT"
+    curl --fail --silent --show-error --max-time 10 http://127.0.0.1:3101/health
+}
+
+root_only
+no_extra_args "$@"
+case "$1" in
+    install) install_release ;;
+    verify) verify ;;
+    status) status ;;
+    start) start ;;
+    stop) stop ;;
+    restart) restart ;;
+    rollback) rollback ;;
+    *) die 'allowed actions: install verify status start stop restart rollback' ;;
+esac

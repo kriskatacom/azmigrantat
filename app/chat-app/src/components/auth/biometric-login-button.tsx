@@ -50,7 +50,6 @@ export default function BiometricLoginButton({
 const styles = StyleSheet.create({
   button: {
     minHeight: 52,
-    marginTop: 12,
     borderWidth: 1.5,
     borderRadius: 14,
     paddingHorizontal: 16,

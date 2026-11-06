@@ -1,9 +1,16 @@
 import { useAppTheme } from "@/app/_layout";
+import AuthHero from "@/components/auth/auth-hero";
 import AuthLegalLinks from "@/components/auth/auth-legal-links";
 import BiometricLoginButton from "@/components/auth/biometric-login-button";
 import GoogleLoginButton from "@/components/auth/google-login-button";
+import FacebookLoginButton from "@/components/auth/facebook-login-button";
 import AppButton from "@/components/ui/AppButton";
 import AppInput from "@/components/ui/AppInput";
+import {
+  AUTH_ELEMENT_GAP,
+  AUTH_HORIZONTAL_PADDING,
+  AUTH_VERTICAL_PADDING,
+} from "@/constants/auth-layout";
 import { useAuth } from "@/hooks/useAuth";
 import {
   DeviceVerificationRequiredError,
@@ -22,7 +29,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Animated,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -453,27 +459,20 @@ export default function LoginScreen() {
           showsVerticalScrollIndicator={false}
           automaticallyAdjustKeyboardInsets
         >
-          <Image
-            source={require("../../../assets/images/logo-dark.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-
-          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
-            <Text style={[styles.title, { color: theme.colors.text }]}>
-              Вход
-            </Text>
-            <Text
-              style={[styles.subtitle, { color: theme.colors.textSecondary }]}
-            >
-              {step === "device"
-                ? "Потвърдете новото устройство."
-                : step === "methods"
-                  ? "Изберете как да влезете от това устройство."
-                  : step === "loginEmail"
-                    ? "Потвърдете входа с кода от имейла."
-                    : "Влезте в своя профил, за да продължите."}
-            </Text>
+          <View style={styles.page}>
+            <AuthHero
+              title="Вход"
+              subtitle={
+                step === "device"
+                  ? "Потвърдете новото устройство."
+                  : step === "methods"
+                    ? "Изберете как да влезете от това устройство."
+                    : step === "loginEmail"
+                      ? "Потвърдете входа с кода от имейла."
+                      : "Влезте в своя профил, за да продължите."
+              }
+            />
+            <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
 
             {step === "methods" ? (
               <View style={styles.methods}>
@@ -530,6 +529,7 @@ export default function LoginScreen() {
             {step === "password" ? (
               <>
                 <AppInput
+                  containerStyle={styles.authInput}
                   label="Имейл"
                   placeholder="например: name@example.com"
                   value={email}
@@ -543,6 +543,7 @@ export default function LoginScreen() {
                   onBlur={() => void applyOptions(email.trim().toLowerCase())}
                 />
                 <AppInput
+                  containerStyle={styles.authInput}
                   ref={passwordRef}
                   label="Парола"
                   placeholder="Въведете паролата си"
@@ -577,6 +578,7 @@ export default function LoginScreen() {
             {step === "pin" ? (
               <>
                 <AppInput
+                  containerStyle={styles.authInput}
                   label="PIN код"
                   placeholder="4 до 6 цифри"
                   value={pin}
@@ -658,6 +660,7 @@ export default function LoginScreen() {
                     : "Изпратете код към имейла на профила."}
                 </Text>
                 <AppInput
+                  containerStyle={styles.authInput}
                   label="Код"
                   placeholder="6 цифри"
                   value={emailCode}
@@ -695,6 +698,7 @@ export default function LoginScreen() {
                   Въведете 6-цифрения код от приложението.
                 </Text>
                 <AppInput
+                  containerStyle={styles.authInput}
                   label="Код"
                   placeholder="6 цифри"
                   value={totpCode}
@@ -740,6 +744,7 @@ export default function LoginScreen() {
                   да влезете.
                 </Text>
                 <AppInput
+                  containerStyle={styles.authInput}
                   label="Код"
                   placeholder="6 цифри"
                   value={loginEmailCode}
@@ -821,6 +826,27 @@ export default function LoginScreen() {
                     setStep("loginEmail");
                   }}
                 />
+                <FacebookLoginButton
+                  rememberMe={rememberMe}
+                  onTotpRequired={(pendingToken) => {
+                    fadeIn();
+                    setTotpPendingToken(pendingToken);
+                    setTotpCode("");
+                    setStep("totp");
+                  }}
+                  onDeviceVerificationRequired={(pendingToken, name) => {
+                    fadeIn();
+                    setDevicePendingToken(pendingToken);
+                    setDeviceName(name);
+                    setStep("device");
+                  }}
+                  onEmailCodeRequired={(pendingToken) => {
+                    fadeIn();
+                    setLoginEmailPendingToken(pendingToken);
+                    setLoginEmailCode("");
+                    setStep("loginEmail");
+                  }}
+                />
               </>
             ) : null}
 
@@ -844,9 +870,9 @@ export default function LoginScreen() {
                 </TouchableOpacity>
               </Link>
             </View>
+            <AuthLegalLinks />
+            </View>
           </View>
-
-          <AuthLegalLinks />
         </ScrollView>
       </Animated.View>
     </KeyboardAvoidingView>
@@ -858,32 +884,24 @@ const styles = StyleSheet.create({
   screen: { flex: 1 },
   content: {
     flexGrow: 1,
-    justifyContent: "center",
-    padding: 22,
+    padding: 0,
   },
-  logo: {
-    width: 110,
-    height: 110,
-    alignSelf: "center",
-    marginBottom: 18,
+  page: { flexGrow: 1 },
+  card: {
+    flexGrow: 1,
+    borderRadius: 0,
+    paddingHorizontal: AUTH_HORIZONTAL_PADDING,
+    paddingTop: AUTH_ELEMENT_GAP,
+    paddingBottom: AUTH_VERTICAL_PADDING,
+    gap: AUTH_ELEMENT_GAP,
   },
-  card: { borderRadius: 22, padding: 22 },
-  title: { fontSize: 28, fontWeight: "800", textAlign: "center" },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: "center",
-    marginTop: 7,
-    marginBottom: 24,
-  },
-  methods: { gap: 10 },
+  authInput: { marginBottom: 0 },
+  methods: { gap: AUTH_ELEMENT_GAP },
   row: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    marginTop: 8,
-    marginBottom: 18,
   },
   rememberButton: {
     flexDirection: "row",
@@ -911,17 +929,15 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 22,
   },
   separator: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginTop: 18,
   },
   separatorLine: { flex: 1, height: StyleSheet.hairlineWidth },
-  footerLink: { fontWeight: "700", marginTop: 12 },
-  totpBox: { gap: 10, marginTop: 8 },
+  footerLink: { fontWeight: "700" },
+  totpBox: { gap: AUTH_ELEMENT_GAP },
   totpTitle: { fontSize: 18, fontWeight: "800", textAlign: "center" },
   totpHint: { fontSize: 14, lineHeight: 20, textAlign: "center" },
 });

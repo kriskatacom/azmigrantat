@@ -1,0 +1,36 @@
+# Staging-only playback template (an `http {}` include). Review and install manually.
+# It listens on loopback only and must never be exposed through public Nginx.
+
+server {
+    listen 127.0.0.1:3102;
+    server_name localhost;
+
+    access_log off;
+    autoindex off;
+    add_header X-Content-Type-Options nosniff always;
+
+    location /videos/ {
+        alias /srv/azmigrantat-video-staging/public/videos/;
+        limit_except GET HEAD { deny all; }
+        disable_symlinks if_not_owner from=/srv/azmigrantat-video-staging/public/videos;
+        types { video/mp4 mp4; }
+        default_type application/octet-stream;
+        add_header Accept-Ranges bytes always;
+        add_header Cache-Control "no-store" always;
+    }
+
+    location /thumbnails/ {
+        alias /srv/azmigrantat-video-staging/public/thumbnails/;
+        limit_except GET HEAD { deny all; }
+        disable_symlinks if_not_owner from=/srv/azmigrantat-video-staging/public/thumbnails;
+        types { image/jpeg jpg jpeg; image/png png; }
+        default_type application/octet-stream;
+        add_header Cache-Control "no-store" always;
+    }
+
+    location ~* "(^|/)\\.(?!well-known(?:/|$))" { return 404; }
+    location ^~ /private/ { return 404; }
+    location ^~ /state/ { return 404; }
+    location ^~ /logs/ { return 404; }
+    location / { return 404; }
+}

@@ -17,10 +17,12 @@ import {
 import { getDeviceIdentity } from "@/services/device-identity";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
+const PUSH_NOTIFICATIONS_ENABLED = process.env.EXPO_PUBLIC_ENABLE_PUSH_NOTIFICATIONS === "true";
 
 export async function registerForPushNotifications(
   accessToken: string,
 ): Promise<string | null> {
+  if (!PUSH_NOTIFICATIONS_ENABLED) return null;
   if (Platform.OS === "android") {
     await loadUserSettings();
     await Notifications.setNotificationChannelAsync("messages", {
@@ -112,8 +114,6 @@ export async function registerForPushNotifications(
     })
   ).data;
 
-  console.log("Expo Push Token:", expoPushToken);
-
   await savePushToken(
     accessToken,
     expoPushToken,
@@ -127,6 +127,7 @@ export async function registerForPushNotifications(
 export async function unregisterPushNotifications(
   accessToken: string,
 ): Promise<void> {
+  if (!PUSH_NOTIFICATIONS_ENABLED) return;
   if (!API_URL) {
     return;
   }

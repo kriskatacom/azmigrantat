@@ -16,9 +16,9 @@ use App\Models\UserSocialAccount;
 use App\Models\Video;
 use App\Services\BackblazeB2Service;
 use App\Services\BlockService;
-use App\Services\BunnyStreamService;
 use App\Services\PhoneVerificationService;
 use App\Services\RealtimeNotifier;
+use App\Services\VideoStorageProviderFactory;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Support\Facades\Validator;
 
@@ -328,17 +328,17 @@ class UserController extends BaseApiController
 
     private function removeMissingBunnyVideos(int $userId): void
     {
-        $bunny = new BunnyStreamService();
-        if (!$bunny->isConfigured()) {
-            return;
-        }
-
         Video::query()
             ->where('user_id', $userId)
             ->where('status', '!=', Video::STATUS_DELETED)
             ->get()
-            ->each(static function (Video $video) use ($bunny): void {
-                $exists = $bunny->remoteVideoExists($video);
+            ->each(static function (Video $video): void {
+                $provider = VideoStorageProviderFactory::forVideo($video);
+                if ($provider->key() !== 'bunny' || !$provider->isConfigured()) {
+                    return;
+                }
+
+                $exists = $provider->remoteExists($video);
                 if ($exists === false) {
                     error_log(sprintf(
                         '[BunnySync] removed missing local video id=%d guid=%s',

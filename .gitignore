@@ -43,6 +43,7 @@ auth/app/storage/logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+.codex-attachments
 
 # OS/editor files
 .DS_Store

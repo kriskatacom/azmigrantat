@@ -1,0 +1,32 @@
+{
+    "name": "my/php-mvc",
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/"
+        }
+    },
+    "require": {
+        "phpmailer/phpmailer": "^7.1",
+        "illuminate/database": "^12.56",
+        "vlucas/phpdotenv": "^5.6",
+        "robmorgan/phinx": "^0.16.11",
+        "illuminate/pagination": "^12.56",
+        "fakerphp/faker": "^1.24",
+        "intervention/image": "^3.11",
+        "illuminate/translation": "^12.56",
+        "illuminate/filesystem": "^12.56",
+        "illuminate/validation": "^12.56",
+        "illuminate/config": "^12.56",
+        "twilio/sdk": "^8.11",
+        "aws/aws-sdk-php": "^3.387",
+        "google/apiclient": "^2.19"
+    },
+    "scripts": {
+        "migrate": "phinx migrate",
+        "migrate:create": "phinx create",
+        "migrate:rollback": "phinx rollback",
+        "migrate:status": "phinx status",
+        "seed:users": "php database/seeders/UserSeeder.php",
+        "migration": "php vendor/bin/phinx migrate"
+    }
+}

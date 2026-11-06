@@ -26,8 +26,16 @@ export type MediaAssignment = {
     router_id: string | null;
 };
 
-const NODE_KEY_PREFIX = 'media:nodes:';
-const ROOM_KEY_PREFIX = 'media:rooms:';
+const NODE_KEY_PREFIX = `${config.redisKeyPrefix}media:nodes:`;
+const ROOM_KEY_PREFIX = `${config.redisKeyPrefix}media:rooms:`;
+
+export function mediaRedisKey(
+    kind: 'nodes' | 'rooms',
+    id: string | number,
+    prefix: string,
+): string {
+    return `${prefix}media:${kind}:${id}`;
+}
 
 export function isValidMediaNodeDescriptor(value: unknown): value is MediaNodeDescriptor {
     if (!value || typeof value !== 'object') {

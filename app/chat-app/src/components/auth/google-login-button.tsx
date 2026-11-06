@@ -1,23 +1,31 @@
-import { useAppTheme } from "@/app/_layout";
 import { useAuth } from "@/hooks/useAuth";
-import { TotpRequiredError, DeviceVerificationRequiredError, EmailCodeRequiredError } from "@/services/auth";
 import {
-  GoogleSignin,
-  GoogleSigninButton,
-} from "@react-native-google-signin/google-signin";
+  DeviceVerificationRequiredError,
+  EmailCodeRequiredError,
+  TotpRequiredError,
+} from "@/services/auth";
+import { FontAwesome } from "@expo/vector-icons";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { useState } from "react";
-import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+} from "react-native";
 
 // This is the Web OAuth client ID (client_type: 3) from google-services.json.
 // The Android client ID (client_type: 1) is selected by the native Google
 // Sign-In configuration and must not be passed as webClientId.
-const GOOGLE_WEB_CLIENT_ID =
-  "149310026747-0276747vvqrhrgapqcqlg9o1uekn2snr.apps.googleusercontent.com";
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
 
-GoogleSignin.configure({
-  webClientId: GOOGLE_WEB_CLIENT_ID,
-  offlineAccess: false,
-});
+if (GOOGLE_WEB_CLIENT_ID) {
+  GoogleSignin.configure({
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+    offlineAccess: false,
+  });
+}
 
 interface GoogleLoginButtonProps {
   rememberMe?: boolean;
@@ -35,7 +43,6 @@ export default function GoogleLoginButton({
   onDeviceVerificationRequired,
   onEmailCodeRequired,
 }: GoogleLoginButtonProps) {
-  const { colorScheme } = useAppTheme();
   const { loginWithGoogle } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -94,43 +101,48 @@ export default function GoogleLoginButton({
           ? error.message
           : "Възникна неочаквана грешка.",
       );
-      console.log(error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <View style={styles.container}>
+    <Pressable
+      accessibilityLabel="Продължете с Google"
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isSubmitting, busy: isSubmitting }}
+      disabled={isSubmitting}
+      onPress={() => void handleGoogleLogin()}
+      style={[
+        styles.button,
+        { opacity: isSubmitting ? 0.7 : 1 },
+      ]}
+    >
       {isSubmitting ? (
-        <View style={styles.loadingButton}>
-          <ActivityIndicator />
-        </View>
+        <ActivityIndicator color="#4285F4" />
       ) : (
-        <GoogleSigninButton
-          accessibilityLabel="Продължете с Google"
-          color={
-            colorScheme === "dark"
-              ? GoogleSigninButton.Color.Dark
-              : GoogleSigninButton.Color.Light
-          }
-          disabled={isSubmitting}
-          onPress={() => void handleGoogleLogin()}
-          size={GoogleSigninButton.Size.Wide}
-          style={styles.button}
-        />
+        <>
+          <FontAwesome name="google" size={20} color="#4285F4" />
+          <Text style={styles.label}>Продължете с Google</Text>
+        </>
       )}
-    </View>
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { minHeight: 48, alignItems: "center" },
-  button: { width: "100%", height: 48 },
-  loadingButton: {
+  button: {
     width: "100%",
     minHeight: 48,
+    borderWidth: 1,
+    borderColor: "#747775",
+    borderRadius: 6,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    gap: 12,
   },
+  label: { color: "#1F1F1F", fontSize: 16, fontWeight: "700" },
 });

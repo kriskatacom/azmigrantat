@@ -3,6 +3,8 @@
 namespace App\Controllers\Api;
 
 use App\Controllers\BaseController;
+use App\Exceptions\FacebookServiceException;
+use App\Exceptions\FacebookTokenException;
 use App\Models\OauthAccessToken;
 use App\Models\OauthApp;
 use App\Models\User;
@@ -10,11 +12,15 @@ use App\Models\UserSocialAccount;
 use App\Services\AuthRateLimiter;
 use App\Services\DeviceAuthService;
 use App\Services\EmailLoginService;
+use App\Services\FacebookAuthFeature;
+use App\Services\FacebookTokenVerifier;
 use App\Services\PasswordResetService;
 use App\Services\RealtimeNotifier;
 use App\Services\TotpService;
 use Illuminate\Support\Facades\Validator;
 use Google\Client as GoogleClient;
+use Illuminate\Database\Capsule\Manager as Capsule;
+use Illuminate\Database\QueryException;
 use InvalidArgumentException;
 
 final class MobileAuthController extends BaseController
@@ -495,6 +501,266 @@ final class MobileAuthController extends BaseController
         }
     }
 
+    public function facebook()
+    {
+        try {
+            return $this->facebookRequest();
+        } catch (QueryException) {
+            error_log('[FacebookAuth] login database failure');
+            return $this->facebookError('facebook_internal_error', 'Facebook входът временно не може да бъде завършен.', 500);
+        }
+    }
+
+    private function facebookRequest()
+    {
+        if (!FacebookAuthFeature::isEnabled()) {
+            return $this->facebookError('facebook_auth_disabled', 'Facebook входът все още не е активиран за тази среда.', 503);
+        }
+
+        $input = $this->jsonInput();
+        $limiter = new AuthRateLimiter();
+        $ip = AuthRateLimiter::clientIp();
+        if ($limiter->tooMany(AuthRateLimiter::ACTION_FACEBOOK_IP, $ip)) {
+            return $this->jsonTooManyAuthAttempts($limiter, AuthRateLimiter::ACTION_FACEBOOK_IP, $ip);
+        }
+        $limiter->hit(AuthRateLimiter::ACTION_FACEBOOK_IP, $ip);
+
+        $validator = Validator::make($input, [
+            'client_id' => 'required|string|max:255',
+            'access_token' => 'required|string|max:4096',
+        ]);
+        if ($validator->fails()) {
+            return $this->facebookError('facebook_invalid_request', $validator->errors()->first(), 422);
+        }
+
+        $app = $this->resolvePublicApplication($input['client_id']);
+        if (!$app) {
+            return $this->facebookError('facebook_invalid_client', 'Невалидно приложение.', 401);
+        }
+        if (!FacebookAuthFeature::allowsClientId((string) $app->client_id)) {
+            return $this->facebookError('facebook_client_not_allowed', 'Facebook входът не е разрешен за това приложение.', 403);
+        }
+
+        try {
+            $profile = (new FacebookTokenVerifier())->verify($input['access_token']);
+        } catch (FacebookTokenException $exception) {
+            return $this->facebookError('facebook_invalid_token', $exception->getMessage(), 401);
+        } catch (FacebookServiceException) {
+            return $this->facebookError('facebook_service_unavailable', 'Facebook услугата временно не е достъпна.', 503);
+        }
+
+        $social = UserSocialAccount::query()
+            ->where('provider', 'facebook')
+            ->where('provider_user_id', $profile['id'])
+            ->first();
+
+        if ($social) {
+            $user = User::withTrashed()->find((int) $social->user_id);
+            if (!$user || $user->trashed()) {
+                return $this->facebookError('facebook_account_recovery_required', 'Този Facebook профил е свързан с изтрит акаунт.', 409);
+            }
+            if (!$user->is_active) {
+                return $this->facebookError('facebook_account_inactive', 'Профилът е деактивиран.', 403);
+            }
+
+            return $this->finishInteractiveLogin($user, $app, $this->rememberMeFromInput($input), $input);
+        }
+
+        if ($profile['email'] === null) {
+            return $this->facebookError(
+                'facebook_email_required',
+                'Facebook не предостави имейл. Регистрирайте се с имейл и свържете Facebook от Сигурност.',
+                422
+            );
+        }
+
+        $existingUser = User::withTrashed()->where('email', $profile['email'])->first();
+        if ($existingUser) {
+            return $this->facebookError(
+                $existingUser->trashed() ? 'facebook_account_recovery_required' : 'facebook_link_required',
+                $existingUser->trashed()
+                    ? 'Съществува изтрит акаунт с този имейл.'
+                    : 'Влезте по досегашния начин и свържете Facebook от Профил → Сигурност.',
+                409
+            );
+        }
+
+        try {
+            $user = Capsule::connection()->transaction(function () use ($profile): User {
+                $name = $profile['name'] !== ''
+                    ? $profile['name']
+                    : trim($profile['first_name'] . ' ' . $profile['last_name']);
+                $user = User::create([
+                    'email' => $profile['email'],
+                    'name' => $name !== '' ? $name : $profile['email'],
+                    'first_name' => $profile['first_name'] !== '' ? $profile['first_name'] : null,
+                    'last_name' => $profile['last_name'] !== '' ? $profile['last_name'] : null,
+                    'role' => User::ROLE_USER,
+                    'is_active' => true,
+                    'email_verified' => false,
+                ]);
+                UserSocialAccount::create([
+                    'user_id' => $user->id,
+                    'provider' => 'facebook',
+                    'provider_user_id' => $profile['id'],
+                    'email' => $profile['email'],
+                ]);
+                return $user;
+            });
+        } catch (QueryException $exception) {
+            if (!$this->isDuplicateKey($exception)) {
+                error_log('[FacebookAuth] account creation database failure');
+                return $this->facebookError('facebook_internal_error', 'Facebook входът временно не може да бъде завършен.', 500);
+            }
+            $social = UserSocialAccount::query()
+                ->where('provider', 'facebook')
+                ->where('provider_user_id', $profile['id'])
+                ->first();
+            $user = $social ? User::withTrashed()->find((int) $social->user_id) : null;
+            if (!$user) {
+                return $this->facebookError('facebook_identity_conflict', 'Facebook профилът или имейлът вече се използва.', 409);
+            }
+            if ($user->trashed()) {
+                return $this->facebookError('facebook_account_recovery_required', 'Facebook профилът е свързан с изтрит акаунт.', 409);
+            }
+            if (!$user->is_active) {
+                return $this->facebookError('facebook_account_inactive', 'Профилът е деактивиран.', 403);
+            }
+        }
+
+        return $this->finishInteractiveLogin($user, $app, $this->rememberMeFromInput($input), $input);
+    }
+
+    public function facebookStatus()
+    {
+        try {
+            return $this->facebookStatusRequest();
+        } catch (QueryException) {
+            error_log('[FacebookAuth] status database failure');
+            return $this->facebookError('facebook_internal_error', 'Статусът на Facebook временно не е достъпен.', 500);
+        }
+    }
+
+    private function facebookStatusRequest()
+    {
+        $user = $this->authenticatedUser();
+        $session = $this->resolveAccessToken();
+        $clientId = trim((string) ($session?->application?->client_id ?? ''));
+
+        return $this->json([
+            'success' => true,
+            'linked' => $user !== null && UserSocialAccount::query()
+                ->where('user_id', (int) $user->id)
+                ->where('provider', 'facebook')
+                ->exists(),
+            'enabled' => FacebookAuthFeature::allowsClientId($clientId),
+        ]);
+    }
+
+    public function linkFacebook()
+    {
+        try {
+            return $this->linkFacebookRequest();
+        } catch (QueryException) {
+            error_log('[FacebookAuth] linking database failure');
+            return $this->facebookError('facebook_internal_error', 'Facebook профилът временно не може да бъде свързан.', 500);
+        }
+    }
+
+    private function linkFacebookRequest()
+    {
+        if (!FacebookAuthFeature::isEnabled()) {
+            return $this->facebookError('facebook_auth_disabled', 'Facebook входът все още не е активиран за тази среда.', 503);
+        }
+
+        $user = $this->authenticatedUser();
+        if (!$user) {
+            return $this->facebookError('facebook_unauthenticated', 'Сесията е изтекла.', 401);
+        }
+        $session = $this->resolveAccessToken();
+        $clientId = trim((string) ($session?->application?->client_id ?? ''));
+        if (!FacebookAuthFeature::allowsClientId($clientId)) {
+            return $this->facebookError('facebook_client_not_allowed', 'Facebook свързването не е разрешено за това приложение.', 403);
+        }
+
+        $input = $this->jsonInput();
+        $limiter = new AuthRateLimiter();
+        $ip = AuthRateLimiter::clientIp();
+        $userKey = (string) $user->id;
+        foreach ([
+            [AuthRateLimiter::ACTION_FACEBOOK_LINK_IP, $ip],
+            [AuthRateLimiter::ACTION_FACEBOOK_LINK_USER, $userKey],
+        ] as [$action, $identifier]) {
+            if ($limiter->tooMany($action, $identifier)) {
+                return $this->jsonTooManyAuthAttempts($limiter, $action, $identifier);
+            }
+        }
+        $limiter->hit(AuthRateLimiter::ACTION_FACEBOOK_LINK_IP, $ip);
+        $limiter->hit(AuthRateLimiter::ACTION_FACEBOOK_LINK_USER, $userKey);
+
+        $validator = Validator::make($input, [
+            'access_token' => 'required|string|max:4096',
+            'current_password' => 'required|string|max:1024',
+        ]);
+        if ($validator->fails()) {
+            return $this->facebookError('facebook_reauthentication_required', $validator->errors()->first(), 422);
+        }
+
+        $passwordHash = (string) ($user->getAttributes()['password_hash'] ?? '');
+        if ($passwordHash === '') {
+            return $this->facebookError('facebook_password_required', 'Задайте парола, преди да свържете Facebook.', 409);
+        }
+        if (!password_verify($input['current_password'], $passwordHash)) {
+            return $this->facebookError('facebook_reauthentication_failed', 'Текущата парола е неправилна.', 401);
+        }
+
+        try {
+            $profile = (new FacebookTokenVerifier())->verify($input['access_token']);
+        } catch (FacebookTokenException $exception) {
+            return $this->facebookError('facebook_invalid_token', $exception->getMessage(), 401);
+        } catch (FacebookServiceException) {
+            return $this->facebookError('facebook_service_unavailable', 'Facebook услугата временно не е достъпна.', 503);
+        }
+
+        $identity = UserSocialAccount::query()
+            ->where('provider', 'facebook')
+            ->where('provider_user_id', $profile['id'])
+            ->first();
+        if ($identity) {
+            if ((int) $identity->user_id === (int) $user->id) {
+                return $this->json(['success' => true, 'linked' => true]);
+            }
+            return $this->facebookError('facebook_identity_conflict', 'Този Facebook профил вече е свързан другаде.', 409);
+        }
+
+        if (UserSocialAccount::query()->where('provider', 'facebook')->where('user_id', (int) $user->id)->exists()) {
+            return $this->facebookError('facebook_identity_conflict', 'Към профила вече е свързан друг Facebook акаунт.', 409);
+        }
+
+        try {
+            UserSocialAccount::create([
+                'user_id' => $user->id,
+                'provider' => 'facebook',
+                'provider_user_id' => $profile['id'],
+                'email' => $profile['email'],
+            ]);
+        } catch (QueryException $exception) {
+            if (!$this->isDuplicateKey($exception)) {
+                error_log('[FacebookAuth] identity linking database failure user_id=' . (int) $user->id);
+                return $this->facebookError('facebook_internal_error', 'Facebook профилът временно не може да бъде свързан.', 500);
+            }
+            $identity = UserSocialAccount::query()
+                ->where('provider', 'facebook')
+                ->where('provider_user_id', $profile['id'])
+                ->first();
+            if (!$identity || (int) $identity->user_id !== (int) $user->id) {
+                return $this->facebookError('facebook_identity_conflict', 'Facebook профилът беше свързан другаде.', 409);
+            }
+        }
+
+        return $this->json(['success' => true, 'linked' => true]);
+    }
+
     public function forgotPassword()
     {
         $input = $this->jsonInput();
@@ -864,7 +1130,9 @@ final class MobileAuthController extends BaseController
 
     private function resolveAccessToken(): ?OauthAccessToken
     {
-        $authorization = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
+        $authorization = $_SERVER['HTTP_AUTHORIZATION']
+            ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
+            ?? '';
 
         if (!preg_match('/Bearer\s+(\S+)/i', $authorization, $matches)) {
             return null;
@@ -889,5 +1157,24 @@ final class MobileAuthController extends BaseController
     private function serializeUser(User $user): array
     {
         return $user->toMobileUserArray();
+    }
+
+    private function facebookError(string $code, string $message, int $status)
+    {
+        return $this->json([
+            'success' => false,
+            'code' => $code,
+            'message' => $message,
+        ], $status);
+    }
+
+    private function isDuplicateKey(QueryException $exception): bool
+    {
+        $previous = $exception->getPrevious();
+        $errorInfo = $previous instanceof \PDOException ? ($previous->errorInfo ?? []) : [];
+        $sqlState = (string) ($errorInfo[0] ?? $exception->getCode());
+        $driverCode = (int) ($errorInfo[1] ?? 0);
+
+        return $sqlState === '23000' && $driverCode === 1062;
     }
 }

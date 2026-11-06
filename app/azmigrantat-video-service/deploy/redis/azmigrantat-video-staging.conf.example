@@ -1,0 +1,18 @@
+# Dedicated Redis instance for staging only. Install manually as root.
+bind 127.0.0.1 ::1
+protected-mode yes
+port 6380
+tcp-keepalive 300
+daemonize no
+supervised systemd
+logfile ""
+dir /var/lib/azmigrantat-video-staging-redis
+dbfilename staging.rdb
+appendonly yes
+appendfilename staging.aof
+save 900 1
+save 300 10
+save 60 10000
+aclfile /etc/azmigrantat-video-staging/users.acl
+unixsocket /run/azmigrantat-video-staging/redis.sock
+unixsocketperm 0770

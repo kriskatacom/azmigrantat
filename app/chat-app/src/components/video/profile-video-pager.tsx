@@ -45,13 +45,11 @@ export default function ProfileVideoPager({
   const listRef = useRef<FlatList<VideoItem>>(null);
   const activeIndexRef = useRef(Math.max(0, initialIndex));
   const [activeIndex, setActiveIndex] = useState(Math.max(0, initialIndex));
-  const [isActiveVideoPlaying, setIsActiveVideoPlaying] = useState(true);
 
   useEffect(() => {
     if (!visible || initialIndex < 0 || initialIndex === activeIndexRef.current) return;
     activeIndexRef.current = initialIndex;
     setActiveIndex(initialIndex);
-    setIsActiveVideoPlaying(true);
     listRef.current?.scrollToIndex({ index: initialIndex, animated: false });
   }, [initialIndex, visible]);
 
@@ -69,7 +67,6 @@ export default function ProfileVideoPager({
               width={width}
               height={height}
               captionVisible={index === activeIndex}
-              onPlaybackChange={index === activeIndex ? setIsActiveVideoPlaying : undefined}
               onRequestPlayback={() => onRequestPlayback(index)}
               active={index === activeIndex}
               onViewVideo={onViewVideo}
@@ -109,7 +106,6 @@ export default function ProfileVideoPager({
             if (index === activeIndexRef.current) return;
             activeIndexRef.current = index;
             setActiveIndex(index);
-            setIsActiveVideoPlaying(true);
             onRequestPlayback(index);
           }}
         />

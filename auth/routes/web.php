@@ -9,18 +9,19 @@ use App\Controllers\Api\InternalMobileController;
 use App\Controllers\Api\LinkPreviewController;
 use App\Controllers\Api\LiveController;
 use App\Controllers\Api\VideoController;
+use App\Controllers\Api\DedicatedVideoCallbackController;
 use App\Controllers\Api\MessageController;
 use App\Controllers\Api\EmailLoginController;
 use App\Controllers\Api\DeviceAuthController;
 use App\Controllers\Api\MobileAuthController;
 use App\Controllers\Api\NotificationController;
 use App\Controllers\Api\PaymentMethodController;
+use App\Controllers\Api\ReportController;
 use App\Controllers\Api\SubscriptionController;
 use App\Controllers\Api\PhoneVerificationController;
 use App\Controllers\Api\PushTokenController;
 use App\Controllers\Api\TwoFAuthController;
 use App\Controllers\CategoryController;
-use App\Controllers\PhinxController;
 use App\Controllers\PostController;
 use App\Core\Router;
 
@@ -34,8 +35,6 @@ use App\Middlewares\AuthMiddleware;
 use App\Middlewares\BearerAuthMiddleware;
 
 $router = new Router();
-
-$router->get('/migrations/migrate', [PhinxController::class, 'migrate']);
 
 require_once __DIR__ . '/core.php';
 
@@ -81,6 +80,7 @@ $router->post('/api/mobile/logout', [MobileAuthController::class, 'logout'], [Be
 $router->get('/api/mobile/me', [MobileAuthController::class, 'me'], [BearerAuthMiddleware::class]);
 
 $router->post('/api/mobile/auth/google', [MobileAuthController::class, 'google']);
+$router->post('/api/mobile/auth/facebook', [MobileAuthController::class, 'facebook']);
 $router->post('/api/mobile/refresh', [MobileAuthController::class, 'refresh']);
 $router->post('/api/mobile/password/forgot', [MobileAuthController::class, 'forgotPassword']);
 $router->post('/api/mobile/password/reset', [MobileAuthController::class, 'resetPassword']);
@@ -103,6 +103,9 @@ $router->post('/api/mobile/device/pin/clear', [DeviceAuthController::class, 'cle
 
 $bearer = [BearerAuthMiddleware::class];
 
+$router->get('/api/mobile/profile/social/facebook', [MobileAuthController::class, 'facebookStatus'], $bearer);
+$router->post('/api/mobile/profile/social/facebook', [MobileAuthController::class, 'linkFacebook'], $bearer);
+
 $router->get('/api/mobile/users', [UserController::class, 'search'], $bearer);
 $router->get('/api/mobile/users/{id}', [UserController::class, 'show'], $bearer);
 $router->post('/api/mobile/profile', [UserController::class, 'updateProfile'], $bearer);
@@ -113,6 +116,7 @@ $router->post('/api/mobile/profile/password', [UserController::class, 'updatePas
 $router->get('/api/mobile/blocks', [BlockController::class, 'index'], $bearer);
 $router->post('/api/mobile/blocks', [BlockController::class, 'store'], $bearer);
 $router->post('/api/mobile/blocks/{id}/unblock', [BlockController::class, 'destroy'], $bearer);
+$router->post('/api/mobile/reports', [ReportController::class, 'store'], $bearer);
 $router->get('/api/mobile/payment-methods', [PaymentMethodController::class, 'index'], $bearer);
 $router->post('/api/mobile/payment-methods', [PaymentMethodController::class, 'store'], $bearer);
 $router->post('/api/mobile/payment-methods/settings', [PaymentMethodController::class, 'updateSettings'], $bearer);
@@ -166,12 +170,14 @@ $router->get('/api/mobile/videos', [VideoController::class, 'index'], $bearer);
 $router->post('/api/mobile/videos/uploads', [VideoController::class, 'beginUpload'], $bearer);
 $router->delete('/api/mobile/videos', [VideoController::class, 'destroyAll'], $bearer);
 $router->post('/api/mobile/videos/{id}/upload-complete', [VideoController::class, 'uploadComplete'], $bearer);
+$router->post('/api/mobile/videos/{id}/upload-session', [VideoController::class, 'uploadSession'], $bearer);
 $router->post('/api/mobile/videos/{id}/thumbnail', [VideoController::class, 'uploadThumbnail'], $bearer);
 $router->post('/api/mobile/videos/{id}', [VideoController::class, 'update'], $bearer);
 $router->delete('/api/mobile/videos/{id}', [VideoController::class, 'destroy'], $bearer);
 $router->get('/api/mobile/videos/{id}/playback', [VideoController::class, 'playback'], $bearer);
 $router->post('/api/mobile/videos/{id}/view', [VideoController::class, 'recordView'], $bearer);
 $router->post('/webhooks/bunny/stream', [VideoController::class, 'webhook']);
+$router->post('/internal/video/dedicated/callback', [DedicatedVideoCallbackController::class, 'handle']);
 
 $router->get('/api/mobile/notifications/unread-count', [NotificationController::class, 'unreadCount'], $bearer);
 $router->get('/api/mobile/notifications/{id}', [NotificationController::class, 'show'], $bearer);

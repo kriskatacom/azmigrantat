@@ -9,6 +9,7 @@ use App\Services\VideoViewService;
 use App\Models\Notification;
 use App\Services\BackblazeB2Service;
 use App\Services\BunnyStreamService;
+use App\Services\VideoStorageProviderFactory;
 use App\Services\NotificationService;
 use App\Services\PushNotificationService;
 use App\Services\RealtimeNotifier;
@@ -67,7 +68,7 @@ final class VideoController extends BaseController
                 $item['playback_url'] = null;
 
                 try {
-                    $item['playback_url'] = (new BunnyStreamService())->playbackUrl($video);
+                    $item['playback_url'] = VideoStorageProviderFactory::forVideo($video)->playbackUrl($video);
                 } catch (RuntimeException $exception) {
                     error_log('[PublicVideoFeed] playback URL unavailable: ' . $exception->getMessage());
                 }
@@ -106,7 +107,9 @@ final class VideoController extends BaseController
         $input = $this->jsonInput();
         $title = trim((string) ($input['title'] ?? $input['filename'] ?? 'Видео'));
         $description = trim((string) ($input['description'] ?? ''));
-        $categoryId = isset($input['category_id']) && $input['category_id'] !== '' ? (int) $input['category_id'] : 0;
+        $categoryId = isset($input['category_id']) && $input['category_id'] !== '' && $input['category_id'] !== null
+            ? (int) $input['category_id']
+            : null;
         $mimeType = strtolower(trim((string) ($input['mime_type'] ?? '')));
         $fileSize = (int) ($input['file_size'] ?? 0);
 
@@ -118,12 +121,10 @@ final class VideoController extends BaseController
             return $this->json(['success' => false, 'message' => 'Описанието не може да е по-дълго от 2000 символа.'], 422);
         }
 
-        if ($categoryId < 1) {
-            return $this->json(['success' => false, 'message' => 'Категорията е задължителна.'], 422);
-        }
-
-        if (!Category::query()->active()->whereKey($categoryId)->exists()) {
-            return $this->json(['success' => false, 'message' => 'Изберете валидна активна категория.'], 422);
+        if ($categoryId !== null && ($categoryId < 1 || !Category::query()->active()->whereKey($categoryId)->exists())) {
+            // Categories are optional. Treat stale/deleted selections as no category
+            // so a cached mobile form cannot block an otherwise valid upload.
+            $categoryId = null;
         }
 
         if (!in_array($mimeType, ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-m4v'], true)) {
@@ -134,26 +135,75 @@ final class VideoController extends BaseController
             return $this->json(['success' => false, 'message' => 'Размерът на видеото трябва да е до 2 GB.'], 422);
         }
 
-        $bunny = new BunnyStreamService();
-        if (!$bunny->isConfigured()) {
+        try {
+            $provider = VideoStorageProviderFactory::forNewUpload();
+        } catch (RuntimeException $exception) {
+            error_log('[Video] provider selection failed: ' . $exception->getMessage());
+            return $this->json(['success' => false, 'message' => 'Видео услугата временно не е конфигурирана.'], 503);
+        }
+        if (!$provider->isConfigured()) {
             return $this->json(['success' => false, 'message' => 'Видео услугата временно не е конфигурирана.'], 503);
         }
 
+        $providerMetadataAvailable = Video::providerMetadataAvailable();
+        if (!$providerMetadataAvailable && $provider->key() !== 'bunny') {
+            return $this->json(['success' => false, 'message' => 'Видео услугата изисква актуална database schema.'], 503);
+        }
+
+        $video = null;
         try {
-            $remote = $bunny->createVideo($title);
-            $video = Video::query()->create([
-                'user_id' => (int) $user->id,
-                'category_id' => $categoryId,
-                'bunny_library_id' => $bunny->configuredLibraryId(),
-                'bunny_video_guid' => $remote['guid'],
-                'title' => $title,
-                'description' => $description !== '' ? $description : null,
-                'status' => Video::STATUS_UPLOADING,
-                'mime_type' => $mimeType,
-                'file_size' => $fileSize,
-            ]);
+            if ($provider->key() === 'oneprovider') {
+                // Dedicated service needs the local video ID in its signed
+                // token, so create the metadata row before issuing upload data.
+                $video = Video::query()->create([
+                    'user_id' => (int) $user->id,
+                    'category_id' => $categoryId,
+                    'provider' => 'oneprovider',
+                    'provider_video_id' => null,
+                    // Keep legacy Bunny columns valid for the existing schema
+                    // while this record is owned by the Dedicated provider.
+                    'bunny_library_id' => 0,
+                    'bunny_video_guid' => 'dedicated-' . bin2hex(random_bytes(16)),
+                    'title' => $title,
+                    'description' => $description !== '' ? $description : null,
+                    'status' => Video::STATUS_UPLOADING,
+                    'processing_status' => Video::STATUS_UPLOADING,
+                    'mime_type' => $mimeType,
+                    'file_size' => $fileSize,
+                ]);
+                $remote = $provider->createUpload($title, $video);
+                $video->provider_video_id = $remote['storage_id'];
+                $video->save();
+            } else {
+                $remote = $provider->createUpload($title);
+                $providerData = $remote['provider_data'];
+                $attributes = [
+                    'user_id' => (int) $user->id,
+                    'category_id' => $categoryId,
+                    'bunny_library_id' => (int) ($providerData['library_id'] ?? 0),
+                    'bunny_video_guid' => $remote['storage_id'],
+                    'title' => $title,
+                    'description' => $description !== '' ? $description : null,
+                    'status' => Video::STATUS_UPLOADING,
+                    'mime_type' => $mimeType,
+                    'file_size' => $fileSize,
+                ];
+                if ($providerMetadataAvailable) {
+                    $attributes['provider'] = $provider->key();
+                    $attributes['provider_video_id'] = $remote['storage_id'];
+                    $attributes['processing_status'] = Video::STATUS_UPLOADING;
+                }
+                $video = Video::query()->create($attributes);
+            }
         } catch (RuntimeException $exception) {
-            error_log('[Bunny Stream] upload initialization failed: ' . $exception->getMessage());
+            if ($video) {
+                try {
+                    $video->delete();
+                } catch (\Throwable $cleanupException) {
+                    error_log('[Video] upload metadata cleanup failed: ' . $cleanupException->getMessage());
+                }
+            }
+            error_log('[Video] upload initialization failed: ' . $exception->getMessage());
 
             return $this->json(['success' => false, 'message' => 'Видеото не може да бъде подготвено за качване.'], 502);
         }
@@ -162,7 +212,7 @@ final class VideoController extends BaseController
             'success' => true,
             'data' => [
                 'video' => $this->serialize($video),
-                'upload' => $bunny->uploadCredentials($video->bunny_video_guid),
+                'upload' => $provider->uploadAuthorization($remote['storage_id']),
             ],
         ], 201);
     }
@@ -179,11 +229,58 @@ final class VideoController extends BaseController
             return $this->json(['success' => false, 'message' => 'Видеото не е намерено.'], 404);
         }
 
+        // A fast Dedicated worker may deliver the ready/failed callback before
+        // the mobile client reaches this endpoint. Never downgrade a terminal
+        // provider state back to queued.
+        if (in_array($video->status, [Video::STATUS_READY, Video::STATUS_FAILED, Video::STATUS_DELETED], true)) {
+            return $this->json(['success' => true, 'data' => $this->serialize($video)]);
+        }
+
+        if (Video::providerMetadataAvailable()) {
+            $video->processing_status = $video->provider === 'oneprovider'
+                ? 'queued'
+                : Video::STATUS_PROCESSING;
+        }
         $video->status = Video::STATUS_PROCESSING;
         $video->uploaded_at = $video->uploaded_at ?: Carbon::now();
         $video->save();
 
         return $this->json(['success' => true, 'data' => $this->serialize($video)]);
+    }
+
+    public function uploadSession($id)
+    {
+        $user = $this->authenticatedUser();
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $video = Video::query()->whereKey((int) $id)->where('user_id', (int) $user->id)->first();
+        if (!$video) {
+            return $this->json(['success' => false, 'message' => 'Видеото не е намерено.'], 404);
+        }
+        if (in_array($video->status, [Video::STATUS_READY, Video::STATUS_DELETED], true)) {
+            return $this->json(['success' => false, 'message' => 'Upload сесията вече не е активна.'], 409);
+        }
+
+        try {
+            $provider = VideoStorageProviderFactory::forVideo($video);
+            $storageId = trim((string) ($video->provider_video_id ?: $video->bunny_video_guid));
+            if ($storageId === '') {
+                throw new RuntimeException('Липсва идентификатор на upload сесията.');
+            }
+
+            return $this->json([
+                'success' => true,
+                'data' => [
+                    'video' => $this->serialize($video),
+                    'upload' => $provider->uploadAuthorization($storageId),
+                ],
+            ]);
+        } catch (RuntimeException $exception) {
+            error_log('[Video] upload session refresh failed: ' . $exception->getMessage());
+            return $this->json(['success' => false, 'message' => 'Upload сесията не може да бъде обновена.'], 502);
+        }
     }
 
     public function uploadThumbnail($id)
@@ -257,12 +354,12 @@ final class VideoController extends BaseController
         }
 
         try {
-            (new BunnyStreamService())->updateVideoTitle($video, $title);
+            VideoStorageProviderFactory::forVideo($video)->updateTitle($video, $title);
             $video->title = $title;
             $video->description = $description !== '' ? $description : null;
             $video->save();
         } catch (RuntimeException $exception) {
-            error_log('[Bunny Stream] video update failed: ' . $exception->getMessage());
+            error_log('[Video] video update failed: ' . $exception->getMessage());
             return $this->json(['success' => false, 'message' => 'Видеото не можа да бъде редактирано.'], 502);
         }
 
@@ -282,9 +379,9 @@ final class VideoController extends BaseController
         }
 
         try {
-            (new BunnyStreamService())->deleteVideo($video);
+            VideoStorageProviderFactory::forVideo($video)->delete($video);
         } catch (RuntimeException $exception) {
-            error_log('[Bunny Stream] video deletion failed: ' . $exception->getMessage());
+            error_log('[Video] video deletion failed: ' . $exception->getMessage());
             return $this->json(['success' => false, 'message' => 'Видеото не можа да бъде изтрито.'], 502);
         }
 
@@ -304,18 +401,16 @@ final class VideoController extends BaseController
         $videos = Video::query()->where('user_id', (int) $user->id)->get();
         $deleted = 0;
         $failed = 0;
-        $bunny = new BunnyStreamService();
-
         foreach ($videos as $video) {
             try {
-                $bunny->deleteVideo($video);
+                VideoStorageProviderFactory::forVideo($video)->delete($video);
                 $this->deleteThumbnailUrl($video->thumbnail_url);
                 $video->delete();
                 $deleted++;
             } catch (RuntimeException $exception) {
                 $failed++;
                 error_log(sprintf(
-                    '[Bunny Stream] bulk video deletion failed id=%d: %s',
+                    '[Video] bulk video deletion failed id=%d: %s',
                     (int) $video->id,
                     $exception->getMessage(),
                 ));
@@ -349,9 +444,9 @@ final class VideoController extends BaseController
         }
 
         try {
-            $url = (new BunnyStreamService())->playbackUrl($video);
+            $url = VideoStorageProviderFactory::forVideo($video)->playbackUrl($video);
         } catch (RuntimeException $exception) {
-            error_log('[Bunny Stream] playback token failed: ' . $exception->getMessage());
+            error_log('[Video] playback URL failed: ' . $exception->getMessage());
 
             return $this->json(['success' => false, 'message' => 'Защитеното възпроизвеждане временно не е налично.'], 503);
         }
@@ -437,14 +532,17 @@ final class VideoController extends BaseController
         $wasReady = $video->status === Video::STATUS_READY;
         $video->bunny_status = $status;
         if (in_array($status, [3, 4], true)) {
+            $video->processing_status = 'ready';
             $video->status = Video::STATUS_READY;
             $video->processed_at = $video->processed_at ?: Carbon::now();
             $video->failed_at = null;
             $video->failure_reason = null;
         } elseif (in_array($status, [5, 8], true)) {
+            $video->processing_status = 'failed';
             $video->status = Video::STATUS_FAILED;
             $video->failed_at = Carbon::now();
         } elseif ($status >= 0 && $video->status !== Video::STATUS_READY) {
+            $video->processing_status = Video::STATUS_PROCESSING;
             $video->status = Video::STATUS_PROCESSING;
         }
         $video->save();

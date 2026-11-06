@@ -18,6 +18,15 @@ type NativeUploadModule = NativeModule<{
     contentType: string,
     backgroundConfig: string,
   ) => string;
+  startDedicatedUpload: (
+    sourceUri: string,
+    endpoint: string,
+    uploadId: string,
+    authorizationToken: string,
+    contentType: string,
+    filename: string,
+    backgroundConfig: string,
+  ) => string;
   cancelUpload: (uploadId: string) => void;
 };
 

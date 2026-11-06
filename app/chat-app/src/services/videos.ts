@@ -2,6 +2,8 @@ import { authorizedJson } from "@/services/session-http";
 import type {
   BeginVideoUploadResponse,
   BunnyUploadCredentials,
+  DedicatedUploadCredentials,
+  VideoUploadCredentials,
   VideoResponse,
   VideosResponse,
   VideoPlaybackResponse,
@@ -14,9 +16,14 @@ import { Platform } from "react-native";
 import * as tus from "tus-js-client";
 import BunnyNativeUpload, { cancelNativeUpload } from "../../modules/my-module/src/BunnyNativeUploadModule";
 import type { BunnyUploadProgressEvent } from "../../modules/my-module/src/BunnyNativeUpload.types";
+import { SecureTusUrlStorage, dedicatedTusFingerprint } from "@/services/dedicated-tus-storage";
+import { isExpiredUploadStatus, shouldRetryTusStatus } from "@/services/video-upload-policy";
+import { parseJsonResponse } from "@/services/http-response";
+import { assertDedicatedVideoUrl } from "@/config/environment";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 let activeNativeUploadId: string | null = null;
+let activeTusCancel: (() => void) | null = null;
 
 if (!API_URL) {
   throw new Error("Липсва EXPO_PUBLIC_API_URL.");
@@ -24,7 +31,7 @@ if (!API_URL) {
 
 export function beginVideoUpload(
   token: string,
-  input: { title: string; description: string; filename: string; mimeType: string; fileSize: number; categoryId: number },
+  input: { title: string; description: string; filename: string; mimeType: string; fileSize: number; categoryId?: number | null },
 ): Promise<BeginVideoUploadResponse> {
   return authorizedJson<BeginVideoUploadResponse>(
     `${API_URL}/api/mobile/videos/uploads`,
@@ -37,7 +44,7 @@ export function beginVideoUpload(
         filename: input.filename,
         mime_type: input.mimeType,
         file_size: input.fileSize,
-        category_id: input.categoryId,
+        ...(input.categoryId ? { category_id: input.categoryId } : {}),
       }),
     },
   );
@@ -62,12 +69,19 @@ export async function uploadVideoThumbnail(
 
 export function uploadVideoWithTus(
   file: File,
-  credentials: BunnyUploadCredentials,
+  credentials: VideoUploadCredentials,
   onProgress: (percentage: number) => void,
   options?: { cancelUrl?: string; authToken?: string },
 ): Promise<void> {
+  if ("authorization_token" in credentials) {
+    if (Platform.OS === "android") {
+      return uploadVideoWithDedicatedNative(file, credentials, onProgress, options);
+    }
+    return uploadVideoWithDedicatedTus(file, credentials, onProgress);
+  }
+
   if (Platform.OS === "android") {
-    return uploadVideoWithNative(file, credentials, onProgress, options);
+    return uploadVideoWithNative(file, credentials as BunnyUploadCredentials, onProgress, options);
   }
 
   return new Promise((resolve, reject) => {
@@ -131,6 +145,143 @@ export function uploadVideoWithTus(
   });
 }
 
+export class UploadTokenExpiredError extends Error {
+  constructor() {
+    super("Upload token-ът е изтекъл.");
+    this.name = "UploadTokenExpiredError";
+  }
+}
+
+async function uploadVideoWithDedicatedTus(
+  file: File,
+  credentials: DedicatedUploadCredentials,
+  onProgress: (percentage: number) => void,
+): Promise<void> {
+  assertDedicatedVideoUrl(credentials.endpoint);
+  const nativeFileSize = getNativeFileSize(file);
+  const storage = new SecureTusUrlStorage();
+  const fingerprint = dedicatedTusFingerprint(credentials.user_id, credentials.video_id, credentials.upload_id, file.uri, nativeFileSize);
+  const reader = file.readableStream().getReader();
+  let displayedProgress = 0;
+
+  await new Promise<void>((resolve, reject) => {
+    let settled = false;
+    const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
+      activeTusCancel = null;
+      if (error) reject(error); else resolve();
+    };
+    const upload = new tus.Upload(reader, {
+      endpoint: credentials.endpoint,
+      uploadSize: nativeFileSize,
+      chunkSize: 512 * 1024,
+      headers: { Authorization: `Bearer ${credentials.authorization_token}` },
+      metadata: { filename: file.name || "video", filetype: file.type || "video/mp4" },
+      fingerprint: async () => fingerprint,
+      urlStorage: storage,
+      storeFingerprintForResuming: true,
+      removeFingerprintOnSuccess: true,
+      retryDelays: [3000, 10000, 20000, 40000, 60000],
+      onShouldRetry: (error) => {
+        const status = error.originalResponse?.getStatus() ?? 0;
+        if (isExpiredUploadStatus(status)) return false;
+        return shouldRetryTusStatus(status);
+      },
+      onError: (error) => {
+        const status = "originalResponse" in error ? error.originalResponse?.getStatus() ?? 0 : 0;
+        finish(isExpiredUploadStatus(status) ? new UploadTokenExpiredError() : error);
+      },
+      onProgress: (bytesUploaded, bytesTotal) => {
+        const measuredProgress = Math.round((bytesUploaded / bytesTotal) * 100);
+        displayedProgress = Math.min(99, Math.max(displayedProgress, measuredProgress));
+        onProgress(displayedProgress);
+      },
+      onSuccess: () => {
+        onProgress(100);
+        finish();
+      },
+    });
+    activeTusCancel = () => {
+      void upload.abort().finally(() => {
+        void storage.removeUpload(`azmigrantat.tus.${encodeURIComponent(fingerprint)}`);
+        finish(new Error("Качването е прекратено."));
+      });
+    };
+    void upload.findPreviousUploads()
+      .then((previous) => {
+        if (previous[0]?.uploadUrl) assertDedicatedVideoUrl(previous[0].uploadUrl);
+        if (previous[0]) upload.resumeFromPreviousUpload(previous[0]);
+        upload.start();
+      })
+      .catch((error: unknown) => finish(error instanceof Error ? error : new Error("TUS upload initialization failed.")));
+  });
+}
+
+function uploadVideoWithDedicatedNative(
+  file: File,
+  credentials: DedicatedUploadCredentials,
+  onProgress: (percentage: number) => void,
+  options?: { cancelUrl?: string; authToken?: string },
+): Promise<void> {
+  assertDedicatedVideoUrl(credentials.endpoint);
+  return new Promise((resolve, reject) => {
+    let uploadId: string | null = null;
+    const subscription = BunnyNativeUpload.addListener("onProgress", (event: BunnyUploadProgressEvent) => {
+      if (!uploadId || event.uploadId !== uploadId) return;
+      onProgress(Math.max(0, Math.min(100, event.percentage)));
+      if (event.status === "success") {
+        activeNativeUploadId = null;
+        subscription.remove();
+        resolve();
+      } else if (event.status === "error") {
+        activeNativeUploadId = null;
+        subscription.remove();
+        reject(event.code === "token_expired" ? new UploadTokenExpiredError() : new Error(event.message ?? "Native upload failed."));
+      }
+    });
+
+    try {
+      uploadId = BunnyNativeUpload.startDedicatedUpload(
+        file.uri,
+        credentials.endpoint,
+        credentials.upload_id,
+        credentials.authorization_token,
+        file.type || "video/mp4",
+        file.name || "video",
+        JSON.stringify({
+          cancelUrl: options?.cancelUrl ?? "",
+          authToken: options?.authToken ?? "",
+        }),
+      );
+      activeNativeUploadId = uploadId;
+    } catch (error) {
+      activeNativeUploadId = null;
+      subscription.remove();
+      reject(error);
+    }
+  });
+}
+
+export async function uploadVideoWithTusAndRefresh(
+  file: File,
+  credentials: VideoUploadCredentials,
+  onProgress: (percentage: number) => void,
+  options: { cancelUrl?: string; authToken?: string } | undefined,
+  refresh: () => Promise<VideoUploadCredentials>,
+): Promise<void> {
+  let current = credentials;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      await uploadVideoWithTus(file, current, onProgress, options);
+      return;
+    } catch (error) {
+      if (!(error instanceof UploadTokenExpiredError) || attempt > 0) throw error;
+      current = await refresh();
+    }
+  }
+}
+
 function uploadVideoWithNative(
   file: File,
   credentials: BunnyUploadCredentials,
@@ -180,6 +331,7 @@ export function cancelActiveVideoUpload(): void {
   if (Platform.OS === "android" && activeNativeUploadId) {
     cancelNativeUpload(activeNativeUploadId);
   }
+  activeTusCancel?.();
 }
 
 export function getNativeFileSize(file: File): number {
@@ -194,6 +346,14 @@ export function completeVideoUpload(token: string, videoId: number): Promise<Vid
   );
 }
 
+export function refreshVideoUploadSession(token: string, videoId: number): Promise<BeginVideoUploadResponse> {
+  return authorizedJson<BeginVideoUploadResponse>(
+    `${API_URL}/api/mobile/videos/${videoId}/upload-session`,
+    token,
+    { method: "POST" },
+  );
+}
+
 export function listVideos(token: string): Promise<VideosResponse> {
   return authorizedJson<VideosResponse>(`${API_URL}/api/mobile/videos`, token);
 }
@@ -203,7 +363,10 @@ export async function listPublicVideos(search = "", signal?: AbortSignal, catego
   if (search.trim()) params.set("search", search.trim());
   if (categoryId !== undefined) params.set("category_id", String(categoryId));
   const response = await fetch(`${API_URL}/api/videos${params.toString() ? `?${params}` : ""}`, { signal });
-  const data = (await response.json()) as PublicVideosResponse | { message?: string };
+  const data = await parseJsonResponse<PublicVideosResponse | { message?: string }>(
+    response,
+    "Видео API върна невалиден отговор.",
+  );
 
   if (!response.ok) {
     throw new Error("message" in data && data.message ? data.message : "Видеата не можаха да бъдат заредени.");
@@ -215,7 +378,10 @@ export async function listPublicVideos(search = "", signal?: AbortSignal, catego
 export async function searchPublicUsers(search: string, signal?: AbortSignal): Promise<PublicUserSearchResponse> {
   const params = new URLSearchParams({ search: search.trim() });
   const response = await fetch(`${API_URL}/api/public/users/search?${params}`, { signal });
-  const data = (await response.json()) as PublicUserSearchResponse | { message?: string };
+  const data = await parseJsonResponse<PublicUserSearchResponse | { message?: string }>(
+    response,
+    "API за търсене върна невалиден отговор.",
+  );
 
   if (response.status === 404) {
     return { success: true, data: [] };

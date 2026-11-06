@@ -15,6 +15,11 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFocusEffect } from "expo-router";
+import {
+  classifyVideoPlaybackError,
+  type VideoPlaybackFailureReason,
+} from "@/services/video-playback-errors";
+import { videoTimeForScrubPosition } from "@/services/video-scrubber";
 
 const SEEK_STEP_SECONDS = 10;
 const DOUBLE_TAP_DELAY_MS = 260;
@@ -39,9 +44,11 @@ type Props = {
   onVideoPress?: () => void;
   onPlaybackChange?: (isPlaying: boolean) => void;
   onViewVideo?: () => void;
+  onPlaybackError?: (reason: VideoPlaybackFailureReason) => void;
   videoId?: number;
   bottomOverlay?: ReactNode;
   showOverlays?: boolean;
+  showProgress?: boolean;
 };
 
 export default function ControlledVideoPlayer(props: Props) {
@@ -74,9 +81,11 @@ function FocusedControlledVideoPlayer({
   onVideoPress,
   onPlaybackChange,
   onViewVideo,
+  onPlaybackError,
   videoId,
   bottomOverlay,
   showOverlays = true,
+  showProgress,
 }: Props) {
   const insets = useSafeAreaInsets();
   const player = useVideoPlayer(url, (instance) => {
@@ -90,6 +99,7 @@ function FocusedControlledVideoPlayer({
   const [currentTime, setCurrentTime] = useState(player.currentTime);
   const [duration, setDuration] = useState(player.duration);
   const [progressWidth, setProgressWidth] = useState(0);
+  const [scrubTime, setScrubTime] = useState<number | null>(null);
   const [isPlaybackIndicatorVisible, setIsPlaybackIndicatorVisible] = useState(false);
   const [seekFeedback, setSeekFeedback] = useState<{
     direction: "backward" | "forward";
@@ -104,17 +114,20 @@ function FocusedControlledVideoPlayer({
   const compactProgressCollapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSeekDirectionRef = useRef<"backward" | "forward" | null>(null);
   const accumulatedSeekRef = useRef(0);
+  const isScrubbingRef = useRef(false);
+  const scrubTimeRef = useRef<number | null>(null);
   const compactProgressExpansion = useRef(new Animated.Value(0)).current;
 
   useEventListener(player, "statusChange", ({ status, error }) => {
     setIsReady(status === "readyToPlay");
     if (status === "readyToPlay") setDuration(player.duration);
     if (status === "error") {
-      console.error("[ControlledVideoPlayer] Видеото не може да бъде възпроизведено.", {
+      const reason = classifyVideoPlaybackError(error);
+      console.info("[ControlledVideoPlayer] Възпроизвеждането беше прекъснато.", {
         videoId,
-        url,
-        error,
+        reason,
       });
+      onPlaybackError?.(reason);
     }
   });
 
@@ -124,7 +137,7 @@ function FocusedControlledVideoPlayer({
   });
 
   useEventListener(player, "timeUpdate", ({ currentTime: nextCurrentTime }) => {
-    setCurrentTime(nextCurrentTime);
+    if (!isScrubbingRef.current) setCurrentTime(nextCurrentTime);
     if (player.duration > 0) setDuration(player.duration);
   });
 
@@ -228,16 +241,6 @@ function FocusedControlledVideoPlayer({
     player.seekBy(seconds);
   };
 
-  const seekToProgress = (locationX: number) => {
-    if (duration <= 0 || progressWidth <= 0) return;
-    const targetTime = Math.min(duration, Math.max(0, (locationX / progressWidth) * duration));
-    player.seekBy(targetTime - player.currentTime);
-  };
-
-  const seekFromResponder = (event: GestureResponderEvent) => {
-    seekToProgress(event.nativeEvent.locationX);
-  };
-
   const expandCompactProgress = () => {
     if (compactProgressCollapseTimerRef.current) {
       clearTimeout(compactProgressCollapseTimerRef.current);
@@ -259,17 +262,61 @@ function FocusedControlledVideoPlayer({
     }, SCRUBBER_COLLAPSE_DELAY_MS);
   };
 
+  const scrubTimeForPosition = useCallback((locationX: number) => {
+    return videoTimeForScrubPosition(locationX, progressWidth, duration);
+  }, [duration, progressWidth]);
+
+  const updateScrubPreview = useCallback((locationX: number) => {
+    const targetTime = scrubTimeForPosition(locationX);
+    if (targetTime === null) return null;
+    scrubTimeRef.current = targetTime;
+    setScrubTime(targetTime);
+    return targetTime;
+  }, [scrubTimeForPosition]);
+
+  const handleProgressGrant = (event: GestureResponderEvent) => {
+    isScrubbingRef.current = true;
+    updateScrubPreview(event.nativeEvent.locationX);
+  };
+
+  const handleProgressMove = (event: GestureResponderEvent) => {
+    updateScrubPreview(event.nativeEvent.locationX);
+  };
+
+  const finishScrubbing = (event?: GestureResponderEvent) => {
+    const eventTarget = event
+      ? updateScrubPreview(event.nativeEvent.locationX)
+      : null;
+    const targetTime = eventTarget ?? scrubTimeRef.current;
+
+    if (targetTime !== null) {
+      player.seekBy(targetTime - player.currentTime);
+      setCurrentTime(targetTime);
+    }
+
+    isScrubbingRef.current = false;
+    scrubTimeRef.current = null;
+    setScrubTime(null);
+  };
+
   const handleCompactProgressGrant = (event: GestureResponderEvent) => {
     expandCompactProgress();
-    seekFromResponder(event);
+    handleProgressGrant(event);
   };
 
   const handleCompactProgressInteraction = (event: GestureResponderEvent) => {
     expandCompactProgress();
-    seekFromResponder(event);
+    handleProgressMove(event);
   };
 
-  const progress = duration > 0 ? Math.min(1, Math.max(0, currentTime / duration)) : 0;
+  const handleCompactProgressRelease = (event: GestureResponderEvent) => {
+    expandCompactProgress();
+    finishScrubbing(event);
+  };
+
+  const displayedTime = scrubTime ?? currentTime;
+  const progress = duration > 0 ? Math.min(1, Math.max(0, displayedTime / duration)) : 0;
+  const shouldShowProgress = showProgress ?? showOverlays;
 
   return (
     <View style={[styles.container, style]}>
@@ -325,7 +372,7 @@ function FocusedControlledVideoPlayer({
           </Text>
         </View>
       ) : null}
-      {showOverlays && !showControls && duration > 0 ? (
+      {shouldShowProgress && !showControls && duration > 0 ? (
         <Animated.View
           style={[
             styles.compactProgressContainer,
@@ -364,13 +411,18 @@ function FocusedControlledVideoPlayer({
             onLayout={(event) => setProgressWidth(event.nativeEvent.layout.width)}
             onStartShouldSetResponder={() => true}
             onMoveShouldSetResponder={() => true}
+            onStartShouldSetResponderCapture={() => true}
+            onMoveShouldSetResponderCapture={() => true}
             onResponderGrant={handleCompactProgressGrant}
             onResponderMove={handleCompactProgressInteraction}
-            onResponderRelease={handleCompactProgressInteraction}
+            onResponderRelease={handleCompactProgressRelease}
+            onResponderTerminate={() => finishScrubbing()}
+            onResponderTerminationRequest={() => false}
+            hitSlop={{ top: 10, right: 4, bottom: 10, left: 4 }}
             accessible
             accessibilityRole="adjustable"
             accessibilityLabel="Позиция във видеото"
-            accessibilityValue={{ min: 0, max: duration, now: currentTime }}
+            accessibilityValue={{ min: 0, max: duration, now: displayedTime }}
             accessibilityActions={[
               { name: "increment", label: "Напред" },
               { name: "decrement", label: "Назад" },
@@ -381,6 +433,7 @@ function FocusedControlledVideoPlayer({
             }}
           >
             <Animated.View
+              pointerEvents="none"
               style={[
                 styles.compactProgressTrack,
                 {
@@ -398,6 +451,7 @@ function FocusedControlledVideoPlayer({
               <View style={[styles.compactProgressValue, { width: `${progress * 100}%` }]} />
             </Animated.View>
             <Animated.View
+              pointerEvents="none"
               style={[
                 styles.compactProgressThumb,
                 {
@@ -433,16 +487,45 @@ function FocusedControlledVideoPlayer({
           style={[styles.controls, { bottom: Math.max(insets.bottom, controlsBottomOffset) }]}
           pointerEvents="box-none"
         >
-          <Pressable
-            style={styles.progressTrack}
+          <View
+            style={styles.expandedProgressHitArea}
             onLayout={(event) => setProgressWidth(event.nativeEvent.layout.width)}
-            onPress={(event) => seekToProgress(event.nativeEvent.locationX)}
+            onStartShouldSetResponder={() => true}
+            onMoveShouldSetResponder={() => true}
+            onStartShouldSetResponderCapture={() => true}
+            onMoveShouldSetResponderCapture={() => true}
+            onResponderGrant={handleProgressGrant}
+            onResponderMove={handleProgressMove}
+            onResponderRelease={finishScrubbing}
+            onResponderTerminate={() => finishScrubbing()}
+            onResponderTerminationRequest={() => false}
+            hitSlop={{ top: 8, right: 4, bottom: 8, left: 4 }}
             accessibilityRole="adjustable"
             accessibilityLabel="Позиция във видеото"
-            accessibilityValue={{ min: 0, max: duration, now: currentTime }}
+            accessibilityValue={{ min: 0, max: duration, now: displayedTime }}
+            accessibilityActions={[
+              { name: "increment", label: "Напред" },
+              { name: "decrement", label: "Назад" },
+            ]}
+            onAccessibilityAction={(event) => {
+              if (event.nativeEvent.actionName === "increment") seek(5);
+              if (event.nativeEvent.actionName === "decrement") seek(-5);
+            }}
           >
-            <View style={[styles.progressValue, { width: `${progress * 100}%` }]} />
-          </Pressable>
+            <View style={styles.progressTrack} pointerEvents="none">
+              <View style={[styles.progressValue, { width: `${progress * 100}%` }]} />
+            </View>
+            <View
+              pointerEvents="none"
+              style={[
+                styles.progressThumb,
+                {
+                  left: `${progress * 100}%`,
+                  transform: [{ scale: scrubTime !== null ? 1.2 : 1 }],
+                },
+              ]}
+            />
+          </View>
           <View style={styles.controlRow}>
             <Pressable
               style={styles.controlButton}
@@ -470,7 +553,7 @@ function FocusedControlledVideoPlayer({
               <Ionicons name="play-forward" size={22} color="#ffffff" />
               <Text style={styles.seekLabel}>10</Text>
             </Pressable>
-            <Text style={styles.timeLabel}>{formatTime(currentTime)} / {formatTime(duration)}</Text>
+            <Text style={styles.timeLabel}>{formatTime(displayedTime)} / {formatTime(duration)}</Text>
           </View>
         </View>
       ) : null}
@@ -533,6 +616,14 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 14,
     backgroundColor: "rgba(0,0,0,0.58)",
+    zIndex: 10_000,
+    elevation: 10_000,
+  },
+  expandedProgressHitArea: {
+    height: 32,
+    justifyContent: "center",
+    zIndex: 10_001,
+    elevation: 10_001,
   },
   progressTrack: {
     height: 4,
@@ -545,17 +636,34 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     opacity: 1,
   },
+  progressThumb: {
+    position: "absolute",
+    top: 8,
+    width: 16,
+    height: 16,
+    marginLeft: -8,
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000000",
+    shadowOpacity: 0.32,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
+  },
   compactProgressContainer: {
     position: "absolute",
     left: 24,
     right: 24,
     height: 24,
     justifyContent: "center",
-    zIndex: 20,
+    zIndex: 10_000,
+    elevation: 10_000,
   },
   compactProgressHitArea: {
     height: 24,
     justifyContent: "center",
+    zIndex: 10_001,
+    elevation: 10_001,
   },
   compactProgressTrack: {
     height: 3,

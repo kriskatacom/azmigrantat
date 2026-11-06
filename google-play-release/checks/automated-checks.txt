@@ -1,0 +1,35 @@
+Ето ме — automated release checks
+Date: 2026-10-31
+
+PASS  EAS build fb2346db-a452-4693-96fb-37646e7a3cc4: FINISHED
+PASS  AAB package com.etome.app; version 1.0.0 (9); SDK 24/36/36
+PASS  AAB ZIP integrity and JAR signature
+PASS  Upload certificate unchanged; SHA-1/SHA-256 match Firebase registration
+PASS  Play App Signing SHA-1/SHA-256 added to Firebase; EAS fingerprints kept
+PASS  Local development SHA-1/SHA-256 added to com.etome.app in Firebase
+PASS  google-services.json covers development, EAS and Play Android OAuth clients
+PASS  Connected-device APK package and development signing certificate verified
+PASS  Play Android OAuth client matches com.etome.app and Play SHA-1
+PASS  google-services.json contains new and old Android clients
+PASS  Shared Web OAuth client matches mobile config and backend verifier
+PASS  production environment validator
+PASS  ESLint (0 errors, 0 warnings)
+PASS  TypeScript: tsc --noEmit
+PASS  Vitest: 18 files, 92 tests
+PASS  Final manifest permission check with Google bundletool 1.18.1
+PASS  Production endpoints embedded; staging.azmigrantat.com absent
+PASS  Mobile payment flag false and payment mutation contract tests
+PASS  Production backend payment guard deployed and verified in Stage 1
+PASS  Expo resolved config: Android com.etome.app; iOS identifier unchanged
+
+WARN  Expo Doctor: 20/21. react-native-webrtc is listed as untested on New
+      Architecture; card-ocr, device-lock, incoming-call and
+      bunny-native-upload have no React Native Directory metadata. The warning
+      is not suppressed and requires real-device acceptance testing.
+WARN  EAS reported Expo Go is used for development. The STORE artifact itself
+      is a standalone production AAB, not Expo Go.
+BLOCK No connected Android device/emulator; Google Sign-In, FCM, calls and
+      upload behavior are not device-tested.
+BLOCK No real Play screenshots.
+BLOCK Public privacy/terms/account-deletion pages are not deployed.
+BLOCK Moderation/reporting API and migration are not deployed.

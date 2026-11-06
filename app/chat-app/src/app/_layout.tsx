@@ -1,6 +1,6 @@
 import { installNetworkGuard } from "@/services/network-guard";
+import "@/config/environment";
 import AppSplash from "@/components/app-splash";
-import OfflineScreen from "@/components/offline-screen";
 import DevicePendingApprovals from "@/components/auth/device-pending-approvals";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { NetworkProvider } from "@/contexts/NetworkContext";
@@ -14,6 +14,11 @@ import "@/services/notificationBackgroundTask";
 import { getActiveConversationId } from "@/services/notificationState";
 import { loadUserSettings } from "@/services/user-settings";
 import {
+  clearLastNavigationRoute,
+  loadLastNavigationRoute,
+  saveLastNavigationRoute,
+} from "@/services/navigation-state";
+import {
   MISSED_CALL_CALLBACK_ACTION,
   MISSED_CALL_CATEGORY,
   MISSED_CALL_OPEN_CHAT_ACTION,
@@ -21,7 +26,8 @@ import {
   VIDEO_READY_OPEN_ACTION,
 } from "@/types/notifications";
 import * as Notifications from "expo-notifications";
-import { Stack, useRouter } from "expo-router";
+import * as Linking from "expo-linking";
+import { type Href, Stack, usePathname, useRouter } from "expo-router";
 import { canUseFullScreenIntent } from "../../modules/incoming-call";
 import { StatusBar } from "expo-status-bar";
 import * as SplashScreen from "expo-splash-screen";
@@ -30,6 +36,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useState,
 } from "react";
 import { AppState, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -91,9 +98,117 @@ Notifications.setNotificationHandler({
 
 export { useAppTheme } from "@/contexts/ThemeContext";
 
+const NON_RESTORABLE_PATHS = [
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/reset-password",
+  "/video-call",
+  "/(auth)",
+];
+
+function isRestorablePath(pathname: string) {
+  return (
+    pathname.startsWith("/") &&
+    !pathname.startsWith("//") &&
+    !NON_RESTORABLE_PATHS.some(
+      (path) => pathname === path || pathname.startsWith(`${path}/`),
+    )
+  );
+}
+
+function NavigationStatePersistence() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { isAuthenticated, isLoading } = useAuth();
+  const initializationStarted = useRef(false);
+  const restorationTarget = useRef<string | null>(null);
+  const currentPathname = useRef(pathname);
+  const saveQueue = useRef<Promise<void>>(Promise.resolve());
+  const [isRestorationComplete, setIsRestorationComplete] = useState(false);
+  currentPathname.current = pathname;
+
+  useEffect(() => {
+    if (isLoading || initializationStarted.current) return;
+
+    initializationStarted.current = true;
+    let active = true;
+    let fallbackTimer: ReturnType<typeof setTimeout> | null = null;
+
+    if (!isAuthenticated) {
+      void clearLastNavigationRoute();
+      setIsRestorationComplete(true);
+      return;
+    }
+
+    void Promise.all([
+      loadLastNavigationRoute(),
+      Linking.getInitialURL(),
+      Notifications.getLastNotificationResponseAsync(),
+    ]).then(([savedRoute, initialUrl, notificationResponse]) => {
+      if (!active) return;
+
+      const shouldRestore =
+        currentPathname.current === "/" &&
+        !initialUrl &&
+        !notificationResponse &&
+        savedRoute &&
+        savedRoute.pathname !== "/" &&
+        isRestorablePath(savedRoute.pathname);
+
+      if (!shouldRestore) {
+        setIsRestorationComplete(true);
+        return;
+      }
+
+      restorationTarget.current = savedRoute.pathname;
+      router.replace(savedRoute.pathname as Href);
+      fallbackTimer = setTimeout(() => {
+        if (active) setIsRestorationComplete(true);
+      }, 1500);
+    }).catch((error) => {
+      console.warn("[Navigation] Последният екран не можа да се възстанови.", error);
+      if (active) setIsRestorationComplete(true);
+    });
+
+    return () => {
+      active = false;
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+    };
+  }, [isAuthenticated, isLoading, router]);
+
+  useEffect(() => {
+    if (restorationTarget.current === pathname) {
+      restorationTarget.current = null;
+      setIsRestorationComplete(true);
+    }
+  }, [pathname]);
+
+  useEffect(() => {
+    if (isLoading || !isRestorationComplete) return;
+
+    saveQueue.current = saveQueue.current
+      .catch(() => undefined)
+      .then(async () => {
+        if (!isAuthenticated) {
+          await clearLastNavigationRoute();
+          return;
+        }
+        if (isRestorablePath(pathname)) {
+          await saveLastNavigationRoute(pathname);
+        }
+      })
+      .catch((error) => {
+        console.warn("[Navigation] Последният екран не можа да се запази.", error);
+      });
+  }, [isAuthenticated, isLoading, isRestorationComplete, pathname]);
+
+  return null;
+}
+
 function NotificationNavigationHandler() {
   const router = useRouter();
-  const { token, user, isAuthenticated } = useAuth();
+  const { token, isAuthenticated } = useAuth();
 
   const lastHandledResponseRef = useRef<string | null>(null);
 
@@ -297,7 +412,7 @@ function NotificationNavigationHandler() {
 
       console.log("Непознат notification action:", actionIdentifier);
     },
-    [router, token, user?.id],
+    [router, token],
   );
 
   useEffect(() => {
@@ -413,6 +528,7 @@ function RootNavigator() {
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
 
       <NotificationNavigationHandler />
+      <NavigationStatePersistence />
       <DevicePendingApprovals />
 
       <Stack
@@ -441,7 +557,6 @@ function SplashOverlay({ children }: PropsWithChildren) {
   return (
     <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
       {children}
-      <OfflineScreen />
       {isLoading ? (
         <AppSplash
           onReady={() => {

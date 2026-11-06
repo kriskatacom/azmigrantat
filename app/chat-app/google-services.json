@@ -57,6 +57,59 @@
           ]
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:149310026747:android:145a6fc63554a2c8ab915e",
+        "android_client_info": {
+          "package_name": "com.etome.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "149310026747-24kbotpd1tgbqgj8geilea40nmv4u59v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.etome.app",
+            "certificate_hash": "219f2aa5cfa107939c3f1ccc961fddafbbbdfbd2"
+          }
+        },
+        {
+          "client_id": "149310026747-90ds46ffjh5upb9m8frr50menhavu0ka.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.etome.app",
+            "certificate_hash": "ab5552059a8dfccd0eb7c17daa0fa803271665fd"
+          }
+        },
+        {
+          "client_id": "149310026747-ot3j192iqkbvgfur5vnlrh0cok2ols1s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.etome.app",
+            "certificate_hash": "9d32fac58265d830e8a400fde4cfecdf00f06737"
+          }
+        },
+        {
+          "client_id": "149310026747-0276747vvqrhrgapqcqlg9o1uekn2snr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDJqLmOlqCP_LVGmwV6oQ8mK4dxl6dEHn0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "149310026747-0276747vvqrhrgapqcqlg9o1uekn2snr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
     }
   ],
   "configuration_version": "1"

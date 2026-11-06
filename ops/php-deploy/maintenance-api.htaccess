@@ -1,0 +1,12 @@
+# Install this block once in the site-root .htaccess, before the public rewrite.
+# It is intentionally scoped to this cPanel document root. While the flag is
+# present, all dynamic application routes are blocked so a fixed-root switch
+# cannot expose mixed controllers, routes, admin actions, callbacks or uploads.
+<IfModule mod_rewrite.c>
+    # BEGIN AZMIGRANTAT_API_MAINTENANCE
+    RewriteCond %{DOCUMENT_ROOT}/.api-maintenance -f
+    RewriteCond %{REQUEST_URI} !^/public/api-maintenance\.php$ [NC]
+    RewriteCond %{REQUEST_URI} !^/public/(?:assets|images|uploads)(?:/|$) [NC]
+    RewriteRule ^ /public/api-maintenance.php [END]
+    # END AZMIGRANTAT_API_MAINTENANCE
+</IfModule>

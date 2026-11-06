@@ -1,0 +1,127 @@
+# Staging-only HTTPS template for Android validation.
+# Review and install manually only after DNS and a dedicated certificate exist.
+# This must never replace video.azmigrantat.com or point at production storage.
+
+upstream azmigrantat_video_staging_api {
+    server 127.0.0.1:3101;
+    keepalive 8;
+}
+
+# Native Android requests normally have no Origin. Browser access is limited
+# to explicitly approved staging origins; never change this to '*'.
+map $http_origin $video_staging_cors_origin {
+    default "";
+    "https://users-staging.azmigrantat.com" $http_origin;
+    "http://localhost:8081" $http_origin;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name video-staging.azmigrantat.com;
+
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/letsencrypt;
+        default_type text/plain;
+        try_files $uri =404;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name video-staging.azmigrantat.com;
+
+    ssl_certificate /etc/letsencrypt/live/video-staging.azmigrantat.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/video-staging.azmigrantat.com/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    client_max_body_size 2G;
+    client_body_timeout 900s;
+    send_timeout 900s;
+    proxy_request_buffering off;
+    proxy_buffering off;
+    proxy_read_timeout 900s;
+    proxy_send_timeout 900s;
+
+    add_header X-Content-Type-Options nosniff always;
+
+    location = /health {
+        proxy_pass http://azmigrantat_video_staging_api/health;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location ^~ /v1/uploads {
+        if ($request_method = OPTIONS) {
+            add_header Access-Control-Allow-Origin $video_staging_cors_origin always;
+            add_header Access-Control-Allow-Methods "POST, HEAD, PATCH, OPTIONS" always;
+            add_header Access-Control-Allow-Headers "Authorization, Tus-Resumable, Upload-Length, Upload-Offset, Upload-Metadata, Content-Type" always;
+            add_header Access-Control-Max-Age 600 always;
+            add_header Vary Origin always;
+            return 204;
+        }
+
+        proxy_pass http://azmigrantat_video_staging_api;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Authorization $http_authorization;
+        proxy_set_header Tus-Resumable $http_tus_resumable;
+        proxy_set_header Upload-Length $http_upload_length;
+        proxy_set_header Upload-Offset $http_upload_offset;
+        proxy_set_header Upload-Metadata $http_upload_metadata;
+        proxy_set_header Content-Type $http_content_type;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Connection "";
+        proxy_pass_header Location;
+        proxy_pass_header Tus-Resumable;
+        proxy_pass_header Upload-Offset;
+        proxy_pass_header Upload-Length;
+        proxy_hide_header Access-Control-Allow-Origin;
+        proxy_hide_header Access-Control-Allow-Methods;
+        proxy_hide_header Access-Control-Allow-Headers;
+        proxy_hide_header Access-Control-Max-Age;
+        proxy_hide_header Vary;
+
+        add_header Access-Control-Allow-Origin $video_staging_cors_origin always;
+        add_header Access-Control-Allow-Methods "POST, HEAD, PATCH, OPTIONS" always;
+        add_header Access-Control-Allow-Headers "Authorization, Tus-Resumable, Upload-Length, Upload-Offset, Upload-Metadata, Content-Type" always;
+        add_header Vary Origin always;
+    }
+
+    location /videos/ {
+        alias /srv/azmigrantat-video-staging/public/videos/;
+        autoindex off;
+        limit_except GET HEAD { deny all; }
+        disable_symlinks if_not_owner from=/srv/azmigrantat-video-staging/public/videos;
+        types { video/mp4 mp4; }
+        default_type application/octet-stream;
+        add_header Accept-Ranges bytes always;
+        add_header Cache-Control "no-store" always;
+    }
+
+    location /thumbnails/ {
+        alias /srv/azmigrantat-video-staging/public/thumbnails/;
+        autoindex off;
+        limit_except GET HEAD { deny all; }
+        disable_symlinks if_not_owner from=/srv/azmigrantat-video-staging/public/thumbnails;
+        types { image/jpeg jpg jpeg; image/png png; }
+        default_type application/octet-stream;
+        add_header Cache-Control "no-store" always;
+    }
+
+    location ^~ /private/ { return 404; }
+    location ^~ /state/ { return 404; }
+    location ^~ /logs/ { return 404; }
+    location ~* "(^|/)\.(?!well-known(?:/|$))" { return 404; }
+    location / { return 404; }
+}

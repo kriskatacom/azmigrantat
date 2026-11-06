@@ -38,6 +38,8 @@ class User extends Model
         'email_verified',
         'password_hash',
         'name',
+        'first_name',
+        'last_name',
         'username',
         'public_code',
         'role',

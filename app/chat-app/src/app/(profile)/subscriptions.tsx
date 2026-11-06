@@ -1,4 +1,5 @@
 import { useAppTheme } from "@/app/_layout";
+import { PAYMENTS_ENABLED } from "@/config/environment";
 import Header from "@/components/Header";
 import AppButton from "@/components/ui/AppButton";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,7 +11,11 @@ import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, View }
 import { Ionicons } from "@expo/vector-icons";
 import { SHORT_VIDEO_PLAN_PRICES } from "@/constants/short-video-plans";
 
-const SUBSCRIPTIONS_URL = process.env.EXPO_PUBLIC_SUBSCRIPTIONS_URL ?? "https://users.azmigrantat.com/subscriptions";
+const SUBSCRIPTIONS_URL = process.env.EXPO_PUBLIC_SUBSCRIPTIONS_URL;
+
+if (!SUBSCRIPTIONS_URL) {
+  throw new Error("Липсва EXPO_PUBLIC_SUBSCRIPTIONS_URL.");
+}
 
 const planOrder = ["free", "creator", "creator_plus", "creator_pro"];
 const BRAND_BLUE = "#65C9E2";
@@ -67,6 +72,30 @@ const planDetails: Record<string, Pick<ShortVideoPlan, "description" | "features
 };
 
 export default function SubscriptionsScreen() {
+  if (!PAYMENTS_ENABLED) {
+    return <SubscriptionsUnavailableScreen />;
+  }
+
+  return <SubscriptionsEnabledScreen />;
+}
+
+function SubscriptionsUnavailableScreen() {
+  const { theme } = useAppTheme();
+  return (
+    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
+      <Header title="Абонаменти" hideSearchButton hideAuthButton />
+      <View style={styles.unavailable}>
+        <Ionicons name="card-outline" size={40} color={theme.colors.textSecondary} />
+        <Text style={[styles.heroTitle, { color: theme.colors.text }]}>Платените планове не са активни</Text>
+        <Text style={[styles.heroText, { color: theme.colors.textSecondary }]}>
+          Първата публична версия на „Ето ме“ не предлага реални плащания или платени абонаменти.
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+function SubscriptionsEnabledScreen() {
   const { theme } = useAppTheme();
   const { token } = useAuth();
   const [plans, setPlans] = useState<Record<string, ShortVideoPlan>>({});
@@ -136,6 +165,7 @@ export default function SubscriptionsScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
+  unavailable: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 28 },
   gradientBackground: { ...StyleSheet.absoluteFill, overflow: "hidden", backgroundColor: "#101A3A" },
   gradientBlob: { position: "absolute", width: 300, height: 300, borderRadius: 150, opacity: 0.55 },
   blueBlob: { top: -90, left: -80, backgroundColor: "#2D8CFF" },

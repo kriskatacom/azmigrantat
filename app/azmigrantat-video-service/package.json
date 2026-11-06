@@ -1,0 +1,26 @@
+{
+  "name": "azmigrantat-video-service",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local Dedicated video upload service skeleton with TUS-compatible resumable uploads.",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "start": "tsx src/server.ts",
+    "worker": "tsx src/worker-server.ts",
+    "build": "tsc",
+    "start:production": "node dist/server.js",
+    "test": "tsx --test tests/**/*.test.ts",
+    "e2e:synthetic": "node dist/synthetic-e2e.js",
+    "migrate:bunny": "tsx src/migrate-bunny.ts",
+    "migrate:bunny:production": "node dist/migrate-bunny.js"
+  },
+  "dependencies": {
+    "mysql2": "^3.14.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "tsx": "^4.23.8",
+    "typescript": "^7.0.2"
+  }
+}

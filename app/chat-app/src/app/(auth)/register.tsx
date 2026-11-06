@@ -1,15 +1,21 @@
 import { useAppTheme } from "@/app/_layout";
+import AuthHero from "@/components/auth/auth-hero";
 import AuthLegalLinks from "@/components/auth/auth-legal-links";
 import GoogleLoginButton from "@/components/auth/google-login-button";
+import FacebookLoginButton from "@/components/auth/facebook-login-button";
 import AppButton from "@/components/ui/AppButton";
 import AppInput from "@/components/ui/AppInput";
+import {
+  AUTH_ELEMENT_GAP,
+  AUTH_HORIZONTAL_PADDING,
+  AUTH_VERTICAL_PADDING,
+} from "@/constants/auth-layout";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useLocalSearchParams } from "expo-router";
 import { useRef, useState } from "react";
 import {
   Alert,
   Animated,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -125,24 +131,15 @@ export default function RegisterScreen() {
           showsVerticalScrollIndicator={false}
           automaticallyAdjustKeyboardInsets
         >
-          <Image
-            source={require("../../../assets/images/logo-dark.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-
-          <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
-            <Text style={[styles.title, { color: theme.colors.text }]}>
-              Регистрация
-            </Text>
-
-            <Text
-              style={[styles.subtitle, { color: theme.colors.textSecondary }]}
-            >
-              Създайте своя профил в приложението.
-            </Text>
+          <View style={styles.page}>
+            <AuthHero
+              title="Регистрация"
+              subtitle="Създайте своя профил в приложението."
+            />
+            <View style={[styles.card, { backgroundColor: theme.colors.card }]}>
 
             <AppInput
+              containerStyle={styles.authInput}
               label="Име"
               placeholder="Вашето име"
               value={firstName}
@@ -153,6 +150,7 @@ export default function RegisterScreen() {
             />
 
             <AppInput
+              containerStyle={styles.authInput}
               ref={lastNameRef}
               label="Фамилия"
               placeholder="Вашата фамилия"
@@ -165,6 +163,7 @@ export default function RegisterScreen() {
             />
 
             <AppInput
+              containerStyle={styles.authInput}
               ref={emailRef}
               label="Имейл"
               placeholder="например: name@example.com"
@@ -179,6 +178,7 @@ export default function RegisterScreen() {
             />
 
             <AppInput
+              containerStyle={styles.authInput}
               ref={passwordRef}
               label="Парола"
               placeholder="Поне 6 символа"
@@ -191,6 +191,7 @@ export default function RegisterScreen() {
             />
 
             <AppInput
+              containerStyle={styles.authInput}
               ref={passwordConfirmationRef}
               label="Потвърди паролата"
               placeholder="Въведете паролата отново"
@@ -218,6 +219,7 @@ export default function RegisterScreen() {
             </View>
 
             <GoogleLoginButton rememberMe />
+            <FacebookLoginButton rememberMe />
 
             <View style={styles.footer}>
               <Text style={{ color: theme.colors.textSecondary }}>
@@ -240,9 +242,9 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
               </Link>
             </View>
+            <AuthLegalLinks preface="Създавайки профил, приемате" />
+            </View>
           </View>
-
-          <AuthLegalLinks preface="Създавайки профил, приемате" />
         </ScrollView>
       </Animated.View>
     </KeyboardAvoidingView>
@@ -258,42 +260,26 @@ const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    justifyContent: "center",
-    padding: 22,
-    paddingVertical: 42,
+    padding: 0,
   },
-  logo: {
-    width: 100,
-    height: 100,
-    alignSelf: "center",
-    marginBottom: 16,
-  },
+  page: { flexGrow: 1 },
   card: {
-    borderRadius: 22,
-    padding: 22,
+    flexGrow: 1,
+    borderRadius: 0,
+    paddingHorizontal: AUTH_HORIZONTAL_PADDING,
+    paddingTop: AUTH_ELEMENT_GAP,
+    paddingBottom: AUTH_VERTICAL_PADDING,
+    gap: AUTH_ELEMENT_GAP,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "800",
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    textAlign: "center",
-    marginTop: 7,
-    marginBottom: 24,
-  },
+  authInput: { marginBottom: 0 },
   footer: {
     flexDirection: "row",
     justifyContent: "center",
-    marginTop: 22,
   },
   separator: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    marginTop: 18,
   },
   separatorLine: { flex: 1, height: StyleSheet.hairlineWidth },
   footerLink: {

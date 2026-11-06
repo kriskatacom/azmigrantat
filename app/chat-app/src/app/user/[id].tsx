@@ -19,6 +19,7 @@ import {
 } from "@/services/profile";
 import { copyText } from "@/utils/copy-text";
 import { getCompanyByUser } from "@/services/company";
+import { showReportDialog } from "@/services/report-dialog";
 import type { CompanySummary } from "@/types/company";
 import type { VideoItem } from "@/types/video";
 import { FontAwesome } from "@expo/vector-icons";
@@ -73,6 +74,7 @@ export default function PublicUserProfileScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
   const [confirmBlock, setConfirmBlock] = useState(false);
+  const [profileOptionsVisible, setProfileOptionsVisible] = useState(false);
   const [isAboutExpanded, setIsAboutExpanded] = useState(true);
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false);
   const [videoMenuTarget, setVideoMenuTarget] = useState<VideoItem | null>(null);
@@ -362,7 +364,7 @@ export default function PublicUserProfileScreen() {
   };
 
   const openVideoActions = (video: VideoItem) => {
-    if (!profile?.is_self || isSavingVideo) return;
+    if (!profile || isSavingVideo) return;
     setVideoMenuTarget(video);
   };
 
@@ -426,7 +428,7 @@ export default function PublicUserProfileScreen() {
             />
             {!profile.is_self && profile.public_code && !profile.is_blocked_by_me ? (
               <Pressable
-                onPress={() => setConfirmBlock(true)}
+                onPress={() => setProfileOptionsVisible(true)}
                 style={[styles.overlayMore, { top: insets.top + 8 }]}
                 accessibilityRole="button"
                 accessibilityLabel="Още опции"
@@ -673,6 +675,27 @@ export default function PublicUserProfileScreen() {
         onConfirm={() => void handleBlock()}
         onCancel={() => setConfirmBlock(false)}
       />
+      <ChatMoreOptionsModal
+        visible={profileOptionsVisible}
+        onClose={() => setProfileOptionsVisible(false)}
+        title="Опции за профила"
+        subtitle={displayName}
+        options={profile && !profile.is_self ? [
+          {
+            icon: "flag",
+            label: "Докладвай потребителя",
+            destructive: true,
+            onPress: () => token && showReportDialog(token, "user", profile.id),
+          },
+          {
+            icon: "ban",
+            label: "Блокирай потребителя",
+            destructive: true,
+            onPress: () => setConfirmBlock(true),
+          },
+        ] : []}
+        colors={theme.colors}
+      />
       <ConfirmModal
         visible={Boolean(deletingVideo)}
         title="Изтриване на видео"
@@ -687,7 +710,7 @@ export default function PublicUserProfileScreen() {
         onClose={() => setVideoMenuTarget(null)}
         title="Опции за видеото"
         subtitle={videoMenuTarget?.title ?? "Изберете действие."}
-        options={videoMenuTarget ? [
+        options={videoMenuTarget ? (profile?.is_self ? [
           {
             icon: "pencil",
             label: "Редактирай",
@@ -699,7 +722,14 @@ export default function PublicUserProfileScreen() {
             destructive: true,
             onPress: () => setDeletingVideo(videoMenuTarget),
           },
-        ] : []}
+        ] : [
+          {
+            icon: "flag",
+            label: "Докладвай видеото",
+            destructive: true,
+            onPress: () => token && showReportDialog(token, "video", videoMenuTarget.id),
+          },
+        ]) : []}
         colors={theme.colors}
       />
       <ConfirmModal
@@ -839,17 +869,15 @@ function VideosSection({
               {video.description ? <Text style={[styles.videoDescription, { color: colors.textSecondary }]} numberOfLines={2}>{video.description}</Text> : null}
               {video.status !== "ready" ? <Text style={[styles.videoStatus, { color: colors.textSecondary }]}>Видеото се обработва — ще бъде достъпно за гледане скоро.</Text> : null}
             </View>
-            {canManage ? (
-              <TouchableOpacity
-                onPress={() => onMoreVideo(video)}
-                disabled={isManaging}
-                style={styles.videoMoreButton}
-                accessibilityRole="button"
-                accessibilityLabel={`Още действия за ${video.title}`}
-              >
-                <FontAwesome name="ellipsis-h" size={15} color={colors.textSecondary} />
-              </TouchableOpacity>
-            ) : null}
+            <TouchableOpacity
+              onPress={() => onMoreVideo(video)}
+              disabled={isManaging}
+              style={styles.videoMoreButton}
+              accessibilityRole="button"
+              accessibilityLabel={`${canManage ? "Още действия" : "Докладвай"} за ${video.title}`}
+            >
+              <FontAwesome name="ellipsis-h" size={15} color={colors.textSecondary} />
+            </TouchableOpacity>
           </Pressable>
           ))}
         </>

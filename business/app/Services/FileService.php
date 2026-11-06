@@ -5,7 +5,11 @@ namespace App\Services;
 class FileService
 {
     protected static string $basePath = '/uploads';
-    protected static string $publicRoot = __DIR__ . '/../../public';
+
+    private static function uploadRoot(): string
+    {
+        return UPLOAD_STORAGE_ROOT;
+    }
 
     public static function upload(array $file, string $subFolder = 'images'): ?string
     {
@@ -15,7 +19,7 @@ class FileService
 
         $datePath = '/' . date('Y/m/d');
         $relativeDir = self::$basePath . $datePath;
-        $absoluteDir = self::$publicRoot . $relativeDir;
+        $absoluteDir = self::uploadRoot() . $datePath;
 
         if (!is_dir($absoluteDir)) {
             mkdir($absoluteDir, 0777, true);
@@ -37,7 +41,12 @@ class FileService
     {
         if (!$filePath) return false;
 
-        $absolutePath = self::$publicRoot . $filePath;
+        $normalizedPath = str_replace('\\', '/', $filePath);
+        if (!str_starts_with($normalizedPath, '/uploads/') || str_contains($normalizedPath, '..')) {
+            return false;
+        }
+        $relativePath = substr($normalizedPath, strlen('/uploads'));
+        $absolutePath = self::uploadRoot() . $relativePath;
 
         if (file_exists($absolutePath) && is_file($absolutePath)) {
             return unlink($absolutePath);

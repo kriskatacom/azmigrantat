@@ -15,6 +15,7 @@ if (AuthHelper::isAdmin()) {
 
     $sidebarLinks[] = ['url' => '/admin/statistics', 'icon' => 'fa-chart-line', 'label' => 'Статистика'];
     $sidebarLinks[] = ['url' => '/admin/users', 'icon' => 'fa-users', 'label' => 'Потребители'];
+    $sidebarLinks[] = ['url' => '/admin/moderation', 'icon' => 'fa-shield-halved', 'label' => 'Модерация'];
     $sidebarLinks[] = ['url' => '/admin/settings', 'icon' => 'fa-sliders', 'label' => 'Настройки'];
     $sidebarLinks[] = ['url' => '/admin/categories', 'icon' => 'fa-folder-open', 'label' => 'Категории'];
     $sidebarLinks[] = ['url' => '/admin/oauth-apps', 'icon' => 'fa-key', 'label' => 'SSO Приложения'];

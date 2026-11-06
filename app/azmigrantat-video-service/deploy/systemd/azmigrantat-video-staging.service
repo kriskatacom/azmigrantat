@@ -1,0 +1,26 @@
+[Unit]
+Description=Azmigrantat Dedicated video upload API (staging)
+Wants=network-online.target
+Requires=azmigrantat-video-staging-redis.service
+After=network-online.target azmigrantat-video-staging-redis.service
+RequiresMountsFor=/srv/azmigrantat-video-staging
+
+[Service]
+Type=simple
+User=azmigrantat-video-staging
+Group=www-data
+WorkingDirectory=/opt/azmigrantat-video-service-staging
+EnvironmentFile=/etc/azmigrantat-video-staging/video-service.env
+ExecStart=/usr/local/bin/node dist/server.js
+Restart=on-failure
+RestartSec=5s
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/srv/azmigrantat-video-staging
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

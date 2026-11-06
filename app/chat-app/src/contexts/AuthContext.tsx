@@ -15,6 +15,7 @@ import {
   completeEmailLoginRequest,
   completeTotpLoginRequest,
   deviceSecretLoginRequest,
+  facebookLoginRequest,
   googleLoginRequest,
   loginRequest,
   logoutRequest,
@@ -52,6 +53,8 @@ import { configureIncomingCallNativeSession } from "@/services/incoming-call";
 import { isNetworkError, toNetworkError } from "@/services/network-guard";
 import { getRealtimeHttpUrl } from "@/services/realtime-http";
 import { bindAuthSessionHandlers } from "@/services/session-http";
+import { cancelActiveVideoUpload } from "@/services/videos";
+import { clearPendingVideoUpload } from "@/services/video-upload-state";
 import type { AuthResponse, AuthUser, LoginPayload, RegisterPayload } from "@/types/auth";
 import { toPublicFileUrl } from "@/utils/public-file-url";
 
@@ -104,6 +107,7 @@ interface AuthContextValue {
   canUseDeviceLockLogin: boolean;
   login: (payload: LoginPayload) => Promise<void>;
   loginWithGoogle: (idToken: string, rememberMe?: boolean) => Promise<void>;
+  loginWithFacebook: (accessToken: string, rememberMe?: boolean) => Promise<void>;
   loginWithPin: (pin: string, rememberMe?: boolean) => Promise<void>;
   loginWithFingerprint: (rememberMe?: boolean) => Promise<void>;
   loginWithDeviceLock: (rememberMe?: boolean) => Promise<void>;
@@ -512,6 +516,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
     [persistAuthResponse],
   );
 
+  const loginWithFacebook = useCallback(
+    async (accessToken: string, rememberMe = false) => {
+      const response = await facebookLoginRequest(accessToken, rememberMe);
+      await persistAuthResponse(response);
+    },
+    [persistAuthResponse],
+  );
+
   const requireSavedEmail = useCallback(async (): Promise<string> => {
     const email = lastLoginEmail ?? (await getLastLoginEmail());
 
@@ -597,6 +609,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     loggingOutRef.current = true;
     const currentToken = token;
+    const currentUserId = user?.id;
+    cancelActiveVideoUpload();
 
     try {
       if (currentToken) {
@@ -606,21 +620,25 @@ export function AuthProvider({ children }: PropsWithChildren) {
     } catch (error) {
       console.error("Неуспешно прекратяване на сесията на сървъра:", error);
     } finally {
+      if (currentUserId) await clearPendingVideoUpload(currentUserId);
       await clearLocalSession();
       await syncLocalLoginAvailability();
       loggingOutRef.current = false;
     }
-  }, [token, clearLocalSession, syncLocalLoginAvailability]);
+  }, [token, user?.id, clearLocalSession, syncLocalLoginAvailability]);
 
   const endLocalSession = useCallback(async () => {
     loggingOutRef.current = true;
+    const currentUserId = user?.id;
+    cancelActiveVideoUpload();
     if (token) {
       await unregisterPushNotifications(token);
     }
+    if (currentUserId) await clearPendingVideoUpload(currentUserId);
     await clearLocalSession();
     await syncLocalLoginAvailability();
     loggingOutRef.current = false;
-  }, [token, clearLocalSession, syncLocalLoginAvailability]);
+  }, [token, user?.id, clearLocalSession, syncLocalLoginAvailability]);
 
   const clearLocalQuickLogin = useCallback(async () => {
     await clearDeviceSecret();
@@ -694,6 +712,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       canUseDeviceLockLogin,
       login,
       loginWithGoogle,
+      loginWithFacebook,
       loginWithPin,
       loginWithFingerprint,
       loginWithDeviceLock,
@@ -727,6 +746,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       canUseDeviceLockLogin,
       login,
       loginWithGoogle,
+      loginWithFacebook,
       loginWithPin,
       loginWithFingerprint,
       loginWithDeviceLock,

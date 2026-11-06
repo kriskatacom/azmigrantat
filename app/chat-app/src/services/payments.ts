@@ -7,8 +7,15 @@ import type {
   ShortVideoPlan,
   SubscriptionStatus,
 } from "@/types/payments";
+import { PAYMENTS_ENABLED } from "@/config/environment";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL!;
+
+function assertPaymentsEnabled(): void {
+  if (!PAYMENTS_ENABLED) {
+    throw new Error("Плащанията не са достъпни в тази версия на приложението.");
+  }
+}
 
 async function request<T>(
   endpoint: string,
@@ -36,6 +43,7 @@ export async function setAutoRenewal(
   token: string,
   enabled: boolean,
 ): Promise<boolean> {
+  assertPaymentsEnabled();
   const response = await request<PaymentSettingsResponse>(
     "/api/mobile/payment-methods/settings",
     token,
@@ -52,6 +60,7 @@ export async function savePaymentMethod(
   token: string,
   payload: SavePaymentMethodPayload,
 ): Promise<SavedPaymentMethod> {
+  assertPaymentsEnabled();
   const response = await request<{ success: true; data: SavedPaymentMethod }>(
     "/api/mobile/payment-methods",
     token,
@@ -68,6 +77,7 @@ export async function setDefaultPaymentMethod(
   token: string,
   id: number,
 ): Promise<SavedPaymentMethod> {
+  assertPaymentsEnabled();
   const response = await request<{ success: true; data: SavedPaymentMethod }>(
     `/api/mobile/payment-methods/${id}/default`,
     token,
@@ -103,6 +113,7 @@ export async function getSubscription(token: string): Promise<SubscriptionStatus
 }
 
 export async function createSubscriptionCheckout(token: string, plan: string): Promise<string> {
+  assertPaymentsEnabled();
   const response = await request<{ success: true; url: string }>(
     "/api/mobile/subscription/checkout",
     token,

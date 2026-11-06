@@ -16,6 +16,7 @@ final class BearerAuthMiddleware
         http_response_code(401);
         echo json_encode([
             'success' => false,
+            'code' => 'unauthenticated',
             'message' => 'Необходима е автентикация.',
         ]);
         exit;

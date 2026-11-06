@@ -6,6 +6,8 @@ export type VideoStatus =
   | "failed"
   | "deleted";
 
+export type VideoStorageProvider = "bunny" | "oneprovider";
+
 export interface VideoItem {
   id: number;
   category_id: number | null;
@@ -19,9 +21,12 @@ export interface VideoItem {
   total_views: number;
   unique_viewers: number;
   created_at: string | null;
+  provider?: VideoStorageProvider;
+  processing_status?: string | null;
 }
 
 export interface BunnyUploadCredentials {
+  provider?: "bunny";
   endpoint: string;
   library_id: number;
   video_id: string;
@@ -29,11 +34,23 @@ export interface BunnyUploadCredentials {
   authorization_expire: number;
 }
 
+export interface DedicatedUploadCredentials {
+  provider: "oneprovider";
+  endpoint: string;
+  upload_id: string;
+  user_id: number;
+  video_id: number;
+  authorization_token: string;
+  tus_resumable: "1.0.0";
+}
+
+export type VideoUploadCredentials = BunnyUploadCredentials | DedicatedUploadCredentials;
+
 export interface BeginVideoUploadResponse {
   success: true;
   data: {
     video: VideoItem;
-    upload: BunnyUploadCredentials;
+    upload: VideoUploadCredentials;
   };
 }
 

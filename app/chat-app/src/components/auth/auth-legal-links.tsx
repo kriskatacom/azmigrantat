@@ -35,9 +35,7 @@ export default function AuthLegalLinks({
 }
 
 const styles = StyleSheet.create({
-  wrapper: {
-    marginTop: 18,
-  },
+  wrapper: {},
   text: {
     fontSize: 12,
     lineHeight: 18,

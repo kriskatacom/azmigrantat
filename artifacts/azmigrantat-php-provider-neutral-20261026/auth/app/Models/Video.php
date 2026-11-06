@@ -1,0 +1,65 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
+
+class Video extends Model
+{
+    private static ?bool $providerMetadataAvailable = null;
+
+    public const STATUS_PENDING_UPLOAD = 'pending_upload';
+    public const STATUS_UPLOADING = 'uploading';
+    public const STATUS_PROCESSING = 'processing';
+    public const STATUS_READY = 'ready';
+    public const STATUS_FAILED = 'failed';
+    public const STATUS_DELETED = 'deleted';
+
+    protected $table = 'videos';
+
+    protected $fillable = [
+        'user_id', 'category_id', 'provider', 'provider_video_id', 'storage_path', 'playback_url',
+        'processing_status', 'duration', 'bunny_library_id', 'bunny_video_guid', 'title', 'description', 'thumbnail_url', 'status',
+        'bunny_status', 'mime_type', 'file_size', 'duration_seconds', 'width',
+        'height', 'upload_expires_at', 'uploaded_at', 'processed_at', 'failed_at',
+        'failure_reason', 'total_views', 'unique_viewers',
+    ];
+
+    protected $casts = [
+        'user_id' => 'integer',
+        'category_id' => 'integer',
+        'duration' => 'float',
+        'bunny_library_id' => 'integer',
+        'bunny_status' => 'integer',
+        'file_size' => 'integer',
+        'duration_seconds' => 'integer',
+        'width' => 'integer',
+        'height' => 'integer',
+        'total_views' => 'integer',
+        'unique_viewers' => 'integer',
+        'upload_expires_at' => 'datetime',
+        'uploaded_at' => 'datetime',
+        'processed_at' => 'datetime',
+        'failed_at' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
+    ];
+
+    public static function providerMetadataAvailable(): bool
+    {
+        return self::$providerMetadataAvailable ??= Schema::hasColumn('videos', 'provider')
+            && Schema::hasColumn('videos', 'provider_video_id')
+            && Schema::hasColumn('videos', 'processing_status');
+    }
+
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'category_id');
+    }
+}

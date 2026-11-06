@@ -7,7 +7,6 @@ import { getBackgroundUploadStatus, subscribeToBackgroundUpload } from "@/servic
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused, useRouter } from "expo-router";
 import Svg, {
-  Circle,
   Defs,
   LinearGradient as SvgLinearGradient,
   Path,
@@ -16,6 +15,7 @@ import Svg, {
   Text as SvgText,
 } from "react-native-svg";
 import { useEffect, useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Image,
   ImageBackground,
@@ -51,18 +51,9 @@ function LiveMenuIcon() {
   );
 }
 
-function SeeMoreIcon() {
-  return (
-    <Svg width={30} height={12} viewBox="0 0 30 12" accessibilityElementsHidden>
-      <Circle cx="4" cy="6" r="4" fill="#ffffff" />
-      <Circle cx="15" cy="6" r="4" fill="#ffffff" />
-      <Circle cx="26" cy="6" r="4" fill="#ffffff" />
-    </Svg>
-  );
-}
-
 export default function HomeScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const isFocused = useIsFocused();
   const { isAuthenticated, token, user } = useAuth();
   const isHomeVideoFeedDisabled =
@@ -104,7 +95,7 @@ export default function HomeScreen() {
         </View>
         <View style={styles.topBar}>
           <Image
-            source={require("../../assets/images/logo-dark.png")}
+            source={require("../../assets/images/logo-transparent.png")}
             style={styles.homeLogo}
             resizeMode="contain"
           />
@@ -131,9 +122,13 @@ export default function HomeScreen() {
             style={styles.subscriptionButton}
             onPress={() => router.push("/main-categories")}
             accessibilityRole="button"
-            accessibilityLabel="Отвори категориите"
+            accessibilityLabel="Виж повече"
           >
-            <SeeMoreIcon />
+            <Image
+              source={require("../../assets/images/see-more-button-outline.png")}
+              style={styles.seeMoreButtonImage}
+              resizeMode="contain"
+            />
           </TouchableOpacity>
           <View style={styles.topRightActions}>
             <TouchableOpacity
@@ -200,7 +195,16 @@ export default function HomeScreen() {
 
         </View>
 
-        <View pointerEvents="box-none" style={styles.bottomNavigation}>
+        <View
+          pointerEvents="box-none"
+          style={[
+            styles.bottomNavigation,
+            {
+              height: 82 + Math.max(insets.bottom + 2, 10),
+              paddingBottom: Math.max(insets.bottom + 2, 10),
+            },
+          ]}
+        >
           <NavigationItem
             icon="home"
             label="Начало"
@@ -216,6 +220,9 @@ export default function HomeScreen() {
 
           <TouchableOpacity
             style={styles.uploadItem}
+            hitSlop={{ top: 2, right: 8, bottom: 10, left: 8 }}
+            pressRetentionOffset={12}
+            activeOpacity={0.72}
             onPress={() => {
               if (isAuthenticated) {
                 router.push("/videos/upload");
@@ -224,6 +231,8 @@ export default function HomeScreen() {
 
               router.push({ pathname: "/(auth)/login", params: { returnTo: "/videos/upload" } });
             }}
+            accessibilityRole="button"
+            accessibilityLabel="Качи видео"
           >
             <View style={styles.uploadCircle}>
               <Ionicons name="add" size={30} color="#111111" />
@@ -277,6 +286,9 @@ function NavigationItem({
   return (
     <TouchableOpacity
       style={styles.navigationItem}
+      hitSlop={{ top: 2, right: 8, bottom: 10, left: 8 }}
+      pressRetentionOffset={12}
+      activeOpacity={0.72}
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={
@@ -377,7 +389,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   subscriptionButton: {
-    width: 44,
+    width: 104,
     height: 44,
     paddingHorizontal: 0,
     borderRadius: 0,
@@ -385,6 +397,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginRight: 0,
+  },
+  seeMoreButtonImage: {
+    width: 104,
+    height: 36,
   },
   backgroundUploadNotice: {
     position: "absolute",
@@ -473,17 +489,18 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    height: 140,
-    paddingHorizontal: 10,
-    paddingBottom: 52,
+    zIndex: 30,
+    paddingHorizontal: 4,
     backgroundColor: "transparent",
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
   },
   navigationItem: {
-    width: "18%",
-    height: 68,
+    flex: 1,
+    height: 76,
+    paddingTop: 8,
+    paddingBottom: 4,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -520,7 +537,10 @@ const styles = StyleSheet.create({
     fontVariant: ["tabular-nums"],
   },
   uploadItem: {
-    width: "20%",
+    flex: 1,
+    height: 76,
+    paddingTop: 5,
+    paddingBottom: 4,
     alignItems: "center",
     justifyContent: "flex-end",
   },

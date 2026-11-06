@@ -25,6 +25,29 @@ In the output, you'll find options to open the app in a
 
 You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
 
+## Android development build с Fast Refresh
+
+Development APK се изгражда и инсталира само при първоначална настройка или
+след промяна в native dependency, `app.json`, config plugin или Android код:
+
+```bash
+npm run android:rebuild
+```
+
+За ежедневна работа стартирайте вече инсталираното приложение и Metro с:
+
+```bash
+npm run android:dev
+```
+
+Командата остава активна в терминала. Промените по JavaScript, TypeScript и
+React компонентите се изпращат автоматично към телефона чрез Fast Refresh и
+не преинсталират APK. Спрете development сървъра с `Ctrl+C`.
+
+Ако Fast Refresh е бил изключен от development менюто, отворете менюто чрез
+разклащане на телефона и го включете отново. При зает порт `8081` първо спрете
+стария Metro процес, вместо да стартирате втори bundler.
+
 ## Get a fresh project
 
 When you're ready, run:

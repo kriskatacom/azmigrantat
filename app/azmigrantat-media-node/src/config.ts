@@ -49,6 +49,7 @@ function requiredUrl(name: string, fallback: string): string {
 }
 
 export const config = {
+  environment: process.env.APP_ENV?.trim() || 'development',
   nodeId: required('MEDIA_NODE_ID', 'media-node-1'),
   host: required('MEDIA_NODE_HOST', '0.0.0.0'),
   port: positiveInteger('MEDIA_NODE_PORT', '3002'),
@@ -62,9 +63,39 @@ export const config = {
   rtcMinPort: positiveInteger('MEDIASOUP_MIN_PORT', '40000'),
   rtcMaxPort: positiveInteger('MEDIASOUP_MAX_PORT', '40099'),
   redisUrl: required('REDIS_URL', 'redis://127.0.0.1:6379'),
+  redisKeyPrefix: process.env.REDIS_KEY_PREFIX?.trim() || '',
   heartbeatIntervalMs: durationMs('MEDIA_NODE_HEARTBEAT_INTERVAL_MS', '5000'),
 };
 
+export function validateStagingIsolation(
+  environment: string,
+  redisKeyPrefix: string,
+  signalingUrl: string,
+): string[] {
+  const errors: string[] = [];
+  if (!['development', 'staging', 'production'].includes(environment)) {
+    errors.push(`Invalid APP_ENV: ${environment}.`);
+    return errors;
+  }
+  if (environment !== 'staging') return errors;
+  if (redisKeyPrefix !== 'azmigrantat:realtime:staging:') {
+    errors.push('Staging media node requires the isolated staging REDIS_KEY_PREFIX.');
+  }
+  if (signalingUrl !== 'https://live-staging.azmigrantat.com') {
+    errors.push('Staging media node requires the isolated live-staging signaling host.');
+  }
+  return errors;
+}
+
 if (config.rtcMaxPort < config.rtcMinPort) {
   throw new Error('MEDIASOUP_MAX_PORT трябва да е по-голямо или равно на MEDIASOUP_MIN_PORT.');
+}
+
+const isolationErrors = validateStagingIsolation(
+  config.environment,
+  config.redisKeyPrefix,
+  config.signalingUrl,
+);
+if (isolationErrors.length > 0) {
+  throw new Error(isolationErrors.join(' '));
 }
