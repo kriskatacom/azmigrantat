@@ -1,7 +1,10 @@
 import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
 import RemoteImage from "@/components/ui/RemoteImage";
+import PublicVideoPager from "@/components/video/public-video-pager";
+import { getVideoDisplayTitle, shouldHideVideoUploader } from "@/constants/featured-video";
 import { listPublicVideos, searchPublicUsers } from "@/services/videos";
+import { useAuth } from "@/hooks/useAuth";
 import type { PublicUserSearchItem, PublicVideoItem } from "@/types/video";
 import { FontAwesome } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -20,12 +23,14 @@ import {
 
 export default function SearchScreen() {
   const { theme } = useAppTheme();
+  const { token } = useAuth();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [videos, setVideos] = useState<PublicVideoItem[]>([]);
   const [users, setUsers] = useState<PublicUserSearchItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedVideoIndex, setSelectedVideoIndex] = useState<number | null>(null);
 
   useEffect(() => {
     const normalizedQuery = query.trim();
@@ -89,7 +94,7 @@ export default function SearchScreen() {
             autoFocus
             value={query}
             onChangeText={setQuery}
-            placeholder="Търси видео или потребител"
+            placeholder="Търси по ключови думи или потребител"
             placeholderTextColor={theme.colors.placeholder}
             returnKeyType="search"
             style={[styles.input, { color: theme.colors.text }]}
@@ -97,7 +102,12 @@ export default function SearchScreen() {
           {isSearching ? <ActivityIndicator size="small" color={theme.colors.primary} /> : null}
         </View>
 
-        {!showResults ? <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>Въведете поне 2 символа за търсене.</Text> : null}
+        {!showResults ? (
+          <View style={styles.hintGroup}>
+            <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>Например: София, пътуване или име на потребител.</Text>
+            <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>Въведете поне 2 символа.</Text>
+          </View>
+        ) : null}
         {error ? <Text style={[styles.error, { color: theme.colors.danger }]}>{error}</Text> : null}
 
         {showResults && users.length > 0 ? (
@@ -126,12 +136,12 @@ export default function SearchScreen() {
         {showResults && videos.length > 0 ? (
           <View style={styles.section}>
             <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Видеоклипове</Text>
-            {videos.map((video) => (
+            {videos.map((video, index) => (
               <Pressable
                 key={video.id}
                 style={[styles.videoRow, { borderBottomColor: theme.colors.border }]}
-                onPress={() => video.user && openProfile(video.user.id, video.id)}
-                disabled={!video.user}
+                onPress={() => setSelectedVideoIndex(index)}
+                disabled={!video.playback_url}
               >
                 {video.thumbnail_url ? <RemoteImage uri={video.thumbnail_url} style={styles.thumbnail} /> : (
                   <View style={[styles.thumbnail, styles.thumbnailFallback, { backgroundColor: theme.colors.card }]}>
@@ -139,9 +149,11 @@ export default function SearchScreen() {
                   </View>
                 )}
                 <View style={styles.videoMeta}>
-                  <Text style={[styles.videoTitle, { color: theme.colors.text }]} numberOfLines={2}>{video.title}</Text>
+                  {getVideoDisplayTitle(video) ? (
+                    <Text style={[styles.videoTitle, { color: theme.colors.text }]} numberOfLines={2}>{getVideoDisplayTitle(video)}</Text>
+                  ) : null}
                   {video.description ? <Text style={[styles.videoDescription, { color: theme.colors.textSecondary }]} numberOfLines={2}>{video.description}</Text> : null}
-                  {video.user ? <Text style={[styles.videoAuthor, { color: theme.colors.primary }]} numberOfLines={1}>{video.user.name}</Text> : null}
+                  {video.user && !shouldHideVideoUploader(video.id) ? <Text style={[styles.videoAuthor, { color: theme.colors.primary }]} numberOfLines={1}>{video.user.name}</Text> : null}
                 </View>
               </Pressable>
             ))}
@@ -152,6 +164,14 @@ export default function SearchScreen() {
           <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>Няма намерени резултати.</Text>
         ) : null}
       </ScrollView>
+      <PublicVideoPager
+        visible={selectedVideoIndex !== null}
+        videos={videos}
+        initialIndex={selectedVideoIndex ?? 0}
+        onClose={() => setSelectedVideoIndex(null)}
+        colors={theme.colors}
+        token={token}
+      />
     </KeyboardAvoidingView>
   );
 }
@@ -160,7 +180,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   content: { padding: 20, gap: 18 },
   inputWrap: { minHeight: 54, borderRadius: 14, borderWidth: 1, paddingHorizontal: 16, flexDirection: "row", alignItems: "center", gap: 12 },
-  input: { flex: 1, minHeight: 52, fontSize: 16 },
+  input: { flex: 1, minHeight: 52, fontSize: 14 },
+  hintGroup: { gap: 2 },
   hint: { fontSize: 15, lineHeight: 22 },
   error: { fontSize: 14, lineHeight: 20 },
   section: { gap: 4 },

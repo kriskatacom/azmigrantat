@@ -4,6 +4,7 @@ import HomeVideoFeed from "@/components/video/home-video-feed";
 import RemoteImage from "@/components/ui/RemoteImage";
 import type { PublicVideoItem } from "@/types/video";
 import { getBackgroundUploadStatus, subscribeToBackgroundUpload } from "@/services/background-upload-state";
+import { shouldHideVideoSocialActions } from "@/constants/featured-video";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused, useRouter } from "expo-router";
 import Svg, {
@@ -14,11 +15,13 @@ import Svg, {
   Stop,
   Text as SvgText,
 } from "react-native-svg";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   Image,
   ImageBackground,
+  AppState,
+  type ImageSourcePropType,
   StatusBar,
   StyleSheet,
   Text,
@@ -60,9 +63,21 @@ export default function HomeScreen() {
     process.env.EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED === "true";
   const unreadMessageCount = useUnreadMessageCount();
   const [hasBackgroundUpload, setHasBackgroundUpload] = useState(getBackgroundUploadStatus().active);
+  const [activeVideoId, setActiveVideoId] = useState<number | null>(null);
   const [activeVideoUser, setActiveVideoUser] = useState<PublicVideoItem["user"]>(null);
+  const [homeResetSignal, setHomeResetSignal] = useState(0);
+  const lastAppState = useRef(AppState.currentState);
 
   useEffect(() => subscribeToBackgroundUpload((status) => setHasBackgroundUpload(status.active)), []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      const isReturningToApp = lastAppState.current !== "active" && nextState === "active";
+      lastAppState.current = nextState;
+      if (isReturningToApp) setHomeResetSignal((current) => current + 1);
+    });
+    return () => subscription.remove();
+  }, []);
 
   return (
     <View style={styles.screen}>
@@ -77,6 +92,8 @@ export default function HomeScreen() {
           <HomeVideoFeed
             token={token}
             focused={isFocused}
+            resetSignal={homeResetSignal}
+            onActiveVideoIdChange={setActiveVideoId}
             onActiveVideoUserChange={setActiveVideoUser}
           />
         ) : null}
@@ -155,45 +172,33 @@ export default function HomeScreen() {
           </TouchableOpacity>
         ) : null}
 
-        <View style={styles.quickActions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            disabled={!activeVideoUser}
-            onPress={() => {
-              if (!activeVideoUser) return;
-              router.push({
-                pathname: "/user/[id]",
-                params: { id: String(activeVideoUser.id) },
-              });
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={
-              activeVideoUser
-                ? `Покажи профила на ${activeVideoUser.name}`
-                : "Профил на автора на видеото"
-            }
-          >
-            {activeVideoUser?.profile_image ? (
-              <RemoteImage uri={activeVideoUser.profile_image} style={styles.videoAuthorAvatar} />
-            ) : (
-              <Ionicons name="person-outline" size={25} color="#ffffff" />
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.chatActionButton}
-            onPress={() => router.push("/inbox")}
-            accessibilityRole="button"
-            accessibilityLabel="Чат"
-          >
-            <Image
-              source={require("../../assets/images/chat.png")}
-              style={styles.quickActionIcon}
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
-
-        </View>
+        {activeVideoId !== null && !shouldHideVideoSocialActions(activeVideoId) ? (
+          <View style={styles.quickActions}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              disabled={!activeVideoUser}
+              onPress={() => {
+                if (!activeVideoUser) return;
+                router.push({
+                  pathname: "/user/[id]",
+                  params: { id: String(activeVideoUser.id) },
+                });
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={
+                activeVideoUser
+                  ? `Покажи профила на ${activeVideoUser.name}`
+                  : "Профил на автора на видеото"
+              }
+            >
+              {activeVideoUser?.profile_image ? (
+                <RemoteImage uri={activeVideoUser.profile_image} style={styles.videoAuthorAvatar} />
+              ) : (
+                <Ionicons name="person-outline" size={25} color="#ffffff" />
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         <View
           pointerEvents="box-none"
@@ -209,7 +214,7 @@ export default function HomeScreen() {
             icon="home"
             label="Начало"
             active
-            onPress={() => router.push("/")}
+            onPress={() => setHomeResetSignal((current) => current + 1)}
           />
 
           <NavigationItem
@@ -241,7 +246,7 @@ export default function HomeScreen() {
           </TouchableOpacity>
 
           <NavigationItem
-            icon="chatbubble-ellipses-outline"
+            imageSource={require("../../assets/images/chat.png")}
             label="Входящи"
             badgeCount={isAuthenticated ? unreadMessageCount : 0}
             onPress={() => router.push("/inbox")}
@@ -269,7 +274,8 @@ export default function HomeScreen() {
 }
 
 type NavigationItemProps = {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon?: keyof typeof Ionicons.glyphMap;
+  imageSource?: ImageSourcePropType;
   label: string;
   active?: boolean;
   badgeCount?: number;
@@ -278,6 +284,7 @@ type NavigationItemProps = {
 
 function NavigationItem({
   icon,
+  imageSource,
   label,
   active = false,
   badgeCount = 0,
@@ -296,11 +303,15 @@ function NavigationItem({
       }
     >
       <View style={styles.navigationIcon}>
-        <Ionicons
-          name={icon}
-          size={24}
-          color="#ffffff"
-        />
+        {imageSource ? (
+          <Image source={imageSource} style={styles.inboxNavigationIcon} resizeMode="contain" />
+        ) : icon ? (
+          <Ionicons
+            name={icon}
+            size={24}
+            color="#ffffff"
+          />
+        ) : null}
         {badgeCount > 0 ? (
           <View style={styles.unreadBadge}>
             <Text style={styles.unreadBadgeText}>
@@ -452,7 +463,7 @@ const styles = StyleSheet.create({
   quickActions: {
     position: "absolute",
     right: 18,
-    bottom: 140,
+    bottom: 272,
     gap: 10,
     alignItems: "center",
   },
@@ -463,19 +474,6 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     justifyContent: "center",
     alignItems: "center",
-  },
-  chatActionButton: {
-    width: 60,
-    height: 60,
-    marginTop: -8,
-    borderRadius: 30,
-    backgroundColor: "transparent",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  quickActionIcon: {
-    width: 50,
-    height: 50,
   },
   videoAuthorAvatar: {
     width: 40,
@@ -515,6 +513,10 @@ const styles = StyleSheet.create({
   },
   navigationIcon: {
     position: "relative",
+  },
+  inboxNavigationIcon: {
+    width: 36,
+    height: 36,
   },
   unreadBadge: {
     position: "absolute",

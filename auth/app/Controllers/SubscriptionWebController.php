@@ -27,7 +27,9 @@ final class SubscriptionWebController extends BaseController
         $user = Auth::user();
         $plans = $this->subscriptions->plans();
         $selectedPlan = trim((string) ($_GET['plan'] ?? ''));
-        if (!isset($plans[$selectedPlan]) || $plans[$selectedPlan]['price_cents'] <= 0) {
+        if (!isset($plans[$selectedPlan])
+            || $plans[$selectedPlan]['price_cents'] <= 0
+            || ($plans[$selectedPlan]['configured'] ?? false) !== true) {
             $selectedPlan = null;
         }
 

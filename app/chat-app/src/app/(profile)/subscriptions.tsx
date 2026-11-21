@@ -1,163 +1,353 @@
 import { useAppTheme } from "@/app/_layout";
-import { PAYMENTS_ENABLED } from "@/config/environment";
 import Header from "@/components/Header";
-import AppButton from "@/components/ui/AppButton";
+import { STRIPE_SANDBOX_ENABLED } from "@/config/environment";
 import { useAuth } from "@/hooks/useAuth";
-import { getShortVideoPlans } from "@/services/payments";
-import type { ShortVideoPlan } from "@/types/payments";
+import {
+  createSubscriptionCheckout,
+  deactivatePaidSubscription,
+  getShortVideoPlans,
+  getSubscription,
+  setAutoRenewal,
+} from "@/services/payments";
+import type { ShortVideoPlan, SubscriptionStatus } from "@/types/payments";
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { SHORT_VIDEO_PLAN_PRICES } from "@/constants/short-video-plans";
+import {
+  ActivityIndicator,
+  Alert,
+  Image,
+  Linking,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from "react-native";
 
-const SUBSCRIPTIONS_URL = process.env.EXPO_PUBLIC_SUBSCRIPTIONS_URL;
-
-if (!SUBSCRIPTIONS_URL) {
-  throw new Error("Липсва EXPO_PUBLIC_SUBSCRIPTIONS_URL.");
-}
-
-const planOrder = ["free", "creator", "creator_plus", "creator_pro"];
-const BRAND_BLUE = "#65C9E2";
-const BRAND_YELLOW = "#E8E296";
-const fallbackPlanMeta: Record<string, Pick<ShortVideoPlan, "name">> = {
-  free: { name: "Безплатен план" },
-  creator: { name: "Creator" },
-  creator_plus: { name: "Creator Plus" },
-  creator_pro: { name: "Creator Pro" },
-};
-
-const planDetails: Record<string, Pick<ShortVideoPlan, "description" | "features">> = {
-  free: {
-    description: "Подходящ за проба и лично използване.",
-    features: [
-      "До 5 нови видеа месечно.",
-      "Максимум 10 видеа, съхранявани едновременно.",
-      "Максимум 2 GB общо място.",
-      "До 3 минути на видео.",
-      "Добро HD качество.",
-      "Видеата могат да се гледат от други потребители.",
-    ],
-  },
-  creator: {
-    description: "Подходящ за потребители, които качват редовно.",
-    features: [
-      "До 20 GB общо място за видеа.",
-      "До 100 GB гледания месечно.",
-      "Значително повече качвания от безплатния план.",
-      "Поддръжка на HD видео.",
-      "Подходящ за активни създатели на съдържание.",
-    ],
-  },
-  creator_plus: {
-    description: "Подходящ за creators с повече съдържание и гледания.",
-    features: [
-      "До 50 GB общо място за видеа.",
-      "До 250 GB гледания месечно.",
-      "По-високи лимити за качване от Creator плана.",
-      "Поддръжка на HD видео.",
-      "Подходящ за по-активно създаване на съдържание.",
-    ],
-  },
-  creator_pro: {
-    description: "Подходящ за по-активни създатели с повече видеа и гледания.",
-    features: [
-      "До 100 GB общо място за видеа.",
-      "До 500 GB гледания месечно.",
-      "По-високи лимити за качване.",
-      "Поддръжка на по-високо качество.",
-      "Разширена статистика за видеата.",
-    ],
-  },
-};
+const FREE_FEATURES = [
+  "Профилна снимка, име и кратко описание",
+  "Снимки, видеа и публикации",
+  "Чат, аудио и видеоразговори",
+] as const;
 
 export default function SubscriptionsScreen() {
-  if (!PAYMENTS_ENABLED) {
-    return <SubscriptionsUnavailableScreen />;
-  }
-
-  return <SubscriptionsEnabledScreen />;
-}
-
-function SubscriptionsUnavailableScreen() {
-  const { theme } = useAppTheme();
-  return (
-    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <Header title="Абонаменти" hideSearchButton hideAuthButton />
-      <View style={styles.unavailable}>
-        <Ionicons name="card-outline" size={40} color={theme.colors.textSecondary} />
-        <Text style={[styles.heroTitle, { color: theme.colors.text }]}>Платените планове не са активни</Text>
-        <Text style={[styles.heroText, { color: theme.colors.textSecondary }]}>
-          Първата публична версия на „Ето ме“ не предлага реални плащания или платени абонаменти.
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-function SubscriptionsEnabledScreen() {
-  const { theme } = useAppTheme();
+  const { theme, colorScheme } = useAppTheme();
   const { token } = useAuth();
+  const isDark = colorScheme === "dark";
   const [plans, setPlans] = useState<Record<string, ShortVideoPlan>>({});
-  const [isLoading, setIsLoading] = useState(true);
+  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [openingCheckout, setOpeningCheckout] = useState(false);
+  const [updatingRenewal, setUpdatingRenewal] = useState(false);
+  const [deactivatingPlan, setDeactivatingPlan] = useState(false);
 
-  const loadPlans = useCallback(async () => {
-    if (!token) return;
-    setIsLoading(true);
+  const load = useCallback(async (refresh = false) => {
+    if (!token) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+    if (refresh) setRefreshing(true);
+    else setLoading(true);
     try {
-      setPlans(await getShortVideoPlans(token));
+      const [availablePlans, current] = await Promise.all([
+        getShortVideoPlans(token),
+        getSubscription(token),
+      ]);
+      setPlans(availablePlans);
+      setSubscription(current);
     } catch (error) {
       Alert.alert("Грешка", error instanceof Error ? error.message : "Плановете не можаха да бъдат заредени.");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
+      setRefreshing(false);
     }
   }, [token]);
 
-  useFocusEffect(useCallback(() => { void loadPlans(); }, [loadPlans]));
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
+
+  const paidPlan = plans.paid;
+  const paidIsActive = subscription?.plan === "paid" && subscription.entitled === true;
+  const checkoutAvailable = STRIPE_SANDBOX_ENABLED
+    && paidPlan?.configured === true
+    && paidPlan.active === true
+    && !paidIsActive;
+  const paidButtonHighlighted = checkoutAvailable || paidIsActive;
+  const paidButtonForeground = paidButtonHighlighted ? "#FFF8D9" : "#6F6244";
+  const price = paidPlan?.active === false
+    ? "Безплатно"
+    : paidPlan?.price_cents == null
+    ? "Цена предстои"
+    : `${(paidPlan.price_cents / 100).toFixed(2).replace(".", ",")} € / 30 дни`;
+  const periodEnd = subscription?.current_period_end
+    ? new Date(subscription.current_period_end).toLocaleString("bg-BG", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      })
+    : null;
+
+  const startCheckout = async () => {
+    if (!token || !checkoutAvailable || openingCheckout) return;
+    setOpeningCheckout(true);
+    try {
+      const url = await createSubscriptionCheckout(token, "paid");
+      if (!url.startsWith("https://business.azmigrantat.com/subscriptions/start?token=")) {
+        throw new Error("Получен е невалиден адрес за плащане.");
+      }
+      await Linking.openURL(url);
+    } catch (error) {
+      Alert.alert("Плащането не стартира", error instanceof Error ? error.message : "Опитайте отново.");
+    } finally {
+      setOpeningCheckout(false);
+    }
+  };
+
+  const updateRenewal = async (enabled: boolean) => {
+    if (!token || !subscription || !paidIsActive || updatingRenewal) return;
+    setUpdatingRenewal(true);
+    try {
+      const confirmed = await setAutoRenewal(token, enabled);
+      setSubscription((current) => current ? {
+        ...current,
+        auto_renewal: confirmed,
+        cancel_at_period_end: !confirmed,
+      } : current);
+    } catch (error) {
+      try {
+        setSubscription(await getSubscription(token));
+      } catch {
+        // Keep the last provider-confirmed state already shown in the UI.
+      }
+      Alert.alert("Настройката не е променена", error instanceof Error ? error.message : "Опитайте отново.");
+    } finally {
+      setUpdatingRenewal(false);
+    }
+  };
+
+  const confirmDeactivation = () => {
+    if (!token || !paidIsActive || deactivatingPlan) return;
+    Alert.alert(
+      "Преминаване към безплатен план",
+      "Платеният достъп ще бъде прекратен веднага. Автоматичното подновяване ще бъде спряно и платените функции повече няма да са достъпни.",
+      [
+        { text: "Отказ", style: "cancel" },
+        {
+          text: "Премини към безплатен",
+          style: "destructive",
+          onPress: () => void deactivatePlan(),
+        },
+      ],
+    );
+  };
+
+  const deactivatePlan = async () => {
+    if (!token || !paidIsActive || deactivatingPlan) return;
+    setDeactivatingPlan(true);
+    try {
+      setSubscription(await deactivatePaidSubscription(token));
+      Alert.alert("Планът е променен", "Вече използвате безплатния план.");
+    } catch (error) {
+      try {
+        setSubscription(await getSubscription(token));
+      } catch {
+        // Keep the last provider-confirmed state already shown in the UI.
+      }
+      Alert.alert(
+        "Планът не е променен",
+        error instanceof Error ? error.message : "Опитайте отново.",
+      );
+    } finally {
+      setDeactivatingPlan(false);
+    }
+  };
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <View pointerEvents="none" style={styles.gradientBackground}>
-        <View style={[styles.gradientBlob, styles.blueBlob]} />
-        <View style={[styles.gradientBlob, styles.yellowBlob]} />
-        <View style={[styles.gradientBlob, styles.purpleBlob]} />
-        <View style={[styles.gradientFade, { backgroundColor: theme.colors.background }]} />
-      </View>
-      <Header title="Абонаменти" hideSearchButton hideAuthButton />
-      <ScrollView contentContainerStyle={styles.content} contentInsetAdjustmentBehavior="automatic">
-        <View style={styles.hero}>
-          <View style={styles.heroIcon}><Ionicons name="sparkles" size={28} color="#101827" /></View>
-          <Text style={[styles.heroTitle, { color: theme.colors.text }]}>Създавай повече. Достигай повече.</Text>
-          <Text style={[styles.heroText, { color: theme.colors.textSecondary }]}>Избери план за твоите short-video видеа и получи повече място, качвания и гледания.</Text>
+      <Header title="Абонаментни планове" hideSearchButton hideAuthButton />
+      <ScrollView
+        contentInsetAdjustmentBehavior="automatic"
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void load(true)} />}
+      >
+        <View style={styles.brandPanel}>
+          <Image
+            source={require("../../../assets/images/logo-transparent.png")}
+            style={styles.brandLogo}
+            resizeMode="contain"
+            accessibilityLabel="Ето ме"
+          />
         </View>
 
-        {isLoading ? <ActivityIndicator size="large" color={theme.colors.primary} /> : planOrder.map((key) => {
-          const plan = plans[key] ?? { ...fallbackPlanMeta[key], currency: "eur", price_cents: SHORT_VIDEO_PLAN_PRICES[key] };
-          const details = planDetails[key];
-          const features = plan.features?.length ? plan.features : details?.features ?? [];
-          const description = plan.description ?? details?.description;
-          const isPopular = key === "creator_plus";
-          const isFree = key === "free";
-          return (
-            <View key={key} style={[styles.planCard, isPopular && styles.popularCard, { backgroundColor: theme.colors.card, borderColor: isPopular ? BRAND_BLUE : theme.colors.border }]}>
-              {isPopular ? <View style={[styles.popularBadge, { backgroundColor: BRAND_YELLOW }]}><Text style={styles.popularBadgeText}>НАЙ-ПОПУЛЯРЕН</Text></View> : null}
-              <View style={styles.planHeader}>
-                <View style={[styles.planIcon, { backgroundColor: isPopular ? BRAND_YELLOW : `${BRAND_BLUE}22` }]}>
-                  <Ionicons name={isFree ? "leaf-outline" : key === "creator_pro" ? "rocket-outline" : "sparkles-outline"} size={24} color={BRAND_BLUE} />
-                </View>
-                <View style={styles.planHeading}>
-                  <Text style={[styles.planName, { color: theme.colors.text }]}>{plan.name}</Text>
-                  <Text style={[styles.price, { color: theme.colors.text }]}>{isFree ? "Безплатен" : `${(SHORT_VIDEO_PLAN_PRICES[key] / 100).toFixed(2)} €`}<Text style={[styles.period, { color: theme.colors.textSecondary }]}>{isFree ? "" : " / месец"}</Text></Text>
-                </View>
-              </View>
-              {description ? <Text style={[styles.planDescription, { color: theme.colors.textSecondary }]}>{description}</Text> : null}
-              <View style={styles.features}>
-                {features.map((feature) => <View key={feature} style={styles.featureRow}><Ionicons name="checkmark-circle" size={19} color={BRAND_BLUE} /><Text style={[styles.featureText, { color: theme.colors.text }]}>{feature}</Text></View>)}
-              </View>
-              {!isFree ? <AppButton title="Плати през сайта" onPress={() => void Linking.openURL(`${SUBSCRIPTIONS_URL}?plan=${encodeURIComponent(key)}`)} /> : <Text style={[styles.freeNote, { color: theme.colors.textSecondary }]}>Подходящ за проба и лично използване.</Text>}
+        <View style={styles.hero}>
+          <Text style={[styles.heroTitle, { color: theme.colors.text }]}>Избери своя план</Text>
+          <Text style={[styles.heroSubtitle, { color: theme.colors.textSecondary }]}>
+            Започни безплатно или активирай платения тестов план чрез защитена
+            Stripe Sandbox страница.
+          </Text>
+        </View>
+
+        <View
+          style={[
+            styles.planCard,
+            {
+              backgroundColor: theme.colors.card,
+              borderColor: theme.colors.primary,
+            },
+          ]}
+        >
+          <View style={styles.planTopRow}>
+            <View style={styles.planHeading}>
+              <Text style={[styles.freePlanName, { color: theme.colors.text }]}>БЕЗПЛАТЕН</Text>
+              <Text style={[styles.freePrice, { color: theme.colors.text }]}>0 €</Text>
             </View>
-          );
-        })}
+            <View style={[styles.currentBadge, { backgroundColor: `${theme.colors.primary}18` }]}>
+              <Ionicons name="checkmark-circle" size={17} color={theme.colors.primary} />
+              <Text style={[styles.currentBadgeText, { color: theme.colors.primary }]}>
+                {paidIsActive ? "БАЗОВ ПЛАН" : "ТЕКУЩ ПЛАН"}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.features}>
+            {FREE_FEATURES.map((feature) => (
+              <View key={feature} style={styles.featureRow}>
+                <View style={[styles.checkIcon, { backgroundColor: theme.colors.primary }]}>
+                  <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                </View>
+                <Text style={[styles.featureText, { color: theme.colors.text }]}>{feature}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={[styles.planButton, { backgroundColor: theme.colors.primary }]}>
+            <Ionicons name="checkmark" size={20} color="#FFFFFF" />
+            <Text style={styles.planButtonText}>
+              {paidIsActive ? "Включен в платения план" : "Активен безплатен план"}
+            </Text>
+          </View>
+        </View>
+
+        <View
+          style={[
+            styles.planCard,
+            styles.paidCard,
+            {
+              backgroundColor: isDark ? "#241F12" : "#FFFCF2",
+              borderColor: "#E7B51B",
+            },
+          ]}
+        >
+          <View style={styles.paidHeadingRow}>
+            <View style={styles.crownIcon}>
+              <Ionicons name="diamond" size={27} color="#8A6200" />
+            </View>
+            <View style={styles.planHeading}>
+              <Text style={[styles.paidPlanName, { color: theme.colors.text }]}>ПЛАТЕН</Text>
+              <Text style={[styles.pricePending, { color: theme.colors.text }]}>{price}</Text>
+            </View>
+          </View>
+
+          <Text style={[styles.paidDescription, { color: theme.colors.textSecondary }]}>
+            Всичко от безплатния план, плюс допълнителни възможности, които ще
+            бъдат добавени след уточняването им.
+          </Text>
+
+          <View style={[styles.pendingFeature, { borderColor: isDark ? "#6F5B20" : "#E9D99A" }]}>
+            <Ionicons name="sparkles-outline" size={21} color="#D7A400" />
+            <Text style={[styles.pendingFeatureText, { color: theme.colors.textSecondary }]}>
+              Функциите на платения план ще бъдат обявени допълнително.
+            </Text>
+          </View>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.planButton,
+              styles.paidButton,
+              paidButtonHighlighted && styles.paidButtonEnabled,
+              pressed && checkoutAvailable && styles.paidButtonPressed,
+              !paidButtonHighlighted && styles.disabledButton,
+            ]}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !checkoutAvailable }}
+            disabled={!checkoutAvailable || openingCheckout}
+            onPress={() => void startCheckout()}
+          >
+            {openingCheckout || loading ? (
+              <ActivityIndicator color={paidButtonForeground} />
+            ) : paidIsActive ? null : (
+              <Ionicons
+                name="card-outline"
+                size={21}
+                color={paidButtonForeground}
+              />
+            )}
+            <Text
+              style={[styles.paidButtonText, { color: paidButtonForeground }]}
+              numberOfLines={1}
+            >
+              {paidIsActive
+                ? "Активен платен план"
+                : checkoutAvailable
+                  ? "Активирай платения план"
+                  : paidPlan?.active === false
+                    ? "Платеният план не е активен"
+                    : "Недостъпно в тази версия"}
+            </Text>
+          </Pressable>
+
+          {paidIsActive && (
+            <>
+              <View style={[styles.renewalPanel, { borderColor: isDark ? "#6F5B20" : "#E9D99A" }]}>
+                <View style={styles.renewalText}>
+                  <Text style={[styles.renewalTitle, { color: theme.colors.text }]}>Автоматично подновяване</Text>
+                  <Text style={[styles.renewalDescription, { color: theme.colors.textSecondary }]}>
+                    {subscription?.auto_renewal
+                      ? `Следващото плащане е на ${periodEnd ?? "края на периода"}.`
+                      : `Достъпът остава активен до ${periodEnd ?? "края на платения период"}, след което приключва.`}
+                  </Text>
+                </View>
+                <Switch
+                  value={subscription?.auto_renewal === true}
+                  onValueChange={(enabled) => void updateRenewal(enabled)}
+                  disabled={updatingRenewal || deactivatingPlan}
+                  trackColor={{ false: theme.colors.border, true: theme.colors.primary }}
+                  thumbColor="#FFFFFF"
+                  accessibilityLabel="Автоматично подновяване на всеки 30 дни"
+                />
+              </View>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.deactivateButton,
+                  pressed && !deactivatingPlan && styles.deactivateButtonPressed,
+                  deactivatingPlan && styles.deactivateButtonDisabled,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Премини към безплатен план"
+                disabled={deactivatingPlan}
+                onPress={confirmDeactivation}
+              >
+                {deactivatingPlan ? <ActivityIndicator color="#FFB4AB" /> : null}
+                <Text style={styles.deactivateButtonText} numberOfLines={1}>
+                  {deactivatingPlan ? "Промяна на плана…" : "Премини към безплатен план"}
+                </Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+
+        <View style={[styles.safetyNote, { backgroundColor: theme.colors.card }]}>
+          <Ionicons name="shield-checkmark-outline" size={21} color={theme.colors.primary} />
+          <Text style={[styles.safetyNoteText, { color: theme.colors.textSecondary }]}>
+            {STRIPE_SANDBOX_ENABLED
+              ? "Това е тестов Stripe режим. Не използвайте реална карта; планът се активира само след подписано webhook потвърждение."
+              : "В тази версия не се извършват плащания и не се изискват данни за карта."}
+          </Text>
+        </View>
       </ScrollView>
     </View>
   );
@@ -165,31 +355,145 @@ function SubscriptionsEnabledScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1 },
-  unavailable: { flex: 1, alignItems: "center", justifyContent: "center", gap: 14, padding: 28 },
-  gradientBackground: { ...StyleSheet.absoluteFill, overflow: "hidden", backgroundColor: "#101A3A" },
-  gradientBlob: { position: "absolute", width: 300, height: 300, borderRadius: 150, opacity: 0.55 },
-  blueBlob: { top: -90, left: -80, backgroundColor: "#2D8CFF" },
-  yellowBlob: { top: 180, right: -120, backgroundColor: "#E8E296" },
-  purpleBlob: { bottom: 30, left: -110, backgroundColor: "#7C5CFF" },
-  gradientFade: { ...StyleSheet.absoluteFill, opacity: 0.72 },
-  content: { padding: 20, paddingBottom: 44, gap: 16 },
-  hero: { alignItems: "center", paddingVertical: 10, gap: 10 },
-  heroIcon: { width: 58, height: 58, borderRadius: 29, backgroundColor: BRAND_YELLOW, alignItems: "center", justifyContent: "center" },
-  heroTitle: { fontSize: 25, fontWeight: "900", textAlign: "center" },
-  heroText: { fontSize: 15, lineHeight: 22, textAlign: "center", maxWidth: 360 },
-  planCard: { borderWidth: 1, borderRadius: 22, padding: 18, gap: 18 },
-  popularCard: { borderWidth: 2 },
-  popularBadge: { alignSelf: "flex-start", borderRadius: 10, paddingHorizontal: 10, paddingVertical: 5 },
-  popularBadgeText: { color: "#101827", fontSize: 10, fontWeight: "900", letterSpacing: 0.7 },
-  planHeader: { flexDirection: "row", alignItems: "center", gap: 13 },
-  planIcon: { width: 48, height: 48, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+  content: { paddingBottom: 48 },
+  brandPanel: {
+    minHeight: 92,
+    paddingHorizontal: 22,
+    borderBottomWidth: 4,
+    borderBottomColor: "#258AF2",
+    backgroundColor: "#071B3B",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  brandLogo: { width: 190, height: 70 },
+  hero: { alignItems: "center", paddingHorizontal: 24, paddingTop: 28, paddingBottom: 22 },
+  heroTitle: { fontSize: 29, lineHeight: 36, fontWeight: "900", textAlign: "center" },
+  heroSubtitle: { maxWidth: 390, marginTop: 8, fontSize: 15, lineHeight: 22, textAlign: "center" },
+  planCard: {
+    marginHorizontal: 18,
+    marginBottom: 18,
+    borderWidth: 2,
+    borderRadius: 24,
+    padding: 20,
+    gap: 20,
+  },
+  paidCard: { borderWidth: 2 },
+  planTopRow: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   planHeading: { flex: 1, gap: 3 },
-  planName: { fontSize: 20, fontWeight: "900" },
-  price: { fontSize: 22, fontWeight: "900" },
-  period: { fontSize: 13, fontWeight: "600" },
-  planDescription: { fontSize: 14, lineHeight: 20 },
-  features: { gap: 10 },
-  featureRow: { flexDirection: "row", alignItems: "flex-start", gap: 9 },
-  featureText: { flex: 1, fontSize: 14, lineHeight: 20 },
-  freeNote: { fontSize: 13, textAlign: "center" },
+  freePlanName: { fontSize: 23, fontWeight: "900", letterSpacing: 0.3 },
+  freePrice: { fontSize: 43, lineHeight: 49, fontWeight: "900" },
+  currentBadge: {
+    minHeight: 34,
+    borderRadius: 999,
+    paddingHorizontal: 11,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  currentBadgeText: { fontSize: 10, fontWeight: "900", letterSpacing: 0.5 },
+  features: { gap: 13 },
+  featureRow: { flexDirection: "row", alignItems: "center", gap: 11 },
+  checkIcon: {
+    width: 27,
+    height: 27,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  featureText: { flex: 1, fontSize: 15, lineHeight: 21, fontWeight: "600" },
+  planButton: {
+    minHeight: 54,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  planButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "900" },
+  paidHeadingRow: { flexDirection: "row", alignItems: "center", gap: 13 },
+  crownIcon: {
+    width: 51,
+    height: 51,
+    borderRadius: 17,
+    backgroundColor: "#F7D563",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  paidPlanName: { fontSize: 23, fontWeight: "900", letterSpacing: 0.3 },
+  pricePending: { fontSize: 24, lineHeight: 30, fontWeight: "900" },
+  paidDescription: { fontSize: 15, lineHeight: 22 },
+  renewalPanel: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  renewalText: { flex: 1, gap: 4 },
+  renewalTitle: { fontSize: 15, fontWeight: "900" },
+  renewalDescription: { fontSize: 13, lineHeight: 19 },
+  pendingFeature: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  pendingFeatureText: { flex: 1, fontSize: 14, lineHeight: 20 },
+  paidButton: {
+    width: "100%",
+    alignSelf: "stretch",
+    flexDirection: "row",
+    flexWrap: "nowrap",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 18,
+    gap: 9,
+    borderWidth: 2,
+    borderColor: "#FFE680",
+    backgroundColor: "#A86F00",
+  },
+  paidButtonEnabled: {
+    shadowColor: "#FFD21F",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.78,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  paidButtonPressed: { opacity: 0.88, transform: [{ scale: 0.985 }] },
+  paidButtonText: { flexShrink: 1, fontSize: 16, fontWeight: "900", textAlign: "center" },
+  disabledButton: {
+    borderColor: "#D4C9A4",
+    backgroundColor: "#E8E0C7",
+    opacity: 0.55,
+    shadowOpacity: 0,
+    elevation: 0,
+  },
+  deactivateButton: {
+    minHeight: 52,
+    borderWidth: 1,
+    borderColor: "#D95D52",
+    borderRadius: 16,
+    backgroundColor: "#3A1715",
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  deactivateButtonPressed: { opacity: 0.82, transform: [{ scale: 0.985 }] },
+  deactivateButtonDisabled: { opacity: 0.58 },
+  deactivateButtonText: { color: "#FFDAD6", fontSize: 15, fontWeight: "900", textAlign: "center" },
+  safetyNote: {
+    marginHorizontal: 18,
+    borderRadius: 17,
+    padding: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  safetyNoteText: { flex: 1, fontSize: 13, lineHeight: 19 },
 });

@@ -20,10 +20,12 @@
         "EXPO_PUBLIC_FORCE_TURN": "false",
         "EXPO_PUBLIC_LIVE_MEDIA_PROVIDER": "mediasoup",
         "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED": "false",
-        "EXPO_PUBLIC_ENABLE_PAYMENTS": "false"
+        "EXPO_PUBLIC_ENABLE_PAYMENTS": "false",
+        "EXPO_PUBLIC_ENABLE_STRIPE_SANDBOX": "true"
       }
     },
     "staging": {
+      "autoIncrement": true,
       "distribution": "internal",
       "environment": "preview",
       "android": { "buildType": "apk" },
@@ -42,7 +44,8 @@
         "EXPO_PUBLIC_FORCE_TURN": "false",
         "EXPO_PUBLIC_LIVE_MEDIA_PROVIDER": "mediasoup",
         "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED": "false",
-        "EXPO_PUBLIC_ENABLE_PAYMENTS": "false"
+        "EXPO_PUBLIC_ENABLE_PAYMENTS": "false",
+        "EXPO_PUBLIC_ENABLE_STRIPE_SANDBOX": "true"
       }
     },
     "preview": { "extends": "staging" },
@@ -65,7 +68,8 @@
         "EXPO_PUBLIC_FORCE_TURN": "false",
         "EXPO_PUBLIC_LIVE_MEDIA_PROVIDER": "mediasoup",
         "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED": "false",
-        "EXPO_PUBLIC_ENABLE_PAYMENTS": "false"
+        "EXPO_PUBLIC_ENABLE_PAYMENTS": "false",
+        "EXPO_PUBLIC_ENABLE_STRIPE_SANDBOX": "true"
       }
     }
   },

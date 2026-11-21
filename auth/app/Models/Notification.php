@@ -10,6 +10,7 @@ class Notification extends Model
     public const TYPE_MESSAGE_REACTION = 'message_reaction';
     public const TYPE_TEXT = 'text';
     public const TYPE_VIDEO_READY = 'video_ready';
+    public const TYPE_VIDEO_ENHANCEMENT_READY = 'video_enhancement_ready';
 
     protected $table = 'notifications';
 

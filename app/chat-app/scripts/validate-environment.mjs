@@ -86,6 +86,10 @@ export function validateEnvironment(profileName, values) {
   if (values.EXPO_PUBLIC_ENABLE_PAYMENTS !== "false") {
     errors.push("EXPO_PUBLIC_ENABLE_PAYMENTS must be false for the first public release.");
   }
+  const expectedSandboxSetting = "true";
+  if (values.EXPO_PUBLIC_ENABLE_STRIPE_SANDBOX !== expectedSandboxSetting) {
+    errors.push(`EXPO_PUBLIC_ENABLE_STRIPE_SANDBOX must be ${expectedSandboxSetting}.`);
+  }
 
   return errors;
 }
@@ -106,6 +110,7 @@ export function validateProfile(profileName, environment = process.env) {
     "EXPO_PUBLIC_LIVE_MEDIA_PROVIDER",
     "EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED",
     "EXPO_PUBLIC_ENABLE_PAYMENTS",
+    "EXPO_PUBLIC_ENABLE_STRIPE_SANDBOX",
   ];
   for (const name of names) {
     if (environment[name] !== undefined) values[name] = environment[name];

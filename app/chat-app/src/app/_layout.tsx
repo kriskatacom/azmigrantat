@@ -7,6 +7,7 @@ import { NetworkProvider } from "@/contexts/NetworkContext";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { ThemeProvider, useAppTheme } from "@/contexts/ThemeContext";
 import { VideoCallProvider } from "@/contexts/VideoCallContext";
+import { VideoVolumeProvider } from "@/contexts/VideoVolumeContext";
 import { useAuth } from "@/hooks/useAuth";
 import { createDirectConversation, markConversationAsRead } from "@/services/chat";
 import { parseIncomingCallData, setupIncomingCallNotifications } from "@/services/incoming-call";
@@ -219,6 +220,17 @@ function NotificationNavigationHandler() {
       const actionIdentifier = response.actionIdentifier;
 
       console.log("Notification action:", actionIdentifier);
+
+      if (data?.type === "video_enhancement_ready") {
+        const videoId = Number(data?.video_id);
+        const jobId = String(data?.enhancement_job_id ?? "");
+        if (Number.isInteger(videoId) && videoId > 0 && jobId) {
+          router.push(`/videos/${videoId}/enhance?jobId=${encodeURIComponent(jobId)}` as Href);
+          return;
+        }
+        router.push("/notifications");
+        return;
+      }
 
       if (data?.type === "video_ready") {
         const notificationId = Number(data?.notification_id);
@@ -571,19 +583,21 @@ function SplashOverlay({ children }: PropsWithChildren) {
 export default function Layout() {
   return (
     <ThemeProvider>
-      <ThemedRoot>
-        <NetworkProvider>
-          <AuthProvider>
-            <SplashOverlay>
-              <SocketProvider>
-                <VideoCallProvider>
-                  <RootNavigator />
-                </VideoCallProvider>
-              </SocketProvider>
-            </SplashOverlay>
-          </AuthProvider>
-        </NetworkProvider>
-      </ThemedRoot>
+      <VideoVolumeProvider>
+        <ThemedRoot>
+          <NetworkProvider>
+            <AuthProvider>
+              <SplashOverlay>
+                <SocketProvider>
+                  <VideoCallProvider>
+                    <RootNavigator />
+                  </VideoCallProvider>
+                </SocketProvider>
+              </SplashOverlay>
+            </AuthProvider>
+          </NetworkProvider>
+        </ThemedRoot>
+      </VideoVolumeProvider>
     </ThemeProvider>
   );
 }

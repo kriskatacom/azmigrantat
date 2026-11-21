@@ -173,6 +173,14 @@ final class EnvConfig
 
             ['key' => 'GOOGLE_WEB_CLIENT_ID', 'label' => 'Google Web Client ID', 'group' => 'Google', 'secret' => false],
 
+            ['key' => 'STRIPE_TEST_SECRET_KEY', 'label' => 'Stripe Sandbox ограничен API ключ', 'group' => 'Stripe Sandbox', 'secret' => true],
+            ['key' => 'STRIPE_TEST_WEBHOOK_SECRET', 'label' => 'Stripe Sandbox webhook secret', 'group' => 'Stripe Sandbox', 'secret' => true],
+            ['key' => 'STRIPE_SANDBOX_ENABLED', 'label' => 'Stripe Sandbox разрешен', 'group' => 'Stripe Sandbox', 'secret' => false, 'default' => 'false'],
+            ['key' => 'STRIPE_SANDBOX_ALLOWED_EMAILS', 'label' => 'Разрешени тестови имейли', 'group' => 'Stripe Sandbox', 'secret' => true],
+            ['key' => 'BILLING_ADMIN_SHARED_SECRET', 'label' => 'Подпис между business и admin billing API', 'group' => 'Stripe Sandbox', 'secret' => true, 'generate' => true],
+            ['key' => 'BILLING_CHECKOUT_SHARED_SECRET', 'label' => 'Подпис между business и checkout API', 'group' => 'Stripe Sandbox', 'secret' => true, 'generate' => true],
+            ['key' => 'BUSINESS_PUBLIC_URL', 'label' => 'Публичен business URL', 'group' => 'Stripe Sandbox', 'secret' => false, 'default' => 'https://business.azmigrantat.com'],
+
             ['key' => 'COMPANY_NAME', 'label' => 'Търговско име', 'group' => 'Компания', 'secret' => false, 'default' => 'Аз мигрантът'],
             ['key' => 'COMPANY_LEGAL_NAME', 'label' => 'Юридическо име', 'group' => 'Компания', 'secret' => false, 'default' => 'АЗ МИГРАНТЪТ ЕООД'],
             ['key' => 'COMPANY_LEGAL_FORM', 'label' => 'Правна форма', 'group' => 'Компания', 'secret' => false, 'default' => 'Еднолично дружество с ограничена отговорност (ЕООД)'],

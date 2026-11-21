@@ -6,6 +6,7 @@ use App\Controllers\BaseController;
 use App\Models\ContentReport;
 use App\Models\User;
 use App\Models\Video;
+use App\Models\VideoComment;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Validator;
 
@@ -19,7 +20,7 @@ final class ReportController extends BaseController
         $input = json_decode(file_get_contents('php://input'), true);
         $input = is_array($input) ? $input : [];
         $validator = Validator::make($input, [
-            'target_type' => 'required|in:user,video',
+            'target_type' => 'required|in:user,video,video_comment',
             'target_id' => ['required', 'regex:/^[1-9][0-9]{0,19}$/'],
             'reason' => 'required|in:spam,harassment,hate,sexual,violence,scam,privacy,other',
             'details' => 'nullable|string|max:1000',
@@ -28,9 +29,14 @@ final class ReportController extends BaseController
 
         $targetType = (string) $input['target_type'];
         $targetId = (string) $input['target_id'];
-        $reportedUserId = $targetType === 'user'
-            ? User::query()->whereKey($targetId)->value('id')
-            : Video::query()->whereKey($targetId)->value('user_id');
+        $reportedUserId = match ($targetType) {
+            'user' => User::query()->whereKey($targetId)->value('id'),
+            'video' => Video::query()->whereKey($targetId)->value('user_id'),
+            'video_comment' => VideoComment::query()
+                ->whereKey($targetId)
+                ->where('status', VideoComment::STATUS_ACTIVE)
+                ->value('user_id'),
+        };
 
         if (!$reportedUserId) return $this->json(['success' => false, 'message' => 'Съдържанието не е намерено.'], 404);
         if ((int) $reportedUserId === (int) $reporter->id) return $this->json(['success' => false, 'message' => 'Не можете да докладвате собствен профил или съдържание.'], 422);

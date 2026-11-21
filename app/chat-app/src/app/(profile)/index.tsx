@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getCurrentUserRequest } from "@/services/auth";
 import { updateCoverImageRequest, updateProfileImageRequest } from "@/services/profile";
 import { getCompanyByUser } from "@/services/company";
+import { getUserDisplayName } from "@/utils/user-display-name";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -110,15 +111,14 @@ export default function ProfileHomeScreen() {
     <View
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
     >
-      <Header title="Моят профил" hideSearchButton hideAuthButton />
+      <Header title="Моят профил" hideSearchButton hideAuthButton forceBackIcon />
       <ScrollView
         keyboardShouldPersistTaps="handled"
         contentInsetAdjustmentBehavior="automatic"
         contentContainerStyle={styles.content}
       >
         <ProfileIdentityCard
-          name={`${user.firstName} ${user.lastName}`.trim() || user.email}
-          publicCode={user.public_code}
+          name={getUserDisplayName(user)}
           imageUri={photoPreview ?? user.profile_image ?? user.avatar}
           coverUri={coverPreview ?? user.cover_image}
           isUploading={isUploadingPhoto}
@@ -160,6 +160,12 @@ export default function ProfileHomeScreen() {
           title="Сигурност"
           description="Парола, биометрия и начин на вход"
         />
+        <ProfileNavRow
+          href="/(profile)/subscriptions"
+          icon="star"
+          title="Абонаментни планове"
+          description="Безплатен и бъдещ платен план"
+        />
         {PAYMENTS_ENABLED ? (
           <ProfileNavRow
             href="/(profile)/payments"
@@ -185,16 +191,10 @@ export default function ProfileHomeScreen() {
           }
         />
         <ProfileNavRow
-          href="/(profile)/messages"
-          icon="comments"
-          title="Изтриване на съобщения"
-          description="Премахване на цялата чат история"
-        />
-        <ProfileNavRow
-          href="/(profile)/delete-account"
+          href="/(profile)/data-deletion"
           icon="trash"
-          title="Изтриване на профила"
-          description="Деактивиране на акаунта завинаги"
+          title="Изтриване на данни"
+          description="Съобщения, видеоклипове и профил"
         />
 
         <View style={styles.legalLinks}>

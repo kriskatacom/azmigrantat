@@ -11,8 +11,13 @@ const reasons: { label: string; value: ReportReason }[] = [
 ];
 
 export function showReportDialog(token: string, targetType: ReportTargetType, targetId: number): void {
+  const targetLabel = targetType === "user"
+    ? "потребител"
+    : targetType === "video_comment"
+      ? "коментар"
+      : "видео";
   Alert.alert(
-    targetType === "user" ? "Докладване на потребител" : "Докладване на видео",
+    `Докладване на ${targetLabel}`,
     "Изберете причина. Сигналът ще бъде изпратен до екипа за модерация.",
     [
       ...reasons.map(({ label, value }) => ({

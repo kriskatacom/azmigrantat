@@ -11,12 +11,16 @@ use App\Controllers\CityController;
 use App\Controllers\CompanyAdController;
 use App\Controllers\CompanyController;
 use App\Controllers\CompanyServiceController;
+use App\Controllers\SubscriptionCheckoutController;
 
 $router = new Router();
 
 require_once __DIR__ . '/core.php';
 
 $router->get('/cities/search', [CityController::class, 'search']);
+$router->get('/subscriptions/start', [SubscriptionCheckoutController::class, 'start']);
+$router->get('/subscriptions/result', [SubscriptionCheckoutController::class, 'result']);
+$router->post('/subscriptions/status', [SubscriptionCheckoutController::class, 'status']);
 
 // Административни рутове за градове
 $router->get('/admin/cities', [CityController::class, 'index'], $adminAuth);

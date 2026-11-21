@@ -18,6 +18,7 @@ use App\Services\BackblazeB2Service;
 use App\Services\BlockService;
 use App\Services\PhoneVerificationService;
 use App\Services\RealtimeNotifier;
+use App\Services\SubscriptionService;
 use App\Services\VideoStorageProviderFactory;
 use Illuminate\Database\Capsule\Manager as Capsule;
 use Illuminate\Support\Facades\Validator;
@@ -173,10 +174,13 @@ class UserController extends BaseApiController
             ], 404);
         }
 
-        $this->removeMissingBunnyVideos((int) $profile->id);
-
         $videoPage = max(1, (int) ($_GET['videos_page'] ?? 1));
         $videoLimit = min(20, max(1, (int) ($_GET['videos_limit'] ?? 10)));
+        $videoSearch = trim((string) ($_GET['videos_search'] ?? ''));
+        $videoSearch = mb_substr($videoSearch, 0, 100);
+        if ($videoSearch === '') {
+            $this->removeMissingBunnyVideos((int) $profile->id);
+        }
         $blockService = new BlockService();
         $videoQuery = Video::query()
             ->where('user_id', (int) $profile->id)
@@ -189,8 +193,20 @@ class UserController extends BaseApiController
                         Video::STATUS_PROCESSING,
                     ]);
                 }
-            })
-            ->latest('id');
+            });
+
+        if ($videoSearch !== '') {
+            $videoSearchTerms = preg_split('/[\s,]+/u', $videoSearch, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+            foreach (array_slice($videoSearchTerms, 0, 10) as $videoSearchTerm) {
+                $videoQuery->where(function ($query) use ($videoSearchTerm): void {
+                    $query
+                        ->where('title', 'LIKE', '%' . $videoSearchTerm . '%')
+                        ->orWhere('description', 'LIKE', '%' . $videoSearchTerm . '%');
+                });
+            }
+        }
+
+        $videoQuery->latest('id');
 
         $videoTotal = (clone $videoQuery)->count();
         $readyVideoQuery = Video::query()
@@ -220,6 +236,7 @@ class UserController extends BaseApiController
                 'file_size' => $video->file_size,
                 'total_views' => (int) $video->total_views,
                 'unique_viewers' => (int) $video->unique_viewers,
+                'comments_count' => (int) ($video->comments_count ?? 0),
                 'created_at' => $video->created_at?->toIso8601String(),
             ])
             ->values()
@@ -232,6 +249,7 @@ class UserController extends BaseApiController
                 'blocked_by_me' => $blockService->isBlockedBy((int) $viewer->id, (int) $profile->id),
                 'blocked_me' => $blockService->isBlockedBy((int) $profile->id, (int) $viewer->id),
             ]), [
+                'has_paid_subscription' => (new SubscriptionService())->hasPaidEntitlement($profile),
                 'videos' => $videos,
                 'video_stats' => $videoStats,
                 'videos_pagination' => [

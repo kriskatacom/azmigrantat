@@ -3,7 +3,10 @@
 use App\Core\View;
 use App\Helpers\SecurityHelper;
 
-$activePlan = $subscription && in_array($subscription->status, ['active', 'trialing'], true)
+$activePlan = $subscription
+    && in_array($subscription->status, ['active', 'trialing'], true)
+    && $subscription->current_period_end
+    && $subscription->current_period_end->isFuture()
     ? $subscription->plan
     : 'free';
 $selectedPlan = $selectedPlan ?? null;
@@ -37,19 +40,20 @@ $selectedPlan = $selectedPlan ?? null;
                         </div>
                         <div>
                             <h2 class="text-xl font-black text-slate-900"><?= htmlspecialchars($plan['name']) ?></h2>
-                            <p class="text-2xl font-black text-slate-900"><?= $plan['price_cents'] === 0 ? 'Безплатен' : number_format($plan['price_cents'] / 100, 2, '.', '') . ' €' ?><span class="text-sm font-semibold text-slate-500"><?= $plan['price_cents'] === 0 ? '' : ' / месец' ?></span></p>
+                            <?php $available = $key === 'free' || (($plan['active'] ?? true) && ($plan['configured'] ?? true)); ?>
+                            <p class="text-2xl font-black text-slate-900"><?= !$available || $plan['price_cents'] === 0 ? 'Безплатен' : number_format($plan['price_cents'] / 100, 2, '.', '') . ' €' ?><span class="text-sm font-semibold text-slate-500"><?= !$available || $plan['price_cents'] === 0 ? '' : ' / 30 дни' ?></span></p>
                         </div>
                     </div>
-                    <p class="mt-5 min-h-12 text-sm leading-6 text-slate-500"><?= htmlspecialchars($plan['description']) ?></p>
+                    <p class="mt-5 min-h-12 text-sm leading-6 text-slate-500"><?= htmlspecialchars((string) ($plan['description'] ?? '')) ?></p>
                     <ul class="mt-5 flex-1 space-y-3 border-t border-slate-100 pt-5">
-                        <?php foreach ($plan['features'] as $feature): ?>
+                        <?php foreach (($plan['features'] ?? []) as $feature): ?>
                             <li class="flex gap-2 text-sm leading-5 text-slate-700"><i class="fa-solid fa-circle-check mt-0.5 text-sky-500"></i><span><?= htmlspecialchars($feature) ?></span></li>
                         <?php endforeach; ?>
                     </ul>
                     <div class="mt-7">
                         <?php if ($isCurrent): ?>
                             <div class="rounded-xl bg-emerald-50 px-4 py-3 text-center text-sm font-bold text-emerald-700"><i class="fa-solid fa-check"></i> Текущ план</div>
-                        <?php elseif ($plan['price_cents'] > 0): ?>
+                        <?php elseif ($available && $plan['price_cents'] > 0): ?>
                             <form id="checkout-<?= htmlspecialchars($key) ?>" action="/subscriptions/checkout" method="POST">
                                 <?= SecurityHelper::csrfField() ?>
                                 <?= SecurityHelper::spamFields() ?>
@@ -57,7 +61,7 @@ $selectedPlan = $selectedPlan ?? null;
                                 <button type="submit" class="w-full rounded-xl bg-primary px-5 py-3 font-bold text-white transition hover:bg-darken-primary">Избери план</button>
                             </form>
                         <?php else: ?>
-                            <div class="rounded-xl bg-slate-100 px-4 py-3 text-center text-sm font-bold text-slate-500">Без месечна такса</div>
+                            <div class="rounded-xl bg-slate-100 px-4 py-3 text-center text-sm font-bold text-slate-500"><?= $key === 'free' ? 'Без такса' : 'Платеният план не е активен' ?></div>
                         <?php endif; ?>
                     </div>
                 </article>

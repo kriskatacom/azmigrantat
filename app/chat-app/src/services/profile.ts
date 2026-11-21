@@ -158,6 +158,7 @@ export type PublicUserProfile = {
   is_blocked_by_me: boolean;
   is_blocked_me: boolean;
   can_contact: boolean;
+  has_paid_subscription: boolean;
   videos?: VideoItem[];
   video_stats?: {
     video_count: number;
@@ -170,15 +171,22 @@ export type PublicUserProfile = {
 export async function getPublicProfile(
   token: string,
   userId: number,
-  options?: { videosPage?: number; videosLimit?: number },
+  options?: {
+    videosPage?: number;
+    videosLimit?: number;
+    videosSearch?: string;
+    signal?: AbortSignal;
+  },
 ): Promise<PublicUserProfile> {
   const params = new URLSearchParams();
   if (options?.videosPage) params.set("videos_page", String(options.videosPage));
   if (options?.videosLimit) params.set("videos_limit", String(options.videosLimit));
+  if (options?.videosSearch) params.set("videos_search", options.videosSearch);
   const query = params.toString();
   const response = await request<{ success: true; data: PublicUserProfile }>(
     `/api/mobile/users/${userId}${query ? `?${query}` : ""}`,
     token,
+    options?.signal ? { signal: options.signal } : undefined,
   );
 
   return response.data;

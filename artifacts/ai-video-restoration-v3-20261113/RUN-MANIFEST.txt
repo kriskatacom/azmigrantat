@@ -1,0 +1,13 @@
+source=/srv/azmigrantat-video/private/originals/130/8d061dd0-dd22-4481-8732-a09e25194e43.mp4@2s+3s
+common_input=01-original-compressed-360p-3s.mp4
+frames=72
+fps=24
+cpu_quota=400%
+memory_max=8G
+memory_high=6G
+memory_swap_max=0
+io_weight=1
+nice=19
+x2=RealESRGAN_x2plus OpenVINO 2024.6
+x4=realesr-general-x4v3 DNI=0.5 OpenVINO 2024.6
+temporal=FastDVDnet commit=c8fdf6182a0340e89dd18f5df25b47337cbede6f sigma=10 no-synthetic-noise + RealESRGAN_x2plus

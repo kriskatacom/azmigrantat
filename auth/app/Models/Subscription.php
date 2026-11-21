@@ -12,6 +12,7 @@ class Subscription extends Model
         'user_id', 'plan', 'stripe_customer_id', 'stripe_subscription_id',
         'stripe_price_id', 'status', 'cancel_at_period_end',
         'current_period_start', 'current_period_end',
+        'last_stripe_event_created_at', 'last_stripe_event_id',
     ];
 
     protected $casts = [
@@ -19,6 +20,7 @@ class Subscription extends Model
         'cancel_at_period_end' => 'boolean',
         'current_period_start' => 'datetime',
         'current_period_end' => 'datetime',
+        'last_stripe_event_created_at' => 'integer',
     ];
 
     public function user()

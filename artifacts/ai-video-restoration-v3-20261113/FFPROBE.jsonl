@@ -1,0 +1,186 @@
+{
+    "programs": [
+
+    ],
+    "streams": [
+        {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 640,
+            "height": 360,
+            "sample_aspect_ratio": "1:1",
+            "display_aspect_ratio": "16:9",
+            "r_frame_rate": "24/1",
+            "avg_frame_rate": "24/1",
+            "start_time": "0.000000"
+        },
+        {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "start_time": "0.000000"
+        }
+    ],
+    "format": {
+        "filename": "/srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/v3-real-clip-3s-20261113T025841Z/01-original-compressed-360p-3s.mp4",
+        "duration": "3.000000",
+        "size": "83124"
+    }
+}
+{
+    "programs": [
+
+    ],
+    "streams": [
+        {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720,
+            "sample_aspect_ratio": "1:1",
+            "display_aspect_ratio": "16:9",
+            "r_frame_rate": "24/1",
+            "avg_frame_rate": "24/1",
+            "start_time": "0.000000"
+        },
+        {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "start_time": "0.000000"
+        }
+    ],
+    "format": {
+        "filename": "/srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/v3-real-clip-3s-20261113T025841Z/02-standard-ffmpeg-720p-3s.mp4",
+        "duration": "3.018005",
+        "size": "742487"
+    }
+}
+{
+    "programs": [
+
+    ],
+    "streams": [
+        {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720,
+            "r_frame_rate": "24/1",
+            "avg_frame_rate": "24/1",
+            "start_time": "0.000000"
+        },
+        {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "start_time": "0.000000"
+        }
+    ],
+    "format": {
+        "filename": "/srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/v3-real-clip-3s-20261113T025841Z/03-ai-realesrgan-x2-720p-3s.mp4",
+        "duration": "3.000000",
+        "size": "881018"
+    }
+}
+{
+    "programs": [
+
+    ],
+    "streams": [
+        {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720,
+            "r_frame_rate": "24/1",
+            "avg_frame_rate": "24/1",
+            "start_time": "0.000000"
+        },
+        {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "start_time": "0.000000"
+        }
+    ],
+    "format": {
+        "filename": "/srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/v3-real-clip-3s-20261113T025841Z/04-ai-realesrgan-x4-720p-3s.mp4",
+        "duration": "3.000000",
+        "size": "922964"
+    }
+}
+{
+    "programs": [
+
+    ],
+    "streams": [
+        {
+            "index": 0,
+            "codec_name": "h264",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720,
+            "r_frame_rate": "24/1",
+            "avg_frame_rate": "24/1",
+            "start_time": "0.000000"
+        },
+        {
+            "index": 1,
+            "codec_name": "aac",
+            "codec_type": "audio",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "start_time": "0.000000"
+        }
+    ],
+    "format": {
+        "filename": "/srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/v3-real-clip-3s-20261113T025841Z/05-ai-fastdvdnet-realesrgan-x2-720p-3s.mp4",
+        "duration": "3.000000",
+        "size": "815618"
+    }
+}
+{
+    "programs": [
+
+    ],
+    "streams": [
+        {
+            "index": 0,
+            "codec_name": "ffv1",
+            "codec_type": "video",
+            "width": 1280,
+            "height": 720,
+            "sample_aspect_ratio": "1:1",
+            "display_aspect_ratio": "16:9",
+            "r_frame_rate": "24/1",
+            "avg_frame_rate": "24/1",
+            "start_time": "0.042000"
+        },
+        {
+            "index": 1,
+            "codec_name": "pcm_s16le",
+            "codec_type": "audio",
+            "r_frame_rate": "0/0",
+            "avg_frame_rate": "0/0",
+            "start_time": "0.000000"
+        }
+    ],
+    "format": {
+        "filename": "/srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/v3-real-clip-3s-20261113T025841Z/00-reference-720p-3s.mkv",
+        "duration": "3.000000",
+        "size": "15195625"
+    }
+}

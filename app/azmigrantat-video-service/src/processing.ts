@@ -48,15 +48,49 @@ export function normalizeFormatName(formatName: string): string {
     return formats.includes('mp4') ? 'mp4' : (formats[0] || '');
 }
 
+function fraction(value: unknown): number | undefined {
+    const [numerator, denominator] = String(value || '').split('/').map(Number);
+    const result = denominator > 0 ? numerator / denominator : Number(value);
+    return Number.isFinite(result) && result > 0 ? result : undefined;
+}
+
+function aspect(value: unknown, width: number, height: number, sar: string): number | undefined {
+    const normalized = String(value || '');
+    const [numerator, denominator] = normalized.split(':').map(Number);
+    if (numerator > 0 && denominator > 0) return numerator / denominator;
+    const [sarNumerator, sarDenominator] = sar.split(':').map(Number);
+    const result = width * (sarNumerator > 0 ? sarNumerator : 1) / (height * (sarDenominator > 0 ? sarDenominator : 1));
+    return Number.isFinite(result) && result > 0 ? result : undefined;
+}
+
+function finite(value: unknown): number | undefined { const parsed = Number(value); return Number.isFinite(parsed) ? parsed : undefined; }
+
 export class FfmpegProcessor {
     constructor(private readonly config: VideoServiceConfig, private readonly store: UploadStore, private readonly runner: CommandRunner = new SafeCommandRunner()) {}
 
     async probe(filePath: string): Promise<ProbeResult> {
         const result = await this.runner.run(this.config.ffprobeBin, ['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', filePath], this.config.processTimeoutSeconds * 1000);
-        const payload = JSON.parse(result.stdout) as { format?: { format_name?: string; duration?: string; size?: string }; streams?: Array<{ codec_type?: string; codec_name?: string; width?: number; height?: number }> };
+        const payload = JSON.parse(result.stdout) as {
+            format?: { format_name?: string; duration?: string; size?: string; start_time?: string };
+            streams?: Array<{ codec_type?: string; codec_name?: string; width?: number; height?: number; avg_frame_rate?: string; r_frame_rate?: string; nb_frames?: string; start_time?: string; duration?: string; sample_aspect_ratio?: string; display_aspect_ratio?: string; field_order?: string; color_range?: string; color_space?: string; color_transfer?: string; color_primaries?: string; tags?: { rotate?: string }; side_data_list?: Array<{ rotation?: number }> }>;
+        };
         const video = payload.streams?.find((stream) => stream.codec_type === 'video'); const audio = payload.streams?.find((stream) => stream.codec_type === 'audio');
         if (!video?.codec_name || !video.width || !video.height) throw new Error('FFprobe did not find a valid video stream.');
-        return { format: normalizeFormatName(payload.format?.format_name || ''), duration: Math.max(0, Number(payload.format?.duration || 0)), size: Math.max(0, Number(payload.format?.size || 0)), videoCodec: video.codec_name.toLowerCase(), audioCodec: audio?.codec_name?.toLowerCase() || null, width: video.width, height: video.height };
+        const fps = fraction(video.avg_frame_rate); const nominalFps = fraction(video.r_frame_rate);
+        const frameCount = Number(video.nb_frames || 0);
+        const sampleAspectRatio = String(video.sample_aspect_ratio || '1:1');
+        let rotation = Number(video.tags?.rotate || 0); for (const sideData of video.side_data_list || []) if (Number.isFinite(sideData.rotation)) rotation = Number(sideData.rotation);
+        rotation = ((Math.round(rotation) % 360) + 360) % 360;
+        const rawDisplayAspect = aspect(video.display_aspect_ratio, video.width, video.height, sampleAspectRatio);
+        const displayAspectRatio = rawDisplayAspect && (rotation === 90 || rotation === 270) ? 1 / rawDisplayAspect : rawDisplayAspect;
+        const startTime = finite(payload.format?.start_time); const videoStartTime = finite(video.start_time); const audioStartTime = finite(audio?.start_time); const audioDuration = finite(audio?.duration);
+        return {
+            format: normalizeFormatName(payload.format?.format_name || ''), duration: Math.max(0, Number(payload.format?.duration || 0)), size: Math.max(0, Number(payload.format?.size || 0)), videoCodec: video.codec_name.toLowerCase(), audioCodec: audio?.codec_name?.toLowerCase() || null, width: video.width, height: video.height,
+            ...(fps ? { fps } : {}), ...(nominalFps ? { nominalFps } : {}), ...(Number.isFinite(frameCount) && frameCount > 0 ? { frameCount } : {}),
+            ...(startTime !== undefined ? { startTime } : {}), ...(videoStartTime !== undefined ? { videoStartTime } : {}), ...(audioStartTime !== undefined ? { audioStartTime } : {}), ...(audioDuration !== undefined ? { audioDuration } : {}),
+            sampleAspectRatio, ...(displayAspectRatio ? { displayAspectRatio } : {}), rotation, fieldOrder: String(video.field_order || 'unknown'),
+            ...(video.color_range ? { colorRange: video.color_range } : {}), ...(video.color_space ? { colorSpace: video.color_space } : {}), ...(video.color_transfer ? { colorTransfer: video.color_transfer } : {}), ...(video.color_primaries ? { colorPrimaries: video.color_primaries } : {}),
+        };
     }
 
     async process(job: ProcessingJob): Promise<ProcessingOutcome> {

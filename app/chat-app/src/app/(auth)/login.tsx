@@ -3,6 +3,9 @@ import AuthHero from "@/components/auth/auth-hero";
 import AuthLegalLinks from "@/components/auth/auth-legal-links";
 import BiometricLoginButton from "@/components/auth/biometric-login-button";
 import GoogleLoginButton from "@/components/auth/google-login-button";
+import RegistrationPlanChoiceModal, {
+  type RegistrationPlan,
+} from "@/components/auth/registration-plan-choice-modal";
 import FacebookLoginButton from "@/components/auth/facebook-login-button";
 import AppButton from "@/components/ui/AppButton";
 import AppInput from "@/components/ui/AppInput";
@@ -16,11 +19,14 @@ import {
   DeviceVerificationRequiredError,
   EmailCodeRequiredError,
   TotpRequiredError,
+  completeRegistrationPlanChoiceRequest,
   devicePendingStatusRequest,
   loginOptionsRequest,
   resendEmailLoginCodeRequest,
   sendDeviceEmailCodeRequest,
 } from "@/services/auth";
+import { createSubscriptionCheckout } from "@/services/payments";
+import type { AuthResponse } from "@/types/auth";
 import { isNetworkError } from "@/services/network-guard";
 import { getLastLoginEmail } from "@/services/device-identity";
 import { FontAwesome } from "@expo/vector-icons";
@@ -30,6 +36,7 @@ import {
   Alert,
   Animated,
   KeyboardAvoidingView,
+  Linking,
   Platform,
   ScrollView,
   StyleSheet,
@@ -59,6 +66,7 @@ export default function LoginScreen() {
     completeDevicePending,
     completeDeviceEmailCode,
     completeEmailLogin,
+    completeAuthResponse,
     lastLoginEmail,
     canUseFingerprintLogin,
     canUseDeviceLockLogin,
@@ -85,6 +93,10 @@ export default function LoginScreen() {
     string | null
   >(null);
   const [loginEmailCode, setLoginEmailCode] = useState("");
+  const [pendingGoogleAuth, setPendingGoogleAuth] = useState<AuthResponse | null>(null);
+  const [selectedGooglePlan, setSelectedGooglePlan] = useState<RegistrationPlan>("free");
+  const [googlePlanVisible, setGooglePlanVisible] = useState(false);
+  const [googlePlanSubmitting, setGooglePlanSubmitting] = useState(false);
 
   const passwordRef = useRef<TextInput>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -394,6 +406,59 @@ export default function LoginScreen() {
       );
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleGoogleAuthenticated = async (response: AuthResponse) => {
+    if (!response.requiresPlanChoice && !response.isNewUser) {
+      await completeAuthResponse(response);
+      return;
+    }
+
+    setPendingGoogleAuth(response);
+    setSelectedGooglePlan("free");
+    setGooglePlanVisible(true);
+  };
+
+  const completeGooglePlanChoice = async () => {
+    if (!pendingGoogleAuth || googlePlanSubmitting) return;
+
+    try {
+      setGooglePlanSubmitting(true);
+      let checkoutUrl: string | null = null;
+
+      if (selectedGooglePlan === "paid") {
+        checkoutUrl = await createSubscriptionCheckout(
+          pendingGoogleAuth.token,
+          "paid",
+        );
+        if (
+          !checkoutUrl.startsWith(
+            "https://business.azmigrantat.com/subscriptions/start?token=",
+          )
+        ) {
+          throw new Error("Получен е невалиден адрес за плащане.");
+        }
+      }
+
+      await completeRegistrationPlanChoiceRequest(
+        pendingGoogleAuth.token,
+        selectedGooglePlan,
+      );
+      await completeAuthResponse(pendingGoogleAuth);
+      setGooglePlanVisible(false);
+      setPendingGoogleAuth(null);
+
+      if (checkoutUrl) await Linking.openURL(checkoutUrl);
+    } catch (error) {
+      Alert.alert(
+        "Изборът не е завършен",
+        error instanceof Error
+          ? error.message
+          : "Опитайте отново.",
+      );
+    } finally {
+      setGooglePlanSubmitting(false);
     }
   };
 
@@ -807,6 +872,8 @@ export default function LoginScreen() {
                 </View>
                 <GoogleLoginButton
                   rememberMe={rememberMe}
+                  deferSession
+                  onAuthenticated={handleGoogleAuthenticated}
                   onTotpRequired={(pendingToken) => {
                     fadeIn();
                     setTotpPendingToken(pendingToken);
@@ -875,6 +942,13 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </Animated.View>
+      <RegistrationPlanChoiceModal
+        visible={googlePlanVisible}
+        selectedPlan={selectedGooglePlan}
+        submitting={googlePlanSubmitting}
+        onSelect={setSelectedGooglePlan}
+        onContinue={completeGooglePlanChoice}
+      />
     </KeyboardAvoidingView>
   );
 }

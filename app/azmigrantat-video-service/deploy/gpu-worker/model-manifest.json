@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "model_id": "H-oliday/SwiftVR",
+  "model_revision": "a0b09461bd89847712dd91dbb4c63541b4693936",
+  "source_repository": "https://github.com/H-oliday/SwiftVR",
+  "source_revision": "4fb82651efee06a90ac47fd2d9af2f632e84ab45",
+  "source_archive_sha256": "5a2ccc9234c50cbcfc9d72a81f37d9d18ba59fa4c3695023533e95732de305a5",
+  "source_license": "Apache-2.0",
+  "source_license_sha256": "3c4b06673cfcd41f8967e42630b86457fabceedb2d8521f81b9396430af349f1",
+  "weights_license": "SwiftVR Research License",
+  "weights_license_sha256": "278e70b8451cd1d4c4a14aa6e66525f26a0df11b00579ef34f1fb053a877e118",
+  "commercial_authorization_required": true,
+  "commercial_authorization_approved": false,
+  "files": [
+    {
+      "path": "prompt_embedding.safetensors",
+      "size": 4202976,
+      "sha256": "cc4cf7b9aa9def4026bb5952b8aaec846ffc83eee43cafff0d3796b7e9fdf922"
+    },
+    {
+      "path": "reae.safetensors",
+      "size": 163797568,
+      "sha256": "c915205d1833677b6887e2fdf675499d3fc781af0c644c99330f7d22fd855514"
+    },
+    {
+      "path": "transformer/config.json",
+      "size": 495,
+      "sha256": "dc00d9866e72cf77db6b531aaa33be4dc7148fef9338442bd0ae9181f7075e9b"
+    },
+    {
+      "path": "transformer/diffusion_pytorch_model.safetensors",
+      "size": 19999235584,
+      "sha256": "f7ade5b8f7f4ff8b4e26a581772ebe5bcfb6a619ece2dd3483c5395c2d7e1a31"
+    }
+  ]
+}

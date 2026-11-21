@@ -1,0 +1,11 @@
+e15809b4c00e76ca28f94e9e585c1e33290b43c5f796b271934f96707b4373a5  /srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/v3-real-clip-3s-20261113T025841Z/01-original-compressed-360p-3s.mp4
+8f59a384738efd854861eff450f1ade679371b15c9eaca98df4757b9cfe70ebe  /srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/v3-real-clip-3s-20261113T025841Z/02-standard-ffmpeg-720p-3s.mp4
+ea29f22f1c5728c3b7acd45cadabf0c7a0e2d8f3e29a542be7975d9de73340d7  /srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/v3-real-clip-3s-20261113T025841Z/03-ai-realesrgan-x2-720p-3s.mp4
+36f6d8e7f7f326bdaf18f61ec7c09ba143ff146ecd9653695270bd0ec30168f3  /srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/v3-real-clip-3s-20261113T025841Z/04-ai-realesrgan-x4-720p-3s.mp4
+a553f6409391956551d37a874dd898dfec6f7328dfc37854a8dc5d2b58c0eecf  /srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/v3-real-clip-3s-20261113T025841Z/05-ai-fastdvdnet-realesrgan-x2-720p-3s.mp4
+8ddb97545030effab731c5ddfb93fa0e04a83ea33e84c277c59c9ae2833b49c1  /srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/v3-real-clip-3s-20261113T025841Z/00-reference-720p-3s.mkv
+55d7cb1560c0c635bbcc305eab714fea92d34e3b4cb7ce153de551569e4ffb22  /srv/azmigrantat-video/ai-cpu-lab-20261113/runtime/openvino/RealESRGAN_x2plus-640x360.xml
+841dd8686fadff69a194b97042f4262e771bec466786ee4482c469d1bd358277  /srv/azmigrantat-video/ai-cpu-lab-20261113/runtime/openvino/RealESRGAN_x2plus-640x360.bin
+d0b01b572ed54f1a80734b4e1cda81828afc40fc793e71263e24a4df5ab5d234  /srv/azmigrantat-video/ai-cpu-lab-20261113/runtime/openvino/realesr-general-x4v3-dn050-640x360.xml
+a8ceaddf6a538df0633d5688138f5e16c765e2a59696777969f854b2576434f3  /srv/azmigrantat-video/ai-cpu-lab-20261113/runtime/openvino/realesr-general-x4v3-dn050-640x360.bin
+9d9d8413c33e3d9d961d07c530237befa1197610b9d60602ff42fd77975d2a17  /srv/azmigrantat-video/ai-cpu-lab-20261113/runtime/fastdvdnet/model.pth

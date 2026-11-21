@@ -1,0 +1,6 @@
+964696f5c5558a8adcea97834a858997a22003a4ad6db83d269e1d0055e3d223  /srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/openvino-RealESRGAN_x2plus-10s-20261113T001853Z/00-lossless-reference-10s.mkv
+0f406e093f5a591ebdaca3d8d173da5e65c514dde66d35dc68f3137cb0b5d576  /srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/openvino-RealESRGAN_x2plus-10s-20261113T001853Z/01-original-degraded-360p-10s.mp4
+af90fe77a1ce436e1474a0a4f436fdf747103ea4e1fd4160ea8553aa33f64287  /srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/openvino-RealESRGAN_x2plus-10s-20261113T001853Z/02-standard-ffmpeg-720p-10s.mp4
+5e86c58d1cea88164e606e41e6fdba7a5360ffb26d709432a0e4a63f69977b1c  /srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/openvino-RealESRGAN_x2plus-10s-20261113T001853Z/03-ai-openvino-720p-10s.mp4
+55d7cb1560c0c635bbcc305eab714fea92d34e3b4cb7ce153de551569e4ffb22  /srv/azmigrantat-video/ai-cpu-lab-20261113/runtime/openvino/RealESRGAN_x2plus-640x360.xml
+841dd8686fadff69a194b97042f4262e771bec466786ee4482c469d1bd358277  /srv/azmigrantat-video/ai-cpu-lab-20261113/runtime/openvino/RealESRGAN_x2plus-640x360.bin

@@ -9,6 +9,11 @@ import type {
   VideoPlaybackResponse,
   PublicVideosResponse,
   PublicUserSearchResponse,
+  VideoEnhancementJobResponse,
+  VideoEnhancementMode,
+  VideoEnhancementMethod,
+  VideoEnhancementTargetShortSide,
+  VideoEnhancementOptionsResponse,
 } from "@/types/video";
 import { File } from "expo-file-system";
 import { fetch } from "expo/fetch";
@@ -20,6 +25,7 @@ import { SecureTusUrlStorage, dedicatedTusFingerprint } from "@/services/dedicat
 import { isExpiredUploadStatus, shouldRetryTusStatus } from "@/services/video-upload-policy";
 import { parseJsonResponse } from "@/services/http-response";
 import { assertDedicatedVideoUrl } from "@/config/environment";
+import type { PlaceItem } from "@/services/places";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL;
 let activeNativeUploadId: string | null = null;
@@ -31,7 +37,7 @@ if (!API_URL) {
 
 export function beginVideoUpload(
   token: string,
-  input: { title: string; description: string; filename: string; mimeType: string; fileSize: number; categoryId?: number | null },
+  input: { title: string; description: string; filename: string; mimeType: string; fileSize: number; categoryId?: number | null; place?: PlaceItem | null },
 ): Promise<BeginVideoUploadResponse> {
   return authorizedJson<BeginVideoUploadResponse>(
     `${API_URL}/api/mobile/videos/uploads`,
@@ -45,6 +51,7 @@ export function beginVideoUpload(
         mime_type: input.mimeType,
         file_size: input.fileSize,
         ...(input.categoryId ? { category_id: input.categoryId } : {}),
+        ...(input.place ? { place_id: input.place.id } : {}),
       }),
     },
   );
@@ -358,10 +365,49 @@ export function listVideos(token: string): Promise<VideosResponse> {
   return authorizedJson<VideosResponse>(`${API_URL}/api/mobile/videos`, token);
 }
 
-export async function listPublicVideos(search = "", signal?: AbortSignal, categoryId?: number): Promise<PublicVideosResponse> {
+export function getSavedVideoIds(token: string, videoIds: number[]): Promise<{
+  success: true;
+  data: { video_ids: number[] };
+}> {
+  const uniqueIds = [...new Set(videoIds.filter((id) => Number.isInteger(id) && id > 0))].slice(0, 100);
+  const params = new URLSearchParams({ video_ids: uniqueIds.join(",") });
+  return authorizedJson(`${API_URL}/api/mobile/video-saves?${params}`, token);
+}
+
+export function listSavedVideos(token: string, limit = 100): Promise<VideosResponse> {
+  const params = new URLSearchParams({ limit: String(Math.min(100, Math.max(1, limit))) });
+  return authorizedJson<VideosResponse>(`${API_URL}/api/mobile/saved-videos?${params}`, token);
+}
+
+export function saveVideoForUser(token: string, videoId: number): Promise<{
+  success: true;
+  data: { video_id: number; saved: true };
+}> {
+  return authorizedJson(`${API_URL}/api/mobile/videos/${videoId}/save`, token, { method: "POST" });
+}
+
+export function unsaveVideoForUser(token: string, videoId: number): Promise<{
+  success: true;
+  data: { video_id: number; saved: false };
+}> {
+  return authorizedJson(`${API_URL}/api/mobile/videos/${videoId}/save`, token, { method: "DELETE" });
+}
+
+export async function listPublicVideos(
+  search = "",
+  signal?: AbortSignal,
+  categoryId?: number,
+  placeId?: number,
+  pagination?: { page?: number; limit?: number; seed?: number; videoId?: number },
+): Promise<PublicVideosResponse> {
   const params = new URLSearchParams();
   if (search.trim()) params.set("search", search.trim());
   if (categoryId !== undefined) params.set("category_id", String(categoryId));
+  if (placeId !== undefined) params.set("place_id", String(placeId));
+  if (pagination?.page !== undefined) params.set("page", String(pagination.page));
+  if (pagination?.limit !== undefined) params.set("limit", String(pagination.limit));
+  if (pagination?.seed !== undefined) params.set("seed", String(pagination.seed));
+  if (pagination?.videoId !== undefined) params.set("video_id", String(pagination.videoId));
   const response = await fetch(`${API_URL}/api/videos${params.toString() ? `?${params}` : ""}`, { signal });
   const data = await parseJsonResponse<PublicVideosResponse | { message?: string }>(
     response,
@@ -441,4 +487,28 @@ export function deleteAllVideos(token: string): Promise<{ success: true; data: {
     token,
     { method: "DELETE" },
   );
+}
+
+export function getVideoEnhancementOptions(token: string, videoId: number): Promise<VideoEnhancementOptionsResponse> {
+  return authorizedJson(`${API_URL}/api/mobile/videos/${videoId}/enhancement-options`, token);
+}
+
+export function startVideoEnhancement(token: string, videoId: number, method: VideoEnhancementMethod, targetShortSide: VideoEnhancementTargetShortSide, mode: VideoEnhancementMode, idempotencyKey: string): Promise<VideoEnhancementJobResponse> {
+  return authorizedJson(`${API_URL}/api/mobile/videos/${videoId}/enhancements`, token, {
+    method: "POST",
+    headers: { "Idempotency-Key": idempotencyKey },
+    body: JSON.stringify({ mode, method, target_short_side: targetShortSide, fallback_policy: "none", idempotency_key: idempotencyKey }),
+  });
+}
+
+export function getVideoEnhancementStatus(token: string, videoId: number, jobId: string): Promise<VideoEnhancementJobResponse> {
+  return authorizedJson(`${API_URL}/api/mobile/videos/${videoId}/enhancements/${jobId}`, token);
+}
+
+export function cancelVideoEnhancement(token: string, videoId: number, jobId: string): Promise<VideoEnhancementJobResponse> {
+  return authorizedJson(`${API_URL}/api/mobile/videos/${videoId}/enhancements/${jobId}`, token, { method: "DELETE" });
+}
+
+export function selectVideoEnhancementVersion(token: string, videoId: number, jobId: string, version: "original" | "enhanced"): Promise<{ success: true; data: { selected_version: string; playback_url: string } }> {
+  return authorizedJson(`${API_URL}/api/mobile/videos/${videoId}/enhancements/${jobId}/select`, token, { method: "POST", body: JSON.stringify({ version }) });
 }

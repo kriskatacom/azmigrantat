@@ -1,0 +1,1 @@
+temporal_x2_elapsed_s=396.35 temporal_x2_maxrss_kb=1069292 temporal_x2_user_s=1546.31 temporal_x2_system_s=12.30

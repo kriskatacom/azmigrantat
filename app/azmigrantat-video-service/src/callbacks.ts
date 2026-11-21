@@ -1,4 +1,4 @@
-import { createHmac } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import { mkdir, readdir, readFile, rename, unlink, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { VideoServiceConfig } from './config';
@@ -38,6 +38,6 @@ export class StatusCallbackOutbox {
         }
     }
     private async isDelivered(eventId: string): Promise<boolean> { try { await readFile(join(this.deliveredDirectory, `${eventId}.json`)); return true; } catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false; throw error; } }
-    private async markDelivered(eventId: string): Promise<void> { const path = join(this.deliveredDirectory, `${eventId}.json`); const temporary = `${path}.tmp`; await writeFile(temporary, JSON.stringify({ event_id: eventId, delivered_at: new Date().toISOString() }), { mode: 0o640 }); await rename(temporary, path); }
-    private async save(path: string, event: CallbackEvent): Promise<void> { const temporary = `${path}.tmp`; await writeFile(temporary, JSON.stringify(event), { mode: 0o640 }); await rename(temporary, path); }
+    private async markDelivered(eventId: string): Promise<void> { const path = join(this.deliveredDirectory, `${eventId}.json`); const temporary = `${path}.${randomUUID()}.tmp`; await writeFile(temporary, JSON.stringify({ event_id: eventId, delivered_at: new Date().toISOString() }), { mode: 0o640 }); await rename(temporary, path); }
+    private async save(path: string, event: CallbackEvent): Promise<void> { const temporary = `${path}.${randomUUID()}.tmp`; await writeFile(temporary, JSON.stringify(event), { mode: 0o640 }); await rename(temporary, path); }
 }

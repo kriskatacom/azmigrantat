@@ -45,6 +45,12 @@ yarn-debug.log*
 yarn-error.log*
 .codex-attachments
 
+# Mobile release artifacts (publish through the app stores, not Git)
+*.apk
+*.aab
+*.apks
+*.ipa
+
 # OS/editor files
 .DS_Store
 .vscode/*.local.json

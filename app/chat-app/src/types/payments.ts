@@ -21,18 +21,14 @@ export type PaymentSettingsResponse = {
   auto_renewal: boolean;
 };
 
-export type SavePaymentMethodPayload = {
-  number: string;
-  exp_month: number;
-  exp_year: number;
-  cvc: string;
-  holder_name?: string;
-};
-
 export type ShortVideoPlan = {
   name: string;
-  price_cents: number;
+  price_cents: number | null;
   currency: string;
+  interval?: string | null;
+  interval_count?: number | null;
+  active?: boolean;
+  configured?: boolean;
   description?: string;
   features?: string[];
 };
@@ -40,6 +36,8 @@ export type ShortVideoPlan = {
 export type SubscriptionStatus = {
   plan: string;
   status: string;
+  entitled: boolean;
+  auto_renewal: boolean;
   cancel_at_period_end: boolean;
   current_period_end: string | null;
 };

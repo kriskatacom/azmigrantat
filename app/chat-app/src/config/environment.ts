@@ -19,6 +19,7 @@ export const runtimeEnvironmentValues: EnvironmentValues = {
   liveMediaProvider: process.env.EXPO_PUBLIC_LIVE_MEDIA_PROVIDER,
   homeVideoFeedDisabled: process.env.EXPO_PUBLIC_DISABLE_HOME_VIDEO_FEED,
   paymentsEnabled: process.env.EXPO_PUBLIC_ENABLE_PAYMENTS,
+  stripeSandboxEnabled: process.env.EXPO_PUBLIC_ENABLE_STRIPE_SANDBOX,
   facebookSignInEnabled: process.env.EXPO_PUBLIC_ENABLE_FACEBOOK_SIGN_IN,
 };
 
@@ -28,6 +29,8 @@ if (runtimeErrors.length > 0) {
 }
 
 export const PAYMENTS_ENABLED = runtimeEnvironmentValues.paymentsEnabled === "true";
+export const STRIPE_SANDBOX_ENABLED =
+  runtimeEnvironmentValues.stripeSandboxEnabled === "true";
 
 export function assertDedicatedVideoUrl(value: string): void {
   const expectedBase = runtimeEnvironmentValues.videoUrl;

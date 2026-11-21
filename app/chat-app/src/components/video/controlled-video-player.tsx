@@ -20,6 +20,8 @@ import {
   type VideoPlaybackFailureReason,
 } from "@/services/video-playback-errors";
 import { videoTimeForScrubPosition } from "@/services/video-scrubber";
+import { useVideoVolume } from "@/contexts/VideoVolumeContext";
+import { activateVideoVolumeButtons } from "../../../modules/video-volume-buttons";
 
 const SEEK_STEP_SECONDS = 10;
 const DOUBLE_TAP_DELAY_MS = 260;
@@ -29,7 +31,7 @@ const SCRUBBER_EXPAND_DURATION_MS = 180;
 const SCRUBBER_COLLAPSE_DELAY_MS = 3000;
 const SCRUBBER_RAISE_OFFSET = 10;
 const SCRUBBER_COMPACT_TOUCH_HEIGHT = 24;
-const SCRUBBER_EXPANDED_TOUCH_HEIGHT = 32;
+const SCRUBBER_EXPANDED_TOUCH_HEIGHT = 56;
 
 type Props = {
   url: string;
@@ -43,6 +45,7 @@ type Props = {
   style?: StyleProp<ViewStyle>;
   onVideoPress?: () => void;
   onPlaybackChange?: (isPlaying: boolean) => void;
+  onScrubbingChange?: (isScrubbing: boolean) => void;
   onViewVideo?: () => void;
   onPlaybackError?: (reason: VideoPlaybackFailureReason) => void;
   videoId?: number;
@@ -80,6 +83,7 @@ function FocusedControlledVideoPlayer({
   style,
   onVideoPress,
   onPlaybackChange,
+  onScrubbingChange,
   onViewVideo,
   onPlaybackError,
   videoId,
@@ -88,9 +92,11 @@ function FocusedControlledVideoPlayer({
   showProgress,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { volume: videoVolume } = useVideoVolume();
   const player = useVideoPlayer(url, (instance) => {
     instance.loop = loop;
     instance.muted = muted;
+    instance.volume = videoVolume;
     instance.timeUpdateEventInterval = 0.25;
     if (active) instance.play();
   });
@@ -116,7 +122,20 @@ function FocusedControlledVideoPlayer({
   const accumulatedSeekRef = useRef(0);
   const isScrubbingRef = useRef(false);
   const scrubTimeRef = useRef<number | null>(null);
+  const progressPageXRef = useRef<number | null>(null);
   const compactProgressExpansion = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (!active) return;
+    return activateVideoVolumeButtons();
+  }, [active]);
+
+  useEffect(() => {
+    // expo-video exposes volume and muted as imperative player properties.
+    // eslint-disable-next-line react-hooks/immutability
+    player.volume = videoVolume;
+    player.muted = muted || videoVolume <= 0;
+  }, [muted, player, videoVolume]);
 
   useEventListener(player, "statusChange", ({ status, error }) => {
     setIsReady(status === "readyToPlay");
@@ -241,9 +260,10 @@ function FocusedControlledVideoPlayer({
     player.seekBy(seconds);
   };
 
-  const expandCompactProgress = () => {
+  const expandCompactProgress = (autoCollapse = true) => {
     if (compactProgressCollapseTimerRef.current) {
       clearTimeout(compactProgressCollapseTimerRef.current);
+      compactProgressCollapseTimerRef.current = null;
     }
     compactProgressExpansion.stopAnimation();
     Animated.timing(compactProgressExpansion, {
@@ -251,6 +271,8 @@ function FocusedControlledVideoPlayer({
       duration: SCRUBBER_EXPAND_DURATION_MS,
       useNativeDriver: false,
     }).start();
+
+    if (!autoCollapse) return;
 
     compactProgressCollapseTimerRef.current = setTimeout(() => {
       Animated.timing(compactProgressExpansion, {
@@ -274,18 +296,26 @@ function FocusedControlledVideoPlayer({
     return targetTime;
   }, [scrubTimeForPosition]);
 
+  const progressPositionForEvent = (event: GestureResponderEvent): number => {
+    const originX = progressPageXRef.current;
+    if (originX === null) return event.nativeEvent.locationX;
+    return event.nativeEvent.pageX - originX;
+  };
+
   const handleProgressGrant = (event: GestureResponderEvent) => {
+    if (!isScrubbingRef.current) onScrubbingChange?.(true);
     isScrubbingRef.current = true;
-    updateScrubPreview(event.nativeEvent.locationX);
+    progressPageXRef.current = event.nativeEvent.pageX - event.nativeEvent.locationX;
+    updateScrubPreview(progressPositionForEvent(event));
   };
 
   const handleProgressMove = (event: GestureResponderEvent) => {
-    updateScrubPreview(event.nativeEvent.locationX);
+    updateScrubPreview(progressPositionForEvent(event));
   };
 
   const finishScrubbing = (event?: GestureResponderEvent) => {
     const eventTarget = event
-      ? updateScrubPreview(event.nativeEvent.locationX)
+      ? updateScrubPreview(progressPositionForEvent(event))
       : null;
     const targetTime = eventTarget ?? scrubTimeRef.current;
 
@@ -294,18 +324,21 @@ function FocusedControlledVideoPlayer({
       setCurrentTime(targetTime);
     }
 
+    const wasScrubbing = isScrubbingRef.current;
     isScrubbingRef.current = false;
     scrubTimeRef.current = null;
+    progressPageXRef.current = null;
     setScrubTime(null);
+    if (wasScrubbing) onScrubbingChange?.(false);
   };
 
   const handleCompactProgressGrant = (event: GestureResponderEvent) => {
-    expandCompactProgress();
+    expandCompactProgress(false);
     handleProgressGrant(event);
   };
 
   const handleCompactProgressInteraction = (event: GestureResponderEvent) => {
-    expandCompactProgress();
+    expandCompactProgress(false);
     handleProgressMove(event);
   };
 
@@ -341,7 +374,7 @@ function FocusedControlledVideoPlayer({
         onLayout={(event) => {
           videoWidthRef.current = event.nativeEvent.layout.width;
         }}
-        onPressIn={expandCompactProgress}
+        onPressIn={() => expandCompactProgress()}
         onPress={(event) => handleVideoTap(event.nativeEvent.locationX)}
         accessibilityRole="button"
         accessibilityLabel="Пусни или спри видеото. Двойно натискане отляво или отдясно превърта видеото."
@@ -439,11 +472,11 @@ function FocusedControlledVideoPlayer({
                 {
                   height: compactProgressExpansion.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [3, 5],
+                    outputRange: [2, 6],
                   }),
                   borderRadius: compactProgressExpansion.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [2, 4],
+                    outputRange: [1, 3],
                   }),
                 },
               ]}
@@ -458,27 +491,37 @@ function FocusedControlledVideoPlayer({
                   left: `${progress * 100}%`,
                   width: compactProgressExpansion.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [10, 14],
+                    outputRange: [0, 20],
                   }),
                   height: compactProgressExpansion.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [10, 14],
+                    outputRange: [0, 20],
                   }),
                   marginLeft: compactProgressExpansion.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [-5, -7],
+                    outputRange: [0, -10],
                   }),
                   top: compactProgressExpansion.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [7, 9],
+                    outputRange: [12, 18],
                   }),
                   borderRadius: compactProgressExpansion.interpolate({
                     inputRange: [0, 1],
-                    outputRange: [5, 7],
+                    outputRange: [0, 10],
                   }),
+                  opacity: compactProgressExpansion,
                 },
               ]}
             />
+            {scrubTime !== null ? (
+              <View pointerEvents="none" style={styles.compactScrubTimeLayer}>
+                <View style={styles.compactScrubTimeBubble}>
+                  <Text style={styles.compactScrubTimeText}>
+                    {formatTime(displayedTime)} / {formatTime(duration)}
+                  </Text>
+                </View>
+              </View>
+            ) : null}
           </Animated.View>
         </Animated.View>
       ) : null}
@@ -652,8 +695,8 @@ const styles = StyleSheet.create({
   },
   compactProgressContainer: {
     position: "absolute",
-    left: 24,
-    right: 24,
+    left: 0,
+    right: 0,
     height: 24,
     justifyContent: "center",
     zIndex: 10_000,
@@ -666,10 +709,10 @@ const styles = StyleSheet.create({
     elevation: 10_001,
   },
   compactProgressTrack: {
-    height: 3,
-    borderRadius: 2,
+    height: 2,
+    borderRadius: 1,
     overflow: "hidden",
-    backgroundColor: "rgba(255,255,255,0.48)",
+    backgroundColor: "rgba(255,255,255,0.30)",
   },
   compactProgressValue: {
     height: "100%",
@@ -679,11 +722,10 @@ const styles = StyleSheet.create({
   },
   compactProgressThumb: {
     position: "absolute",
-    top: 7,
-    width: 10,
-    height: 10,
-    marginLeft: -5,
-    borderRadius: 5,
+    top: 12,
+    width: 0,
+    height: 0,
+    borderRadius: 6,
     backgroundColor: "#FFFFFF",
     opacity: 1,
     shadowColor: "#000000",
@@ -691,6 +733,28 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     shadowOffset: { width: 0, height: 1 },
     elevation: 2,
+  },
+  compactScrubTimeLayer: {
+    position: "absolute",
+    top: -22,
+    right: 0,
+    left: 0,
+    alignItems: "center",
+  },
+  compactScrubTimeBubble: {
+    minWidth: 108,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(0,0,0,0.78)",
+  },
+  compactScrubTimeText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "700",
+    fontVariant: ["tabular-nums"],
   },
   controlRow: {
     minHeight: 48,

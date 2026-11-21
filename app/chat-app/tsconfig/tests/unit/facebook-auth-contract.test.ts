@@ -61,6 +61,7 @@ describe("Facebook authentication release contract", () => {
       liveMediaProvider: "mediasoup",
       homeVideoFeedDisabled: "false",
       paymentsEnabled: "false",
+      stripeSandboxEnabled: "true",
     };
     expect(validateRuntimeEnvironment(base)).toEqual([]);
     expect(validateRuntimeEnvironment({

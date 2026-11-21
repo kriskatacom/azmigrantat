@@ -2,7 +2,7 @@
   "expo": {
     "name": "Ето ме",
     "slug": "chat-app",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/eto-me.png",
     "scheme": "chatapp",
@@ -10,6 +10,7 @@
     "ios": {
       "icon": "./assets/images/eto-me.png",
       "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Разрешете достъп до местоположението, за да виждате най-близките населени места.",
         "UIBackgroundModes": [
           "audio",
           "remote-notification",
@@ -30,6 +31,23 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.etome.app",
       "googleServicesFile": "./google-services.json",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "etome.eu",
+              "pathPrefix": "/accounts/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
       "blockedPermissions": [
         "android.permission.SYSTEM_ALERT_WINDOW",
         "android.permission.READ_EXTERNAL_STORAGE",
@@ -47,6 +65,8 @@
         "android.permission.TURN_SCREEN_ON",
         "android.permission.DISABLE_KEYGUARD",
         "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION",
         "android.permission.CAMERA",
         "android.permission.INTERNET",
         "android.permission.MODIFY_AUDIO_SETTINGS",
@@ -72,6 +92,7 @@
         }
       ],
       "./plugins/withIncomingCall.js",
+      "./plugins/withVideoVolumeButtons.js",
       "@config-plugins/react-native-webrtc",
       [
         "expo-splash-screen",
@@ -149,6 +170,12 @@
       "expo-image",
       "expo-web-browser",
       "expo-asset"
+      ,[
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Разрешете достъп до местоположението, за да виждате най-близките населени места."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

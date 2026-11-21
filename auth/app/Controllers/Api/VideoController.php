@@ -5,6 +5,7 @@ namespace App\Controllers\Api;
 use App\Controllers\BaseController;
 use App\Models\Video;
 use App\Models\Category;
+use App\Models\Place;
 use App\Services\VideoViewService;
 use App\Models\Notification;
 use App\Services\BackblazeB2Service;
@@ -40,13 +41,30 @@ final class VideoController extends BaseController
         $categoryId = isset($_GET['category_id']) && $_GET['category_id'] !== ''
             ? (int) $_GET['category_id']
             : null;
+        $placeId = isset($_GET['place_id']) && $_GET['place_id'] !== '' ? (int) $_GET['place_id'] : null;
+        $videoId = isset($_GET['video_id']) && (int) $_GET['video_id'] > 0
+            ? (int) $_GET['video_id']
+            : null;
+        $place = $placeId ? Place::query()->find($placeId) : null;
         $limit = min(30, max(1, (int) ($_GET['limit'] ?? 12)));
         $page = max(1, (int) ($_GET['page'] ?? 1));
         $seed = max(1, (int) ($_GET['seed'] ?? random_int(1, PHP_INT_MAX)));
         $videos = Video::query()
-            ->with('owner')
+            ->with(['owner', 'place'])
             ->where('status', Video::STATUS_READY)
+            ->when($videoId !== null, fn ($query) => $query->where('id', $videoId))
             ->when($categoryId !== null, fn ($query) => $query->where('category_id', $categoryId))
+            ->when($place, function ($query) use ($place) {
+                if ($place->type === 'country') {
+                    $query->whereHas('place', fn ($places) => $places->where('country_code', $place->country_code));
+                } elseif (in_array($place->type, ['state', 'region'], true)) {
+                    $query->whereHas('place', fn ($places) => $places
+                        ->where('country_code', $place->country_code)
+                        ->where('region', $place->name));
+                } else {
+                    $query->where('place_id', (int) $place->id);
+                }
+            })
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($searchQuery) use ($search) {
                     $searchQuery
@@ -59,7 +77,8 @@ final class VideoController extends BaseController
                         });
                 });
             })
-            ->orderByRaw('RAND(?)', [$seed])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
             ->skip(($page - 1) * $limit)
             ->limit($limit + 1)
             ->get()
@@ -110,6 +129,9 @@ final class VideoController extends BaseController
         $categoryId = isset($input['category_id']) && $input['category_id'] !== '' && $input['category_id'] !== null
             ? (int) $input['category_id']
             : null;
+        $placeId = isset($input['place_id']) && $input['place_id'] !== '' && $input['place_id'] !== null
+            ? (int) $input['place_id']
+            : null;
         $mimeType = strtolower(trim((string) ($input['mime_type'] ?? '')));
         $fileSize = (int) ($input['file_size'] ?? 0);
 
@@ -125,6 +147,10 @@ final class VideoController extends BaseController
             // Categories are optional. Treat stale/deleted selections as no category
             // so a cached mobile form cannot block an otherwise valid upload.
             $categoryId = null;
+        }
+
+        if ($placeId !== null && ($placeId < 1 || !Place::query()->whereKey($placeId)->exists())) {
+            return $this->json(['success' => false, 'message' => 'Избраното населено място е невалидно.'], 422);
         }
 
         if (!in_array($mimeType, ['video/mp4', 'video/quicktime', 'video/webm', 'video/x-m4v'], true)) {
@@ -158,6 +184,7 @@ final class VideoController extends BaseController
                 $video = Video::query()->create([
                     'user_id' => (int) $user->id,
                     'category_id' => $categoryId,
+                    'place_id' => $placeId,
                     'provider' => 'oneprovider',
                     'provider_video_id' => null,
                     // Keep legacy Bunny columns valid for the existing schema
@@ -180,6 +207,7 @@ final class VideoController extends BaseController
                 $attributes = [
                     'user_id' => (int) $user->id,
                     'category_id' => $categoryId,
+                    'place_id' => $placeId,
                     'bunny_library_id' => (int) ($providerData['library_id'] ?? 0),
                     'bunny_video_guid' => $remote['storage_id'],
                     'title' => $title,
@@ -567,6 +595,15 @@ final class VideoController extends BaseController
         return [
             'id' => (int) $video->id,
             'category_id' => $video->category_id ? (int) $video->category_id : null,
+            'place_id' => $video->place_id ? (int) $video->place_id : null,
+            'place' => $video->relationLoaded('place') && $video->place ? [
+                'id' => (int) $video->place->id,
+                'name' => $video->place->name,
+                'type' => $video->place->type,
+                'country' => $video->place->country,
+                'region' => $video->place->region,
+                'city' => $video->place->city,
+            ] : null,
             'title' => $video->title,
             'description' => $video->description,
             'thumbnail_url' => $video->thumbnail_url,
@@ -578,6 +615,7 @@ final class VideoController extends BaseController
             'height' => $video->height,
             'total_views' => (int) $video->total_views,
             'unique_viewers' => (int) $video->unique_viewers,
+            'comments_count' => (int) ($video->comments_count ?? 0),
             'created_at' => $video->created_at?->toIso8601String(),
         ];
     }

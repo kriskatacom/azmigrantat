@@ -27,12 +27,13 @@ describe("payments disabled release contract", () => {
     expect(paymentService).toContain("Плащанията не са достъпни");
   });
 
-  it("keeps payment code but blocks checkout and PAN storage by default", () => {
+  it("keeps real payments disabled and removes PAN ingestion", () => {
     expect(backendFeature).toContain("PAYMENTS_ENABLED");
     expect(backendFeature).toContain("?: 'false'");
-    expect(backendCheckout).toContain("PaymentsFeature::assertEnabled();");
-    expect(backendCards).toContain("PaymentsFeature::assertEnabled();");
-    expect(backendCards).toContain("pan_ciphertext");
+    expect(backendCheckout).toContain("PaymentsFeature::isEnabled()");
+    expect(backendCheckout).toContain("Разрешени са само Stripe Sandbox");
+    expect(backendCards).not.toContain("function save(");
+    expect(backendCards).not.toContain("encryptPan");
     expect(subscriptionController.match(/paymentsUnavailable\(\)/g)?.length).toBeGreaterThanOrEqual(3);
     expect(subscriptionController).toContain("'code' => 'payments_disabled'");
   });

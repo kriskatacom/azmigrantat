@@ -5,7 +5,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useEffect, useRef, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Svg, { Defs, LinearGradient as SvgLinearGradient, Rect, Stop } from "react-native-svg";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -22,6 +22,7 @@ type Props = {
   interactionKey?: number;
   isPlaying?: boolean;
   rightInset?: number;
+  onDescriptionScrollChange?: (isScrolling: boolean) => void;
 };
 
 export default function VideoCaption({
@@ -32,6 +33,8 @@ export default function VideoCaption({
   interactionKey = 0,
   isPlaying = false,
   rightInset = 16,
+  maxHeight = 280,
+  onDescriptionScrollChange,
 }: Props) {
   const insets = useSafeAreaInsets();
   const [expanded, setExpanded] = useState(false);
@@ -52,7 +55,7 @@ export default function VideoCaption({
 
   useEffect(() => {
     if (autoHideTimerRef.current) clearTimeout(autoHideTimerRef.current);
-    if (!visible || !isPlaying) {
+    if (!visible || !isPlaying || expanded) {
       setAutoHidden(false);
       return;
     }
@@ -66,7 +69,7 @@ export default function VideoCaption({
     return () => {
       if (autoHideTimerRef.current) clearTimeout(autoHideTimerRef.current);
     };
-  }, [interactionKey, isPlaying, visible]);
+  }, [expanded, interactionKey, isPlaying, visible]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
@@ -77,6 +80,15 @@ export default function VideoCaption({
 
   const bottom = Math.max(insets.bottom + 8, 24, bottomOffset);
   const gradientHeight = Math.max(72, Math.min(descriptionHeight + 20, 280));
+  const keepCaptionVisible = () => {
+    if (autoHideTimerRef.current) {
+      clearTimeout(autoHideTimerRef.current);
+      autoHideTimerRef.current = null;
+    }
+    setAutoHidden(false);
+  };
+  const toggleDescription = () => setExpanded((current) => !current);
+  const descriptionViewportHeight = Math.max(96, maxHeight - 72);
 
   return (
     <Animated.View
@@ -104,28 +116,79 @@ export default function VideoCaption({
       </View>
 
       <Animated.View layout={LinearTransition.duration(280)} style={styles.captionContent}>
-        {title.trim() ? (
-          <Text style={[styles.title, { color: "#ffffff" }]} numberOfLines={2}>
-            {title.trim()}
-          </Text>
+        <Pressable
+          disabled={!hasDescription}
+          onPressIn={hasDescription ? keepCaptionVisible : undefined}
+          onPress={hasDescription ? toggleDescription : undefined}
+          style={styles.captionTextButton}
+          accessibilityRole={hasDescription ? "button" : undefined}
+          accessibilityLabel={hasDescription
+            ? (expanded ? "Свий описанието" : "Покажи цялото описание")
+            : undefined}
+        >
+          {title.trim() ? (
+            <Text style={[styles.title, { color: "#ffffff" }]} numberOfLines={2}>
+              {title.trim()}
+            </Text>
+          ) : null}
+        </Pressable>
+
+        {hasDescription && !expanded ? (
+          <Pressable
+            onPressIn={keepCaptionVisible}
+            onPress={toggleDescription}
+            style={styles.captionTextButton}
+            accessibilityRole="button"
+            accessibilityLabel="Покажи цялото описание"
+          >
+            <Text
+              style={[styles.description, { color: "#ffffff" }]}
+              numberOfLines={2}
+              onTextLayout={(event) => {
+                const lineCount = event.nativeEvent.lines.length;
+                setDescriptionHeight(Math.max(50, lineCount * 25 + 12));
+              }}
+            >
+              {cleanDescription}
+            </Text>
+          </Pressable>
         ) : null}
 
-        {hasDescription ? (
-          <Text
-            style={[styles.description, { color: "#ffffff" }]}
-            numberOfLines={expanded ? undefined : 2}
-            onTextLayout={(event) => {
-              const lineCount = event.nativeEvent.lines.length;
-              setDescriptionHeight(Math.max(50, lineCount * 25 + 12));
+        {hasDescription && expanded ? (
+          <ScrollView
+            style={[styles.expandedDescription, { maxHeight: descriptionViewportHeight }]}
+            contentContainerStyle={styles.expandedDescriptionContent}
+            nestedScrollEnabled
+            showsVerticalScrollIndicator
+            persistentScrollbar
+            onTouchStart={() => {
+              keepCaptionVisible();
+              onDescriptionScrollChange?.(true);
             }}
+            onTouchEnd={() => onDescriptionScrollChange?.(false)}
+            onTouchCancel={() => onDescriptionScrollChange?.(false)}
+            onScrollBeginDrag={() => onDescriptionScrollChange?.(true)}
+            onScrollEndDrag={() => onDescriptionScrollChange?.(false)}
+            onMomentumScrollEnd={() => onDescriptionScrollChange?.(false)}
           >
-            {cleanDescription}
-          </Text>
+            <Pressable onPress={toggleDescription} accessibilityRole="button" accessibilityLabel="Свий описанието">
+              <Text
+                style={[styles.description, styles.expandedDescriptionText, { color: "#ffffff" }]}
+                onTextLayout={(event) => {
+                  const lineCount = event.nativeEvent.lines.length;
+                  setDescriptionHeight(Math.max(50, lineCount * 25 + 12));
+                }}
+              >
+                {cleanDescription}
+              </Text>
+            </Pressable>
+          </ScrollView>
         ) : null}
 
         {hasDescription ? (
           <Pressable
-            onPress={() => setExpanded((current) => !current)}
+            onPressIn={keepCaptionVisible}
+            onPress={toggleDescription}
             style={styles.moreButton}
             accessibilityRole="button"
             accessibilityLabel={expanded ? "Свий описанието" : "Покажи цялото описание"}
@@ -145,10 +208,12 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 16,
     zIndex: 30,
+    elevation: 10_010,
     overflow: "visible",
   },
   gradient: { position: "absolute", left: -16, bottom: 0, zIndex: 1 },
   captionContent: { alignItems: "flex-start", zIndex: 2 },
+  captionTextButton: { alignSelf: "stretch" },
   title: {
     fontSize: 16,
     lineHeight: 21,
@@ -166,7 +231,22 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
-  moreButton: { marginTop: 2, paddingVertical: 4, paddingRight: 8 },
+  expandedDescription: {
+    alignSelf: "stretch",
+    marginTop: 3,
+  },
+  expandedDescriptionContent: { paddingRight: 8, paddingBottom: 4 },
+  expandedDescriptionText: { marginTop: 0 },
+  moreButton: {
+    minHeight: 36,
+    marginTop: 2,
+    marginLeft: -10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    justifyContent: "center",
+    zIndex: 31,
+    elevation: 10_011,
+  },
   moreButtonText: {
     fontSize: 12,
     fontWeight: "800",

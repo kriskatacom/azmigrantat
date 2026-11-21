@@ -5,6 +5,7 @@ namespace App\Controllers\Api;
 use App\Controllers\BaseController;
 use App\Services\PaymentMethodService;
 use App\Services\PaymentsFeature;
+use App\Services\SubscriptionRenewalService;
 use Illuminate\Support\Facades\Validator;
 use RuntimeException;
 
@@ -45,9 +46,6 @@ final class PaymentMethodController extends BaseController
         }
 
         $input = $this->jsonInput();
-        if (!PaymentsFeature::isEnabled() && filter_var($input['auto_renewal'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
-            return $this->paymentsUnavailable();
-        }
         $validator = Validator::make(
             $input,
             ['auto_renewal' => 'required|boolean'],
@@ -66,91 +64,29 @@ final class PaymentMethodController extends BaseController
             ], 422);
         }
 
-        $user->setAutoRenewal((bool) $input['auto_renewal']);
+        try {
+            $subscription = (new SubscriptionRenewalService())->update($user, (bool) $input['auto_renewal']);
+        } catch (RuntimeException $error) {
+            return $this->json(['success' => false, 'message' => $error->getMessage()], 422);
+        }
 
         return $this->json([
             'success' => true,
-            'message' => $user->wantsAutoRenewal()
+            'message' => !(bool) $subscription->cancel_at_period_end
                 ? 'Автоматичното подновяване е включено.'
                 : 'Автоматичното подновяване е изключено.',
-            'auto_renewal' => $user->wantsAutoRenewal(),
+            'auto_renewal' => !(bool) $subscription->cancel_at_period_end,
         ]);
     }
 
     public function store()
     {
-        $user = $this->authenticatedUser();
-
-        if (!$user) {
-            return $this->unauthorized();
-        }
-
-        if (!PaymentsFeature::isEnabled()) {
-            return $this->paymentsUnavailable();
-        }
-
-        $input = $this->jsonInput();
-        $validator = Validator::make(
-            $input,
-            [
-                'number' => 'required|string|max:32',
-                'exp_month' => 'required|integer|min:1|max:12',
-                'exp_year' => 'required|integer|min:2020|max:2100',
-                'cvc' => 'required|string|min:3|max:4',
-                'holder_name' => 'nullable|string|max:80',
-            ],
-            [
-                'required' => 'Полето :attribute е задължително.',
-                'integer' => 'Полето :attribute трябва да бъде число.',
-                'min' => 'Полето :attribute е невалидно.',
-                'max' => 'Полето :attribute е невалидно.',
-            ],
-            [
-                'number' => 'номер на карта',
-                'exp_month' => 'месец',
-                'exp_year' => 'година',
-                'cvc' => 'CVC',
-                'holder_name' => 'име на картодържател',
-            ]
-        );
-
-        if ($validator->fails()) {
-            return $this->json([
-                'success' => false,
-                'message' => $validator->errors()->first(),
-                'errors' => $validator->errors()->toArray(),
-            ], 422);
-        }
-
-        $cvc = preg_replace('/\D+/', '', (string) $input['cvc']) ?? '';
-
-        if (!preg_match('/^\d{3,4}$/', $cvc)) {
-            return $this->json([
-                'success' => false,
-                'message' => 'Невалиден CVC код.',
-            ], 422);
-        }
-
-        try {
-            $method = $this->paymentMethods->save(
-                $user,
-                (string) $input['number'],
-                (int) $input['exp_month'],
-                (int) $input['exp_year'],
-                isset($input['holder_name']) ? (string) $input['holder_name'] : null
-            );
-
-            return $this->json([
-                'success' => true,
-                'message' => 'Картата беше запазена за бъдещи плащания.',
-                'data' => $this->paymentMethods->serialize($method),
-            ], 201);
-        } catch (RuntimeException $exception) {
-            return $this->json([
-                'success' => false,
-                'message' => $exception->getMessage(),
-            ], 422);
-        }
+        if (!$this->authenticatedUser()) return $this->unauthorized();
+        return $this->json([
+            'success' => false,
+            'code' => 'stripe_hosted_only',
+            'message' => 'Картови данни се въвеждат единствено в защитената Stripe страница.',
+        ], 410);
     }
 
     public function setDefault($id)

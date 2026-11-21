@@ -13,6 +13,24 @@ function isIncomingCallPath(path: string): boolean {
   }
 }
 
+function publicProfileRoute(path: string): string | null {
+  try {
+    const parsed = new URL(path);
+    const hostname = parsed.hostname.toLowerCase();
+    if (parsed.protocol !== "https:" || hostname !== "etome.eu") {
+      return null;
+    }
+
+    const match = parsed.pathname.match(/^\/accounts\/(\d+)\/?$/);
+    if (!match) return null;
+
+    const userId = Number(match[1]);
+    return Number.isSafeInteger(userId) && userId > 0 ? `/user/${userId}` : null;
+  } catch {
+    return null;
+  }
+}
+
 export function redirectSystemPath({
   path,
 }: {
@@ -25,6 +43,11 @@ export function redirectSystemPath({
     // which otherwise fires on a navigator that is not mounted yet.
     if (isIncomingCallPath(path)) {
       return null;
+    }
+
+    const profileRoute = publicProfileRoute(path);
+    if (profileRoute) {
+      return profileRoute;
     }
 
     if (new URL(path).hostname === "expo-sharing") {

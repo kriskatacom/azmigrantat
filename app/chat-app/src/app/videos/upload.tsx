@@ -2,6 +2,7 @@ import { useAppTheme } from "@/app/_layout";
 import Header from "@/components/Header";
 import AppButton from "@/components/ui/AppButton";
 import AppInput from "@/components/ui/AppInput";
+import PlaceSelector from "@/components/location/place-selector";
 import VideoUploadProgressOverlay, { VideoUploadStage } from "@/components/video/video-upload-progress-overlay";
 import { useAuth } from "@/hooks/useAuth";
 import { beginVideoUpload, cancelActiveVideoUpload, completeVideoUpload, deleteVideo, getNativeFileSize, refreshVideoUploadSession, uploadVideoThumbnail, uploadVideoWithTusAndRefresh } from "@/services/videos";
@@ -24,6 +25,7 @@ import {
   type VideoUploadDraft,
 } from "@/services/video-upload-draft";
 import type { VideoStatus } from "@/types/video";
+import type { PlaceItem } from "@/services/places";
 import {
   getBackgroundUploadStatus,
   setBackgroundUploadActive,
@@ -79,11 +81,13 @@ export default function VideoUploadScreen() {
   const [isDraftReady, setIsDraftReady] = useState(false);
   const [isPersistingAsset, setIsPersistingAsset] = useState(false);
   const [title, setTitle] = useState("");
+  const [titleError, setTitleError] = useState<string | null>(null);
   const [description, setDescription] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [rootCategories, setRootCategories] = useState<Category[]>([]);
   const [categoryHasChildren, setCategoryHasChildren] = useState<Record<number, boolean>>({});
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<PlaceItem | null>(null);
   const [selectedCategoryPath, setSelectedCategoryPath] = useState<
     Pick<Category, "id" | "name">[]
   >([]);
@@ -139,6 +143,7 @@ export default function VideoUploadScreen() {
         setTitle(draft.title);
         setDescription(draft.description);
         setSelectedCategory(draft.selectedCategory);
+        setSelectedPlace(draft.selectedPlace ?? null);
         setSelectedCategoryPath(restoredCategoryPath);
         setSelected(draft.selectedVideo);
         setThumbnail(draft.thumbnail);
@@ -167,6 +172,7 @@ export default function VideoUploadScreen() {
       description,
       selectedCategory,
       selectedCategoryPath,
+      selectedPlace,
       selectedVideo: selected,
       thumbnail,
       updatedAt: new Date().toISOString(),
@@ -178,7 +184,7 @@ export default function VideoUploadScreen() {
     }, 250);
 
     return () => clearTimeout(timer);
-  }, [busy, currentStep, description, isDraftReady, selected, selectedCategory, selectedCategoryPath, thumbnail, title, user?.id]);
+  }, [busy, currentStep, description, isDraftReady, selected, selectedCategory, selectedCategoryPath, selectedPlace, thumbnail, title, user?.id]);
 
   useEffect(() => {
     return () => {
@@ -338,6 +344,11 @@ export default function VideoUploadScreen() {
 
   async function upload() {
     if (!token || !selected || uploadStarted.current) return;
+    if (!title.trim()) {
+      setTitleError("Моля, въведете име на видеото.");
+      goToStep(1);
+      return;
+    }
     if (!selected.size) {
       Alert.alert("Липсва размер", "Не може да се определи размерът на видеото.");
       return;
@@ -391,6 +402,7 @@ export default function VideoUploadScreen() {
           title: title.trim() || selected.name,
           description: description.trim(),
           categoryId: selectedCategory?.id ?? null,
+          place: selectedPlace,
           filename: selected.name,
           mimeType: selected.mimeType ?? "video/mp4",
           fileSize,
@@ -646,6 +658,11 @@ export default function VideoUploadScreen() {
       return;
     }
 
+    if (nextStep > currentStep && currentStep === 1 && !title.trim()) {
+      setTitleError("Моля, въведете име на видеото.");
+      return;
+    }
+
     const direction = nextStep > currentStep ? 1 : -1;
     const travelDistance = Math.min(screenWidth * 0.82, 420);
     stepAnimationRunning.current = true;
@@ -738,36 +755,36 @@ export default function VideoUploadScreen() {
               },
             ]}
           >
-            <View style={styles.stepHeading}>
-              <View
-                style={[
-                  styles.stepIcon,
-                  { backgroundColor: theme.colors.primary },
-                ]}
-              >
-                <Ionicons
-                  name={UPLOAD_STEPS[currentStep].icon}
-                  size={27}
-                  color="#FFFFFF"
-                />
-              </View>
-              <Text style={[styles.stepTitle, { color: theme.colors.text }]}>
-                {UPLOAD_STEPS[currentStep].title}
-              </Text>
-              <Text
-                style={[styles.stepDescription, { color: theme.colors.textSecondary }]}
-              >
-                {currentStep === 0
-                  ? "Започни с видеото, което искаш да споделиш."
-                  : currentStep === 1
+            {currentStep > 0 && currentStep !== 3 ? (
+              <View style={styles.stepHeading}>
+                <View
+                  style={[
+                    styles.stepIcon,
+                    { backgroundColor: theme.colors.primary },
+                  ]}
+                >
+                  <Ionicons
+                    name={UPLOAD_STEPS[currentStep].icon}
+                    size={27}
+                    color="#FFFFFF"
+                  />
+                </View>
+                <Text style={[styles.stepTitle, { color: theme.colors.text }]}>
+                  {UPLOAD_STEPS[currentStep].title}
+                </Text>
+                <Text
+                  style={[styles.stepDescription, { color: theme.colors.textSecondary }]}
+                >
+                  {currentStep === 1
                     ? "Помогни на хората да разберат за какво е видеото."
                     : currentStep === 2
                       ? "Категорията помага видеото да бъде открито по-лесно."
                       : currentStep === 3
                         ? "Избери изображение или остави системата да създаде корица."
                         : "Провери всичко преди да започне качването."}
-              </Text>
-            </View>
+                </Text>
+              </View>
+            ) : null}
 
             {currentStep === 0 ? (
               <Pressable
@@ -914,10 +931,14 @@ export default function VideoUploadScreen() {
             {currentStep === 1 ? (
               <View style={styles.stepFields}>
                 <AppInput
-                  label="Заглавие (по желание)"
+                  label="Заглавие (задължително)"
                   value={title}
-                  onChangeText={setTitle}
-                  placeholder="Например: Разходка из града"
+                  onChangeText={(value) => {
+                    setTitle(value);
+                    if (value.trim()) setTitleError(null);
+                  }}
+                  placeholder="Добави ключови думи за видеото."
+                  error={titleError ?? undefined}
                   maxLength={120}
                   editable={!busy}
                 />
@@ -1002,6 +1023,7 @@ export default function VideoUploadScreen() {
                     </Text>
                   </Pressable>
                 ) : null}
+                <PlaceSelector value={selectedPlace} onChange={setSelectedPlace} />
               </View>
             ) : null}
 
@@ -1053,13 +1075,30 @@ export default function VideoUploadScreen() {
                           { color: theme.colors.textSecondary },
                         ]}
                       >
-                        Избери изображение от галерията или направи снимка
+                        Избери изображение от галерията или направи снимката, която ще се показва като корица на видеото.
                       </Text>
                     </>
                   )}
                 </Pressable>
+                {!thumbnail ? (
+                  <View style={styles.coverExampleSection}>
+                    <Text style={[styles.coverExampleTitle, { color: theme.colors.textSecondary }]}>
+                      Пример за корица
+                    </Text>
+                    <View style={styles.coverExampleFrame}>
+                      <Image
+                        source={require("../../../assets/images/upload-cover-example.png")}
+                        style={styles.coverExampleImage}
+                        resizeMode="cover"
+                      />
+                      <View style={styles.coverExamplePlay}>
+                        <Ionicons name="play" size={24} color="#FFFFFF" />
+                      </View>
+                    </View>
+                  </View>
+                ) : null}
                 <Text style={[styles.optionalHint, { color: theme.colors.textSecondary }]}>
-                  Ако пропуснеш тази стъпка, корицата ще бъде създадена автоматично.
+                  Без избрана снимка ще се използва кадър от видеото.
                 </Text>
               </View>
             ) : null}
@@ -1084,7 +1123,7 @@ export default function VideoUploadScreen() {
                     },
                     {
                       label: "Заглавие",
-                      value: title.trim() || "Ще се използва името на файла",
+                      value: title.trim() || "Не са въведени",
                       icon: "create-outline" as const,
                       step: 1,
                     },
@@ -1098,6 +1137,12 @@ export default function VideoUploadScreen() {
                       label: "Категория",
                       value: selectedCategory?.name ?? "Без категория",
                       icon: "grid-outline" as const,
+                      step: 2,
+                    },
+                    {
+                      label: "Населено място",
+                      value: selectedPlace?.name ?? "Без населено място",
+                      icon: "location-outline" as const,
                       step: 2,
                     },
                     {
@@ -1471,6 +1516,28 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.72)",
   },
   coverOverlayText: { color: "#FFFFFF", fontSize: 13, fontWeight: "800" },
+  coverExampleSection: { gap: 8 },
+  coverExampleTitle: { fontSize: 13, fontWeight: "700", textAlign: "center" },
+  coverExampleFrame: {
+    width: "100%",
+    aspectRatio: 16 / 9,
+    borderRadius: 16,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#111111",
+  },
+  coverExampleImage: { width: "100%", height: "100%" },
+  coverExamplePlay: {
+    position: "absolute",
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingLeft: 3,
+    backgroundColor: "rgba(0, 0, 0, 0.62)",
+  },
   optionalHint: { fontSize: 12, lineHeight: 18, textAlign: "center" },
   reviewCard: { borderWidth: 1, borderRadius: 20, overflow: "hidden" },
   reviewRow: {
@@ -1485,7 +1552,7 @@ const styles = StyleSheet.create({
   reviewText: { flex: 1, minWidth: 0 },
   reviewLabel: { fontSize: 11, fontWeight: "700", textTransform: "uppercase" },
   reviewValue: { marginTop: 3, fontSize: 14, lineHeight: 19, fontWeight: "700" },
-  stepNavigation: { flexDirection: "row", gap: 10, paddingTop: 4 },
+  stepNavigation: { flexDirection: "row", gap: 6, paddingTop: 4 },
   navigationButton: {
     flex: 1,
     minHeight: 52,

@@ -55,6 +55,8 @@ interface MobileAuthResponse {
   device_secret?: string;
   device_trusted?: boolean;
   has_pin?: boolean;
+  is_new_user?: boolean;
+  requires_subscription_choice?: boolean;
 }
 
 interface TotpPendingResponse {
@@ -166,7 +168,23 @@ function toAuthResponse(response: MobileAuthResponse): AuthResponse {
     user: response.user,
     deviceSecret: response.device_secret ?? null,
     hasPin: response.has_pin ?? response.user.has_pin,
+    isNewUser: response.is_new_user ?? false,
+    requiresPlanChoice: response.requires_subscription_choice ?? false,
   };
+}
+
+export async function completeRegistrationPlanChoiceRequest(
+  token: string,
+  plan: "free" | "paid",
+): Promise<void> {
+  await request<{ success: true }>(
+    "/api/mobile/registration/plan-choice/complete",
+    {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ plan }),
+    },
+  );
 }
 
 async function withDevice<T extends Record<string, unknown>>(

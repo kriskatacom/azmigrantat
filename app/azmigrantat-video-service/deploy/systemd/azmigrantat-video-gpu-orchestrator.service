@@ -1,0 +1,36 @@
+[Unit]
+Description=Azmigrantat disabled-by-default GPU video orchestrator
+After=network-online.target redis-server.service
+Wants=network-online.target
+RequiresMountsFor=/srv/azmigrantat-video
+
+[Service]
+Type=simple
+User=azmigrantat-video
+Group=azmigrantat-video
+WorkingDirectory=/opt/azmigrantat-video-service
+EnvironmentFile=/etc/azmigrantat-video/video-service.env
+EnvironmentFile=-/etc/azmigrantat-video/runpod-provider.env
+ExecStart=/usr/local/bin/node --jitless /opt/azmigrantat-video-service/dist/gpu-orchestrator-server.js
+Restart=on-failure
+RestartSec=10
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/azmigrantat-video/state /srv/azmigrantat-video/private/ai-enhancements
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+UMask=0027
+CPUQuota=10%
+MemoryMax=256M
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

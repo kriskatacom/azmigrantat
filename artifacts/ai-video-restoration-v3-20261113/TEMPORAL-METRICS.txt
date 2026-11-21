@@ -1,0 +1,1 @@
+temporal_elapsed_s=96.03 temporal_maxrss_kb=1124568 temporal_user_s=289.95 temporal_system_s=76.23

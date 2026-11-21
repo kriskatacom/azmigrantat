@@ -1,0 +1,15 @@
+{
+  "compile_seconds": 0.11158224300015718,
+  "device": "CPU",
+  "frame_inference_seconds_total": 92.07977189598387,
+  "frame_seconds_max": 1.4585444099975575,
+  "frame_seconds_mean": 1.2788857207775537,
+  "frame_seconds_median": 1.271217698498731,
+  "frame_seconds_min": 1.267288381997787,
+  "frame_seconds_p95": 1.321651505997579,
+  "frames": 72,
+  "inference_num_threads": 4,
+  "openvino_version": "2024.6.0-17404-4c0f47d2335-releases/2024/6",
+  "performance_hint": "LATENCY",
+  "video_loop_seconds_total": 100.30734690700046
+}

@@ -6,6 +6,7 @@ use App\Controllers\DevController;
 use App\Controllers\InstallController;
 use App\Controllers\MediaController;
 use App\Controllers\SettingsController;
+use App\Controllers\SubscriptionPlanAdminController;
 use App\Controllers\TranslationController;
 use App\Middlewares\AdminMiddleware;
 use App\Middlewares\AuthMiddleware;
@@ -18,6 +19,8 @@ $router->get('/install/success', [InstallController::class, 'success']);
 
 $router->get('/admin/dashboard', [AdminController::class, 'dashboard'], $adminAuth);
 $router->post('/admin/sidebar-toggle', [AdminController::class, 'sidebarToggle'], $adminAuth);
+$router->get('/admin/subscription-plan', [SubscriptionPlanAdminController::class, 'index'], $adminAuth);
+$router->post('/admin/subscription-plan', [SubscriptionPlanAdminController::class, 'update'], $adminAuth);
 
 $router->get('/admin/categories', [CategoryController::class, 'index'], $adminAuth);
 $router->get('/admin/categories/create', [CategoryController::class, 'create'], $adminAuth);

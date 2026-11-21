@@ -1,0 +1,11 @@
+run_id=openvino-RealESRGAN_x2plus-10s-20261113T001853Z
+model=RealESRGAN_x2plus
+denoise_strength=not-applicable
+runtime=openvino-2024.6.0
+model_input=640x360
+model_native_output=1280x720
+final_output=1280x720
+cpu_max=400%
+memory_max_bytes=8589934592
+pids_max=192
+source_segment=tears_of_steel_720p.mov@00:01:34+10s

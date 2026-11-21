@@ -10,6 +10,7 @@ interface HeaderProps {
   subtitle?: string;
   brandTitle?: string;
   showBackButton?: boolean;
+  forceBackIcon?: boolean;
   showNotificationsButton?: boolean;
   notificationCount?: number;
   actions?: ReactNode;
@@ -22,12 +23,14 @@ export default function Header({
   subtitle,
   brandTitle,
   showBackButton = true,
+  forceBackIcon = false,
   showNotificationsButton = false,
   notificationCount = 0,
   actions,
 }: HeaderProps) {
   const router = useRouter();
   const canGoBack = router.canGoBack();
+  const usesBackIcon = canGoBack || forceBackIcon;
   const headerBackground = "#111827";
   const headerForeground = "#ffffff";
   const headerSecondary = "#d1d5db";
@@ -144,10 +147,10 @@ export default function Header({
             }}
             style={styles.backButton}
             accessibilityRole="button"
-            accessibilityLabel={canGoBack ? "Назад" : "Начало"}
+            accessibilityLabel={usesBackIcon ? "Назад" : "Начало"}
           >
             <FontAwesome
-              name={canGoBack ? "chevron-left" : "home"}
+              name={usesBackIcon ? "chevron-left" : "home"}
               size={20}
               color={headerForeground}
             />

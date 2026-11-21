@@ -50,6 +50,7 @@ const sharedRuntimeValues = {
   liveMediaProvider: "mediasoup",
   homeVideoFeedDisabled: "false",
   paymentsEnabled: "false",
+  stripeSandboxEnabled: "true",
 };
 
 describe("shared API environment contract", () => {

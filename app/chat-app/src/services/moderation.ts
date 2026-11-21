@@ -1,6 +1,6 @@
 import { authorizedJson } from "@/services/session-http";
 
-export type ReportTargetType = "user" | "video";
+export type ReportTargetType = "user" | "video" | "video_comment";
 export type ReportReason = "spam" | "harassment" | "hate" | "sexual" | "violence" | "scam" | "privacy" | "other";
 
 export async function reportContent(

@@ -6,19 +6,22 @@ import { TUS_VERSION, type UploadMetadata, type UploadState } from './types';
 import { decodeUploadToken, verifyUploadToken } from './token';
 import { verifyDeleteToken } from './admin-token';
 import { StatusCallbackOutbox } from './callbacks';
+import { handleEnhancementRequest } from './enhancement-api';
+import type { VideoEnhancementService } from './enhancement-service';
 
-type Dependencies = { config: VideoServiceConfig; store: UploadStore; queue?: ProcessingQueue };
+type Dependencies = { config: VideoServiceConfig; store: UploadStore; queue?: ProcessingQueue; enhancementService?: VideoEnhancementService };
 function send(response: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}): void { const payload = JSON.stringify(body); response.writeHead(status, { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload), ...headers }); response.end(payload); }
 function tus(response: ServerResponse, headers: Record<string, string> = {}): void { response.setHeader('Tus-Resumable', TUS_VERSION); response.setHeader('Tus-Version', TUS_VERSION); response.setHeader('Tus-Extension', 'creation'); for (const [key, value] of Object.entries(headers)) response.setHeader(key, value); }
 function auth(request: IncomingMessage): string | null { const value = request.headers.authorization; return value?.startsWith('Bearer ') ? value.slice(7).trim() : null; }
 function parseMetadata(value: string | undefined): UploadMetadata { const result: UploadMetadata = {}; for (const item of (value || '').split(',')) { const [key, encoded] = item.trim().split(/\s+/, 2); if (!key || !encoded) continue; if (!/^[a-z]+$/i.test(key)) throw new Error('Invalid Upload-Metadata key.'); const decoded = Buffer.from(encoded, 'base64').toString('utf8'); if (key === 'filename') result.filename = decoded; if (key === 'filetype') result.filetype = decoded.toLowerCase(); } return result; }
 async function body(request: IncomingMessage, maxBytes: number): Promise<Buffer> { const chunks: Buffer[] = []; let size = 0; for await (const chunk of request) { const part = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk); size += part.length; if (size > maxBytes) throw new Error('Upload chunk exceeds the configured limit.'); chunks.push(part); } return Buffer.concat(chunks); }
 
-export function createVideoUploadServer({ config, store, queue = new InMemoryProcessingQueue() }: Dependencies): Server {
+export function createVideoUploadServer({ config, store, queue = new InMemoryProcessingQueue(), enhancementService }: Dependencies): Server {
     return createServer(async (request, response) => {
         try {
             const url = new URL(request.url || '/', 'http://localhost');
             if (request.method === 'GET' && url.pathname === '/health') return send(response, 200, { success: true, service: 'azmigrantat-video-service' });
+            if (enhancementService && await handleEnhancementRequest(request, response, config, enhancementService)) return;
             const match = url.pathname.match(/^\/v1\/uploads(?:\/([^/]+))?(\/complete)?$/);
             tus(response);
             if (!match) return send(response, 404, { success: false, message: 'Not found.' });

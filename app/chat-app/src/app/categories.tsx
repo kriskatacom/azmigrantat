@@ -1,11 +1,12 @@
 import Header from "@/components/Header";
 import RemoteImage from "@/components/ui/RemoteImage";
+import PlaceSelector from "@/components/location/place-selector";
 import { useAppTheme } from "@/contexts/ThemeContext";
 import { getCategories, getRootCategories, type Category } from "@/services/categories";
-import { listPublicVideos } from "@/services/videos";
-import type { PublicVideoItem } from "@/types/video";
+import { getNearbyPlaces, placeSubtitle, type PlaceItem } from "@/services/places";
 import { Ionicons } from "@expo/vector-icons";
 import { Stack, useRouter } from "expo-router";
+import * as Location from "expo-location";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -22,7 +23,11 @@ export default function CategoriesScreen() {
   const router = useRouter();
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryPath, setCategoryPath] = useState<Category[]>([]);
-  const [videos, setVideos] = useState<PublicVideoItem[]>([]);
+  const [selectedPlace, setSelectedPlace] = useState<PlaceItem | null>(null);
+  const [nearbyPlaces, setNearbyPlaces] = useState<PlaceItem[]>([]);
+  const [isLoadingNearby, setIsLoadingNearby] = useState(false);
+  const [nearbyMessage, setNearbyMessage] = useState<string | null>(null);
+  const [leafCategoryId, setLeafCategoryId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);
@@ -37,7 +42,10 @@ export default function CategoriesScreen() {
       const response = await getRootCategories();
       setCategories(response.items);
       setCategoryPath([]);
-      setVideos([]);
+      setSelectedPlace(null);
+      setNearbyPlaces([]);
+      setNearbyMessage(null);
+      setLeafCategoryId(null);
     } catch (loadError) {
       if (loadError instanceof Error && loadError.name === "AbortError") return;
       setError(loadError instanceof Error ? loadError.message : "Категориите не можаха да се заредят.");
@@ -51,6 +59,33 @@ export default function CategoriesScreen() {
     void loadRootCategories();
   }, [loadRootCategories]);
 
+  useEffect(() => {
+    if (!leafCategoryId) return;
+    let active = true;
+    const loadNearbyAutomatically = async () => {
+      setIsLoadingNearby(true);
+      setNearbyMessage(null);
+      try {
+        const permission = await Location.requestForegroundPermissionsAsync();
+        if (!permission.granted) {
+          if (active) setNearbyMessage("Разрешете местоположението или потърсете населено място ръчно.");
+          return;
+        }
+        const current = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+        const places = await getNearbyPlaces(current.coords.latitude, current.coords.longitude);
+        if (!active) return;
+        setNearbyPlaces(places);
+        if (places.length === 0) setNearbyMessage("Не бяха намерени близки населени места.");
+      } catch (locationError) {
+        if (active) setNearbyMessage(locationError instanceof Error ? locationError.message : "Местоположението не може да бъде определено.");
+      } finally {
+        if (active) setIsLoadingNearby(false);
+      }
+    };
+    void loadNearbyAutomatically();
+    return () => { active = false; };
+  }, [leafCategoryId]);
+
   const openCategory = async (category: Category) => {
     setError(null);
     setIsLoadingVideos(true);
@@ -61,15 +96,19 @@ export default function CategoriesScreen() {
       if (childrenResponse.items.length > 0) {
         setCategoryPath(nextPath);
         setCategories(childrenResponse.items);
-        setVideos([]);
+        setSelectedPlace(null);
+        setNearbyPlaces([]);
+        setNearbyMessage(null);
+        setLeafCategoryId(null);
         return;
       }
 
-      const videoResponse = await listPublicVideos("", undefined, category.id);
-      const categoryVideos = videoResponse.data.filter((video) => video.category_id === category.id);
       setCategoryPath(nextPath);
       setCategories([]);
-      setVideos(categoryVideos);
+      setSelectedPlace(null);
+      setNearbyPlaces([]);
+      setNearbyMessage(null);
+      setLeafCategoryId(category.id);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Съдържанието не можа да се зареди.");
     } finally {
@@ -87,7 +126,10 @@ export default function CategoriesScreen() {
       const response = await getCategories(parentId);
       setCategoryPath(parentPath);
       setCategories(response.items);
-      setVideos([]);
+      setSelectedPlace(null);
+      setNearbyPlaces([]);
+      setNearbyMessage(null);
+      setLeafCategoryId(null);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Категориите не можаха да се заредят.");
     } finally {
@@ -95,11 +137,18 @@ export default function CategoriesScreen() {
     }
   };
 
-  const openVideoAuthor = (video: PublicVideoItem) => {
-    if (!video.user) return;
+  const openPlaceVideos = (place: PlaceItem | null) => {
+    setSelectedPlace(place);
+    if (!leafCategoryId || !place) return;
+    const currentCategory = categoryPath[categoryPath.length - 1];
     router.push({
-      pathname: "/user/[id]",
-      params: { id: String(video.user.id), videoId: String(video.id) },
+      pathname: "/category-videos",
+      params: {
+        categoryId: String(leafCategoryId),
+        categoryName: currentCategory?.name ?? "Видеоклипове",
+        placeId: String(place.id),
+        placeName: place.name,
+      },
     });
   };
 
@@ -120,7 +169,7 @@ export default function CategoriesScreen() {
           <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={[styles.stateText, { color: theme.colors.textSecondary }]}>Зареждане на категориите...</Text>
         </View>
-      ) : error && categories.length === 0 && videos.length === 0 ? (
+      ) : error && categories.length === 0 && !leafCategoryId ? (
         <View style={styles.centerState}>
           <Ionicons name="cloud-offline-outline" size={48} color={theme.colors.danger} />
           <Text style={[styles.stateTitle, { color: theme.colors.text }]}>Неуспешно зареждане</Text>
@@ -132,7 +181,7 @@ export default function CategoriesScreen() {
       ) : (
         <ScrollView
           contentInsetAdjustmentBehavior="automatic"
-          contentContainerStyle={[styles.listContent, categories.length === 0 && videos.length === 0 ? styles.emptyListContent : null]}
+          contentContainerStyle={[styles.listContent, categories.length === 0 && !leafCategoryId ? styles.emptyListContent : null]}
           refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={() => void loadRootCategories(true)} tintColor={theme.colors.primary} />}
         >
           {categoryPath.length > 0 ? (
@@ -177,30 +226,42 @@ export default function CategoriesScreen() {
           {isLoadingVideos ? <ActivityIndicator style={styles.videoLoader} size="large" color={theme.colors.primary} /> : null}
           {error ? <Text style={[styles.errorText, { color: theme.colors.danger }]}>{error}</Text> : null}
 
-          {videos.length > 0 ? (
-            <View style={styles.videoList}>
-              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Предложени видеоклипове</Text>
-              {videos.map((video) => (
-                <Pressable key={video.id} onPress={() => openVideoAuthor(video)} style={[styles.videoCard, { backgroundColor: theme.colors.card, borderColor: theme.colors.border }]} disabled={!video.user}>
-                  {video.thumbnail_url ? <RemoteImage uri={video.thumbnail_url} style={styles.videoThumbnail} /> : (
-                    <View style={[styles.videoThumbnail, styles.videoThumbnailFallback, { backgroundColor: theme.colors.input }]}>
-                      <Ionicons name="videocam-outline" size={24} color={theme.colors.textSecondary} />
-                    </View>
-                  )}
-                  <View style={styles.videoContent}>
-                    <Text style={[styles.videoTitle, { color: theme.colors.text }]} numberOfLines={2}>{video.title}</Text>
-                    {video.description ? <Text style={[styles.videoDescription, { color: theme.colors.textSecondary }]} numberOfLines={2}>{video.description}</Text> : null}
-                    {video.user ? <Text style={[styles.videoAuthor, { color: theme.colors.primary }]} numberOfLines={1}>{video.user.name}</Text> : null}
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
-
-          {!isLoadingVideos && categoryPath.length > 0 && categories.length === 0 && videos.length === 0 && !error ? (
-            <View style={styles.centerState}>
-              <Ionicons name="videocam-off-outline" size={44} color={theme.colors.icon} />
-              <Text style={[styles.stateText, { color: theme.colors.textSecondary }]}>Няма видеоклипове в тази категория.</Text>
+          {leafCategoryId ? (
+            <View style={styles.placeFilter}>
+              <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Най-близки населени места</Text>
+              {isLoadingNearby ? (
+                <View style={styles.nearbyLoadingRow}>
+                  <ActivityIndicator color={theme.colors.primary} />
+                  <Text style={[styles.nearbyMessage, { color: theme.colors.textSecondary }]}>Определяме местоположението ви...</Text>
+                </View>
+              ) : null}
+              {nearbyMessage ? <Text style={[styles.nearbyMessage, { color: theme.colors.textSecondary }]}>{nearbyMessage}</Text> : null}
+              {nearbyPlaces.length > 0 ? (
+                <View style={styles.nearbyPlaces}>
+                  {nearbyPlaces.map((place) => {
+                    const selected = selectedPlace?.id === place.id;
+                    return (
+                      <Pressable
+                        key={place.id}
+                        onPress={() => openPlaceVideos(place)}
+                        style={[
+                          styles.nearbyPlace,
+                          { backgroundColor: selected ? theme.colors.primary : theme.colors.input, borderColor: selected ? theme.colors.primary : theme.colors.border },
+                        ]}
+                      >
+                        <Ionicons name="location" size={18} color={selected ? theme.colors.buttonText : theme.colors.primary} />
+                        <View style={styles.nearbyPlaceCopy}>
+                          <Text style={[styles.nearbyPlaceName, { color: selected ? theme.colors.buttonText : theme.colors.text }]}>{place.name}</Text>
+                          <Text style={[styles.nearbyPlaceSubtitle, { color: selected ? theme.colors.buttonText : theme.colors.textSecondary }]} numberOfLines={1}>
+                            {[place.distance_km != null ? `${place.distance_km} km` : null, placeSubtitle(place)].filter(Boolean).join(" · ")}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              ) : null}
+              <PlaceSelector value={selectedPlace} onChange={openPlaceVideos} label="Потърси друго населено място" />
             </View>
           ) : null}
         </ScrollView>
@@ -224,16 +285,16 @@ const styles = StyleSheet.create({
   categoryDescription: { fontSize: 13, lineHeight: 18 },
   backRow: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 8 },
   backText: { fontSize: 16, fontWeight: "700" },
-  videoList: { gap: 12, marginTop: 8 },
   sectionTitle: { fontSize: 20, fontWeight: "800", marginBottom: 2 },
-  videoCard: { minHeight: 100, borderWidth: 1, borderRadius: 16, padding: 10, flexDirection: "row", gap: 12 },
-  videoThumbnail: { width: 128, height: 82, borderRadius: 10 },
-  videoThumbnailFallback: { alignItems: "center", justifyContent: "center" },
-  videoContent: { flex: 1, gap: 4 },
-  videoTitle: { fontSize: 16, fontWeight: "800" },
-  videoDescription: { fontSize: 13, lineHeight: 18 },
-  videoAuthor: { fontSize: 13, fontWeight: "700" },
   videoLoader: { paddingVertical: 24 },
+  placeFilter: { gap: 10, marginTop: 2 },
+  nearbyLoadingRow: { minHeight: 42, flexDirection: "row", alignItems: "center", gap: 10 },
+  nearbyMessage: { fontSize: 14, lineHeight: 20 },
+  nearbyPlaces: { gap: 8 },
+  nearbyPlace: { minHeight: 60, borderWidth: 1, borderRadius: 13, paddingHorizontal: 12, paddingVertical: 9, flexDirection: "row", alignItems: "center", gap: 10 },
+  nearbyPlaceCopy: { flex: 1, gap: 2 },
+  nearbyPlaceName: { fontSize: 15, fontWeight: "800" },
+  nearbyPlaceSubtitle: { fontSize: 12, lineHeight: 17 },
   errorText: { fontSize: 14, lineHeight: 20 },
   centerState: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24, gap: 12 },
   stateTitle: { fontSize: 18, fontWeight: "600", textAlign: "center" },

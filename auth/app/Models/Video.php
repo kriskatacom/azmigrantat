@@ -18,16 +18,17 @@ class Video extends Model
     protected $table = 'videos';
 
     protected $fillable = [
-        'user_id', 'category_id', 'provider', 'provider_video_id', 'storage_path', 'playback_url',
+        'user_id', 'category_id', 'place_id', 'provider', 'provider_video_id', 'storage_path', 'playback_url',
         'processing_status', 'duration', 'bunny_library_id', 'bunny_video_guid', 'title', 'description', 'thumbnail_url', 'status',
         'bunny_status', 'mime_type', 'file_size', 'duration_seconds', 'width',
         'height', 'upload_expires_at', 'uploaded_at', 'processed_at', 'failed_at',
-        'failure_reason', 'total_views', 'unique_viewers',
+        'failure_reason', 'total_views', 'unique_viewers', 'comments_count',
     ];
 
     protected $casts = [
         'user_id' => 'integer',
         'category_id' => 'integer',
+        'place_id' => 'integer',
         'duration' => 'float',
         'bunny_library_id' => 'integer',
         'bunny_status' => 'integer',
@@ -37,6 +38,7 @@ class Video extends Model
         'height' => 'integer',
         'total_views' => 'integer',
         'unique_viewers' => 'integer',
+        'comments_count' => 'integer',
         'upload_expires_at' => 'datetime',
         'uploaded_at' => 'datetime',
         'processed_at' => 'datetime',
@@ -69,5 +71,15 @@ class Video extends Model
     public function category()
     {
         return $this->belongsTo(Category::class, 'category_id');
+    }
+
+    public function place()
+    {
+        return $this->belongsTo(Place::class, 'place_id');
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(VideoComment::class, 'video_id');
     }
 }

@@ -1,0 +1,21 @@
+ARG WORKER_BASE_IMAGE
+FROM ${WORKER_BASE_IMAGE}
+
+# GHCR rejects layers above 10 GB. The fixed 4-GiB chunks are copied one per
+# layer and reconstructed only on the Pod's ephemeral disk after bootstrap.
+USER root
+RUN install -d -o swiftvr -g swiftvr -m 0500 /opt/swiftvr-weight-chunks
+COPY --chown=swiftvr:swiftvr --chmod=0400 reconstruction-manifest.json /opt/swiftvr-weight-chunks/reconstruction-manifest.json
+COPY --chown=swiftvr:swiftvr --chmod=0400 file-00-part-000 /opt/swiftvr-weight-chunks/file-00-part-000
+COPY --chown=swiftvr:swiftvr --chmod=0400 file-01-part-000 /opt/swiftvr-weight-chunks/file-01-part-000
+COPY --chown=swiftvr:swiftvr --chmod=0400 file-02-part-000 /opt/swiftvr-weight-chunks/file-02-part-000
+COPY --chown=swiftvr:swiftvr --chmod=0400 file-03-part-000 /opt/swiftvr-weight-chunks/file-03-part-000
+COPY --chown=swiftvr:swiftvr --chmod=0400 file-03-part-001 /opt/swiftvr-weight-chunks/file-03-part-001
+COPY --chown=swiftvr:swiftvr --chmod=0400 file-03-part-002 /opt/swiftvr-weight-chunks/file-03-part-002
+COPY --chown=swiftvr:swiftvr --chmod=0400 file-03-part-003 /opt/swiftvr-weight-chunks/file-03-part-003
+COPY --chown=swiftvr:swiftvr --chmod=0400 file-03-part-004 /opt/swiftvr-weight-chunks/file-03-part-004
+USER swiftvr:swiftvr
+
+ENV SWIFTVR_MODEL_DIR=/work/models/swiftvr \
+    SWIFTVR_MODEL_CHUNKS_DIR=/opt/swiftvr-weight-chunks \
+    SWIFTVR_RECONSTRUCTION_MANIFEST=/opt/swiftvr-weight-chunks/reconstruction-manifest.json

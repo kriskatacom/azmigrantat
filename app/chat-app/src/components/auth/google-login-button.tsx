@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import type { AuthResponse } from "@/types/auth";
 import {
   DeviceVerificationRequiredError,
   EmailCodeRequiredError,
@@ -35,6 +36,8 @@ interface GoogleLoginButtonProps {
     deviceName: string | null,
   ) => void;
   onEmailCodeRequired?: (pendingToken: string) => void;
+  deferSession?: boolean;
+  onAuthenticated?: (response: AuthResponse) => void | Promise<void>;
 }
 
 export default function GoogleLoginButton({
@@ -42,6 +45,8 @@ export default function GoogleLoginButton({
   onTotpRequired,
   onDeviceVerificationRequired,
   onEmailCodeRequired,
+  deferSession = false,
+  onAuthenticated,
 }: GoogleLoginButtonProps) {
   const { loginWithGoogle } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,7 +77,8 @@ export default function GoogleLoginButton({
         throw new Error("Google не върна валиден ID token.");
       }
 
-      await loginWithGoogle(result.data.idToken, rememberMe);
+      const response = await loginWithGoogle(result.data.idToken, rememberMe, !deferSession);
+      await onAuthenticated?.(response);
     } catch (error) {
       if (error instanceof TotpRequiredError) {
         if (onTotpRequired) {

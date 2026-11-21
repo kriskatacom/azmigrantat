@@ -1,6 +1,5 @@
 import { useAppTheme } from "@/app/_layout";
 import RemoteImage from "@/components/ui/RemoteImage";
-import { copyText } from "@/utils/copy-text";
 import { FontAwesome } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -13,7 +12,6 @@ type ImageFile = {
 
 type ProfileIdentityCardProps = {
   name: string;
-  publicCode?: string | null;
   imageUri?: string | null;
   coverUri?: string | null;
   isUploading: boolean;
@@ -110,7 +108,6 @@ function chooseSource(
 
 export default function ProfileIdentityCard({
   name,
-  publicCode,
   imageUri,
   coverUri,
   isUploading,
@@ -134,15 +131,6 @@ export default function ProfileIdentityCard({
     }
 
     chooseSource("Корица за предавания на живо", [16, 9], onPickCover);
-  };
-
-  const handleCopyCode = async () => {
-    if (!publicCode) {
-      return;
-    }
-
-    await copyText(publicCode);
-    Alert.alert("Код на профила", publicCode);
   };
 
   const busyLabel = isUploadingCover
@@ -234,30 +222,6 @@ export default function ProfileIdentityCard({
         {busyLabel}
       </Text>
 
-      {publicCode ? (
-        <TouchableOpacity
-          onPress={() => void handleCopyCode()}
-          style={[
-            styles.codeRow,
-            {
-              backgroundColor: theme.colors.background,
-              borderColor: theme.colors.border,
-            },
-          ]}
-          accessibilityRole="button"
-          accessibilityLabel="Копирай кода на профила"
-        >
-          <View style={styles.codeText}>
-            <Text style={[styles.codeLabel, { color: theme.colors.textSecondary }]}>
-              Вашият код
-            </Text>
-            <Text selectable style={[styles.code, { color: theme.colors.text }]}>
-              {publicCode}
-            </Text>
-          </View>
-          <FontAwesome name="copy" size={18} color={theme.colors.primary} />
-        </TouchableOpacity>
-      ) : null}
     </View>
   );
 }
@@ -338,19 +302,4 @@ const styles = StyleSheet.create({
   },
   name: { fontSize: 20, fontWeight: "800", marginTop: 10, paddingHorizontal: 18 },
   hint: { fontSize: 13, textAlign: "center", paddingHorizontal: 18, marginTop: 4 },
-  codeRow: {
-    alignSelf: "stretch",
-    marginTop: 12,
-    marginHorizontal: 18,
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  codeText: { flex: 1, gap: 2 },
-  codeLabel: { fontSize: 12, fontWeight: "600" },
-  code: { fontSize: 20, fontWeight: "800", letterSpacing: 1.4 },
 });

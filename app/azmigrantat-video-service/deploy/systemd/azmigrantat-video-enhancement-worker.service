@@ -1,0 +1,34 @@
+[Unit]
+Description=Azmigrantat standard FFmpeg video enhancement worker
+Wants=network-online.target
+After=network-online.target redis-server.service azmigrantat-video.service
+RequiresMountsFor=/srv/azmigrantat-video
+
+[Service]
+Type=simple
+User=azmigrantat-video
+Group=azmigrantat-video
+WorkingDirectory=/opt/azmigrantat-video-service
+EnvironmentFile=/etc/azmigrantat-video/video-service.env
+ExecStart=/usr/local/bin/node dist/enhancement-worker-server.js
+Restart=on-failure
+RestartSec=10s
+Nice=10
+CPUQuota=650%
+CPUWeight=20
+IOWeight=20
+MemoryHigh=12G
+MemoryMax=16G
+TasksMax=128
+TimeoutStopSec=15s
+KillMode=control-group
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/srv/azmigrantat-video
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

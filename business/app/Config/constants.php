@@ -152,6 +152,7 @@ define('CITIES', [
 
 define('SIDEBAR_LINKS', [
     ['url' => '/admin/dashboard', 'icon' => 'fa-chart-line', 'label' => 'Табло'],
+    ['url' => '/admin/subscription-plan', 'icon' => 'fa-credit-card', 'label' => 'Платен абонамент'],
     ['url' => OAUTH_SERVER_URL . '/admin/users', 'icon' => 'fa-users', 'label' => 'Потребители'],
     ['url' => '/admin/business-categories', 'icon' => 'fa-briefcase', 'label' => 'Бизнес Категории'],
     ['url' => '/admin/translations', 'icon' => 'fa-language', 'label' => 'Преводи'],

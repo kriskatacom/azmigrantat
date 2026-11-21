@@ -195,6 +195,7 @@ final class MobileAuthController extends BaseController
 
         return $this->json(
             $this->completeAuthenticatedLogin($user, $app, true, $deviceInfo, true) + [
+                'is_new_user' => true,
                 'message' => 'Профилът беше създаден успешно.',
             ],
             201
@@ -408,6 +409,7 @@ final class MobileAuthController extends BaseController
             $email = strtolower(
                 trim($payload['email'])
             );
+            $isNewUser = false;
 
             $socialAccount = UserSocialAccount::query()
                 ->where('provider', 'google')
@@ -460,7 +462,9 @@ final class MobileAuthController extends BaseController
                         'role' => User::ROLE_USER,
                         'is_active' => true,
                         'email_verified' => true,
+                        'options' => ['subscription_plan_choice_pending' => true],
                     ]);
+                    $isNewUser = true;
                 }
 
                 UserSocialAccount::create([
@@ -469,6 +473,47 @@ final class MobileAuthController extends BaseController
                     'provider_user_id' => (string) $payload['sub'],
                     'email' => $email,
                 ]);
+            }
+
+            // Older accounts linked by email may predate the social-login name
+            // mapping and can contain null/placeholder profile names. Fill only
+            // missing values from the verified Google token; never overwrite a
+            // name that the user has already entered in Ето ме.
+            $googleFirstName = trim((string) ($payload['given_name'] ?? ''));
+            $googleLastName = trim((string) ($payload['family_name'] ?? ''));
+            $googleDisplayName = trim((string) ($payload['name'] ?? ''));
+            if ($googleDisplayName === '') {
+                $googleDisplayName = trim($googleFirstName . ' ' . $googleLastName);
+            }
+
+            $missingName = static function ($value): bool {
+                $normalized = strtolower(trim((string) $value));
+                return in_array($normalized, [
+                    '',
+                    '0',
+                    '0 0',
+                    'null',
+                    'null null',
+                    'undefined',
+                    'undefined undefined',
+                ], true);
+            };
+
+            $profileChanged = false;
+            if ($missingName($user->first_name) && !$missingName($googleFirstName)) {
+                $user->first_name = $googleFirstName;
+                $profileChanged = true;
+            }
+            if ($missingName($user->last_name) && !$missingName($googleLastName)) {
+                $user->last_name = $googleLastName;
+                $profileChanged = true;
+            }
+            if ($missingName($user->name) && !$missingName($googleDisplayName)) {
+                $user->name = $googleDisplayName;
+                $profileChanged = true;
+            }
+            if ($profileChanged) {
+                $user->save();
             }
 
             if (!$user->is_active) {
@@ -482,7 +527,13 @@ final class MobileAuthController extends BaseController
                 $user,
                 $oauthApp,
                 $this->rememberMeFromInput($input),
-                $input
+                $input,
+                [
+                    'is_new_user' => $isNewUser,
+                    'requires_subscription_choice' => (bool) (
+                        ($user->options ?? [])['subscription_plan_choice_pending'] ?? false
+                    ),
+                ]
             );
         } catch (\Throwable $exception) {
             error_log(
@@ -499,6 +550,31 @@ final class MobileAuthController extends BaseController
                 'message' => 'Google входът не можа да бъде завършен.',
             ], 500);
         }
+    }
+
+    public function completeRegistrationPlanChoice()
+    {
+        $user = $this->authenticatedUser();
+        if (!$user) {
+            return $this->unauthorized();
+        }
+
+        $input = $this->jsonInput();
+        $plan = strtolower(trim((string) ($input['plan'] ?? '')));
+        if (!in_array($plan, ['free', 'paid'], true)) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Избраният абонаментен план е невалиден.',
+            ], 422);
+        }
+
+        $options = is_array($user->options) ? $user->options : [];
+        unset($options['subscription_plan_choice_pending']);
+        $options['initial_subscription_plan'] = $plan;
+        $user->options = $options;
+        $user->save();
+
+        return $this->json(['success' => true]);
     }
 
     public function facebook()
@@ -1007,7 +1083,8 @@ final class MobileAuthController extends BaseController
         User $user,
         OauthApp $app,
         bool $rememberMe,
-        array $input
+        array $input,
+        array $authenticatedPayload = []
     ) {
         $devices = new DeviceAuthService();
 
@@ -1021,11 +1098,11 @@ final class MobileAuthController extends BaseController
         }
 
         if ($devices->needsNewDeviceChallenge($user, $deviceInfo['uuid'])) {
-            return $this->json($devices->createPending($user, $app, $rememberMe, $deviceInfo));
+            return $this->json($devices->createPending($user, $app, $rememberMe, $deviceInfo) + $authenticatedPayload);
         }
 
         return $this->json(
-            $this->completeAuthenticatedLogin($user, $app, $rememberMe, $deviceInfo, false, false)
+            $this->completeAuthenticatedLogin($user, $app, $rememberMe, $deviceInfo, false, false) + $authenticatedPayload
         );
     }
 

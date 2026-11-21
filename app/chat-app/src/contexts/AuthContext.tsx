@@ -106,7 +106,7 @@ interface AuthContextValue {
   canUseFingerprintLogin: boolean;
   canUseDeviceLockLogin: boolean;
   login: (payload: LoginPayload) => Promise<void>;
-  loginWithGoogle: (idToken: string, rememberMe?: boolean) => Promise<void>;
+  loginWithGoogle: (idToken: string, rememberMe?: boolean, persistSession?: boolean) => Promise<AuthResponse>;
   loginWithFacebook: (accessToken: string, rememberMe?: boolean) => Promise<void>;
   loginWithPin: (pin: string, rememberMe?: boolean) => Promise<void>;
   loginWithFingerprint: (rememberMe?: boolean) => Promise<void>;
@@ -119,7 +119,8 @@ interface AuthContextValue {
   setDeviceLockLoginEnabledFlag: (enabled: boolean) => Promise<void>;
   setPinLoginEnabledFlag: (enabled: boolean) => Promise<void>;
   setEmailLoginEnabledFlag: (enabled: boolean) => Promise<void>;
-  register: (payload: RegisterPayload) => Promise<void>;
+  register: (payload: RegisterPayload, persistSession?: boolean) => Promise<AuthResponse>;
+  completeAuthResponse: (response: AuthResponse) => Promise<void>;
   logout: () => Promise<void>;
   endLocalSession: () => Promise<void>;
   updateUser: (user: AuthUser) => Promise<void>;
@@ -469,9 +470,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
   );
 
   const register = useCallback(
-    async (payload: RegisterPayload) => {
+    async (payload: RegisterPayload, persistSession = true) => {
       const response = await registerRequest(payload);
-      await persistAuthResponse(response);
+      if (persistSession) await persistAuthResponse(response);
+      return response;
     },
     [persistAuthResponse],
   );
@@ -509,9 +511,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
   );
 
   const loginWithGoogle = useCallback(
-    async (idToken: string, rememberMe = false) => {
+    async (idToken: string, rememberMe = false, persistSession = true) => {
       const response = await googleLoginRequest(idToken, rememberMe);
-      await persistAuthResponse(response);
+      if (persistSession) await persistAuthResponse(response);
+      return response;
     },
     [persistAuthResponse],
   );
@@ -712,6 +715,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       canUseDeviceLockLogin,
       login,
       loginWithGoogle,
+      completeAuthResponse: persistAuthResponse,
       loginWithFacebook,
       loginWithPin,
       loginWithFingerprint,
@@ -746,6 +750,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       canUseDeviceLockLogin,
       login,
       loginWithGoogle,
+      persistAuthResponse,
       loginWithFacebook,
       loginWithPin,
       loginWithFingerprint,

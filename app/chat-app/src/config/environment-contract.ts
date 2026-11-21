@@ -13,6 +13,7 @@ export type EnvironmentValues = {
   liveMediaProvider?: string;
   homeVideoFeedDisabled?: string;
   paymentsEnabled?: string;
+  stripeSandboxEnabled?: string;
   facebookSignInEnabled?: string;
 };
 
@@ -88,6 +89,12 @@ export function validateRuntimeEnvironment(values: EnvironmentValues): string[] 
   }
   if (values.paymentsEnabled !== "false") {
     errors.push("EXPO_PUBLIC_ENABLE_PAYMENTS трябва да е false за първата публична версия.");
+  }
+  if (values.stripeSandboxEnabled !== "true") {
+    errors.push("Stripe Sandbox трябва да е активен във всички среди.");
+  }
+  if (values.stripeSandboxEnabled === "true" && values.paymentsEnabled !== "false") {
+    errors.push("Stripe Sandbox изисква реалните плащания да останат изключени.");
   }
   return errors;
 }

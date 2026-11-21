@@ -1,0 +1,11 @@
+[Unit]
+Description=Resource boundary for Azmigrantat AI video enhancement
+
+[Slice]
+CPUQuota=150%
+CPUWeight=1
+IOWeight=1
+MemoryHigh=4G
+MemoryMax=6G
+MemorySwapMax=0
+TasksMax=96

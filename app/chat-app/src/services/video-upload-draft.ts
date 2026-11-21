@@ -3,6 +3,7 @@ import { Directory, File, Paths } from "expo-file-system";
 import type * as ImagePicker from "expo-image-picker";
 
 import type { Category } from "@/services/categories";
+import type { PlaceItem } from "@/services/places";
 
 export type VideoUploadDraft = {
   version: 1;
@@ -12,6 +13,7 @@ export type VideoUploadDraft = {
   description: string;
   selectedCategory: Category | null;
   selectedCategoryPath: Pick<Category, "id" | "name">[];
+  selectedPlace?: PlaceItem | null;
   selectedVideo: DocumentPicker.DocumentPickerAsset | null;
   thumbnail: ImagePicker.ImagePickerAsset | null;
   updatedAt: string;

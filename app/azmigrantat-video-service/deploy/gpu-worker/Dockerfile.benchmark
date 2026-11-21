@@ -1,0 +1,12 @@
+ARG WORKER_BASE_IMAGE
+FROM ${WORKER_BASE_IMAGE}
+
+# Build only in a private registry context after separately downloading the
+# exact model snapshot. Never pass a Hugging Face token to this build/runtime.
+USER root
+COPY --chown=swiftvr:swiftvr models/ /models/swiftvr/
+RUN python3 /opt/azmigrantat-gpu-worker/verify_model_manifest.py \
+      --manifest /opt/azmigrantat-gpu-worker/model-manifest.json \
+      --checkpoint /models/swiftvr \
+    && python3 -m pip freeze --all | LC_ALL=C sort > /opt/azmigrantat-gpu-worker/python-packages.lock
+USER swiftvr:swiftvr

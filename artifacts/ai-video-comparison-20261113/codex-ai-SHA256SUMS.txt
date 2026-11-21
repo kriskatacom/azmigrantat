@@ -1,0 +1,6 @@
+964696f5c5558a8adcea97834a858997a22003a4ad6db83d269e1d0055e3d223  /srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/openvino-realesr-general-x4v3-dn050-10s-20261113T000719Z/00-lossless-reference-10s.mkv
+0f406e093f5a591ebdaca3d8d173da5e65c514dde66d35dc68f3137cb0b5d576  /srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/openvino-realesr-general-x4v3-dn050-10s-20261113T000719Z/01-original-degraded-360p-10s.mp4
+af90fe77a1ce436e1474a0a4f436fdf747103ea4e1fd4160ea8553aa33f64287  /srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/openvino-realesr-general-x4v3-dn050-10s-20261113T000719Z/02-standard-ffmpeg-720p-10s.mp4
+ad30df89487832e149af4d71894468e3ae371d48480ab2f20cb508af39f70f9c  /srv/azmigrantat-video/ai-cpu-lab-20261113/outputs/openvino-realesr-general-x4v3-dn050-10s-20261113T000719Z/03-ai-openvino-720p-10s.mp4
+d0b01b572ed54f1a80734b4e1cda81828afc40fc793e71263e24a4df5ab5d234  /srv/azmigrantat-video/ai-cpu-lab-20261113/runtime/openvino/realesr-general-x4v3-dn050-640x360.xml
+a8ceaddf6a538df0633d5688138f5e16c765e2a59696777969f854b2576434f3  /srv/azmigrantat-video/ai-cpu-lab-20261113/runtime/openvino/realesr-general-x4v3-dn050-640x360.bin

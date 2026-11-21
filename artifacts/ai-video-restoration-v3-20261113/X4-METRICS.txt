@@ -1,0 +1,1 @@
+x4_elapsed_s=100.72 x4_maxrss_kb=485668 x4_user_s=373.78 x4_system_s=12.16

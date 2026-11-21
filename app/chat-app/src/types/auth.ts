@@ -1,7 +1,8 @@
 export interface AuthUser {
   id: number;
-  firstName: string;
-  lastName: string;
+  name?: string | null;
+  firstName: string | null;
+  lastName: string | null;
   email: string;
   gender?: Gender | null;
   phone?: string | null;
@@ -81,4 +82,6 @@ export interface AuthResponse {
   user: AuthUser;
   deviceSecret?: string | null;
   hasPin?: boolean;
+  isNewUser?: boolean;
+  requiresPlanChoice?: boolean;
 }

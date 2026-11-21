@@ -38,9 +38,32 @@ Before activation, an operator with root access must:
 8. Run `/health`, a non-production TUS upload, worker processing, and HTTP Range
    checks before any Bunny migration.
 
-Both systemd units use `RequiresMountsFor=/srv/azmigrantat-video`, so they do not
-start when the video filesystem is unavailable. The API and worker use separate
-processes but the same environment file and service account.
+All systemd units use `RequiresMountsFor=/srv/azmigrantat-video`, so they do not
+start when the video filesystem is unavailable. The upload API, transcoding
+worker and optional enhancement worker use separate processes but the same
+environment file and service account. Keep
+`azmigrantat-video-enhancement-worker.service` disabled until measured p10 FPS
+values have replaced the conservative placeholders and
+`VIDEO_ENHANCEMENT_ENABLED=1` has been deliberately set. Its systemd limits
+cap CPU, memory and I/O priority so upload/playback retain capacity.
+
+The enhancement release also requires Nginx read access to
+`public/enhancements/` and the reviewed `/v1/enhancements` proxy location. The
+private enhancement working tree must remain inaccessible to Nginx. Install
+the database migration `20261112090000_create_video_enhancement_jobs.php` on
+the PHP backend before enabling the account allowlist. `VIDEO_ENHANCEMENT_ENABLED`
+and `VIDEO_ENHANCEMENT_ALLOWED_EMAILS` must both be configured in PHP; an empty
+allowlist grants access to nobody.
+
+The AI adapter is an explicit protocol-v1 executable contract, not an FFmpeg
+alias. `--preflight --protocol-version 1` must return JSON containing a ready
+status, engine/model fingerprints and supported target short sides. Processing
+receives `--input`, `--output`, `--target-short-side`, `--deadline-seconds`,
+`--natural-detail`, `--preserve-audio` and `--preserve-timestamps`, and may emit
+`progress=N`. The adapter must enforce the supplied workspace byte ceiling and
+declare that capability during preflight. AI uses its own Redis queue, worker process, readiness heartbeat,
+temporary tree and systemd slice. Leave both AI flags disabled until a
+representative GPU benchmark meets the 300-second end-to-end deadline.
 
 ## Dedicated DELETE build deployment (manual, review-only)
 

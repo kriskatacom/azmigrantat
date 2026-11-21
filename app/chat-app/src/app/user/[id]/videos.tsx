@@ -4,9 +4,11 @@ import ChatMoreOptionsModal from "@/components/chat/chat-more-options-modal";
 import RemoteImage from "@/components/ui/RemoteImage";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import ProfileVideoPager from "@/components/video/profile-video-pager";
+import { getVideoDisplayTitle } from "@/constants/featured-video";
 import VideoEditModal from "@/components/video/video-edit-modal";
 import VideoViewsBadge from "@/components/video/video-views-badge";
 import { useAuth } from "@/hooks/useAuth";
+import { getUserDisplayName } from "@/utils/user-display-name";
 import { getPublicProfile, type PublicUserProfile } from "@/services/profile";
 import {
   deleteVideo,
@@ -18,7 +20,7 @@ import {
 import type { VideoItem } from "@/types/video";
 import { FontAwesome } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { Redirect, useLocalSearchParams } from "expo-router";
+import { Redirect, type Href, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -35,7 +37,8 @@ const VIDEO_PAGE_SIZE = 10;
 
 export default function UserVideosScreen() {
   const { theme } = useAppTheme();
-  const { token, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const { token, user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
+  const router = useRouter();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const userId = useMemo(() => {
     const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -216,10 +219,12 @@ export default function UserVideosScreen() {
   }
   if (!isAuthenticated) return <Redirect href="/(auth)/login" />;
 
-  const displayName =
-    profile?.name?.trim() ||
-    [profile?.firstName, profile?.lastName].filter(Boolean).join(" ").trim() ||
-    "Потребител";
+  const displayName = profile
+    ? getUserDisplayName(profile)
+    : "Потребител";
+  const hasAiTestAccess = profile?.is_self === true
+    && user?.id === 1269
+    && user.email.trim().toLowerCase() === "techsolutionbg@gmail.com";
 
   return (
     <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
@@ -251,9 +256,28 @@ export default function UserVideosScreen() {
                 <VideoViewsBadge count={item.total_views} />
               </View>
               <View style={styles.details}>
-                <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={2}>{item.title}</Text>
+                {getVideoDisplayTitle(item) ? (
+                  <Text style={[styles.title, { color: theme.colors.text }]} numberOfLines={2}>{getVideoDisplayTitle(item)}</Text>
+                ) : null}
                 {item.description ? <Text style={[styles.description, { color: theme.colors.textSecondary }]} numberOfLines={2}>{item.description}</Text> : null}
                 {item.status !== "ready" ? <Text style={[styles.status, { color: theme.colors.textSecondary }]}>Видеото се обработва — ще бъде достъпно за гледане скоро.</Text> : null}
+                {hasAiTestAccess && item.status === "ready" ? (
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel={`AI подобряване на ${item.title} до 720p`}
+                    onPress={(event) => {
+                      event.stopPropagation();
+                      router.push({
+                        pathname: "/videos/[id]/enhance",
+                        params: { id: String(item.id), method: "ai" },
+                      } as Href);
+                    }}
+                    style={[styles.aiEnhancementButton, { borderColor: theme.colors.primary }]}
+                  >
+                    <FontAwesome name="magic" size={13} color={theme.colors.primary} />
+                    <Text style={[styles.aiEnhancementButtonText, { color: theme.colors.primary }]}>AI подобряване · 720p</Text>
+                  </TouchableOpacity>
+                ) : null}
               </View>
               {profile?.is_self ? (
                 <TouchableOpacity
@@ -277,6 +301,24 @@ export default function UserVideosScreen() {
         title="Опции за видеото"
         subtitle={videoMenuTarget?.title ?? "Изберете действие."}
         options={videoMenuTarget ? [
+          ...(videoMenuTarget.status === "ready" && hasAiTestAccess ? [
+            {
+              icon: "magic" as const,
+              label: "AI подобряване (720p)",
+              onPress: () => router.push({
+                pathname: "/videos/[id]/enhance",
+                params: { id: String(videoMenuTarget.id), method: "ai" },
+              } as Href),
+            },
+          ] : []),
+          ...(videoMenuTarget.status === "ready" ? [{
+            icon: "sliders" as const,
+            label: "Стандартно подобряване",
+            onPress: () => router.push({
+              pathname: "/videos/[id]/enhance",
+              params: { id: String(videoMenuTarget.id), method: "standard" },
+            } as Href),
+          }] : []),
           {
             icon: "pencil",
             label: "Редактирай",
@@ -341,6 +383,7 @@ export default function UserVideosScreen() {
             });
         }}
         colors={theme.colors}
+        token={token}
       />
     </View>
   );
@@ -361,6 +404,18 @@ const styles = StyleSheet.create({
   title: { fontSize: 16, lineHeight: 21, fontWeight: "800" },
   description: { fontSize: 13, lineHeight: 18 },
   status: { fontSize: 12, lineHeight: 17, fontWeight: "600" },
+  aiEnhancementButton: {
+    alignSelf: "flex-start",
+    minHeight: 32,
+    marginTop: 3,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderRadius: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  aiEnhancementButtonText: { fontSize: 12, lineHeight: 16, fontWeight: "800" },
   videoMoreButton: {
     position: "absolute",
     top: 10,

@@ -1,0 +1,45 @@
+[Unit]
+Description=Azmigrantat isolated AI video enhancement worker
+Wants=network-online.target
+After=network-online.target redis-server.service azmigrantat-video.service
+RequiresMountsFor=/srv/azmigrantat-video
+
+[Service]
+Type=simple
+User=azmigrantat-video
+Group=azmigrantat-video
+WorkingDirectory=/opt/azmigrantat-video-service
+EnvironmentFile=/etc/azmigrantat-video/video-service.env
+RuntimeDirectory=azmigrantat-video-ai
+RuntimeDirectoryMode=0750
+StateDirectory=azmigrantat-video-ai
+StateDirectoryMode=0750
+CacheDirectory=azmigrantat-video-ai
+CacheDirectoryMode=0750
+Environment=HOME=/var/lib/azmigrantat-video-ai
+Environment=XDG_CACHE_HOME=/var/cache/azmigrantat-video-ai
+Environment=XDG_CONFIG_HOME=/var/lib/azmigrantat-video-ai/config
+ExecStart=/usr/bin/flock -n /run/azmigrantat-video-ai/worker.lock /usr/local/bin/node dist/ai-enhancement-worker-server.js
+Restart=on-failure
+RestartSec=30s
+Slice=azmigrantat-video-ai.slice
+Nice=19
+CPUSchedulingPolicy=batch
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+OOMPolicy=stop
+TimeoutStopSec=15s
+KillMode=control-group
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=strict
+ReadWritePaths=/srv/azmigrantat-video
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+LimitNOFILE=32768
+LimitFSIZE=8G
+
+# The worker is isolated and host-singleton. User access is controlled by the
+# independent PHP verified-email + stable-user-id entitlement gate.
+[Install]
+WantedBy=multi-user.target
